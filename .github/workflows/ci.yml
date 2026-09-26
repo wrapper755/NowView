@@ -1,0 +1,61 @@
+# NowView CI
+#
+# 빠르게 실패하는 순서로 둔다 — lint(수초) → test(1초대) → build(가장 느림).
+# build가 TypeScript 검사를 겸하므로 별도 typecheck 단계를 두지 않는다
+# (CLAUDE.md "Commands" 참조).
+#
+# 이 프로젝트는 데이터가 전부 Mock 코드라 빌드에 환경 변수나 비밀값이 필요 없다.
+# 실제 백엔드(LangGraph)가 붙으면 그때 시크릿과 서비스 컨테이너를 추가한다.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 기본값이 넓으므로 읽기만 남긴다.
+permissions:
+  contents: read
+
+# 같은 브랜치에 연달아 푸시하면 앞선 실행을 취소한다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 로컬 런타임(Node 22)과 맞춘다. @types/node도 ^22다 — 어긋나면
+          # 타입 정의와 실제 런타임이 다른 상태로 검증하게 된다.
+          node-version: 22
+          cache: npm
+
+      # package-lock.json 기준으로 정확히 재현한다. 락파일이 package.json과
+      # 어긋나 있으면 여기서 바로 실패한다 — 그게 이 단계의 목적 중 하나다.
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      # Next.js 빌드 캐시. 빌드가 가장 느린 단계라 여기만 캐시한다.
+      # 소스가 바뀌면 키가 갈라지고, 락파일만 같으면 이전 캐시를 가져다 쓴다.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      - name: Build
+        run: npm run build
