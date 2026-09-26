@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Sparkles, TriangleAlert } from "lucide-react";
 
 import { SeverityTag } from "@/components/shared/severity";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { formatPercent } from "@/lib/format";
+import { useDemoController } from "@/lib/store/demo-controller";
 import type { KriTuning } from "@/lib/types/evolution";
 import { formatLeadTime, tuningOutcome, tuningRange } from "@/services/evolution-lab";
 
@@ -18,9 +18,16 @@ import { formatLeadTime, tuningOutcome, tuningRange } from "@/services/evolution
  *
  * 임계치를 조이면 더 빨리 잡히지만 오탐이 늘어난다 — 이 트레이드오프를 숨기지 않는 것이
  * 이 패널의 전부다. 조기 감지일만 보여 주고 오탐을 감추면 임계치는 끝없이 올라간다.
+ *
+ * 임계치는 로컬 상태가 아니라 데모 스토어가 소유한다. 시나리오 장면이 값을 지정해
+ * "87%로 올리면 이렇게 된다"를 말로만 하지 않고 실제로 보여 줄 수 있어야 하기 때문이다.
  */
 export function KriTuningPanel({ kri }: { kri: KriTuning }) {
-  const [threshold, setThreshold] = useState(kri.currentThreshold);
+  const threshold = useDemoController(
+    (s) => s.kriThresholds[kri.id] ?? kri.currentThreshold,
+  );
+  const setKriThreshold = useDemoController((s) => s.setKriThreshold);
+  const setThreshold = (value: number) => setKriThreshold(kri.id, value);
   const { min, max } = tuningRange(kri);
   const outcome = tuningOutcome(kri, threshold);
 

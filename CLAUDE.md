@@ -140,7 +140,7 @@ NowView/
 │   │                             #   action-tracker, revision-history
 │   ├── evolution/                # ⑤ evolution-shell, kri-tuning-panel, backtest-chart,
 │   │                             #   proposal-list
-│   ├── demo/demo-player.tsx      # 플로팅 시나리오 플레이어 (전 화면 공통)
+│   ├── demo/                    # demo-player, store-hydrator (전 화면 공통)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
@@ -182,9 +182,27 @@ NowView/
   금액은 `simulateAlternative`로 계산해 화면·API와 같은 값이 되게 한다(하드코딩 금지).
 * 자동 재생의 `setState`는 타이머 콜백 안에서만 일어난다 — effect 본문에서 상태를 바꾸면
   `react-hooks/set-state-in-effect`에 걸린다.
-* 플레이어가 화면 하단을 가리므로 `app/layout.tsx`의 본문 래퍼에 `pb-40`을 둔다.
+* 플레이어가 화면 하단을 가리므로 `app/layout.tsx`의 본문 래퍼에 `pb-48`(192px)을 둔다.
+  플레이어 최대 높이 170px + 하단 오프셋 16px = 186px이 필요하다(측정값).
+* **시나리오가 조작해야 하는 값은 화면 로컬 상태로 두지 않는다.** ⑤의 KRI 임계치가
+  `useState`에 있어서 "87%로 올리면"을 말로만 하고 슬라이더는 85%에 머물렀다.
+  스토어로 올려 장면이 값을 지정하게 했다(`DemoScene.kri`).
 
-### 4.2 API 계층
+### 4.2 상태 영속화
+
+스토어는 `persist` 미들웨어로 localStorage(`nowview-demo`)에 저장된다. 시연 중 새로고침해도
+진행 상태가 남는다.
+
+* **`skipHydration: true`가 핵심이다.** 화면들이 정적 프리렌더라 서버 HTML은 항상 기본
+  상태인데, persist가 모듈 로드 시점에 자동 복원하면 첫 클라이언트 렌더가 서버와 달라져
+  하이드레이션이 깨진다. 자동 복원을 끄고 `components/demo/store-hydrator.tsx`가 mount
+  이후 명시적으로 복원한다. 첫 페인트가 아주 짧게 기본 상태로 나갔다가 바뀐다.
+* **`isPlaying`은 저장하지 않는다.** 새로고침하자마자 화면이 저절로 넘어가면 곤란하다.
+* 저장 형태를 바꾸면 `version`을 올린다. 올리지 않으면 예전 구조가 그대로 복원돼 터진다.
+* 초기 상태로 되돌리려면 플레이어의 "처음으로"를 누르거나 localStorage의 `nowview-demo`를
+  지운다.
+
+### 4.3 API 계층
 
 ```
 GET  /api/mock                  사용 가능한 데이터셋 목록
@@ -210,7 +228,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
   정적 프리렌더를 유지한다. API는 외부 소비자(별도 클라이언트, Python 서비스)를 위한 경계다.
   화면을 API로 옮기면 정적 렌더를 잃으므로, 실제 백엔드가 붙을 때 함께 판단할 것.
 
-### 4.3 데이터 시각화 규칙
+### 4.4 데이터 시각화 규칙
 
 차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
 
@@ -227,7 +245,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
   Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
 * 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
 
-### 4.4 BPM 상태 모델
+### 4.5 BPM 상태 모델
 
 **노드 상태는 저장하지 않고 파생한다.** 실행 순서(`BpmProcessInstance.sequence`)와 현재 진행 지점이
 유일한 진실이고, 노드별 상태·Agent 실행 상태는 전부 `services/`에서 계산한다
@@ -245,7 +263,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
 * **단계별 문구를 하드코딩하지 말 것.** 사람 대기 배너는 `user-task`면 모두 뜨는데, Review 전용 문구를
   넣어 두었다가 Management Action 단계에서 "대안 선택과 승인"을 말하는 버그가 있었다.
 
-### 4.5 화면 간 수치·상태 연동
+### 4.6 화면 간 수치·상태 연동
 
 다섯 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 본다 —
 감지(①) → 프로세스(②) → 판단(③) → 반영(④) → 시스템 개선(⑤).
@@ -274,7 +292,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
 ⑤ Evolution Lab은 예외로 **전역 상태를 바꾸지 않는다.** 채택·보류는 화면 로컬 상태다 —
 프레임워크 변경은 배포 절차를 타야 하고, 이 단계의 결정은 다음 루프부터 효력이 생긴다.
 
-### 4.6 Mock 데이터를 지어낼 때의 규칙
+### 4.7 Mock 데이터를 지어낼 때의 규칙
 
 화면이 주장하는 바를 데이터가 배반하지 않아야 한다. 지금까지 지킨 것들:
 

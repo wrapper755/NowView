@@ -31,6 +31,13 @@ export interface DemoScene {
   narration: string;
   /** 이 장면에서 Management Review 승인이 이미 이루어진 상태인가. */
   decided: boolean;
+  /**
+   * 이 장면에서 보여 줄 KRI 튜닝 상태 (⑤ Evolution Lab).
+   *
+   * 없으면 모든 KRI를 현행 임계치로 되돌린다 — 장면은 증분이 아니라 목표 상태를
+   * 선언하므로, 이 필드가 없다는 것은 "튜닝하지 않은 상태"를 뜻한다.
+   */
+  kri?: { id: string; threshold: number };
 }
 
 const recommended = reviewCase.alternatives.find(
@@ -124,8 +131,9 @@ export const demoScenario: DemoScene[] = [
     stage: "management-evolution",
     title: "감지 체계 개선",
     narration:
-      "이번 건에서 감지가 늦었다는 사실이 드러났다. 임계치를 85%에서 87%로 올리면 8일 앞서 잡히지만 오탐이 1건에서 6건으로 늘어난다.",
+      "이번 건에서 감지가 늦었다는 사실이 드러났다. 임계치를 87%로 올려 두었다 — 8일 앞서 잡히지만 오탐은 1건에서 6건으로 늘어난다.",
     decided: true,
+    kri: { id: "kri-utilization", threshold: 87 },
   },
   {
     id: "next-loop",

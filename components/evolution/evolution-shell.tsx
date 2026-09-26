@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDemoController } from "@/lib/store/demo-controller";
 import { PROPOSAL_KIND_LABEL, type EvolutionLab, type ProposalStatus } from "@/lib/types/evolution";
 
 /**
@@ -22,7 +23,10 @@ import { PROPOSAL_KIND_LABEL, type EvolutionLab, type ProposalStatus } from "@/l
  */
 export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
   const [statusById, setStatusById] = useState<Record<string, ProposalStatus>>({});
-  const [activeKriId, setActiveKriId] = useState(lab.kris[0].id);
+
+  // 보고 있는 KRI도 시나리오가 지정하므로 스토어에서 읽는다.
+  const activeKriId = useDemoController((s) => s.activeKriId);
+  const setActiveKriId = useDemoController((s) => s.setActiveKri);
 
   const activeKri = lab.kris.find((k) => k.id === activeKriId) ?? lab.kris[0];
   const adoptedCount = Object.values(statusById).filter((s) => s === "adopted").length;
@@ -66,7 +70,9 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
           </div>
         </CardHeader>
         <CardContent>
-          <KriTuningPanel key={activeKri.id} kri={activeKri} />
+          {/* 임계치가 스토어에 KRI별로 남으므로 리마운트로 초기화할 필요가 없다.
+              탭을 오가도 각 KRI의 조정값이 유지된다. */}
+          <KriTuningPanel kri={activeKri} />
         </CardContent>
       </Card>
 

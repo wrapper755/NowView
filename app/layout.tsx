@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { DemoPlayer } from "@/components/demo/demo-player";
+import { StoreHydrator } from "@/components/demo/store-hydrator";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               내레이션이 길어지면 플레이어가 커지므로 `lib/demo-scenario.ts`의 길이 제약과 함께 본다. */}
           <div className="flex-1 pb-48">{children}</div>
 
+          <StoreHydrator />
           <DemoPlayer />
         </ThemeProvider>
       </body>
