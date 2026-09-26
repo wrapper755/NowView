@@ -119,8 +119,6 @@ Next 쪽은 `ENGINE_URL`(기본 `http://localhost:8077`)로 이 서비스를 가
 ## 아직 안 된 것
 
 * **Postgres checkpointer** — 지금은 SQLite다. 여러 인스턴스로 띄우면 상태가 갈라진다.
-* **CI에서 돌지 않는다** — `.github/workflows/ci.yml`은 npm 잡만 있다. `uv sync` →
-  `ruff` → `pytest` 잡을 더해야 한다.
 * **화면이 이 엔진을 쓰지 않는다** — 다섯 화면은 여전히 Mock을 직접 import한다
   (정적 프리렌더 유지). 엔진은 `/api/engine/*`로만 노출된다.
 * **데모 플레이어와 공존하지 않는다** — "아무 장면으로나 건너뛴다"는 모델은 실행 중인

@@ -607,16 +607,16 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
 CI(5.1)와 LangGraph 엔진 골격(5.2)이 끝났다. 남은 것은 **엔진을 실제로 쓰게 하는 일**
 (5.3)이고, 그 전에 Postgres·CI 확장이 필요하다.
 
-### 5.1 CI — 완료 (단, Python이 빠져 있다)
+### 5.1 CI — 완료
 
 원격은 **https://github.com/wrapper755/NowView** (private)이고
-`.github/workflows/ci.yml`이 `main` 푸시와 모든 PR에서 돈다:
+`.github/workflows/ci.yml`이 `main` 푸시와 모든 PR에서 돈다. **잡이 둘이고 병렬로 돈다** —
+서로 의존이 없고, 순차로 두면 어느 쪽이 깨졌는지 알기까지 더 오래 걸린다.
 
 ```
-npm ci → npm run lint → npm run test → npm run build
+verify (TS)     npm ci        → lint  → test(vitest) → build
+engine (Python) uv sync --locked → ruff → pytest
 ```
-
-전 단계 통과를 확인했다(약 40초).
 
 * 빠르게 실패하는 순서로 뒀다 — lint(수초) → test(1초대) → build(가장 느림).
 * build가 TypeScript 검사를 겸하므로 별도 typecheck 단계를 두지 않는다.
@@ -625,16 +625,20 @@ npm ci → npm run lint → npm run test → npm run build
 * `node-version`은 22로 고정했다. `@types/node`도 `^22`다 — 어긋나면 타입 정의와 실제
   런타임이 다른 상태로 검증하게 된다. **이것은 액션 자체의 실행 런타임과는 다른 값이다**(아래).
 * `.next/cache`만 캐시한다. 빌드가 가장 느린 단계이기 때문이다.
-* 데이터가 전부 Mock 코드라 **시크릿이나 서비스 컨테이너가 필요 없다.**
+* 데이터가 전부 Mock 코드고 **Agent 노드도 기본이 Mock이라 LLM 자격증명 없이 전부
+  검증된다.** 시크릿도 서비스 컨테이너도 아직 필요 없다.
 
-**`engine/`의 pytest 33개는 CI에서 돌지 않는다.** 워크플로에 npm 잡만 있다. 더해야 하는 것:
+**engine 잡에서 알아둘 것:**
 
-```
-uv sync --directory engine → ruff check → pytest   # -m llm은 제외 (ollama 필요)
-```
-
-LLM 실호출 테스트는 CI에 넣지 않는다 — ollama·모델 자격증명이 필요하고 비결정적이다.
-계약 검증(`_validate`)은 네트워크 없이 돌므로 그쪽이 CI의 몫이다.
+* **Python 버전의 원천은 `engine/.python-version`이다.** 워크플로에 또 적으면 로컬
+  venv와 CI가 갈라진다 — `node-version` / `@types/node`에서 겪은 것과 같은 문제다.
+  `uv`가 없는 인터프리터를 직접 내려받으므로 `setup-python`이 필요 없다.
+* `uv sync --locked`가 `npm ci`의 몫을 한다 — `uv.lock`이 `pyproject.toml`과 어긋나면
+  바로 실패한다. 실제로 의존성을 하나 더해 확인했다.
+* **ollama 실호출 테스트(`-m llm`)는 CI에 넣지 않는다.** 비결정적이고 모델 자격증명이
+  필요하다. `pyproject.toml`의 `addopts`가 기본으로 제외하므로 워크플로에 플래그가 없다.
+  계약 검증(`_validate`)은 네트워크 없이 돌아 CI가 잡는다.
+* 캐시 키를 `engine/uv.lock`으로 좁혔다 — 앱 쪽 변경으로 엔진 캐시가 날아가지 않게 한다.
 
 **워크플로를 손댈 때는 액션 최신 버전을 조회하고 쓴다.** 관례적으로 `@v4`를 썼다가 첫
 실행에서 "Node 20 deprecated, Node 24로 강제 실행" 경고를 받았다. 액션의 실행 런타임은
@@ -670,7 +674,6 @@ gh api repos/actions/checkout/releases/latest --jq .tag_name
 * **Postgres checkpointer** — 지금은 SQLite다. 여러 인스턴스로 띄우면 상태가 갈라지므로
   실제 배포에는 부족하다. `langgraph-checkpoint-postgres`로 교체하고 docker-compose로
   Next·FastAPI·Postgres를 묶어야 한다.
-* **CI에 Python 잡** — 5.1 참조.
 * **LLM 비용·레이트·타임아웃 관리** — 지금은 Agent 노드마다 10초 이상이고 재시도가
   붙는다. 노드가 많은 프로세스에서는 전체 지연이 누적된다.
 * **화면이 엔진을 쓰게 하는 일** — 5.3.

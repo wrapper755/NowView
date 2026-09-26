@@ -27,8 +27,8 @@ npm run dev     # http://localhost:3000
 
 단일 테스트는 `npx vitest run tests/framework.test.ts -t "예방 통제가 없는"`.
 
-CI는 `.github/workflows/ci.yml`에 있다 — `main` 푸시와 모든 PR에서 위 네 단계를
-그대로 돌린다. (엔진 테스트는 아직 CI에 없다.)
+CI는 `.github/workflows/ci.yml`에 있다 — `main` 푸시와 모든 PR에서 TS 앱과 Python 엔진을
+**병렬 두 잡**으로 검증한다.
 
 ### BPM 엔진 (선택)
 
