@@ -1,0 +1,91 @@
+/**
+ * Rolling Plan 계산.
+ *
+ * 이 화면에서 가장 틀리기 쉬운 것은 **과제 효과의 이중 계상**이다.
+ * 이미 Forecast에 반영된 과제를 또 더하면 Gap이 실제보다 메워진 것처럼 보인다.
+ * 그래서 합산은 전부 `reflectedInForecast`로 갈라서 한다.
+ *
+ * Target은 입력으로만 받고 어떤 함수도 이를 바꾸지 않는다 (CLAUDE.md 1장).
+ */
+
+import type { ActionItem, RollingPlan } from "@/lib/types/rolling";
+import type { Alternative, ReviewDecision } from "@/lib/types/workspace";
+
+export interface GapSummary {
+  /** 확정 목표. 바뀌지 않는다. */
+  target: number;
+  /** 현재 Forecast. 반영 완료된 과제 효과까지 포함한 값이다. */
+  forecast: number;
+  /** 현재 잔여 Gap (Forecast − Target, 음수면 미달). */
+  gap: number;
+  /** 이미 Forecast에 반영된 과제의 목표 회수액 합. */
+  reflectedRecovery: number;
+  /** 아직 반영되지 않은(승인 직후) 과제의 목표 회수액 합. */
+  pendingRecovery: number;
+  /** 미반영분까지 반영했을 때의 Forecast 전망. */
+  projectedForecast: number;
+  /** 그때의 잔여 Gap. */
+  projectedGap: number;
+  /** 반영 완료 과제의 실제 회수 진척률(%). 목표 회수액이 0이면 0. */
+  realizationRate: number;
+}
+
+export function summarizeGap(plan: RollingPlan, actions: ActionItem[]): GapSummary {
+  const reflected = actions.filter((a) => a.reflectedInForecast);
+  const pending = actions.filter((a) => !a.reflectedInForecast);
+
+  const reflectedRecovery = reflected.reduce((sum, a) => sum + a.targetRecovery, 0);
+  const pendingRecovery = pending.reduce((sum, a) => sum + a.targetRecovery, 0);
+  const realized = reflected.reduce((sum, a) => sum + a.realizedRecovery, 0);
+
+  const projectedForecast = plan.forecast + pendingRecovery;
+
+  return {
+    target: plan.target,
+    forecast: plan.forecast,
+    gap: plan.forecast - plan.target,
+    reflectedRecovery,
+    pendingRecovery,
+    projectedForecast,
+    projectedGap: projectedForecast - plan.target,
+    realizationRate: reflectedRecovery === 0 ? 0 : (realized / reflectedRecovery) * 100,
+  };
+}
+
+/**
+ * Management Review 승인 결정을 실행 과제로 변환한다 (루프 4단계).
+ *
+ * 승인 직후의 과제이므로 아직 Forecast에 반영되지 않았고(`reflectedInForecast: false`)
+ * 회수 실적도 0이다. 다음 Rolling 회차에서 반영된다.
+ */
+export function decisionToAction(
+  decision: ReviewDecision,
+  alternative: Alternative,
+  sourceRiskId: string,
+): ActionItem {
+  return {
+    id: `act-${decision.alternativeId}`,
+    title: `${alternative.name} (${alternative.lever.label} ${decision.leverValue}${alternative.lever.unit})`,
+    owner: alternative.owner,
+    due: alternative.leadTime,
+    division: "파워트레인/샤시",
+    targetRecovery: decision.profitImpact,
+    realizedRecovery: 0,
+    status: "not-started",
+    reflectedInForecast: false,
+    sourceRiskId,
+  };
+}
+
+/** 분기 합계가 전사 수치와 맞는지 확인한다. 어긋난 Rolling Plan은 보고서로 쓸 수 없다. */
+export function assertQuartersBalance(plan: RollingPlan): void {
+  const sum = (key: "target" | "forecast") =>
+    plan.quarters.reduce((total, q) => total + q[key], 0);
+
+  if (sum("target") !== plan.target) {
+    throw new Error(`분기 Target 합 ${sum("target")} ≠ 전사 Target ${plan.target}`);
+  }
+  if (sum("forecast") !== plan.forecast) {
+    throw new Error(`분기 Forecast 합 ${sum("forecast")} ≠ 전사 Forecast ${plan.forecast}`);
+  }
+}

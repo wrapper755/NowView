@@ -21,6 +21,17 @@ export function formatEok(eok: number): string {
   return `${sign}${Math.round(abs).toLocaleString("ko-KR")}억`;
 }
 
+/**
+ * 소수점을 살린 억원 표기.
+ *
+ * `formatEok`는 반올림하므로 회수 실적 5.2억이 "5억"이 되어 진척 차이가 사라진다.
+ * 정수면 소수점을 붙이지 않는다 — "5.0억"은 불필요하게 정밀해 보인다.
+ */
+export function formatEokPrecise(eok: number, digits = 1): string {
+  if (Number.isInteger(eok)) return formatEok(eok);
+  return `${eok.toFixed(digits)}억`;
+}
+
 /** 부호를 항상 붙인다. Gap·증감 표기용. 0은 부호 없이 "0억". */
 export function formatEokSigned(eok: number): string {
   const rounded = Math.round(eok);

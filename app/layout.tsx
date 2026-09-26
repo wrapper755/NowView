@@ -41,7 +41,7 @@ const NAV_ITEMS: Array<{ label: string; icon: LucideIcon; href?: string }> = [
   { label: "Executive Cockpit", icon: GaugeCircle, href: "/" },
   { label: "BPM & Agent Tracker", icon: Activity, href: "/bpm-tracker" },
   { label: "Collaboration Station", icon: Users, href: "/workspace" },
-  { label: "Rolling Plan", icon: ListChecks },
+  { label: "Rolling Plan", icon: ListChecks, href: "/rolling-plan" },
   { label: "Evolution Lab", icon: FlaskConical },
 ];
 

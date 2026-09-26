@@ -108,23 +108,26 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 아래는 **목표 구조**다. 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
 
-**현재 구현된 것** — ① Executive Cockpit, ② Live BPM & Agent Process Tracker,
-③ Human-Agent Collaboration Station:
-* `app/{layout.tsx,page.tsx,globals.css}`, `app/bpm-tracker/page.tsx`, `app/workspace/page.tsx`
+**현재 구현된 것** — ①~④ 네 화면:
+* `app/{layout.tsx,page.tsx,globals.css}`, `app/{bpm-tracker,workspace,rolling-plan}/page.tsx`
 * `components/cockpit/*`, `components/flow/*`(BPMN 노드·캔버스), `components/bpm/*`(트래커 패널),
   `components/workspace/*`(보고서·비교표·시뮬레이터·의사결정),
+  `components/rolling/*`(Gap 패널·추이 차트·과제·갱신 이력),
   `components/ui/*`, `components/theme-provider.tsx`·`theme-toggle.tsx`
-* `lib/types/{cockpit,bpm,workspace}.ts`, `lib/mock-data/{next-automotive,bpm-process,review-case}.ts`,
+* `lib/types/{cockpit,bpm,workspace,rolling}.ts`,
+  `lib/mock-data/{next-automotive,bpm-process,review-case,rolling-plan}.ts`,
   `lib/store/demo-controller.ts`, `lib/format.ts`, `lib/utils.ts`,
-  `services/{bpm-engine,agent-orchestrator}.ts`, `.claude/launch.json`
+  `services/{bpm-engine,agent-orchestrator,rolling-plan}.ts`, `.claude/launch.json`
 
-4장 트리와 다른 점: 트래커 화면의 비-플로우 패널은 `components/bpm/`에 둔다 —
-`components/flow/`는 React Flow 노드·엣지·캔버스 전용으로 좁혀 쓴다.
-`components/cockpit/{stat-tile,severity}`는 Cockpit 전용이 아니라 **다른 화면에서도 쓰는 공용 조각**이다
-(협업 스테이션이 가져다 쓴다). 세 번째 화면이 또 가져다 쓰게 되면 `components/shared/`로 옮길 것.
+4장 트리와 다른 점:
+* 트래커의 비-플로우 패널은 `components/bpm/`에 둔다 — `components/flow/`는 React Flow
+  노드·엣지·캔버스 전용으로 좁혀 쓴다. 화면별 패널은 같은 방식으로 `components/rolling/`에 둔다.
+* `services/`에 `rolling-plan.ts`를 추가했다(4장 트리에는 2개만 있다).
+* `components/cockpit/{stat-tile,severity}`는 Cockpit 전용이 아니라 **여러 화면이 쓰는 공용 조각**이다
+  (협업 스테이션·Rolling Plan이 가져다 쓴다). 지금이 `components/shared/`로 옮길 시점이다.
 
-**아직 없는 것** — `app/rolling-plan/`·`evolution/` 2개 화면, `app/api/`,
-`components/demo`(플로팅 데모 플레이어). GNB는 이 2개를 "준비중"으로 비활성 표시하며,
+**아직 없는 것** — `app/evolution/`(⑤ Management Evolution Lab), `app/api/`,
+`components/demo`(플로팅 데모 플레이어). GNB는 이를 "준비중"으로 비활성 표시하며,
 라우트를 만들 때 `app/layout.tsx`의 `NAV_ITEMS`에 `href`를 채운다.
 
 ### 4.2 BPM 상태 모델
@@ -150,11 +153,22 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 * `review-case.ts`의 각 대안 `lever.base × profitPerUnit` = `bpm-process.ts`의 Simulation Agent
   산출물 문구에 적힌 금액 (1안 2×9=18억, 2안 20×0.6=12억, 3안 3×3=9억).
 * `review-case.profitGap`(-69억) = `next-automotive.ts`의 전사 영업이익 Gap.
-* `riskId`·`processId`로 세 화면이 같은 건을 가리킨다.
+* `rolling-plan.ts`의 `target`(428) / `forecast`(359) = `next-automotive.ts`의 전사 영업이익.
+  분기 합도 각각 같아야 하며 `assertQuartersBalance`가 이를 검증한다.
+* `reflectedInForecast: true`인 과제의 목표 회수액 합(20억)
+  = `next-automotive.committedActionRecovery` = Cockpit 브릿지의 "확정 Action 회수 효과 +20억".
+* `riskId`·`processId`로 네 화면이 같은 건을 가리킨다.
 
-**상태 연동:** 협업 스테이션에서 승인하면 Zustand 스토어의 `decision`이 기록되고 BPM 진행 지점이
-Management Action 단계로 이동한다. 스토어는 메모리에만 있으므로 **전체 새로고침하면 초기화된다** —
-연동을 확인하려면 GNB나 화면 내 링크로 클라이언트 라우팅 이동해야 한다.
+**과제 효과의 이중 계상 금지.** Rolling Plan에서 가장 틀리기 쉬운 지점이다. 이미 Forecast에
+반영된 과제를 또 더하면 Gap이 실제보다 메워진 것처럼 보인다. `ActionItem.reflectedInForecast`로
+갈라서 합산하고(`summarizeGap`), 승인 직후 과제는 **현재 Forecast를 바꾸지 않고** "다음 Rolling
+반영 예정"으로만 잡는다 — 전망치(`projectedForecast`)는 따로 표시한다.
+
+**상태 연동:** 협업 스테이션에서 승인하면 Zustand 스토어의 `decision`이 기록되고
+① BPM 진행 지점이 Management Action 단계로 이동하며
+② Rolling Plan의 과제 목록에 미반영 과제로 추가된다(`decisionToAction`).
+스토어는 메모리에만 있으므로 **전체 새로고침하면 초기화된다** — 연동을 확인하려면 GNB나
+화면 내 링크로 클라이언트 라우팅 이동해야 한다.
 
 ### 4.1 데이터 시각화 규칙
 
