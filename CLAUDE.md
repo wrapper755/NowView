@@ -510,27 +510,40 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
 세 가지가 남아 있다. **순서는 CI → LangGraph → 화면/API 전환**이며, 뒤의 둘은 서로
 독립이 아니다.
 
-### 5.1 CI — 워크플로 작성 완료, 원격 연결만 남음
+### 5.1 CI — 완료
 
-`.github/workflows/ci.yml`이 있다. `main` 푸시와 모든 PR에서 돈다:
+원격은 **https://github.com/wrapper755/NowView** (private)이고
+`.github/workflows/ci.yml`이 `main` 푸시와 모든 PR에서 돈다:
 
 ```
 npm ci → npm run lint → npm run test → npm run build
 ```
 
-**아직 git 원격이 없어 실행된 적은 없다.** 원격을 붙이면 그때부터 동작한다.
+전 단계 통과를 확인했다(약 40초).
 
 * 빠르게 실패하는 순서로 뒀다 — lint(수초) → test(1초대) → build(가장 느림).
 * build가 TypeScript 검사를 겸하므로 별도 typecheck 단계를 두지 않는다.
 * `npm ci`는 락파일이 `package.json`과 어긋나면 바로 실패한다. 로컬에서는 보이지 않는
   종류의 문제라 이 단계가 잡는 몫이 있다.
-* Node 22로 고정했다. `@types/node`도 `^22`다 — 어긋나면 타입 정의와 실제 런타임이
-  다른 상태로 검증하게 된다.
+* `node-version`은 22로 고정했다. `@types/node`도 `^22`다 — 어긋나면 타입 정의와 실제
+  런타임이 다른 상태로 검증하게 된다. **이것은 액션 자체의 실행 런타임과는 다른 값이다**(아래).
 * `.next/cache`만 캐시한다. 빌드가 가장 느린 단계이기 때문이다.
 * 데이터가 전부 Mock 코드라 **시크릿이나 서비스 컨테이너가 필요 없다.** 실제 백엔드가
   붙으면 그때 추가한다(5.2).
 
-작성 후 깨끗한 설치(`npm ci`) 위에서 세 단계를 그대로 돌려 통과를 확인했다.
+**워크플로를 손댈 때는 액션 최신 버전을 조회하고 쓴다.** 관례적으로 `@v4`를 썼다가 첫
+실행에서 "Node 20 deprecated, Node 24로 강제 실행" 경고를 받았다. 액션의 실행 런타임은
+`node-version`과 무관하므로 액션 버전을 올려야 해소된다:
+
+```bash
+gh api repos/actions/checkout/releases/latest --jq .tag_name
+```
+
+현재 checkout v7 · setup-node v7 · cache v6이며, 올린 뒤 경고가 사라진 것을 확인했다.
+
+저장소를 **private으로 둔 이유**: INNONOW 방법론, 벤치마킹 대상 실제 회사명(SJG세종·인팩),
+실명이 들어 있다. 공개로 바꾸는 것은 언제든 가능하지만 되돌리는 것은 사실상 불가능하다
+(캐시·포크·검색 색인).
 
 ### 5.2 LangGraph 연동 — 핵심은 "상태 소유권 이전"
 
