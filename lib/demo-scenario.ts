@@ -22,7 +22,12 @@ export interface DemoScene {
   step: number;
   stage: ManagementStage;
   title: string;
-  /** 이 장면에서 무엇을 보아야 하는지. */
+  /**
+   * 이 장면에서 무엇을 보아야 하는지.
+   *
+   * **2줄 이내로 유지할 것.** 플레이어 높이가 늘어나면 `app/layout.tsx`의 본문 하단 여백
+   * (`pb-48`, 192px)을 넘어 페이지 맨 아래 콘텐츠를 가린다. 현재 최대 높이는 170px다.
+   */
   narration: string;
   /** 이 장면에서 Management Review 승인이 이미 이루어진 상태인가. */
   decided: boolean;

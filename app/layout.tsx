@@ -99,8 +99,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </header>
 
-          {/* 플로팅 플레이어가 화면 하단을 가리므로 그만큼 여백을 둔다. */}
-          <div className="flex-1 pb-40">{children}</div>
+          {/* 플로팅 플레이어가 화면 하단을 가리므로 그만큼 여백을 둔다.
+              플레이어 최대 높이 170px + 하단 오프셋 16px = 186px이 필요하다(측정값).
+              내레이션이 길어지면 플레이어가 커지므로 `lib/demo-scenario.ts`의 길이 제약과 함께 본다. */}
+          <div className="flex-1 pb-48">{children}</div>
 
           <DemoPlayer />
         </ThemeProvider>
