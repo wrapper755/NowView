@@ -1,9 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DivisionCard } from "@/components/cockpit/division-card";
+import {
+  FrameworkChainTable,
+  FrameworkSummaryLine,
+} from "@/components/cockpit/framework-chain-table";
 import { OpBridgeChart } from "@/components/cockpit/op-bridge-chart";
 import { RiskSignalList } from "@/components/cockpit/risk-signal-list";
 import { StatTile } from "@/components/shared/stat-tile";
+import { managementFramework } from "@/lib/mock-data/framework";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
+import { buildChains, summarize } from "@/services/framework";
 import {
   formatEok,
   formatEokSigned,
@@ -22,6 +28,9 @@ export default function ExecutiveCockpitPage() {
     company.operatingProfit.forecast,
   );
   const criticalCount = company.risks.filter((r) => r.severity === "critical").length;
+  // 끊어진 연결(존재하지 않는 KPI·통제 참조)이 있으면 여기서 즉시 터진다.
+  const frameworkChains = buildChains(managementFramework);
+  const frameworkSummary = summarize(managementFramework);
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -117,6 +126,23 @@ export default function ExecutiveCockpitPage() {
           ))}
         </div>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Management Framework — KPI · KRI · Control 연결
+          </CardTitle>
+          <CardDescription>
+            무엇을 보고 어떻게 판단할지에 대한 공통 기준이다. 지표를 나열하는 것이 아니라
+            연결이 어디서 끊기는지를 본다 — 임계치를 벗어났는데 예방 통제가 없거나 통제가
+            예외·미수행이면 그 자리가 구멍이다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="viz-root space-y-3">
+          <FrameworkSummaryLine {...frameworkSummary} />
+          <FrameworkChainTable chains={frameworkChains} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
