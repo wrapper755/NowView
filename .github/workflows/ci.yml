@@ -75,6 +75,33 @@ jobs:
       run:
         working-directory: engine
 
+    # **Postgres에서도 같은 테스트를 돌린다.** SQLite와 거의 모든 세부가 다르다 —
+    # SQL 자리표시자(? vs %s), 행 접근(튜플 vs dict), created_at 타입(문자열 vs
+    # datetime). 한쪽에서만 검증하면 나머지가 배포 시점에 터진다.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nowview
+          POSTGRES_PASSWORD: nowview
+          POSTGRES_DB: nowview
+        ports:
+          - 5432:5432
+        # 포트가 열린 것과 질의를 받는 것은 다르다 — pg_isready로 확인한다.
+        options: >-
+          --health-cmd "pg_isready -U nowview -d nowview"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # 이 값이 있으면 store 픽스처가 두 백엔드를 모두 돌린다.
+      TEST_DATABASE_URL: postgresql://nowview:nowview@localhost:5432/nowview
+      # 위 변수를 오타내면 Postgres 테스트가 전부 skip되는데, 초록색 체크만 보고는
+      # "검증했다"와 "건너뛰었다"를 구분할 수 없다. 이 값이 켜져 있으면 skip 대신
+      # 실패한다 — 조용한 미검증이 가장 나쁘다.
+      REQUIRE_POSTGRES: "1"
+
     steps:
       - uses: actions/checkout@v7
 
@@ -102,3 +129,19 @@ jobs:
         # `-m 'not llm'`이 pyproject의 addopts에 있어 ollama 실호출은 자동으로 빠진다.
         # 비결정적이고 모델 자격증명이 필요하므로 CI에 넣지 않는다.
         run: uv run pytest
+
+  # 컨테이너 이미지 — 푸시하지 않고 빌드만 한다.
+  #
+  # Dockerfile은 로컬에서 잘 돌다가 조용히 깨지는 종류다(standalone 산출물 경로,
+  # 락파일 불일치, 베이스 이미지 태그). 빌드까지만 해도 그것을 잡는다.
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # 러너에 docker와 compose v2가 이미 있으므로 추가 액션을 쓰지 않는다 —
+      # 액션을 늘리면 버전 관리할 대상만 늘어난다.
+      # 레이어 캐시가 없어 매번 처음부터 빌드한다. 느려지면 buildx + type=gha를 붙인다.
+      - name: Build images
+        run: docker compose build

@@ -12,18 +12,19 @@
 from __future__ import annotations
 
 import json
-import sqlite3
+import logging
 import uuid
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from langgraph.checkpoint.sqlite import SqliteSaver
-
 from .agents import AgentRunner
 from .graph import build_graph
 from .spec import ProcessSpec
+from .store import Backend
+
+log = logging.getLogger(__name__)
 
 #: 노드 상태. TS의 `BpmNodeStatus`와 같은 어휘를 쓴다.
 NodeStatus = str
@@ -43,38 +44,32 @@ class InstanceStore:
     `runner_factory`를 받는 이유: 재개할 때 **생성 시와 같은 Agent 모드**로 그래프를
     다시 조립해야 한다. Mock으로 시작한 인스턴스를 LLM으로 재개하면 앞뒤 산출물의
     출처가 섞여 어느 것이 실제 호출인지 알 수 없게 된다.
+
+    저장 백엔드는 주입받는다(`store.build_backend`) — SQLite와 Postgres에서 같은
+    코드가 돌아야 하고, 테스트가 양쪽을 모두 돌린다.
     """
 
     def __init__(
         self,
-        db_path: str = ":memory:",
+        backend: Backend,
         *,
         runner_factory: Callable[[str], AgentRunner],
     ) -> None:
+        self.backend = backend
+        self.checkpointer = backend.checkpointer
+        self._specs = backend.specs
         self._runner_factory = runner_factory
-        # check_same_thread=False — FastAPI의 동기 엔드포인트는 스레드풀에서 돈다.
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
-        self._conn.execute(
-            "CREATE TABLE IF NOT EXISTS instance_spec ("
-            "  id TEXT PRIMARY KEY, scenario_id TEXT NOT NULL, spec TEXT NOT NULL,"
-            "  agent_mode TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP)"
-        )
-        self._conn.commit()
-        self.checkpointer = SqliteSaver(self._conn)
-        self.checkpointer.setup()
+        # 조립된 그래프 캐시. **권위 있는 상태가 아니다** — 비면 명세에서 다시 만든다.
         self._cache: dict[str, Instance] = {}
 
     # --------------------------------------------------------------- 생명주기
 
     def create(self, spec: ProcessSpec, *, agent_mode: str) -> Instance:
         instance_id = f"inst-{uuid.uuid4().hex[:12]}"
-        runner = self._runner_factory(agent_mode)
-        built = build_graph(spec, runner=runner, checkpointer=self.checkpointer)
-        self._conn.execute(
-            "INSERT INTO instance_spec (id, scenario_id, spec, agent_mode) VALUES (?,?,?,?)",
-            (instance_id, spec.scenario_id, spec.model_dump_json(), agent_mode),
+        built = build_graph(
+            spec, runner=self._runner_factory(agent_mode), checkpointer=self.checkpointer
         )
-        self._conn.commit()
+        self._specs.save(instance_id, spec.scenario_id, spec.model_dump_json(), agent_mode)
         instance = Instance(
             id=instance_id,
             spec=spec,
@@ -89,40 +84,36 @@ class InstanceStore:
         cached = self._cache.get(instance_id)
         if cached is not None:
             return cached
-        row = self._conn.execute(
-            "SELECT spec, agent_mode FROM instance_spec WHERE id = ?", (instance_id,)
-        ).fetchone()
-        if row is None:
+        record = self._specs.load(instance_id)
+        if record is None:
             raise KeyError(instance_id)
         # 재시작 후 복구 경로. 명세를 저장해 둔 값이 여기서 나온다.
-        spec = ProcessSpec.model_validate_json(row[0])
+        spec_json, agent_mode = record
+        spec = ProcessSpec.model_validate_json(spec_json)
         built = build_graph(
-            spec, runner=self._runner_factory(row[1]), checkpointer=self.checkpointer
+            spec, runner=self._runner_factory(agent_mode), checkpointer=self.checkpointer
         )
         instance = Instance(
-            id=instance_id, spec=spec, graph=built.graph, warnings=built.warnings, agent_mode=row[1]
+            id=instance_id,
+            spec=spec,
+            graph=built.graph,
+            warnings=built.warnings,
+            agent_mode=agent_mode,
         )
         self._cache[instance_id] = instance
         return instance
 
     def list_ids(self) -> list[dict[str, str]]:
-        rows = self._conn.execute(
-            "SELECT id, scenario_id, agent_mode, created_at FROM instance_spec "
-            "ORDER BY created_at DESC"
-        ).fetchall()
-        return [
-            {"instanceId": r[0], "scenarioId": r[1], "agentMode": r[2], "createdAt": r[3]}
-            for r in rows
-        ]
+        return self._specs.list()
 
     def delete(self, instance_id: str) -> None:
-        self._conn.execute("DELETE FROM instance_spec WHERE id = ?", (instance_id,))
-        self._conn.commit()
+        self._specs.delete(instance_id)
         self._cache.pop(instance_id, None)
+        # 체크포인트도 함께 지운다 — 명세만 지우면 스레드가 남아 저장소가 계속 자란다.
         try:
             self.checkpointer.delete_thread(instance_id)
-        except Exception:  # noqa: BLE001 — checkpointer 구현에 따라 없을 수 있다
-            pass
+        except Exception:  # noqa: BLE001 — 구현에 따라 없을 수 있다
+            log.warning("체크포인트 삭제를 건너뛴다: %s", instance_id)
 
 
 def config_for(instance_id: str) -> dict[str, Any]:

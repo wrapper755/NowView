@@ -1,0 +1,29 @@
+# 빌드 컨텍스트에서 뺀다 — 이미지 크기와 캐시 무효화를 줄인다.
+# node_modules는 반드시 빼야 한다: 호스트가 aarch64여도 네이티브 모듈이
+# 이미지 플랫폼과 어긋날 수 있고, npm ci가 락파일로 다시 설치한다.
+node_modules
+.next
+out
+build
+coverage
+
+# 파이썬 엔진 (별도 이미지가 engine/Dockerfile로 빌드한다)
+engine/.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+engine/*.sqlite
+
+.git
+.github
+.claude
+docs
+*.md
+!README.md
+
+.env*
+.vercel
+*.tsbuildinfo
+npm-debug.log*
+.DS_Store

@@ -27,12 +27,18 @@ npm run dev     # http://localhost:3000
 
 단일 테스트는 `npx vitest run tests/framework.test.ts -t "예방 통제가 없는"`.
 
-CI는 `.github/workflows/ci.yml`에 있다 — `main` 푸시와 모든 PR에서 TS 앱과 Python 엔진을
-**병렬 두 잡**으로 검증한다.
+CI는 `.github/workflows/ci.yml`에 있다 — `main` 푸시와 모든 PR에서 **병렬 세 잡**을 돌린다:
+TS 앱(`verify`), Python 엔진(`engine`, Postgres 포함), 컨테이너 이미지 빌드(`docker`).
 
 ### BPM 엔진 (선택)
 
-앱은 엔진 없이도 전부 동작한다. 실제 상태 머신을 돌려보려면:
+앱은 엔진 없이도 전부 동작한다. 실제 상태 머신을 돌려보려면 전체 스택을 띄운다:
+
+```bash
+docker compose up --build
+```
+
+앱 `:3000` · 엔진 `:8077` · Postgres `:55432`. 엔진만 로컬에서 띄우려면:
 
 ```bash
 cd engine && uv sync && uv run uvicorn app.main:app --port 8077 --reload
@@ -99,6 +105,7 @@ services/       파생·계산 로직 (화면과 API가 공유)
 tests/          Vitest — 순수 로직만
 docs/           장면별 설계표 (구현에서 생성)
 engine/         Python BPM 엔진 — FastAPI + LangGraph StateGraph (별도 프로세스)
+Dockerfile      앱 이미지 (docker-compose.yml이 엔진·Postgres와 함께 묶는다)
 ```
 
 **`services/`가 핵심이다.** 화면과 API가 같은 함수를 호출하므로 둘의 결과가 어긋날 수
@@ -128,12 +135,15 @@ engine/         Python BPM 엔진 — FastAPI + LangGraph StateGraph (별도 프
 ## 현재 상태
 
 **구현 완료** — 화면 5개, 시나리오 3개, API 계층, 데모 플레이어, 상태 영속화,
-장면별 설계표 생성기, 테스트 100개(TS) + 33개(엔진).
+장면별 설계표 생성기, 테스트 100개(TS) + 61개(엔진, 두 백엔드).
 
 **BPM 엔진이 실제로 돈다** — `engine/`의 LangGraph StateGraph가 사람 승인에서 진짜로
 멈추고(`interrupt`) 재개된다(`resume`). 게이트웨이는 Agent가 판정한 플래그로 분기하므로
 **경로가 실행의 결과로 나온다.** Agent는 Mock이 기본이고 ollama(`kimi-k3:cloud`)로
 실호출도 검증했다.
+
+**운영 형태로 띄울 수 있다** — `docker compose`가 앱·엔진·Postgres를 묶는다. 엔진
+컨테이너를 재시작해도 승인 대기 중이던 인스턴스가 같은 지점에서 이어진다.
 
 **화면은 아직 Mock을 본다** — 다섯 화면은 `lib/mock-data/`를 직접 import해 정적 프리렌더를
 유지한다. 엔진은 `/api/engine/*`로만 노출되며, 데모 플레이어는 계속 Mock 경로로 돈다

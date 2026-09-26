@@ -21,11 +21,11 @@ from pydantic import BaseModel, Field
 from .agents import AgentContractError, make_runner
 from .instances import InstanceStore, config_for, snapshot
 from .spec import ProcessSpec
+from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 log = logging.getLogger(__name__)
 
-DB_PATH = os.getenv("NOWVIEW_ENGINE_DB", "engine-state.sqlite")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "kimi-k3:cloud")
 
@@ -35,8 +35,11 @@ app = FastAPI(
     description="LangGraph StateGraph 기반 BPM 런타임. 토폴로지는 요청으로 받는다.",
 )
 
+# `DATABASE_URL`이 있으면 Postgres, 없으면 파일 SQLite다. 연결 실패를 SQLite로
+# 되돌리지 않는다 — 운영에서 DB가 안 붙었다면 즉시 드러나야 한다(store.py 참조).
+backend = build_backend()
 store = InstanceStore(
-    DB_PATH,
+    backend,
     runner_factory=lambda mode: make_runner(mode, model=OLLAMA_MODEL, base_url=OLLAMA_URL),
 )
 
@@ -66,7 +69,9 @@ class ResumeRequest(BaseModel):
 def health() -> dict[str, Any]:
     return {
         "ok": True,
-        "db": DB_PATH,
+        # 어느 백엔드로 돌고 있는지 드러내지 않으면 "SQLite로 운영에 올렸다"를
+        # 눈치챌 방법이 없다. 자격증명은 빼고 호스트·DB만 싣는다.
+        "storage": {"kind": backend.kind, "describe": backend.describe},
         "ollama": {"url": OLLAMA_URL, "model": OLLAMA_MODEL},
         "instances": len(store.list_ids()),
     }

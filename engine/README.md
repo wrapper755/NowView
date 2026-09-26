@@ -5,9 +5,18 @@ LangGraph StateGraph 기반 BPM 런타임. Next 앱의 `/api/engine/*`가 이것
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 33개 (LLM 실호출 제외)
+uv run pytest                                      # 41개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
+
+# 두 백엔드 모두 검증 (Postgres가 떠 있을 때)
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 61개
+```
+
+전체 스택은 저장소 루트에서:
+
+```bash
+docker compose up --build
 ```
 
 `--reload` 없이 띄우면 코드를 고쳐도 반영되지 않는다 — 실제로 그 때문에 별칭 변경이
@@ -45,6 +54,29 @@ Python을 고른 이유는 기능 부족이 아니다:
 
 결정→과제 변환을 TS에 남긴 이유: 이중 계상 금지 규칙이 거기 있고 이미 테스트가 잠그고
 있다. 엔진은 "승인됨 + 어느 대안 + 레버값"만 돌려준다.
+
+## 저장 백엔드 — SQLite / Postgres
+
+`DATABASE_URL`이 있으면 Postgres, 없으면 파일 SQLite다. **로컬 개발에서 DB를 띄우라고
+요구하면 "엔진이 없어도 앱은 전부 동작한다"는 성질이 깨진다** — 켜는 쪽이 선택이고
+기본값은 마찰이 없는 쪽이다.
+
+**SQLite로는 운영할 수 없다.** 여러 워커·인스턴스로 띄우면 각자 다른 파일을 보거나
+쓰기가 잠긴다. `docker compose`와 CI는 Postgres를 쓴다. `/health`의 `storage`가 어느
+쪽인지 알려 준다 — 드러내지 않으면 "SQLite로 운영에 올렸다"를 눈치챌 방법이 없다.
+
+**연결 실패를 SQLite로 되돌리지 않는다.** 운영에서 DB가 안 붙었다면 즉시 드러나야
+한다. 조용히 파일로 떨어지면 인스턴스가 워커마다 갈라진 채 돈다.
+
+두 가지 함정:
+
+* **`PostgresSaver`는 `autocommit=True`와 `row_factory=dict_row`를 요구한다.** 빠뜨리면
+  `setup()`이나 첫 쓰기에서 터지는데, 문서에만 있고 타입으로는 드러나지 않는다.
+* **테스트가 두 백엔드를 모두 돈다.** SQL 자리표시자(`?` vs `%s`), 행 접근(튜플 vs
+  dict), `created_at` 타입(문자열 vs datetime)이 전부 다르다. 한쪽만 돌리면 나머지가
+  배포 시점에 터진다. `TEST_DATABASE_URL`을 주면 양쪽을 돌고, 없으면 Postgres 쪽을
+  건너뛴다 — CI에서는 `REQUIRE_POSTGRES=1`로 **건너뛰기를 실패로 바꾼다**(초록색
+  체크만 보고는 "검증했다"와 "건너뛰었다"를 구분할 수 없다).
 
 ## 상태 소유권이 넘어왔다
 
@@ -109,7 +141,8 @@ temperature 0에서도 같은 질문에 `14.2`와 `14.5`가 나왔다. 그래서
 
 | 변수 | 기본값 |
 |---|---|
-| `NOWVIEW_ENGINE_DB` | `engine-state.sqlite` |
+| `DATABASE_URL` | (없음) — 있으면 Postgres, 없으면 SQLite |
+| `NOWVIEW_ENGINE_DB` | `engine-state.sqlite` (SQLite일 때만) |
 | `OLLAMA_URL` | `http://localhost:11434` |
 | `OLLAMA_MODEL` | `kimi-k3:cloud` |
 | `LOG_LEVEL` | `INFO` |
@@ -118,7 +151,6 @@ Next 쪽은 `ENGINE_URL`(기본 `http://localhost:8077`)로 이 서비스를 가
 
 ## 아직 안 된 것
 
-* **Postgres checkpointer** — 지금은 SQLite다. 여러 인스턴스로 띄우면 상태가 갈라진다.
 * **화면이 이 엔진을 쓰지 않는다** — 다섯 화면은 여전히 Mock을 직접 import한다
   (정적 프리렌더 유지). 엔진은 `/api/engine/*`로만 노출된다.
 * **데모 플레이어와 공존하지 않는다** — "아무 장면으로나 건너뛴다"는 모델은 실행 중인

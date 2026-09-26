@@ -26,15 +26,28 @@ npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 33개 (LLM 실호출 제외)
+uv run pytest                                      # 41개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 ```
 
+**전체 스택 (앱 · 엔진 · Postgres)**
+
+```bash
+docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
+```
+
+* `docker compose`는 **Postgres 백엔드**로 돈다. 로컬 `uv run`은 기본이 SQLite다.
+* **포트가 이미 쓰이고 있으면 컨테이너가 포트 매핑 없이 만들어질 수 있다.** 그 상태로
+  `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
+  `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
+* 두 백엔드를 모두 검증하려면:
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (61개)
+
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
 * 앱과 엔진은 별개 프로세스다. `.claude/launch.json`에 `nowview-engine`으로 등록해 두었다.
-* `npm run test`는 TS만 돈다 — 엔진 테스트는 별도이고 **CI에도 아직 없다**(5.1).
+* `npm run test`는 TS만 돈다 — 엔진 테스트는 별도다(CI에서는 둘 다 돈다).
 
 * **타입 검사 단독 실행**: `npx tsc --noEmit`. `npm run build`가 타입 검사를 겸하므로 별도 `typecheck` 스크립트는 두지 않았다. `tsconfig.json`의 `include`가 `**/*.ts`라 테스트도 함께 검사된다.
 * **Shadcn 컴포넌트 추가**: `npx shadcn@latest add <component>` → `components/ui/`에 생성된다.
@@ -533,6 +546,10 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
 | `invariants.test.ts` | 화면 간 수치 연동 항등식 (4.6) — 합산, 브릿지, 분기 합, 시나리오 간 연결 |
 | `bpm-engine.test.ts` | 상태 파생 규칙 (4.5) — skipped/waiting 판정, **미완료 Agent 산출물 은닉**, 승인 지점 |
 | `engine-spec.test.ts` | 엔진 명세 생성 (4.16) — 게이트웨이 분기 규칙, **Mock 플래그가 선언된 경로와 일치하는지** |
+
+엔진 쪽은 `engine/tests/`에 pytest로 있다 — **SQLite와 Postgres 두 백엔드를 모두 돌린다**
+(41개 / 61개). 자리표시자·행 접근·날짜 타입이 전부 달라 한쪽만 돌리면 나머지가 배포
+시점에 터진다.
 | `rolling-plan.test.ts` | **이중 계상 금지** (4.6), 승인→과제 변환, Plan 조정 |
 | `framework.test.ts` | KPI–KRI–Control 연결 무결성 (4.8), 이탈 판정 방향 |
 | `simulation.test.ts` | 선형 관계·회수 기간·등급 단조성, 시나리오 레지스트리 무결성 |
@@ -587,6 +604,13 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
   **생성 시 모드로 재개된다** — 섞이면 어느 것이 실제 호출인지 알 수 없다.
 * **엔진이 꺼져 있는 것은 고장이 아니다.** 앱은 Mock만으로 전부 동작하므로
   `engine-client.ts`는 연결 실패를 throw하지 않고 `{ ok: false }`로 돌려준다.
+* **저장 백엔드는 `DATABASE_URL` 유무로 갈린다** — 있으면 Postgres, 없으면 파일 SQLite.
+  로컬에서 DB를 띄우라고 요구하면 위의 "엔진 없이도 동작한다"가 깨지므로 기본값을
+  마찰 없는 쪽에 둔다. 다만 **SQLite로는 운영할 수 없고**(워커마다 파일이 갈라진다),
+  연결 실패를 SQLite로 조용히 되돌리지 않는다 — 운영에서 DB가 안 붙었다면 즉시
+  드러나야 한다. `/health`의 `storage`가 어느 쪽인지 알려 준다.
+* **`PostgresSaver`는 `autocommit=True`와 `row_factory=dict_row`를 요구한다.** 문서에만
+  있고 타입으로는 드러나지 않아 빠뜨리기 쉽다.
 
 **엔진을 붙이며 드러난 것** — 둘 다 TS만 볼 때는 보이지 않았다:
 
@@ -614,8 +638,9 @@ CI(5.1)와 LangGraph 엔진 골격(5.2)이 끝났다. 남은 것은 **엔진을 
 서로 의존이 없고, 순차로 두면 어느 쪽이 깨졌는지 알기까지 더 오래 걸린다.
 
 ```
-verify (TS)     npm ci        → lint  → test(vitest) → build
-engine (Python) uv sync --locked → ruff → pytest
+verify (TS)     npm ci           → lint → test(vitest) → build
+engine (Python) uv sync --locked → ruff → pytest        (Postgres 서비스 컨테이너)
+docker          docker compose build                    (푸시하지 않는다)
 ```
 
 * 빠르게 실패하는 순서로 뒀다 — lint(수초) → test(1초대) → build(가장 느림).
@@ -639,6 +664,14 @@ engine (Python) uv sync --locked → ruff → pytest
   필요하다. `pyproject.toml`의 `addopts`가 기본으로 제외하므로 워크플로에 플래그가 없다.
   계약 검증(`_validate`)은 네트워크 없이 돌아 CI가 잡는다.
 * 캐시 키를 `engine/uv.lock`으로 좁혔다 — 앱 쪽 변경으로 엔진 캐시가 날아가지 않게 한다.
+* **Postgres 서비스 컨테이너를 붙여 두 백엔드를 모두 돌린다.** `TEST_DATABASE_URL`이
+  없으면 Postgres 테스트가 전부 skip되는데, 초록색 체크만 보고는 "검증했다"와
+  "건너뛰었다"를 구분할 수 없다. `REQUIRE_POSTGRES=1`이 **skip을 실패로 바꾼다** —
+  조용한 미검증이 가장 나쁘다.
+* **docker 잡은 이미지를 빌드만 하고 푸시하지 않는다.** Dockerfile은 로컬에서 잘 돌다가
+  조용히 깨지는 종류다(standalone 산출물 경로, 락파일 불일치, 베이스 태그). 러너에
+  docker·compose v2가 이미 있어 추가 액션을 쓰지 않았다 — 액션을 늘리면 버전 관리할
+  대상만 늘어난다. 레이어 캐시가 없으므로 느려지면 buildx + `type=gha`를 붙인다.
 
 **워크플로를 손댈 때는 액션 최신 버전을 조회하고 쓴다.** 관례적으로 `@v4`를 썼다가 첫
 실행에서 "Node 20 deprecated, Node 24로 강제 실행" 경고를 받았다. 액션의 실행 런타임은
@@ -677,12 +710,11 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 * 승인 사유 10자 미만은 엔진이 반려하고 같은 지점에 다시 멈춘다(400이 아니라 상태다).
 * `kimi-k3:cloud` 실호출이 산출물 계약을 지킨다(`pytest -m llm`, 약 40초).
 * 재시작해도 인스턴스가 복구된다(명세를 checkpointer와 함께 저장한다).
+* **Postgres 백엔드와 `docker compose` 스택이 돈다.** 엔진 컨테이너를 재시작해도 승인
+  대기 중이던 인스턴스가 같은 지점에서 이어진다 — Postgres를 쓰는 이유가 그것이다.
 
 **남은 것:**
 
-* **Postgres checkpointer** — 지금은 SQLite다. 여러 인스턴스로 띄우면 상태가 갈라지므로
-  실제 배포에는 부족하다. `langgraph-checkpoint-postgres`로 교체하고 docker-compose로
-  Next·FastAPI·Postgres를 묶어야 한다.
 * **LLM 비용·레이트·타임아웃 관리** — 지금은 Agent 노드마다 10초 이상이고 재시도가
   붙는다. 노드가 많은 프로세스에서는 전체 지연이 누적된다.
 * **화면이 엔진을 쓰게 하는 일** — 5.3.
@@ -704,11 +736,12 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 그래프에서 성립하지 않는다(시간을 되감을 수 없다). 데모는 계속 Mock 경로(`/api/bpm/*`,
 Zustand)를 쓰고 엔진은 `/api/engine/*`로만 노출된다 — 두 모드가 공존한다.
 
-### 5.3 화면 → 엔진 전환 — 5.2의 Postgres·CI가 먼저다
+### 5.3 화면 → 엔진 전환 — 남은 하나
 
 **아직 하지 않았다.** 다섯 화면은 전부 정적 프리렌더(`○`)이고 Mock을 직접 import한다.
-엔진으로 옮기면 동적(`ƒ`)이 되어 초기 로딩이 느려지는데, 지금 얻는 것은 없다 — 엔진이
-SQLite 단일 프로세스라 아직 운영 형태가 아니다.
+엔진으로 옮기면 동적(`ƒ`)이 되어 초기 로딩이 느려진다. 이제 엔진 쪽 선행 조건
+(Postgres·컨테이너·CI)은 갖춰졌으므로 남은 것은 **화면이 실패를 다룰 수 있게 만드는
+일**이다.
 
 옮길 때 함께 만들어야 하는 것:
 

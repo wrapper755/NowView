@@ -7,11 +7,15 @@
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator
+
 import pytest
 
 from app.agents import make_runner
 from app.instances import InstanceStore
 from app.spec import ProcessSpec
+from app.store import build_postgres_backend, build_sqlite_backend
 
 #: `lib/mock-data/bpm-process.ts`에서 추출한 토폴로지.
 SCENARIO_1 = {
@@ -105,6 +109,54 @@ def spec_with(cross_functional: bool) -> ProcessSpec:
     return ProcessSpec.model_validate(data)
 
 
-@pytest.fixture
-def store() -> InstanceStore:
-    return InstanceStore(":memory:", runner_factory=lambda mode: make_runner(mode))
+def postgres_url() -> str | None:
+    return os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
+
+
+def require_postgres() -> str:
+    """
+    Postgres URL을 돌려주거나, 없으면 건너뛴다.
+
+    **`REQUIRE_POSTGRES`가 켜져 있으면 건너뛰지 않고 실패한다.** CI에서 환경 변수
+    이름을 오타내면 Postgres 테스트가 전부 skip되는데, 초록색 체크만 보고는
+    "검증했다"와 "건너뛰었다"를 구분할 수 없다. 조용한 미검증이 가장 나쁘다.
+    """
+    url = postgres_url()
+    if url:
+        return url
+    if os.getenv("REQUIRE_POSTGRES"):
+        pytest.fail("REQUIRE_POSTGRES가 켜져 있는데 TEST_DATABASE_URL이 없다")
+    pytest.skip("TEST_DATABASE_URL이 없다 (Postgres 백엔드 검증 생략)")
+
+
+#: 두 백엔드에서 같은 테스트를 돌린다. Postgres는 URL이 있을 때만 — 없으면 건너뛴다.
+#: **같은 코드가 양쪽에서 돌아야 한다**: SQL 자리표시자(`?` vs `%s`), 행 접근 방식
+#: (튜플 vs dict), `created_at` 타입(문자열 vs datetime)이 전부 다르다.
+_BACKENDS = ["sqlite", "postgres"]
+
+
+@pytest.fixture(params=_BACKENDS)
+def store(request) -> Iterator[InstanceStore]:
+    if request.param == "postgres":
+        backend = build_postgres_backend(require_postgres())
+        _truncate(backend)
+    else:
+        backend = build_sqlite_backend(":memory:")
+
+    try:
+        yield InstanceStore(backend, runner_factory=lambda mode: make_runner(mode))
+    finally:
+        if request.param == "postgres":
+            _truncate(backend)
+        backend.close()
+
+
+def _truncate(backend) -> None:
+    """
+    Postgres는 파일 SQLite와 달리 테스트 간에 상태가 남는다 — 매번 비운다.
+    `:memory:` SQLite는 연결이 닫히면 사라지므로 대칭 처리가 필요 없다.
+    """
+    tables = ["instance_spec", "checkpoint_writes", "checkpoint_blobs", "checkpoints"]
+    with backend.specs.pool.connection() as conn:
+        for table in tables:
+            conn.execute(f"TRUNCATE TABLE {table}")

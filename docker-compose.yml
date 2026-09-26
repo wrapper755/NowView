@@ -1,0 +1,74 @@
+# NowView 전체 스택 — 앱 · BPM 엔진 · Postgres
+#
+#   docker compose up --build
+#   http://localhost:3000        앱
+#   http://localhost:8077/docs   엔진 API
+#
+# **엔진 없이도 앱은 전부 동작한다.** 화면은 Mock을 직접 import하므로 이 스택은
+# 엔진을 실제로 돌려볼 때만 필요하다.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nowview
+      POSTGRES_PASSWORD: nowview
+      POSTGRES_DB: nowview
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # 호스트에서 psql로 들여다볼 때만 쓴다. 5432가 아니라 55432인 이유는
+      # 로컬에 이미 Postgres가 있을 때 충돌하지 않게 하기 위해서다.
+      - "55432:5432"
+    healthcheck:
+      # 엔진이 뜨자마자 DB에 붙으므로 "포트가 열렸다"가 아니라 "질의를 받는다"를 봐야 한다.
+      test: ["CMD-SHELL", "pg_isready -U nowview -d nowview"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  engine:
+    build:
+      context: ./engine
+    environment:
+      # 이 값이 있으면 엔진이 Postgres 백엔드로 뜬다. 없으면 SQLite인데,
+      # 여러 인스턴스로 띄우면 상태가 갈라지므로 운영에는 부적합하다.
+      DATABASE_URL: postgresql://nowview:nowview@postgres:5432/nowview
+      # LLM 모드는 **호스트의 ollama**를 쓴다 — cloud 모델 자격증명이 거기 있고,
+      # 모델을 컨테이너에 다시 받는 것은 낭비다. Agent 기본값은 mock이라
+      # ollama가 없어도 스택은 정상 동작한다.
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k3:cloud}
+      LOG_LEVEL: INFO
+    extra_hosts:
+      # Linux에서는 이 별칭이 기본 제공되지 않는다 — 명시해야 호스트 ollama에 닿는다.
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8077:8077"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8077/health',timeout=3).status==200 else 1)"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+    environment:
+      # 서버 컴포넌트/Route Handler에서만 읽는다 — 브라우저는 엔진을 직접 부르지 않는다.
+      ENGINE_URL: http://engine:8077
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      engine:
+        condition: service_healthy
+
+volumes:
+  pgdata:
