@@ -12,7 +12,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDemoController } from "@/lib/store/demo-controller";
-import { PROPOSAL_KIND_LABEL, type EvolutionLab, type ProposalStatus } from "@/lib/types/evolution";
+import {
+  PROPOSAL_KIND_LABEL,
+  targetOf,
+  type EvolutionLab,
+  type EvolutionTarget,
+  type ProposalStatus,
+} from "@/lib/types/evolution";
 
 /**
  * Evolution Lab의 클라이언트 경계.
@@ -30,6 +36,16 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
 
   const activeKri = lab.kris.find((k) => k.id === activeKriId) ?? lab.kris[0];
   const adoptedCount = Object.values(statusById).filter((s) => s === "adopted").length;
+
+  // 기획안 3.5는 Framework·Process·Agent 셋 모두를 개선 대상으로 둔다.
+  // 어느 축이 비어 있는지 보이도록 축별 건수를 센다.
+  const targetCounts = lab.proposals.reduce<Record<EvolutionTarget, number>>(
+    (acc, proposal) => {
+      acc[targetOf(proposal.kind)] += 1;
+      return acc;
+    },
+    { framework: 0, process: 0, agent: 0 },
+  );
 
   return (
     <div className="space-y-4">
@@ -88,7 +104,8 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
           </CardTitle>
           <CardDescription>
             제안은 모두 이번 루프에서 실제로 드러난 공백에서 나왔다. 기대 효과와 부작용을
-            함께 보고 판단한다.
+            함께 보고 판단한다. 개선 대상은 Framework {targetCounts.framework}건 · Process{" "}
+            {targetCounts.process}건 · Agent {targetCounts.agent}건이다.
           </CardDescription>
         </CardHeader>
         <CardContent>

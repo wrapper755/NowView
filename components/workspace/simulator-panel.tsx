@@ -111,6 +111,17 @@ export function SimulatorPanel({
           caption="목표 88.0%"
         />
         <StatTile
+          label="실행 비용"
+          value={result.cost === 0 ? "추가 지출 없음" : formatEok(result.cost)}
+          caption={
+            result.paybackYears === null
+              ? "회수되지 않는다"
+              : result.paybackYears === 0
+                ? "즉시 회수"
+                : `회수 기간 ${result.paybackYears.toFixed(1)}년`
+          }
+        />
+        <StatTile
           label="반영 후 잔여 Gap"
           value={formatEok(remainingGap)}
           delta={{
@@ -132,7 +143,31 @@ export function SimulatorPanel({
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             {alternative.riskNote}
           </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {alternative.costNote}
+          </p>
         </div>
+      </div>
+
+      {/* 실행 조건이 갖춰지지 않으면 위 수치는 성립하지 않는다 (기획안 2.1). */}
+      <div className="space-y-1.5">
+        <h4 className="text-xs font-medium text-muted-foreground">실행 조건</h4>
+        <ul className="space-y-1">
+          {alternative.prerequisites.map((condition) => (
+            <li
+              key={condition}
+              className="flex gap-1.5 text-[11px] leading-relaxed text-foreground"
+            >
+              <span aria-hidden className="text-muted-foreground">
+                ·
+              </span>
+              {condition}
+            </li>
+          ))}
+        </ul>
+        <p className="text-[10px] leading-relaxed text-muted-foreground">
+          이 조건이 갖춰지지 않으면 위 효과는 실현되지 않는다.
+        </p>
       </div>
     </div>
   );

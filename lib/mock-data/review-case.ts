@@ -59,6 +59,7 @@ export const reviewCase: ReviewCase = {
         base: 2,
         profitPerUnit: 9,
         utilizationPerUnit: 1.6,
+        costPerUnit: 11,
       },
       riskBands: [
         { upTo: 2, severity: "good" },
@@ -68,6 +69,11 @@ export const reviewCase: ReviewCase = {
       riskNote: "전환 기간 중 해당 라인 생산이 중단된다. 3개 라인을 넘기면 기존 고객 납기에 영향이 간다.",
       leadTime: "10~14주",
       owner: "생산본부 김상현",
+      costNote: "라인 전환 설비 투자비 (일회성). 연간 회수 기준 회수 기간 약 1.2년.",
+      prerequisites: [
+        "전환 라인의 기존 품번 이관에 대한 고객 승인",
+        "전장 ECU 분기 18만 개 수주 물량 확정",
+      ],
     },
     {
       id: "alt-volume-transfer",
@@ -84,6 +90,7 @@ export const reviewCase: ReviewCase = {
         base: 20,
         profitPerUnit: 0.6,
         utilizationPerUnit: 0.1,
+        costPerUnit: 0.3,
       },
       riskBands: [
         { upTo: 10, severity: "good" },
@@ -93,6 +100,11 @@ export const reviewCase: ReviewCase = {
       riskNote: "이관 비율이 높을수록 전장 라인 리드타임이 늘어난다. MCU 리드타임 26주 이슈와 겹치면 양산 일정이 밀린다.",
       leadTime: "6~8주",
       owner: "사업기획팀 정하윤",
+      costNote: "금형·치공구 이설 및 공정 검증 비용 (일회성).",
+      prerequisites: [
+        "MCU 리드타임 26주 → 20주 이하 단축",
+        "전장 라인 여유 CAPA 확보",
+      ],
     },
     {
       id: "alt-maintenance-deferral",
@@ -109,6 +121,7 @@ export const reviewCase: ReviewCase = {
         base: 3,
         profitPerUnit: 3,
         utilizationPerUnit: 0,
+        costPerUnit: 0,
       },
       riskBands: [
         { upTo: 2, severity: "good" },
@@ -118,6 +131,8 @@ export const reviewCase: ReviewCase = {
       riskNote: "가동률 자체는 개선되지 않는다. 이연 기간이 길수록 돌발 고장 위험이 누적되고 비용은 차기로 이월될 뿐이다.",
       leadTime: "즉시",
       owner: "생산본부 김상현",
+      costNote: "추가 지출 없음. 다만 이연된 보전비는 차기로 이월된다.",
+      prerequisites: ["설비 고장 리스크 수용에 대한 생산본부 동의"],
     },
   ],
 };

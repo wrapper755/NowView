@@ -100,6 +100,23 @@ export interface BridgeStep {
   note?: string;
 }
 
+/**
+ * 신호가 어디서 왔는가 (기획안 3.2의 두 경로).
+ *
+ * `observed` — 현재 실적에서 관측된 편차. 이미 일어난 사실이다.
+ * `leading`  — 아직 실적에 충분히 나타나지 않은 선행 위험. 예측·가정이 섞여 있다.
+ *
+ * **둘을 구분하지 않으면 확정된 사실과 가정을 같은 무게로 읽게 된다.** 기획안 3.2가
+ * "현재 실적의 편차와 미래 위험을 함께 보되, 관측된 사실과 예측·가정을 구분한다"고
+ * 못 박은 이유다.
+ */
+export type SignalOrigin = "observed" | "leading";
+
+export const SIGNAL_ORIGIN_LABEL: Record<SignalOrigin, string> = {
+  observed: "관측된 사실",
+  leading: "선행 위험",
+};
+
 /** 감지된 리스크 신호 하나 (루프 1단계 Risk Sensing 산출물). */
 export interface RiskSignal {
   id: string;
@@ -118,6 +135,13 @@ export interface RiskSignal {
   /** 이 신호가 현재 올라가 있는 루프 단계. */
   stage: ManagementStage;
   owner: string;
+  origin: SignalOrigin;
+  /**
+   * `leading`인 신호가 딛고 선 가정. 이 가정이 틀리면 위험 자체가 성립하지 않는다.
+   *
+   * `observed`에는 두지 않는다 — 관측된 사실에 가정을 붙이면 사실이 흐려진다.
+   */
+  assumption?: string;
 }
 
 export interface CompanySnapshot {

@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 
 import { SeverityTag } from "@/components/shared/severity";
 import { cn } from "@/lib/utils";
-import { formatEokSigned, formatPpSigned } from "@/lib/format";
+import { formatEok, formatEokSigned, formatPpSigned } from "@/lib/format";
 import type { Alternative } from "@/lib/types/workspace";
 import { baselineResult } from "@/services/agent-orchestrator";
 
@@ -57,9 +57,52 @@ export function AlternativeComparison({
       },
     },
     {
+      key: "cost",
+      label: "실행 비용",
+      render: (alt: Alternative) => {
+        const { cost } = baselineResult(alt);
+        return (
+          <span className="tabular-nums">
+            {cost === 0 ? (
+              <span className="text-muted-foreground">추가 지출 없음</span>
+            ) : (
+              <span className="font-medium text-foreground">{formatEok(cost)}</span>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      key: "payback",
+      label: "회수 기간",
+      render: (alt: Alternative) => {
+        const { paybackYears } = baselineResult(alt);
+        if (paybackYears === null) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className="tabular-nums">
+            {paybackYears === 0 ? "즉시" : `${paybackYears.toFixed(1)}년`}
+          </span>
+        );
+      },
+    },
+    {
       key: "risk",
       label: "리스크",
       render: (alt: Alternative) => <SeverityTag severity={baselineResult(alt).severity} />,
+    },
+    {
+      key: "prerequisites",
+      label: "실행 조건",
+      render: (alt: Alternative) => (
+        <ul className="space-y-0.5">
+          {alt.prerequisites.map((condition) => (
+            <li key={condition} className="flex gap-1 leading-relaxed text-muted-foreground">
+              <span aria-hidden>·</span>
+              {condition}
+            </li>
+          ))}
+        </ul>
+      ),
     },
     { key: "leadTime", label: "실행 기간", render: (alt: Alternative) => alt.leadTime },
     { key: "owner", label: "담당", render: (alt: Alternative) => alt.owner },
@@ -117,14 +160,14 @@ export function AlternativeComparison({
         <tbody>
           {rows.map((row) => (
             <tr key={row.key} className="border-t">
-              <th scope="row" className="py-2 text-left font-normal text-muted-foreground">
+              <th scope="row" className="py-2 text-left align-top font-normal text-muted-foreground">
                 {row.label}
               </th>
               {alternatives.map((alt) => (
                 <td
                   key={alt.id}
                   className={cn(
-                    "px-2.5 py-2 align-middle text-foreground",
+                    "px-2.5 py-2 align-top text-foreground",
                     alt.id === selectedId && "bg-muted/50",
                   )}
                 >

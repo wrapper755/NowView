@@ -91,6 +91,35 @@ export const evolutionLab: EvolutionLab = {
       owner: "전장기술팀 이도현",
     },
     {
+      id: "prop-control-escalation",
+      kind: "process-rule",
+      title: "예방 통제 미수행의 자동 에스컬레이션",
+      triggeredBy: "risk-utilization",
+      rationale:
+        "라인 재배치 사전 검토(월간 예방 통제)가 3개월 연속 물량 하향에도 착수되지 않았는데, 통제 미수행은 월간 통제 보고에만 기록되어 경영 검토로 올라오지 않았다. 이번 건이 늦어진 실질적 원인이다.",
+      before: "통제 미수행은 월간 통제 보고에 기록만 한다",
+      after: "예방 통제 2회 연속 미수행 시 Management Review 안건으로 자동 등록",
+      expectedEffect: "통제 공백이 실적 악화로 드러나기 전에 경영 검토로 올라온다.",
+      tradeoff:
+        "Review 안건이 늘어 경영진 검토 부하가 커진다. 자동 등록 건은 요약 보고로 먼저 올리고 필요 시에만 정식 안건화한다.",
+      owner: "사업기획팀 정하윤",
+    },
+    {
+      id: "prop-effect-verification",
+      kind: "process-rule",
+      title: "효과 검증을 Management Action 종료 조건에 포함",
+      triggeredBy: "효과 검증 완료율 33%",
+      rationale:
+        "과제 상태가 완료/미완료로만 관리되어, 목표 회수액을 실제로 회수했는지 확인하지 않은 채 종료된 과제가 있다. 반영 완료 과제 3건 중 검증이 끝난 것은 1건뿐이다.",
+      before: "과제 완료 = 실행 종료. 회수 실적은 별도 집계만 한다",
+      after: "목표 회수액 대비 실현액 검증까지 마쳐야 완료 처리",
+      expectedEffect:
+        "예상 효과와 실현 효과의 차이가 과제 단위로 남아 다음 대안 산정의 근거가 된다.",
+      tradeoff:
+        "검증까지 완료 처리가 미뤄져 과제 이행률이 일시적으로 낮아 보인다. 이행률과 검증 완료율을 분리해 본다.",
+      owner: "재무팀 한지훈",
+    },
+    {
       id: "prop-absorption-kri",
       kind: "metric-definition",
       title: "고정비 흡수율을 KRI로 승격",

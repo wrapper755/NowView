@@ -191,6 +191,7 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "설비 가동률", value: "82.1%", threshold: "85.0%" },
       stage: "management-review",
       owner: "생산본부 김상현",
+      origin: "observed",
     },
     {
       id: "risk-oem-cr",
@@ -202,6 +203,9 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "CR 요구율", value: "-3.2%", threshold: "-1.5%" },
       stage: "management-review",
       owner: "영업본부 박지우",
+      origin: "leading",
+      assumption:
+        "통보된 -3.2%가 2026년 공급 물량 전량에 적용된다고 가정했다. 품번별 협상 결과에 따라 달라진다.",
     },
     {
       id: "risk-bms-yield",
@@ -213,6 +217,7 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "BMS 라인 수율", value: "87.2%", threshold: "95.0%" },
       stage: "management-action",
       owner: "전장기술팀 이도현",
+      origin: "observed",
     },
     {
       id: "risk-mcu-leadtime",
@@ -224,6 +229,9 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "MCU 리드타임", value: "26주", threshold: "18주" },
       stage: "operation-control",
       owner: "구매본부 최민서",
+      origin: "leading",
+      assumption:
+        "현 리드타임 26주가 최소 2개 분기 지속된다고 가정했다. 대체 소자가 승인되면 성립하지 않는다.",
     },
     {
       id: "risk-aluminum",
@@ -235,6 +243,7 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "구매단가 변동", value: "+8.4% QoQ", threshold: "+5.0% QoQ" },
       stage: "operation-control",
       owner: "구매본부 최민서",
+      origin: "observed",
     },
     {
       id: "risk-sop-delay",
@@ -246,6 +255,9 @@ export const nextAutomotive: CompanySnapshot = {
       kri: { label: "양산 일정 준수율", value: "78.0%", threshold: "95.0%" },
       stage: "rolling-plan",
       owner: "사업기획팀 정하윤",
+      origin: "leading",
+      assumption:
+        "고객이 통보한 3주 순연에서 추가 변경이 없다고 가정했다. 양산 일정은 재차 이동한 전례가 있다.",
     },
   ],
 };

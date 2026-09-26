@@ -30,6 +30,8 @@ export default function ExecutiveCockpitPage() {
     company.operatingProfit.forecast,
   );
   const criticalCount = company.risks.filter((r) => r.severity === "critical").length;
+  const observedCount = company.risks.filter((r) => r.origin === "observed").length;
+  const leadingCount = company.risks.length - observedCount;
   // 끊어진 연결(존재하지 않는 KPI·통제 참조)이 있으면 여기서 즉시 터진다.
   const frameworkChains = buildChains(managementFramework);
   const frameworkSummary = summarize(managementFramework);
@@ -171,8 +173,10 @@ export default function ExecutiveCockpitPage() {
           </CardTitle>
           <CardDescription>
             {criticalCount > 0
-              ? `심각 ${criticalCount}건은 Management Review 안건으로 에스컬레이션 대상이다.`
-              : "현재 심각 등급 신호는 없다."}
+              ? `심각 ${criticalCount}건은 Management Review 안건으로 에스컬레이션 대상이다. `
+              : "현재 심각 등급 신호는 없다. "}
+            현재 실적에서 관측된 편차 {observedCount}건, 아직 실적에 나타나지 않은 선행 위험{" "}
+            {leadingCount}건이며, 선행 위험은 딛고 선 가정을 함께 표시한다.
           </CardDescription>
         </CardHeader>
         <CardContent>

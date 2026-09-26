@@ -24,10 +24,17 @@ export interface SimulationLever {
   step: number;
   /** Agent가 제안한 기본값. 이 값에서의 효과가 Agent 보고서의 수치와 일치해야 한다. */
   base: number;
-  /** 레버 1단위당 영업이익 개선액(억원). */
+  /** 레버 1단위당 영업이익 개선액(억원). 연간 기준이다. */
   profitPerUnit: number;
   /** 레버 1단위당 가동률 개선(%p). */
   utilizationPerUnit: number;
+  /**
+   * 레버 1단위당 실행 비용(억원). 일회성 투자·이설 비용이다.
+   *
+   * 비용도 레버에 비례해야 한다 — 효과만 늘고 비용은 고정이면 레버를 끝까지 올리는 것이
+   * 항상 정답이 되어 트레이드오프가 사라진다.
+   */
+  costPerUnit: number;
 }
 
 /** 레버 값이 이 값 이하이면 해당 등급. 오름차순으로 둔다. */
@@ -48,6 +55,15 @@ export interface Alternative {
   riskNote: string;
   leadTime: string;
   owner: string;
+  /**
+   * 실행 조건 — 이것이 갖춰지지 않으면 기대 효과가 나지 않는다.
+   *
+   * 기획안 2.1: "대응 대안에는 기대 효과뿐 아니라 비용·위험·실행 조건을 함께 제시한다."
+   * 조건 없이 효과만 적힌 대안은 비교가 아니라 홍보다.
+   */
+  prerequisites: string[];
+  /** 비용의 성격 (투자비인지 일회성 비용인지). 금액은 `lever.costPerUnit`에서 나온다. */
+  costNote: string;
 }
 
 /** Agent 보고서의 한 절. 근거 소스가 없는 절은 두지 않는다. */

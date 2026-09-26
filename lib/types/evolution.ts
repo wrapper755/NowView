@@ -8,13 +8,46 @@
 
 import type { Severity } from "@/lib/types/cockpit";
 
-export type ProposalKind = "kri-threshold" | "agent-rule" | "metric-definition";
+/**
+ * 개선 대상. 기획안 3.5가 규정한 **Framework · Process · Agent** 셋을 모두 덮어야 한다.
+ *
+ * `kri-threshold`·`metric-definition`은 Framework, `process-rule`은 Process, `agent-rule`은
+ * Agent에 해당한다. Process가 빠지면 "역할·책임, 검토 시점, 승인·보고 경로"를 고칠 길이
+ * 없어져, 지표와 룰만 계속 손보게 된다.
+ */
+export type ProposalKind =
+  | "kri-threshold"
+  | "metric-definition"
+  | "process-rule"
+  | "agent-rule";
 
 export const PROPOSAL_KIND_LABEL: Record<ProposalKind, string> = {
   "kri-threshold": "KRI 임계치",
-  "agent-rule": "Agent 룰",
   "metric-definition": "지표 정의",
+  "process-rule": "Process 규칙",
+  "agent-rule": "Agent 룰",
 };
+
+/** 기획안 3.5의 3개 개선 대상 축. 제안 종류를 이 축으로 묶어 본다. */
+export type EvolutionTarget = "framework" | "process" | "agent";
+
+export const EVOLUTION_TARGET_LABEL: Record<EvolutionTarget, string> = {
+  framework: "Management Framework",
+  process: "Management Process",
+  agent: "AI Agent",
+};
+
+export function targetOf(kind: ProposalKind): EvolutionTarget {
+  switch (kind) {
+    case "kri-threshold":
+    case "metric-definition":
+      return "framework";
+    case "process-rule":
+      return "process";
+    case "agent-rule":
+      return "agent";
+  }
+}
 
 export type ProposalStatus = "proposed" | "adopted" | "deferred";
 

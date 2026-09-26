@@ -94,10 +94,22 @@ export function completedRuns(
 // ── 대안 시뮬레이션 ────────────────────────────────────────────────────────────
 
 export interface SimulationResult {
-  /** 영업이익 개선액(억원). */
+  /** 연간 영업이익 개선액(억원). */
   profitImpact: number;
   /** 가동률 개선(%p). */
   utilizationImpact: number;
+  /** 일회성 실행 비용(억원). */
+  cost: number;
+  /**
+   * 회수 기간(년) = 비용 ÷ 연간 개선액.
+   *
+   * 비용과 효과는 **시간 단위가 다르다** — 비용은 일회성이고 효과는 연간이다.
+   * 둘을 단순히 빼면(효과 − 비용) 첫해 기준으로는 손해처럼 보이는 잘못된 그림이 되므로,
+   * 차감 대신 회수 기간으로 보여 준다.
+   *
+   * 개선액이 0 이하면 회수되지 않으므로 `null`이다.
+   */
+  paybackYears: number | null;
   /** 해당 레버 값에서의 리스크 등급. */
   severity: Severity;
 }
@@ -121,10 +133,15 @@ export function simulateAlternative(
   alternative: Alternative,
   leverValue: number,
 ): SimulationResult {
-  const { profitPerUnit, utilizationPerUnit } = alternative.lever;
+  const { profitPerUnit, utilizationPerUnit, costPerUnit } = alternative.lever;
+  const profitImpact = leverValue * profitPerUnit;
+  const cost = leverValue * costPerUnit;
+
   return {
-    profitImpact: leverValue * profitPerUnit,
+    profitImpact,
     utilizationImpact: leverValue * utilizationPerUnit,
+    cost,
+    paybackYears: profitImpact > 0 ? cost / profitImpact : null,
     severity: severityAt(alternative, leverValue),
   };
 }
