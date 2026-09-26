@@ -39,6 +39,25 @@ export const BPM_STATUS_LABEL: Record<BpmNodeStatus, string> = {
   skipped: "미실행",
 };
 
+/**
+ * 배타 분기의 라우팅 규칙. `gateway` 노드에만 둔다.
+ *
+ * **`sourceHandle`로 분기를 판정하면 안 된다.** `main`/`branch`는 캔버스 레이아웃
+ * 관심사(직선이냐 꺾이냐)일 뿐 의미가 고정되지 않았다 — 실제로 납기 시나리오는
+ * `main`이 "아니오"다. 라벨 문자열("예"/"아니오")을 읽는 것도 표기를 바꾸면 깨진다.
+ * 그래서 어떤 판정이 어느 노드로 가는지를 여기에 직접 적는다.
+ *
+ * `flag`는 **선행 Agent가 판정해 넘기는 사실**의 이름이다. 분기 자체는 결정론적이고
+ * 판정만 확률적이다 — 기획안의 "Deterministic BPM + Probabilistic AI"가 여기서 갈린다.
+ */
+export interface GatewayDecisionSpec {
+  flag: string;
+  /** 판정이 참일 때 갈 노드. */
+  whenTrue: string;
+  /** 판정이 거짓일 때 갈 노드. 플래그가 없을 때의 기본 경로이기도 하다. */
+  whenFalse: string;
+}
+
 export interface BpmNodeSpec {
   id: string;
   kind: BpmNodeKind;
@@ -54,6 +73,8 @@ export interface BpmNodeSpec {
   duration?: string;
   /** 이 노드를 수행하는 Agent id (`agent-task`에만 있다). */
   agentId?: string;
+  /** 분기 규칙 (`gateway`에만 있다). 엔진이 그래프를 조립할 때 쓴다. */
+  decision?: GatewayDecisionSpec;
 }
 
 export interface BpmEdgeSpec {

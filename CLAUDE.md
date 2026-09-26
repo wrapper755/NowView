@@ -20,6 +20,22 @@ npx vitest run tests/framework.test.ts                        # 파일 하나
 npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름으로 하나만
 ```
 
+**BPM 엔진 (Python · `engine/`)**
+
+```bash
+cd engine
+uv sync
+uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
+uv run pytest                                      # 33개 (LLM 실호출 제외)
+uv run pytest -m llm                               # ollama 실호출 (약 40초)
+uv run ruff check .
+```
+
+* **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
+  변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
+* 앱과 엔진은 별개 프로세스다. `.claude/launch.json`에 `nowview-engine`으로 등록해 두었다.
+* `npm run test`는 TS만 돈다 — 엔진 테스트는 별도이고 **CI에도 아직 없다**(5.1).
+
 * **타입 검사 단독 실행**: `npx tsc --noEmit`. `npm run build`가 타입 검사를 겸하므로 별도 `typecheck` 스크립트는 두지 않았다. `tsconfig.json`의 `include`가 `**/*.ts`라 테스트도 함께 검사된다.
 * **Shadcn 컴포넌트 추가**: `npx shadcn@latest add <component>` → `components/ui/`에 생성된다.
 
@@ -134,7 +150,8 @@ NowView/
 │       ├── mock/route.ts         # 데이터셋 목록
 │       ├── mock/datasets.ts      # 데이터셋 레지스트리 (라우트 아님)
 │       ├── mock/[dataset]/       # 데이터셋 조회
-│       └── bpm/                  # state · transition · decision
+│       ├── bpm/                  # state · transition · decision (무상태 계산기)
+│       └── engine/               # Python 엔진 프록시(BFF) — instances 생명주기
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트 8종
 │   ├── shared/                   # 두 화면 이상이 쓰는 조각: stat-tile, severity
@@ -160,11 +177,24 @@ NowView/
 │   ├── types/                    # cockpit, bpm, workspace, rolling, evolution
 │   └── mock-data/                # next-automotive, bpm-process, review-case,
 │                                 #   rolling-plan, evolution-lab
-└── services/
-    ├── bpm-engine.ts             # 워크플로우 상태 파생
-    ├── agent-orchestrator.ts     # Agent 활동 + 대안 시뮬레이션
-    ├── rolling-plan.ts           # Gap 집계, 결정→과제 변환
-    └── evolution-lab.ts          # 임계치 백테스트 조회
+├── services/
+│   ├── bpm-engine.ts             # 워크플로우 상태 파생, 승인 지점 계산
+│   ├── agent-orchestrator.ts     # Agent 활동 + 대안 시뮬레이션
+│   ├── rolling-plan.ts           # Gap 집계, 결정→과제 변환
+│   ├── evolution-lab.ts          # 임계치 백테스트 조회
+│   ├── engine-spec.ts            # 시나리오 → 엔진 명세 (토폴로지 유일 원천)
+│   └── engine-client.ts          # Python 엔진 HTTP 클라이언트 (서버 전용)
+└── engine/                       # Python BPM 엔진 (별도 프로세스)
+    ├── pyproject.toml            # uv
+    ├── README.md
+    ├── app/
+    │   ├── main.py               # FastAPI — instances 생명주기
+    │   ├── spec.py               # 받는 명세 (Pydantic, camelCase 별칭)
+    │   ├── state.py              # 인스턴스 상태
+    │   ├── graph.py              # 명세 → LangGraph StateGraph 조립
+    │   ├── agents.py             # MockRunner · OllamaRunner + 계약 검증
+    │   └── instances.py          # 생명주기 · checkpointer · 스냅샷 파생
+    └── tests/                    # pytest 33개
 ```
 
 **디렉토리 규칙**
@@ -219,7 +249,18 @@ GET  /api/mock/[dataset]        company · rolling-plan · framework · evolutio
 GET  /api/bpm/state?step=N      해당 지점의 노드 상태·Agent 활동·현재 단계
 POST /api/bpm/transition        {step, action: next|prev|reset|goto, target?} → 다음 지점
 POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결정·과제·Gap 변화
+
+GET  /api/engine                엔진 도달 여부·모델·엔드포인트 목록
+POST /api/engine/instances      {scenarioId, agentMode: mock|llm} → 인스턴스 생성 후 첫 대기까지
+GET  /api/engine/instances      인스턴스 목록
+GET  /api/engine/instances/{id} 스냅샷 (노드 상태·Agent 산출물·대기 지점)
+POST /api/engine/instances/{id}/resume   승인 입력 → 재개
+DELETE /api/engine/instances/{id}
 ```
+
+**`/api/bpm/*`와 `/api/engine/*`는 성격이 다르다.** 앞의 것은 진행 지점을 받아 계산해
+돌려주는 무상태 계산기이고, 뒤의 것은 서버에 사는 인스턴스를 다룬다(4.16). 둘을 함께
+두는 이유는 데모가 계속 계산기 쪽으로 동작해야 하기 때문이다.
 
 **상태를 서버에 저장하지 않는다.** 진행 지점은 요청이 들고 오고 서버는 파생 상태를 계산해
 돌려줄 뿐이다 — 서버리스에서 인메모리 상태는 인스턴스마다 갈라지고, 이 프로젝트는 이미
@@ -482,14 +523,16 @@ curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
 
 ### 4.15 테스트
 
-`tests/`에 Vitest로 **순수 로직만** 검증한다(86개). 렌더링 테스트는 두지 않았다 —
+`tests/`에 Vitest로 **순수 로직만** 검증한다(100개). 엔진 테스트는 `engine/tests/`에
+pytest로 따로 있다(33개) — 4.16 참조. 렌더링 테스트는 두지 않았다 —
 jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레이아웃·가독성처럼 계산으로
 못 잡는 것은 어차피 브라우저에서 눈으로 봐야 한다.
 
 | 파일 | 무엇을 잠그는가 |
 |---|---|
 | `invariants.test.ts` | 화면 간 수치 연동 항등식 (4.6) — 합산, 브릿지, 분기 합, 시나리오 간 연결 |
-| `bpm-engine.test.ts` | 상태 파생 규칙 (4.5) — skipped/waiting 판정, **미완료 Agent 산출물 은닉** |
+| `bpm-engine.test.ts` | 상태 파생 규칙 (4.5) — skipped/waiting 판정, **미완료 Agent 산출물 은닉**, 승인 지점 |
+| `engine-spec.test.ts` | 엔진 명세 생성 (4.16) — 게이트웨이 분기 규칙, **Mock 플래그가 선언된 경로와 일치하는지** |
 | `rolling-plan.test.ts` | **이중 계상 금지** (4.6), 승인→과제 변환, Plan 조정 |
 | `framework.test.ts` | KPI–KRI–Control 연결 무결성 (4.8), 이탈 판정 방향 |
 | `simulation.test.ts` | 선형 관계·회수 기간·등급 단조성, 시나리오 레지스트리 무결성 |
@@ -499,18 +542,72 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
   두 경로로 새어 나갔고, 이중 계상과 자리표시자 노출은 숫자가 그럴듯해 눈으로 안 잡힌다.
 * 테스트를 넣으면서 실제 불일치를 하나 잡았다 — BMS 라인 수율의 감지 임계치가 리스크
   신호에만 `95.0%`(목표값)로 적혀 있었다. Framework·Evolution Lab·백테스트는 모두 `90`이다.
+* 엔진을 붙이면서 또 하나 잡았다 — 승인 후 진행 지점이 0으로 돌아가는 버그(4.16).
+  **두 번 다 "화면 간 연동"을 주장하는 지점에서 나왔다.** 데모 플레이어가 상태를 절대값으로
+  덮어쓰기 때문에 데모로는 드러나지 않는 종류다.
 * `vitest.config.mts`가 `.mts`인 이유와 `resolve.tsconfigPaths`는 그 파일 주석에 적어 두었다.
 * `@types/node`는 `^20`에서 `^22`로 올렸다. 런타임이 Node 22인데 스캐폴딩 값이 20이라
   Vitest peer dependency와 충돌했다 — 우회가 아니라 실제와 맞춘 것이다.
+
+### 4.16 BPM 엔진 (Python · LangGraph)
+
+`engine/`이 실제 상태 머신이다. 자세한 것은 `engine/README.md`이고, 여기에는 TS 쪽에서
+알아야 할 것만 적는다.
+
+**지금까지 "상태 머신"은 배열 인덱스였다.** `sequence`가 미리 선언된 한 경로이고 노드
+상태를 거기서 파생했을 뿐, 분기도 사람 승인도 실제로는 일어나지 않았다(4.5). 엔진에서는
+그래프가 진짜로 멈추고(`interrupt`) 재개된다(`Command(resume=...)`), 그리고 **경로가
+실행의 결과로 나온다.**
+
+* **엔진은 토폴로지를 모른다.** 노드·엣지·Agent 정의는 `lib/mock-data/`가 유일한
+  원천이고 `services/engine-spec.ts`가 명세로 만들어 보낸다. 엔진이 같은 것을 따로
+  들고 있으면 시나리오를 추가할 때 양쪽을 손대야 한다 — **세 시나리오가 엔진 코드
+  수정 없이 돈다.**
+* **경영 규칙도 실어 보낸다** — 사유 최소 길이(`DECISION_RATIONALE_MIN_LENGTH`), 승인
+  노드, 선택지. 엔진이 숫자를 다시 적으면 UI·API·엔진 세 곳이 갈라진다.
+* **규칙 소유권**: Python은 "무슨 일이 일어났는가", TS는 "그것이 숫자에 어떻게
+  반영되는가". 결정→과제 변환(`decisionToAction`)은 TS에 남긴다 — 이중 계상 금지
+  규칙이 거기 있고 이미 테스트가 잠그고 있다.
+* **분기는 결정론적, 판정은 확률적.** 게이트웨이는 상태의 플래그 하나를 읽고, 그
+  플래그는 선행 Agent가 만든다. 기획안의 "Deterministic BPM + Probabilistic AI"가
+  여기서 갈린다. 플래그가 없으면 `whenFalse`다 — 판정되지 않은 것을 "조정 필요"로
+  보면 에스컬레이션이 기본값이 되어 현업 통제 경로가 죽는다.
+* **`sourceHandle`로 분기를 판정하면 안 된다.** `main`/`branch`는 캔버스 레이아웃
+  관심사이고 의미가 고정되지 않았다 — 실제로 납기 시나리오는 `main`이 "아니오"다.
+  라벨 문자열("예"/"아니오")을 읽는 것도 표기를 바꾸면 깨진다. 규칙은
+  `BpmNodeSpec.decision`에 명시한다.
+* **미실행 판정이 TS보다 정확하다.** TS는 `sequence`에 없는 노드를 처음부터 `skipped`로
+  봤지만, 실제로는 게이트웨이가 돌기 전까지 그 분기는 `pending`이다.
+* **미완료 Agent 산출물 은닉이 규칙에서 구조로 바뀐다.** 노드가 돌기 전에는 기록 자체가
+  없다 — TS에서 두 경로로 새어 나갔던 종류의 실수가 성립하지 않는다.
+* **Agent가 계약을 못 맞추면 지어내지 않고 502로 실패한다.** `kimi-k3:cloud`는 ollama의
+  `format` 스키마를 무시하므로(마크다운 산문이 온다) 스키마를 프롬프트에 넣고 검증·
+  재시도한다. 조용히 그럴듯한 값으로 메우면 Agent가 고장난 것을 아무도 모른다.
+* 산출물마다 `provenance`(`mock` · `mock-missing` · `llm:<model>`)가 붙는다. 인스턴스는
+  **생성 시 모드로 재개된다** — 섞이면 어느 것이 실제 호출인지 알 수 없다.
+* **엔진이 꺼져 있는 것은 고장이 아니다.** 앱은 Mock만으로 전부 동작하므로
+  `engine-client.ts`는 연결 실패를 throw하지 않고 `{ ok: false }`로 돌려준다.
+
+**엔진을 붙이며 드러난 것** — 둘 다 TS만 볼 때는 보이지 않았다:
+
+1. **`op-control`에 나가는 엣지가 없다**(시나리오 1·3). `sequence`에 없어 `skipped`로
+   조용히 넘어가므로 아무도 눈치채지 못했다. 엔진은 END로 잇고 `specWarnings`로 알린다.
+   현업 통제로 끝났을 때 루프가 어디로 가는지는 경영 판단이라 **지어내지 않았다** —
+   4.14의 "미정의" 칸과 같은 성격으로 사람이 채울 자리다.
+2. **승인 후 진행 지점이 0으로 돌아갔다.** `approvalStepIndex`가 `nodes` 배열 순서로
+   첫 `user-task`를 찾아 선택되지 않은 분기의 `op-control`을 집었고, 그 노드가
+   `sequence`에 없어 `indexOf`가 -1이 됐다. 시나리오 1·3에서 깨져 있었고(2는 우연히
+   맞았다) 데모 플레이어가 장면마다 `step`을 절대값으로 덮어써서 가려져 있었다.
+   `services/bpm-engine.ts`의 `approvalNodeId`로 올리고 테스트로 잠갔다.
 
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-세 가지가 남아 있다. **순서는 CI → LangGraph → 화면/API 전환**이며, 뒤의 둘은 서로
-독립이 아니다.
+CI(5.1)와 LangGraph 엔진 골격(5.2)이 끝났다. 남은 것은 **엔진을 실제로 쓰게 하는 일**
+(5.3)이고, 그 전에 Postgres·CI 확장이 필요하다.
 
-### 5.1 CI — 완료
+### 5.1 CI — 완료 (단, Python이 빠져 있다)
 
 원격은 **https://github.com/wrapper755/NowView** (private)이고
 `.github/workflows/ci.yml`이 `main` 푸시와 모든 PR에서 돈다:
@@ -528,8 +625,16 @@ npm ci → npm run lint → npm run test → npm run build
 * `node-version`은 22로 고정했다. `@types/node`도 `^22`다 — 어긋나면 타입 정의와 실제
   런타임이 다른 상태로 검증하게 된다. **이것은 액션 자체의 실행 런타임과는 다른 값이다**(아래).
 * `.next/cache`만 캐시한다. 빌드가 가장 느린 단계이기 때문이다.
-* 데이터가 전부 Mock 코드라 **시크릿이나 서비스 컨테이너가 필요 없다.** 실제 백엔드가
-  붙으면 그때 추가한다(5.2).
+* 데이터가 전부 Mock 코드라 **시크릿이나 서비스 컨테이너가 필요 없다.**
+
+**`engine/`의 pytest 33개는 CI에서 돌지 않는다.** 워크플로에 npm 잡만 있다. 더해야 하는 것:
+
+```
+uv sync --directory engine → ruff check → pytest   # -m llm은 제외 (ollama 필요)
+```
+
+LLM 실호출 테스트는 CI에 넣지 않는다 — ollama·모델 자격증명이 필요하고 비결정적이다.
+계약 검증(`_validate`)은 네트워크 없이 돌므로 그쪽이 CI의 몫이다.
 
 **워크플로를 손댈 때는 액션 최신 버전을 조회하고 쓴다.** 관례적으로 `@v4`를 썼다가 첫
 실행에서 "Node 20 deprecated, Node 24로 강제 실행" 경고를 받았다. 액션의 실행 런타임은
@@ -545,55 +650,62 @@ gh api repos/actions/checkout/releases/latest --jq .tag_name
 실명이 들어 있다. 공개로 바꾸는 것은 언제든 가능하지만 되돌리는 것은 사실상 불가능하다
 (캐시·포크·검색 색인).
 
-### 5.2 LangGraph 연동 — 핵심은 "상태 소유권 이전"
+### 5.2 LangGraph 엔진 — 골격 완료
 
-단순 연동이 아니다. **지금은 클라이언트(Zustand)가 진행 지점과 결정을 소유하고 서버 API는
-무상태 계산기**인데, LangGraph는 StateGraph + checkpointer가 상태를 소유한다. 프로세스
-인스턴스가 서버에 살게 되므로 소유권이 반대로 넘어간다.
+`engine/`에 FastAPI + LangGraph StateGraph가 있고, Next의 `/api/engine/*`가 프록시한다.
+설계와 함정은 4.16과 `engine/README.md`에 있다. **런타임은 Python으로 정했다** — JS
+포트로도 되지만(Postgres checkpointer까지 있다) 분석 에이전트 생태계·룰을 손댈 사람·
+레퍼런스 구현이라는 이유다.
 
-필요한 것:
+확인한 것:
 
-* **상태 저장소** — LangGraph checkpointer용 PostgreSQL. 현재 DB 연결이 없다.
-* **인스턴스 생명주기 API** — 생성·조회·재개·종료. 지금 `/api/bpm/*`는 "상태를 받아 다음
-  상태를 돌려주는" 계산기라 생명주기 개념이 없다.
-* **사람 승인이 워크플로를 재개하는 경로** — LangGraph `interrupt` → 승인 → `resume`.
-  지금은 `user-task`에서 `waiting`으로 파생될 뿐 실제로 멈춘 실행이 없다.
-* **LLM 자격증명·비용·레이트 관리** — Agent 실행이 실제 호출이 되면 필요하다.
-* **테스트 전략 재설계** — 아래 참조.
+* 세 시나리오 모두 인스턴스 생성 → Agent 실행 → 승인 대기 → 재개 → 종료까지 돈다.
+  **엔진이 실제로 간 경로가 TS `sequence`와 일치한다.**
+* 승인 사유 10자 미만은 엔진이 반려하고 같은 지점에 다시 멈춘다(400이 아니라 상태다).
+* `kimi-k3:cloud` 실호출이 산출물 계약을 지킨다(`pytest -m llm`, 약 40초).
+* 재시작해도 인스턴스가 복구된다(명세를 checkpointer와 함께 저장한다).
 
-이미 준비된 것:
+**남은 것:**
 
-* `services/`의 시그니처가 교체를 전제로 잡혀 있다. `simulateAlternative`,
-  `agentActivities`는 화면이 소비하는 형태를 고정해 두었으므로 내부만 실 호출로 바꾸면 된다.
-* `/api/bpm/*` 응답 계약이 이미 있다.
-* **`docs/scene-design.md`가 핸드오프 문서다.** 기획안 4.2가 장면별 설계표를 "Business
-  설계를 BPM과 Agent 구현으로 연결하는 공통 명세"로 규정했고, 그 명세가 이미 생성된다.
+* **Postgres checkpointer** — 지금은 SQLite다. 여러 인스턴스로 띄우면 상태가 갈라지므로
+  실제 배포에는 부족하다. `langgraph-checkpoint-postgres`로 교체하고 docker-compose로
+  Next·FastAPI·Postgres를 묶어야 한다.
+* **CI에 Python 잡** — 5.1 참조.
+* **LLM 비용·레이트·타임아웃 관리** — 지금은 Agent 노드마다 10초 이상이고 재시도가
+  붙는다. 노드가 많은 프로세스에서는 전체 지연이 누적된다.
+* **화면이 엔진을 쓰게 하는 일** — 5.3.
 
-**테스트가 가장 크게 흔들린다.** 지금 86개 중 상당수가 Mock 고정값을 전제로 한다:
+**테스트 전략이 예고대로 갈렸다.** 실측으로 확인했다 — temperature 0인데도 같은 질문에
+`14.2`와 `14.5`가 나왔다.
 
-| 지금 | 실 엔진이 붙으면 |
+| 지금 | 실 엔진에서 |
 |---|---|
 | 전사 합산·브릿지 균형·분기 합 | **그대로 유효** — 데이터 출처와 무관한 불변식이다 |
-| "Simulation Agent 산출물 문구에 `+18억`이 있다" | **성립하지 않음** — 산출물이 비결정적이다 |
-| 파생 규칙(skipped/waiting, 산출물 은닉) | 유효하되 **실행 중 상태가 진짜로 생기므로 더 중요해진다** |
+| "Simulation Agent 산출물 문구에 `+18억`이 있다" | **성립하지 않음** — Mock 모드에서만 유효하다 |
+| 파생 규칙(skipped/waiting, 산출물 은닉) | **더 중요해졌다** — 실행 중 상태가 진짜로 생긴다 |
 
-비결정적 산출물에 대한 검증은 값 비교가 아니라 **계약 검증**(스키마, 범위, 근거 소스가
-비어 있지 않은가, 신뢰도가 명시되었는가)으로 바뀌어야 한다.
+그래서 LLM 경로는 값이 아니라 **계약**을 검증한다(스키마, 열거값 범위, 근거 소스가
+비어 있지 않은가, 신뢰도가 high가 아니면 이유가 있는가). `engine/tests/test_agents.py`가
+그 예다.
 
-**데모 플레이어도 갈라진다.** "장면이 목표 상태를 선언하고 어느 장면으로든 건너뛴다"는
-모델은 실제 엔진에서 성립하지 않는다(시간을 되감을 수 없다). 데모 모드와 실운영 모드를
-분리하거나, 데모는 Mock 백엔드를 계속 쓰게 해야 한다.
+**데모 플레이어는 분리한 채로 둔다.** "어느 장면으로든 건너뛴다"는 모델은 실행 중인
+그래프에서 성립하지 않는다(시간을 되감을 수 없다). 데모는 계속 Mock 경로(`/api/bpm/*`,
+Zustand)를 쓰고 엔진은 `/api/engine/*`로만 노출된다 — 두 모드가 공존한다.
 
-### 5.3 화면 → API 전환 — 5.2에 종속
+### 5.3 화면 → 엔진 전환 — 5.2의 Postgres·CI가 먼저다
 
-**지금 하면 손해만 본다.** 다섯 화면은 전부 정적 프리렌더(`○`)인데 API로 옮기면 동적(`ƒ`)이
-되어 초기 로딩이 느려진다. 얻는 것은 "데이터가 바뀌어도 재빌드 불필요"인데, 현재 Mock은
-코드라 재빌드가 곧 배포다 — 바꿀 이유가 없다.
+**아직 하지 않았다.** 다섯 화면은 전부 정적 프리렌더(`○`)이고 Mock을 직접 import한다.
+엔진으로 옮기면 동적(`ƒ`)이 되어 초기 로딩이 느려지는데, 지금 얻는 것은 없다 — 엔진이
+SQLite 단일 프로세스라 아직 운영 형태가 아니다.
 
-5.2가 되면 필요해지고, 그때 함께 만들어야 하는 것:
+옮길 때 함께 만들어야 하는 것:
 
 * **로딩·에러 상태 UI가 전무하다.** `loading.tsx`·`error.tsx`도, `Suspense`·ErrorBoundary
-  사용도 없다. 지금은 데이터가 항상 있다고 가정한다.
+  사용도 없다. 지금은 데이터가 항상 있다고 가정한다. **엔진이 붙으면 실패가 일상이 된다** —
+  LLM 호출이 10초 이상이고 계약 위반으로 502가 날 수 있다.
 * **"Live" 트래커의 실시간성** — 이름은 Live인데 지금은 정적이다. 폴링/SSE/WebSocket 중
   택해야 하고, React Flow 캔버스가 갱신마다 다시 그려지지 않도록 주의가 필요하다.
+  엔진 스냅샷의 `nodeStatuses`가 이미 `BpmNodeStatus`와 같은 어휘라 캔버스는 그대로 쓸 수 있다.
 * **캐싱 전략 분리** — 전사 스냅샷(느리게 변함)과 프로세스 상태(빠르게 변함)의 주기가 다르다.
+* **모드 전환 지점** — 화면이 Mock과 엔진 중 무엇을 볼지 고르는 스위치. BFF 한 곳에
+  꽂으라고 `/api/engine/*`를 따로 뒀다.

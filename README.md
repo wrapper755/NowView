@@ -22,13 +22,27 @@ npm run dev     # http://localhost:3000
 | `npm run dev` | 개발 서버 (Turbopack) |
 | `npm run build` | 프로덕션 빌드 — TypeScript 검사 포함 |
 | `npm run lint` | ESLint |
-| `npm run test` | Vitest 1회 실행 (86개) |
+| `npm run test` | Vitest 1회 실행 (100개) |
 | `npm run test:watch` | Vitest 감시 모드 |
 
 단일 테스트는 `npx vitest run tests/framework.test.ts -t "예방 통제가 없는"`.
 
 CI는 `.github/workflows/ci.yml`에 있다 — `main` 푸시와 모든 PR에서 위 네 단계를
-그대로 돌린다.
+그대로 돌린다. (엔진 테스트는 아직 CI에 없다.)
+
+### BPM 엔진 (선택)
+
+앱은 엔진 없이도 전부 동작한다. 실제 상태 머신을 돌려보려면:
+
+```bash
+cd engine && uv sync && uv run uvicorn app.main:app --port 8077 --reload
+```
+
+```bash
+curl -s localhost:3000/api/engine | python3 -m json.tool
+```
+
+자세한 것은 [engine/README.md](engine/README.md).
 
 ---
 
@@ -84,6 +98,7 @@ lib/
 services/       파생·계산 로직 (화면과 API가 공유)
 tests/          Vitest — 순수 로직만
 docs/           장면별 설계표 (구현에서 생성)
+engine/         Python BPM 엔진 — FastAPI + LangGraph StateGraph (별도 프로세스)
 ```
 
 **`services/`가 핵심이다.** 화면과 API가 같은 함수를 호출하므로 둘의 결과가 어긋날 수
@@ -113,11 +128,16 @@ docs/           장면별 설계표 (구현에서 생성)
 ## 현재 상태
 
 **구현 완료** — 화면 5개, 시나리오 3개, API 계층, 데모 플레이어, 상태 영속화,
-장면별 설계표 생성기, 테스트 86개.
+장면별 설계표 생성기, 테스트 100개(TS) + 33개(엔진).
 
-**Mock이다** — 모든 데이터가 `lib/mock-data/`의 코드이고, BPM 엔진(LangGraph)과 실제
-Agent 호출은 연결되지 않았다. 화면은 API가 아니라 Mock을 직접 import한다(정적 프리렌더 유지).
-API는 외부 소비자를 위한 접합면으로 먼저 만들어 두었다.
+**BPM 엔진이 실제로 돈다** — `engine/`의 LangGraph StateGraph가 사람 승인에서 진짜로
+멈추고(`interrupt`) 재개된다(`resume`). 게이트웨이는 Agent가 판정한 플래그로 분기하므로
+**경로가 실행의 결과로 나온다.** Agent는 Mock이 기본이고 ollama(`kimi-k3:cloud`)로
+실호출도 검증했다.
+
+**화면은 아직 Mock을 본다** — 다섯 화면은 `lib/mock-data/`를 직접 import해 정적 프리렌더를
+유지한다. 엔진은 `/api/engine/*`로만 노출되며, 데모 플레이어는 계속 Mock 경로로 돈다
+(두 모드가 공존한다).
 
 **다음 단계와 그 선행 조건**은 [CLAUDE.md](CLAUDE.md)의 "다음 단계" 절에 정리해 두었다.
 
@@ -128,6 +148,7 @@ API는 외부 소비자를 위한 접합면으로 먼저 만들어 두었다.
 | 문서 | 용도 |
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | 작업 매뉴얼 — 설계 판단의 근거, 함정, 수치 연동 규칙 |
+| [engine/README.md](engine/README.md) | BPM 엔진 — 규칙 소유권 분할, 분기 모델, LLM 계약 검증 |
 | [docs/scene-design.md](docs/scene-design.md) | 장면별 설계표 (기획안 4.2) — Business 설계를 BPM·Agent 구현으로 잇는 명세 |
 
 설계표는 손으로 쓰지 않고 구현에서 생성한다:

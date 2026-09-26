@@ -76,6 +76,12 @@ export const bpmProcess: BpmProcessInstance = {
       stage: "operation-control",
       position: { x: 492, y: MAIN_LANE_Y + 12 },
       outcome: "생산·영업·구매 3개 본부 연동 필요 → 에스컬레이션",
+      // 이 안건은 참으로 판정되어 Management Review로 간다.
+      decision: {
+        flag: "crossFunctionalCoordination",
+        whenTrue: "simulate",
+        whenFalse: "op-control",
+      },
     },
     {
       id: "op-control",

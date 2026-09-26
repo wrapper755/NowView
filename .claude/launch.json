@@ -6,6 +6,22 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "nowview-engine",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "--directory",
+        "engine",
+        "uvicorn",
+        "app.main:app",
+        "--port",
+        "8077",
+        "--reload"
+      ],
+      "port": 8077,
+      "url": "http://localhost:8077"
     }
   ]
 }

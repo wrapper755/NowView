@@ -78,6 +78,13 @@ export const deliveryProcess: BpmProcessInstance = {
       stage: "operation-control",
       position: { x: 492, y: MAIN_LANE_Y + 12 },
       outcome: "구매·생산 권한 내 처리 가능 → 현업 통제로 대응",
+      // 같은 규칙, 반대 판정 — 구매·생산 권한 안이라 거짓으로 판정되어 현업 통제로 간다.
+      // 캔버스에서는 이쪽이 `main` 핸들(직선)이지만 핸들과 판정은 무관하다.
+      decision: {
+        flag: "crossFunctionalCoordination",
+        whenTrue: "simulate",
+        whenFalse: "op-control",
+      },
     },
     {
       id: "simulate",

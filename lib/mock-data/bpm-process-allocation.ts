@@ -79,6 +79,13 @@ export const allocationProcess: BpmProcessInstance = {
       stage: "operation-control",
       position: { x: 492, y: MAIN_LANE_Y + 12 },
       outcome: "사업부 권한을 넘는 재원 이동 → 전사 경영 검토로 에스컬레이션",
+      // 배분 안건은 판정 대상이 "부서 간 조정"이 아니라 "전사 재원 이동"이다 —
+      // 물음이 다르면 플래그도 다르다. 같은 이름을 쓰면 Agent가 엉뚱한 판정을 한다.
+      decision: {
+        flag: "companyWideAllocation",
+        whenTrue: "simulate",
+        whenFalse: "op-control",
+      },
     },
     {
       id: "op-control",
