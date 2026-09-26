@@ -12,6 +12,7 @@ import {
 
 import { DemoPlayer } from "@/components/demo/demo-player";
 import { StoreHydrator } from "@/components/demo/store-hydrator";
+import { SnapshotPoller } from "@/components/engine/snapshot-poller";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -106,6 +107,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="flex-1 pb-48">{children}</div>
 
           <StoreHydrator />
+          {/* 엔진 스냅샷을 여기서만 가져온다 — 화면마다 가져오면 같은 화면의 두 패널이
+              서로 다른 순간을 보고, 폴링 요청이 패널 수만큼 배로 늘어난다. */}
+          <SnapshotPoller />
           <DemoPlayer />
         </ThemeProvider>
       </body>

@@ -11,6 +11,7 @@
 import { useCallback, useMemo } from "react";
 
 import { useEngineInstance } from "@/components/engine/use-engine-instance";
+import { useEngineSnapshots } from "@/components/engine/use-engine-snapshots";
 import {
   selectAgentMode,
   useEngineSession,
@@ -29,6 +30,13 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
   const detach = useEngineSession((s) => s.detach);
 
   const instance = useEngineInstance(instanceId);
+  const snapshots = useEngineSnapshots();
+
+  /**
+   * 라이브 스냅샷은 **공유 스토어**에서 읽는다 — 가져오는 곳은 `SnapshotPoller`뿐이다.
+   * 여기서 따로 가져오면 ②·③이 ①·④·⑤와 다른 순간을 그릴 수 있다.
+   */
+  const live = snapshots.snapshotByScenario[scenarioId] ?? null;
 
   /**
    * 데모가 과거 시점을 보여주는 중이면 라이브 대신 그 스냅샷을 그린다.
@@ -39,7 +47,7 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
   const override = useEngineSession(
     useCallback((s) => s.viewByScenario[scenarioId] ?? null, [scenarioId]),
   );
-  const snapshot = override ?? instance.snapshot;
+  const snapshot = override ?? live;
 
   const view: EngineProcessView | null = useMemo(() => {
     if (!snapshot) return null;
@@ -76,7 +84,7 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
     resume: instance.resume,
     panelProps: {
       snapshot: view ? snapshot : null,
-      loading: instance.loading,
+      loading: snapshots.loading,
       pending: instance.pending,
       error: instance.error,
       agentMode,

@@ -15,6 +15,18 @@ import type { EngineProcessSpec } from "@/services/engine-spec";
 
 export const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:8077";
 
+/**
+ * 엔진 호출 실패를 화면이 읽는 형태.
+ *
+ * `services/`에 두는 이유: 스토어(`lib/store/engine-snapshots.ts`)도 이 타입을 쓰는데,
+ * 컴포넌트에서 타입을 가져오면 스토어가 컴포넌트를 import하게 된다.
+ */
+export interface EngineError {
+  message: string;
+  detail?: string;
+  status?: number;
+}
+
 /** 엔진 호출 결과. 실패도 정상적인 결과값이다. */
 export type EngineResult<T> =
   | { ok: true; data: T }
