@@ -21,6 +21,16 @@ npm run start   # 빌드 산출물 실행
 * **`AGENTS.md`는 `next dev`가 자동 생성·재삽입한다.** Next.js 16 자체 에이전트 규칙 블록이며, 지워도 되살아난다. 커밋에 포함시켜 트리를 깨끗하게 유지한다. 이 프로젝트의 지침은 `AGENTS.md`가 아니라 이 파일이다.
 * **Tailwind v4에는 `tailwind.config.ts`가 없다.** 테마는 `app/globals.css`의 `@theme`/CSS 변수로 설정한다. Shadcn도 `components.json`에서 `tailwind.config: ""`로 이를 반영한다.
 * **React Flow는 스타일시트를 직접 import해야 한다.** `import '@xyflow/react/dist/style.css'` 없이는 노드·엣지가 레이아웃 없이 렌더되어 "아무것도 안 보이는" 상태가 된다. 첫 React Flow 화면을 만들 때 함께 넣는다.
+* **React Flow는 부모에 명시적 높이가 필요하다.** `h-[440px]` 같은 고정 높이가 없으면 캔버스가 접힌다.
+* **`markerEnd`의 색에 CSS 변수를 쓰면 화살촉이 사라진다.** React Flow가 색 문자열을 marker DOM id에
+  그대로 끼워 넣고 `url(#...)`로 참조하는데, `var(--x)`의 괄호가 그 참조를 깨뜨린다. 콘솔 경고가 없어
+  원인을 찾기 어렵다. **라이트/다크 값이 같은** 팔레트 스텝만 리터럴로 쓴다 — `#0ca30c`(status-good),
+  `#898781`(muted). 선(path)은 `style`로 칠하므로 CSS 변수를 그대로 써도 된다.
+* **숨겨진 브라우저 패널에서는 React Flow를 검증할 수 없다.** 패널이 표시되지 않으면 `document.hidden`이
+  true가 되어 `requestAnimationFrame`과 `ResizeObserver` 콜백이 전혀 발화하지 않는다. React Flow는 이
+  둘로 노드를 측정하므로 초기화가 끝나지 않고 **엣지 0개 + fitView 미적용** 상태가 된다 —
+  기본 노드 2개짜리 최소 예제도 동일하게 실패하므로 앱 버그로 오진하지 말 것. 반면 Recharts는 마운트 시
+  컨테이너 폭을 동기로 읽어 정상 렌더되므로, "차트는 되는데 플로우만 안 된다"는 정상 증상이다.
 * **React Flow / Recharts는 클라이언트 컴포넌트다.** 둘 다 브라우저 전용 API에 의존하므로 사용하는 파일 최상단에 `'use client'`가 필요하다. App Router 기본값은 서버 컴포넌트다.
 * **Recharts 커스텀 `shape` + entrance 애니메이션은 같이 쓰면 안 된다.** `<Bar shape={<Custom/>}>`에
   애니메이션이 켜져 있으면 막대가 `height: 0`에 멈춘 채 렌더된다 — 에러도 콘솔 경고도 없고 SVG 골격만
@@ -98,14 +108,32 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 아래는 **목표 구조**다. 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
 
-**현재 구현된 것** — ① Executive Cockpit (`app/page.tsx`) 및 그 부속:
-`app/{layout.tsx,page.tsx,globals.css}`, `components/cockpit/*`, `components/ui/*`(card·badge·separator·progress·button),
-`components/theme-provider.tsx`·`theme-toggle.tsx`(라이트/다크 전환),
-`lib/types/cockpit.ts`, `lib/mock-data/next-automotive.ts`, `lib/format.ts`, `lib/utils.ts`, `.claude/launch.json`.
+**현재 구현된 것** — ① Executive Cockpit, ② Live BPM & Agent Process Tracker:
+* `app/{layout.tsx,page.tsx,globals.css}`, `app/bpm-tracker/page.tsx`
+* `components/cockpit/*`, `components/flow/*`(BPMN 노드·캔버스), `components/bpm/*`(트래커 패널),
+  `components/ui/*`(card·badge·separator·progress·button), `components/theme-provider.tsx`·`theme-toggle.tsx`
+* `lib/types/{cockpit,bpm}.ts`, `lib/mock-data/{next-automotive,bpm-process}.ts`, `lib/store/demo-controller.ts`,
+  `lib/format.ts`, `lib/utils.ts`, `services/{bpm-engine,agent-orchestrator}.ts`, `.claude/launch.json`
 
-**아직 없는 것** — `app/bpm-tracker/`·`workspace/`·`rolling-plan/`·`evolution/` 4개 화면, `app/api/`,
-`components/flow|workspace|demo`, `lib/store`(Zustand), `services/`. GNB는 이 4개를 "준비중"으로 비활성 표시하며,
+4장 트리와 다른 점: 트래커 화면의 비-플로우 패널은 `components/bpm/`에 둔다 —
+`components/flow/`는 React Flow 노드·엣지·캔버스 전용으로 좁혀 쓴다.
+
+**아직 없는 것** — `app/workspace/`·`rolling-plan/`·`evolution/` 3개 화면, `app/api/`,
+`components/workspace|demo`(플로팅 데모 플레이어 포함). GNB는 이 3개를 "준비중"으로 비활성 표시하며,
 라우트를 만들 때 `app/layout.tsx`의 `NAV_ITEMS`에 `href`를 채운다.
+
+### 4.2 BPM 상태 모델
+
+**노드 상태는 저장하지 않고 파생한다.** 실행 순서(`BpmProcessInstance.sequence`)와 현재 진행 지점이
+유일한 진실이고, 노드별 상태·Agent 실행 상태는 전부 `services/`에서 계산한다
+(`deriveNodeStatuses`, `agentActivities`). 노드마다 status 필드를 두면 순서와 상태가 곧 어긋난다.
+
+* `sequence`에 없는 노드는 선택되지 않은 분기이므로 자동으로 `skipped`가 된다.
+* 현재 지점의 노드가 `user-task`면 `active`가 아니라 **`waiting`**(승인 대기)이다 —
+  경영진이 "지금 내 결재가 걸려 있는지"를 구분해야 한다.
+* **아직 완료되지 않은 Agent의 산출물은 어느 패널에서도 보여주지 않는다.** 미래 결과를 미리 노출하면
+  분석이 이미 끝난 것처럼 읽힌다. 노드 상세 패널에서 이 검사를 빠뜨려 한 번 새어 나온 적이 있으므로,
+  `run`을 넘기기 전 상태가 `done`인지 확인한다.
 
 ### 4.1 데이터 시각화 규칙
 
