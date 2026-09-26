@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { KriTuningPanel } from "@/components/evolution/kri-tuning-panel";
+import { EngineEvolutionPanel } from "@/components/evolution/engine-evolution-panel";
 import { ProposalList } from "@/components/evolution/proposal-list";
 import {
   Card,
@@ -114,6 +115,19 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
             statusById={statusById}
             onDecide={(id, status) => setStatusById((prev) => ({ ...prev, [id]: status }))}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">엔진 Evolution Agent 산출물</CardTitle>
+          <CardDescription>
+            루프의 6단계는 에이전트 룰 개선이다. 엔진에서 그 노드가 실제로 돌면 산출물이
+            여기 나타난다 — 위의 개선 제안은 Mock이고, 이것은 실행 기록이다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EngineEvolutionPanel />
         </CardContent>
       </Card>
 

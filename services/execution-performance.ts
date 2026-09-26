@@ -29,13 +29,15 @@ export function parseDurationMinutes(text: string): number {
   return Number(h ?? 0) * 60 + Number(m ?? 0) + Number(s ?? 0) / 60;
 }
 
-/** Agent 실행 기록 전체의 소요시간 합(시간 단위). */
-export function totalAgentHours(): number {
-  const minutes = bpmProcess.runs.reduce(
-    (sum, run) => sum + parseDurationMinutes(run.duration),
-    0,
-  );
+/** 주어진 실행 기록의 소요시간 합(시간 단위). */
+export function agentHoursOf(runs: { duration: string }[]): number {
+  const minutes = runs.reduce((sum, run) => sum + parseDurationMinutes(run.duration), 0);
   return minutes / 60;
+}
+
+/** Agent 실행 기록 전체의 소요시간 합(시간 단위) — Mock 기준. */
+export function totalAgentHours(): number {
+  return agentHoursOf(bpmProcess.runs);
 }
 
 /**
@@ -67,18 +69,32 @@ export function detectionFalsePositiveRate(): number {
   return tuningOutcome(kri, kri.currentThreshold).falsePositiveRate;
 }
 
-/** 시나리오 설정값과 시스템 산출값을 합쳐 전체 지표 목록을 만든다. */
-export function executionMetrics(): ExecutionMetric[] {
+/**
+ * 시나리오 설정값과 시스템 산출값을 합쳐 전체 지표 목록을 만든다.
+ *
+ * `engineRuns`를 주면 **Agent 소요시간을 엔진 실측값으로 바꾼다.** Mock 기준 계산과
+ * 실제로 잰 값은 근거가 다르므로 출처 배지도 `measured`로 바뀐다 — 같은 배지로 묶으면
+ * "시스템 산출값"이 실측인지 Mock 계산인지 알 수 없어 기획안 2.3의 구분이 이름만 남는다.
+ *
+ * **비어 있는 배열은 무시한다.** 엔진을 켰지만 아직 Agent가 하나도 안 돌았을 때
+ * 0시간으로 덮으면 "분석이 즉시 끝났다"고 말하는 셈이 된다.
+ */
+export function executionMetrics(engineRuns: { duration: string }[] = []): ExecutionMetric[] {
   const computed: Record<string, number> = {
     "mp-analysis-time": totalAgentHours(),
     "mp-false-positive": detectionFalsePositiveRate(),
     "mp-action-ontime": actionOnTimeRate(),
     "mp-recovery-rate": recoveryRealizationRate(),
   };
+  const measured: Record<string, number> =
+    engineRuns.length > 0 ? { "mp-analysis-time": agentHoursOf(engineRuns) } : {};
 
-  return executionBaseline.map((metric) =>
-    metric.provenance === "system"
+  return executionBaseline.map((metric) => {
+    if (metric.id in measured) {
+      return { ...metric, current: measured[metric.id], provenance: "measured" as const };
+    }
+    return metric.provenance === "system"
       ? { ...metric, current: computed[metric.id] ?? metric.current }
-      : metric,
-  );
+      : metric;
+  });
 }

@@ -17,8 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EngineErrorBanner } from "@/components/engine/engine-panel";
-import { useEngineDecisions } from "@/components/engine/use-engine-decisions";
-import { scenarios } from "@/lib/mock-data/scenarios";
+import { useEngineSnapshots } from "@/components/engine/use-engine-snapshots";
+import { scenarioById, scenarios } from "@/lib/mock-data/scenarios";
 import { useDemoController } from "@/lib/store/demo-controller";
 import type { RollingPlan } from "@/lib/types/rolling";
 import {
@@ -28,6 +28,7 @@ import {
   planView,
   summarizeGap,
 } from "@/services/rolling-plan";
+import { engineDecisionsFrom } from "@/services/engine-view";
 
 /**
  * Rolling Plan 화면의 클라이언트 경계.
@@ -42,11 +43,21 @@ import {
  */
 export function RollingShell({ plan }: { plan: RollingPlan }) {
   const mockDecisions = useDemoController((s) => s.decisionByScenario);
-  const engine = useEngineDecisions();
+  const engine = useEngineSnapshots();
+
+  // 스냅샷에서 결정만 뽑는다 — 같은 스냅샷이 ①의 소요시간·단계, ⑤의 산출물에도 쓰인다.
+  const engineDecisions = useMemo(
+    () => engineDecisionsFrom(engine.snapshotByScenario, (id) => scenarioById(id).reviewCase),
+    [engine.snapshotByScenario],
+  );
 
   const decisionByScenario = useMemo(
-    () => mergeDecisions(mockDecisions, engine),
-    [mockDecisions, engine],
+    () =>
+      mergeDecisions(mockDecisions, {
+        engagedScenarioIds: engine.engagedScenarioIds,
+        decisionByScenario: engineDecisions,
+      }),
+    [mockDecisions, engine.engagedScenarioIds, engineDecisions],
   );
 
   /**

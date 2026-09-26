@@ -21,6 +21,7 @@ import {
 import { improvementOf, meetsTarget } from "@/lib/types/execution-performance";
 import {
   actionOnTimeRate,
+  agentHoursOf,
   executionMetrics,
   parseDurationMinutes,
   recoveryRealizationRate,
@@ -163,5 +164,40 @@ describe("개선 방향 판정", () => {
         : metric.current <= metric.target;
       expect(meetsTarget(metric)).toBe(hit);
     }
+  });
+});
+
+describe("엔진 실측값 반영 (4.17)", () => {
+  const engineRuns = [{ duration: "10분 00초" }, { duration: "5분 30초" }];
+
+  it("엔진 실행 기록을 주면 소요시간이 실측값으로 바뀐다", () => {
+    const metric = executionMetrics(engineRuns).find((m) => m.id === "mp-analysis-time")!;
+    expect(metric.current).toBeCloseTo(15.5 / 60, 6);
+    // Mock 계산과 실측은 근거가 다르다 — 같은 배지로 묶으면 기획안 2.3의 구분이 이름만 남는다.
+    expect(metric.provenance).toBe("measured");
+  });
+
+  it("빈 배열은 무시하고 Mock 계산을 유지한다", () => {
+    // 엔진을 켰지만 아직 Agent가 안 돌았을 때 0시간으로 덮으면
+    // "분석이 즉시 끝났다"고 말하는 셈이 된다.
+    const metric = executionMetrics([]).find((m) => m.id === "mp-analysis-time")!;
+    expect(metric.current).toBeCloseTo(totalAgentHours(), 6);
+    expect(metric.provenance).toBe("system");
+  });
+
+  it("다른 지표의 출처는 그대로다", () => {
+    const withEngine = executionMetrics(engineRuns);
+    const baseline = executionMetrics();
+    for (const metric of withEngine) {
+      if (metric.id === "mp-analysis-time") continue;
+      const same = baseline.find((m) => m.id === metric.id)!;
+      expect(metric.provenance).toBe(same.provenance);
+      expect(metric.current).toBeCloseTo(same.current, 6);
+    }
+  });
+
+  it("agentHoursOf가 소요시간을 시간 단위로 합한다", () => {
+    expect(agentHoursOf([{ duration: "1시간 30분" }])).toBeCloseTo(1.5, 6);
+    expect(agentHoursOf([])).toBe(0);
   });
 });

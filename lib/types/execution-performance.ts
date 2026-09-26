@@ -24,12 +24,19 @@ export const EXECUTION_CATEGORY_LABEL: Record<ExecutionCategory, string> = {
  * 기획안 2.3: "시나리오에서 설정한 결과와 시스템 실행으로 확인한 결과를 구분한다."
  * 데모에서 이 구분이 없으면 어디까지가 실제로 돌아간 것이고 어디부터가 설정값인지
  * 알 수 없다. 화면에서 배지로 구분해 표시한다.
+ *
+ * **`system`과 `measured`를 나눈 이유.** 둘 다 코드가 계산한 값이지만 근거가 다르다 —
+ * `system`은 Mock 데이터에서 계산한 것이고, `measured`는 BPM 엔진이 실제로 실행하며
+ * 잰 것이다(예: Agent 소요시간은 ollama가 돌려준 실제 경과 시간이다). 이 둘을 같은
+ * 배지로 묶으면 "시스템 산출값"이 실측을 뜻하는지 Mock 계산을 뜻하는지 알 수 없어,
+ * 기획안이 요구한 구분이 이름만 남는다.
  */
-export type Provenance = "scenario" | "system";
+export type Provenance = "scenario" | "system" | "measured";
 
 export const PROVENANCE_LABEL: Record<Provenance, string> = {
   scenario: "시나리오 설정값",
   system: "시스템 산출값",
+  measured: "엔진 실측값",
 };
 
 export interface ExecutionMetric {

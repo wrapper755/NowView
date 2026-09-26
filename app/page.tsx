@@ -1,12 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DivisionCard } from "@/components/cockpit/division-card";
-import { ExecutionPerformancePanel } from "@/components/cockpit/execution-performance-panel";
 import {
   FrameworkChainTable,
   FrameworkSummaryLine,
 } from "@/components/cockpit/framework-chain-table";
 import { OpBridgeChart } from "@/components/cockpit/op-bridge-chart";
-import { RiskSignalList } from "@/components/cockpit/risk-signal-list";
+import {
+  ExecutionPerformanceSection,
+  RiskSignalSection,
+} from "@/components/cockpit/live-sections";
 import { StatTile } from "@/components/shared/stat-tile";
 import { managementFramework } from "@/lib/mock-data/framework";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
@@ -145,7 +147,9 @@ export default function ExecutiveCockpitPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="viz-root">
-          <ExecutionPerformancePanel metrics={executionPerformance} />
+          {/* 엔진이 돌았으면 Agent 소요시간이 실측값으로 바뀐다. 페이지는 서버
+              컴포넌트로 남고 이 조각만 클라이언트에서 채운다 — 정적 렌더를 잃지 않는다. */}
+          <ExecutionPerformanceSection fallback={executionPerformance} />
         </CardContent>
       </Card>
 
@@ -180,7 +184,8 @@ export default function ExecutiveCockpitPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RiskSignalList risks={company.risks} />
+          {/* 엔진 인스턴스가 있는 안건은 Mock에 적힌 단계가 아니라 실제 진행 지점을 쓴다. */}
+          <RiskSignalSection risks={company.risks} />
         </CardContent>
       </Card>
 

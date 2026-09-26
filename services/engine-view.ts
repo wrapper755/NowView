@@ -19,6 +19,7 @@ import type {
   BpmProcessInstance,
 } from "@/lib/types/bpm";
 import type { ReviewCase, ReviewDecision } from "@/lib/types/workspace";
+import type { ManagementStage } from "@/lib/types/cockpit";
 
 const NODE_STATUSES: BpmNodeStatus[] = ["done", "active", "waiting", "pending", "skipped"];
 
@@ -159,4 +160,116 @@ export function engineProcessView(
     runByNode,
     provenanceByNode,
   };
+}
+
+// ------------------------------------------------------------- 전사 화면 파생
+//
+// 아래 함수들은 `useEngineSnapshots`가 한 번 가져온 스냅샷 묶음에서 화면별 값을 뽑는다.
+// 화면마다 따로 계산하면 같은 순간을 서로 다르게 본 값이 섞인다. 전부 순수 함수라
+// 테스트로 잠근다.
+
+/** 시나리오 id → 스냅샷. */
+export type SnapshotByScenario = Record<string, EngineSnapshot>;
+
+/**
+ * 엔진에 기록된 승인 결정 — ④ Rolling Plan이 쓴다.
+ *
+ * 대안이 그 안건 목록에 없으면 건너뛴다(`engineDecisionToReview`가 null을 준다).
+ */
+export function engineDecisionsFrom(
+  snapshots: SnapshotByScenario,
+  reviewCaseOf: (scenarioId: string) => ReviewCase,
+): Record<string, ReviewDecision> {
+  const decisions: Record<string, ReviewDecision> = {};
+  for (const [scenarioId, snapshot] of Object.entries(snapshots)) {
+    const converted = engineDecisionToReview(reviewCaseOf(scenarioId), snapshot.decision);
+    if (converted) decisions[scenarioId] = converted;
+  }
+  return decisions;
+}
+
+/**
+ * 안건이 **실제로** 어느 단계에 있는가 — ① Cockpit의 리스크 신호가 쓴다.
+ *
+ * `RiskSignal.stage`는 Mock에 적힌 값인데, 엔진 인스턴스가 있으면 그 안건의 진행
+ * 지점은 실행의 결과다. 감지 화면이 "지금 어디까지 왔나"를 틀리게 말하면 그 화면을
+ * 보는 이유가 없어진다.
+ *
+ * 리스크 id로 묶는다 — 네 화면이 `riskId`로 같은 사건을 가리킨다는 규칙(CLAUDE.md 4.6)을
+ * 그대로 쓴다.
+ */
+export function engineStagesByRisk(
+  snapshots: SnapshotByScenario,
+  processOf: (scenarioId: string) => BpmProcessInstance,
+): Record<string, ManagementStage> {
+  const stages: Record<string, ManagementStage> = {};
+  for (const [scenarioId, snapshot] of Object.entries(snapshots)) {
+    const process = processOf(scenarioId);
+    const view = engineProcessView(process, snapshot);
+    // 종료된 인스턴스는 현재 노드가 없다 — 마지막으로 지난 노드의 단계를 쓴다.
+    const node =
+      view.activeNode ??
+      [...snapshot.visited].reverse().map((id) => process.nodes.find((n) => n.id === id)).find(Boolean) ??
+      null;
+    if (node?.stage) stages[snapshot.riskId] = node.stage;
+  }
+  return stages;
+}
+
+/**
+ * 엔진이 실제로 실행한 Agent 기록 전부 — ① 경영 수행 성과가 쓴다.
+ *
+ * 완료된 노드의 것만 들어온다(`engineProcessView`가 걸러 준다).
+ */
+export function engineRunsFrom(
+  snapshots: SnapshotByScenario,
+  processOf: (scenarioId: string) => BpmProcessInstance,
+): AgentRun[] {
+  return Object.entries(snapshots).flatMap(([scenarioId, snapshot]) =>
+    Object.values(engineProcessView(processOf(scenarioId), snapshot).runByNode),
+  );
+}
+
+/** Evolution Agent가 낸 산출물 — ⑤ Evolution Lab이 쓴다. */
+export interface EngineEvolutionOutput {
+  scenarioId: string;
+  nodeId: string;
+  agentName: string;
+  run: AgentRun;
+  provenance: string;
+}
+
+/**
+ * ⑤가 보여줄 Evolution Agent 산출물.
+ *
+ * **정식 개선 제안(`EvolutionProposal`)으로 바꾸지 않는다.** 그 타입은 before/after·
+ * 기대효과·**트레이드오프**·담당자를 요구하는데 Agent 산출물에는 없다. 없는 값을 지어내면
+ * "부작용 없는 제안은 검토가 아니라 홍보다"(CLAUDE.md 4.7)를 스스로 어긴다. 산출물은
+ * 산출물로 보여 주고, 정식 제안으로 승격하는 것은 사람의 몫으로 남긴다.
+ *
+ * 마지막 단계의 노드라 대부분의 인스턴스에서는 아직 비어 있다 — 그 사실도 화면이 말한다.
+ */
+export function engineEvolutionOutputs(
+  snapshots: SnapshotByScenario,
+  processOf: (scenarioId: string) => BpmProcessInstance,
+): EngineEvolutionOutput[] {
+  const outputs: EngineEvolutionOutput[] = [];
+  for (const [scenarioId, snapshot] of Object.entries(snapshots)) {
+    const process = processOf(scenarioId);
+    const view = engineProcessView(process, snapshot);
+    for (const node of process.nodes) {
+      if (node.stage !== "management-evolution" || !node.agentId) continue;
+      const run = view.runByNode[node.id];
+      if (!run) continue;
+      const agent = process.agents.find((a) => a.id === node.agentId);
+      outputs.push({
+        scenarioId,
+        nodeId: node.id,
+        agentName: agent?.name ?? node.agentId,
+        run,
+        provenance: view.provenanceByNode[node.id] ?? "unknown",
+      });
+    }
+  }
+  return outputs;
 }

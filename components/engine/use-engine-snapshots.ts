@@ -1,32 +1,31 @@
 "use client";
 
 /**
- * 전 시나리오의 엔진 결정을 모은다 — ④ Rolling Plan 전용.
+ * 전 시나리오의 엔진 스냅샷을 모은다 — 전사 화면(①④⑤) 전용.
  *
- * **④는 성격이 다르다.** ②·③은 지금 보고 있는 한 시나리오의 인스턴스를 다루지만,
- * Rolling Plan은 전사 자산이라 **모든 시나리오의 승인 과제를 함께** 받는다
- * (CLAUDE.md 4.13). 전사 Gap은 하나이고 여러 안건이 그것을 나눠 메우므로, 인스턴스가
- * 여럿이면 여럿을 다 읽어야 합산이 맞는다.
+ * **②·③과 성격이 다르다.** 그쪽은 지금 보고 있는 한 시나리오의 인스턴스를 다루지만,
+ * 전사 화면은 **모든 시나리오를 함께** 본다(CLAUDE.md 4.13). 전사 Gap은 하나이고
+ * 여러 안건이 그것을 나눠 메우므로, 인스턴스가 여럿이면 여럿을 다 읽어야 합산이 맞는다.
  *
- * **이중 계상을 여기서 막는다.** 한 시나리오에 엔진 인스턴스가 붙어 있으면 그 시나리오의
- * 권위는 엔진에 있다 — Mock 스토어의 결정과 함께 더하면 같은 승인이 두 번 잡힌다.
- * 그 판단에 필요한 것이 `engagedScenarioIds`다.
+ * **한 번 가져와 여러 파생을 만든다.** 승인 결정(④), Agent 실행 기록(①), 현재 단계(①),
+ * Evolution Agent 산출물(⑤)이 모두 같은 스냅샷에서 나온다. 화면마다 따로 가져오면
+ * 같은 순간을 서로 다르게 본 값이 한 화면에 섞인다.
+ *
+ * `engagedScenarioIds`가 중요하다 — 엔진이 소유한 시나리오를 알아야 Mock 값과 겹쳐
+ * 이중 계상하는 것을 막을 수 있다.
  */
 
 import { useEffect, useMemo, useState } from "react";
 
 import type { EngineError } from "@/components/engine/use-engine-instance";
 import { useEngineSession } from "@/lib/store/engine-session";
-import { scenarioById } from "@/lib/mock-data/scenarios";
-import type { ReviewDecision } from "@/lib/types/workspace";
 import type { EngineSnapshot } from "@/services/engine-client";
-import { engineDecisionToReview } from "@/services/engine-view";
 
-export interface EngineDecisions {
-  /** 엔진이 소유한 시나리오 id. 결정이 아직 없어도 여기 들어간다. */
+export interface EngineSnapshots {
+  /** 엔진이 소유한 시나리오 id. 스냅샷을 아직 못 읽었어도 여기 들어간다. */
   engagedScenarioIds: string[];
-  /** 시나리오 id → 승인된 결정. 아직 승인 전이면 없다. */
-  decisionByScenario: Record<string, ReviewDecision>;
+  /** 시나리오 id → 스냅샷. 조회에 실패하면 비어 있다. */
+  snapshotByScenario: Record<string, EngineSnapshot>;
   loading: boolean;
   error: EngineError | null;
 }
@@ -39,16 +38,16 @@ export interface EngineDecisions {
  * 이것들을 상태에 두면 effect 본문에서 동기로 `setState`를 하게 되고
  * `react-hooks/set-state-in-effect`에 걸린다(CLAUDE.md의 그 규칙).
  */
-interface FetchedDecisions {
+interface Fetched {
   /** 이 결과가 어떤 인스턴스 구성에서 나왔는가. `loading` 판정의 근거다. */
   forKey: string;
-  decisions: Record<string, ReviewDecision>;
+  snapshots: Record<string, EngineSnapshot>;
   error: EngineError | null;
 }
 
-const NOTHING_FETCHED: FetchedDecisions = { forKey: "", decisions: {}, error: null };
+const NOTHING_FETCHED: Fetched = { forKey: "", snapshots: {}, error: null };
 
-export function useEngineDecisions(): EngineDecisions {
+export function useEngineSnapshots(): EngineSnapshots {
   const instanceByScenario = useEngineSession((s) => s.instanceByScenario);
 
   // 붙어 있는 것만 읽는다. 객체 참조가 아니라 내용으로 비교해야 매 렌더마다 다시 긁지 않는다.
@@ -63,7 +62,7 @@ export function useEngineDecisions(): EngineDecisions {
   const key = attached.map((a) => `${a.scenarioId}:${a.instanceId}`).join("|");
 
   const engagedScenarioIds = useMemo(() => attached.map((a) => a.scenarioId), [attached]);
-  const [fetched, setFetched] = useState<FetchedDecisions>(NOTHING_FETCHED);
+  const [fetched, setFetched] = useState<Fetched>(NOTHING_FETCHED);
 
   useEffect(() => {
     if (!key) return;
@@ -92,23 +91,19 @@ export function useEngineDecisions(): EngineDecisions {
         );
         if (cancelled) return;
 
-        const decisions: Record<string, ReviewDecision> = {};
+        const byScenario: Record<string, EngineSnapshot> = {};
         for (const { scenarioId, snapshot } of snapshots) {
-          // 스냅샷이 다른 시나리오의 것이면 쓰지 않는다. 대안 id가 맞지 않아
-          // 엉뚱한 금액이 Gap에 더해질 수 있다.
+          // 스냅샷이 다른 시나리오의 것이면 쓰지 않는다. 노드·대안 id가 맞지 않아
+          // 엉뚱한 값이 화면에 섞인다.
           if (snapshot.scenarioId !== scenarioId) continue;
-          const converted = engineDecisionToReview(
-            scenarioById(scenarioId).reviewCase,
-            snapshot.decision,
-          );
-          if (converted) decisions[scenarioId] = converted;
+          byScenario[scenarioId] = snapshot;
         }
-        setFetched({ forKey: key, decisions, error: null });
+        setFetched({ forKey: key, snapshots: byScenario, error: null });
       } catch (cause) {
         if (cancelled) return;
         // 실패해도 `engagedScenarioIds`는 스토어에서 파생되므로 그대로 남는다 —
-        // 엔진이 소유한 시나리오를 놓치면 Mock 결정이 되살아나 승인이 두 번 잡힌다.
-        setFetched({ forKey: key, decisions: {}, error: cause as EngineError });
+        // 엔진이 소유한 시나리오를 놓치면 Mock 값이 되살아나 이중 계상된다.
+        setFetched({ forKey: key, snapshots: {}, error: cause as EngineError });
       }
     })();
 
@@ -119,9 +114,9 @@ export function useEngineDecisions(): EngineDecisions {
 
   return {
     engagedScenarioIds,
-    // 지금 구성의 결과가 아직 없으면 쓰지 않는다 — 옛 인스턴스의 결정을 보여주면
-    // 과제 목록이 실제와 어긋난다.
-    decisionByScenario: fetched.forKey === key ? fetched.decisions : {},
+    // 지금 구성의 결과가 아직 없으면 쓰지 않는다 — 옛 인스턴스의 값을 보여주면
+    // 화면이 실제와 어긋난다.
+    snapshotByScenario: fetched.forKey === key ? fetched.snapshots : {},
     loading: key !== "" && fetched.forKey !== key,
     error: fetched.forKey === key ? fetched.error : null,
   };

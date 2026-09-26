@@ -12,7 +12,14 @@ import { describe, expect, it } from "vitest";
 
 import { scenarios } from "@/lib/mock-data/scenarios";
 import type { EngineSnapshot } from "@/services/engine-client";
-import { engineDecisionToReview, engineProcessView } from "@/services/engine-view";
+import {
+  engineDecisionToReview,
+  engineDecisionsFrom,
+  engineEvolutionOutputs,
+  engineProcessView,
+  engineRunsFrom,
+  engineStagesByRisk,
+} from "@/services/engine-view";
 import { simulateAlternative } from "@/services/agent-orchestrator";
 
 const scenario = scenarios.find((s) => s.id === "scn-profitability")!;
@@ -72,6 +79,27 @@ function runFor(nodeId: string, provenance = "mock") {
       owner,
       ifUnanswered,
     })),
+    provenance,
+  };
+}
+
+/**
+ * 임의 노드의 실행 기록을 만든다.
+ *
+ * Mock에는 `evolution` 노드의 산출물이 **없다**(시나리오 1의 runs는 sensing·rca·simulate
+ * 셋뿐이다). 엔진 Mock 모드에서는 그 노드가 `provenance: "mock-missing"`으로 나오고,
+ * LLM 모드에서는 실제 산출물이 생긴다. 후자를 시험하려면 합성 기록이 필요하다.
+ */
+function syntheticRun(nodeId: string, agentId: string, provenance: string) {
+  return {
+    agentId,
+    nodeId,
+    output: "가동률 KRI 임계치 85% → 87% 상향을 제안한다.",
+    sources: [{ name: "임계치 백테스트", quality: "complete" as const }],
+    duration: "3분 20초",
+    confidence: "high" as const,
+    confidenceNote: null,
+    escalations: [],
     provenance,
   };
 }
@@ -270,5 +298,127 @@ describe("엔진 결정 → 화면 결정", () => {
 
   it("결정이 없으면 null이다", () => {
     expect(engineDecisionToReview(reviewCase, null)).toBeNull();
+  });
+});
+
+describe("전사 화면 파생 (①⑤)", () => {
+  const processOf = (id: string) => scenarios.find((s) => s.id === id)!.process;
+  const reviewCaseOf = (id: string) => scenarios.find((s) => s.id === id)!.reviewCase;
+
+  it("Agent 소요시간은 완료된 실행만 센다", () => {
+    // 미완료 노드의 기록이 섞이면 "분석이 더 오래 걸렸다"고 과장된다.
+    const runs = engineRunsFrom(
+      {
+        [scenario.id]: snapshotWith({
+          nodeStatuses: { ...snapshotWith().nodeStatuses, simulate: "active" },
+          runs: [runFor("sensing"), runFor("rca"), runFor("simulate")],
+        }),
+      },
+      processOf,
+    );
+    expect(runs.map((r) => r.nodeId).sort()).toEqual(["rca", "sensing"]);
+  });
+
+  it("여러 인스턴스의 실행 기록을 합친다", () => {
+    const other = scenarios.find((s) => s.id === "scn-delivery")!;
+    const otherStatuses = Object.fromEntries(other.process.nodes.map((n) => [n.id, "pending"]));
+    const runs = engineRunsFrom(
+      {
+        [scenario.id]: snapshotWith({ runs: [runFor("rca")] }),
+        [other.id]: snapshotWith({
+          scenarioId: other.id,
+          riskId: other.process.riskId,
+          nodeStatuses: otherStatuses,
+          pendingApproval: null,
+          runs: [],
+        }),
+      },
+      processOf,
+    );
+    expect(runs).toHaveLength(1);
+  });
+
+  it("리스크 단계를 현재 대기 노드의 단계로 바꾼다", () => {
+    const stages = engineStagesByRisk({ [scenario.id]: snapshotWith() }, processOf);
+    // review 노드에서 멈춰 있으므로 management-review다.
+    expect(stages[scenario.process.riskId]).toBe("management-review");
+  });
+
+  it("종료된 인스턴스는 마지막으로 지난 노드의 단계를 쓴다", () => {
+    const done = Object.fromEntries(scenario.process.nodes.map((n) => [n.id, "done"]));
+    const stages = engineStagesByRisk(
+      {
+        [scenario.id]: snapshotWith({
+          status: "done",
+          pendingApproval: null,
+          next: [],
+          nodeStatuses: done,
+          visited: [...scenario.process.sequence],
+        }),
+      },
+      processOf,
+    );
+    expect(stages[scenario.process.riskId]).toBe("management-evolution");
+  });
+
+  it("스냅샷이 없으면 아무 단계도 덮지 않는다", () => {
+    expect(engineStagesByRisk({}, processOf)).toEqual({});
+  });
+
+  it("승인 결정을 시나리오별로 뽑는다", () => {
+    const recommended = reviewCaseOf(scenario.id).alternatives.find(
+      (a) => a.id === reviewCaseOf(scenario.id).recommendedAlternativeId,
+    )!;
+    const decisions = engineDecisionsFrom(
+      {
+        [scenario.id]: snapshotWith({
+          decision: {
+            nodeId: "review",
+            alternativeId: recommended.id,
+            leverValue: recommended.lever.base,
+            rationale: "충분히 긴 사유를 적었습니다.",
+            decidedAt: "2026-09-26 22:53",
+          },
+        }),
+      },
+      reviewCaseOf,
+    );
+    expect(decisions[scenario.id].alternativeId).toBe(recommended.id);
+  });
+
+  it("Evolution Agent 산출물은 완료 전에는 나오지 않는다", () => {
+    // 미완료 Agent의 산출물은 어느 화면에서도 미리 보여주지 않는다(4.5).
+    const outputs = engineEvolutionOutputs({ [scenario.id]: snapshotWith() }, processOf);
+    expect(outputs).toHaveLength(0);
+  });
+
+  it("완료된 Evolution Agent 산출물을 출처와 함께 돌려준다", () => {
+    const done = Object.fromEntries(scenario.process.nodes.map((n) => [n.id, "done"]));
+    const outputs = engineEvolutionOutputs(
+      {
+        [scenario.id]: snapshotWith({
+          status: "done",
+          pendingApproval: null,
+          next: [],
+          nodeStatuses: done,
+          runs: [syntheticRun("evolution", "agent-evolution", "llm:kimi-k3:cloud")],
+        }),
+      },
+      processOf,
+    );
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0].provenance).toBe("llm:kimi-k3:cloud");
+    expect(outputs[0].agentName).toBe("Evolution Agent");
+    expect(outputs[0].run.output.length).toBeGreaterThan(0);
+  });
+
+  it("Mock에 evolution 산출물이 없다는 사실을 잠근다", () => {
+    // 여기가 바뀌면(Mock에 산출물을 넣으면) ⑤의 "mock-missing" 표시가 사라진다.
+    // 지어내지 않기로 한 판단이므로, 바꿀 때 의식하고 바꿔야 한다.
+    for (const item of scenarios) {
+      const evolutionNode = item.process.nodes.find((n) => n.stage === "management-evolution" && n.agentId);
+      expect(evolutionNode).toBeDefined();
+      expect(item.process.runs.find((r) => r.nodeId === evolutionNode!.id)).toBeUndefined();
+    }
   });
 });
