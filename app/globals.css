@@ -128,3 +128,46 @@
     @apply font-sans;
   }
 }
+
+/* ── Data-viz 팔레트 ────────────────────────────────────────────────────────
+   검증된 팔레트이며 값을 바꾸면 반드시 검증기를 재실행한다:
+     node scripts/validate_palette.js "<hex,hex>" --mode light --surface "#ffffff"
+     node scripts/validate_palette.js "<hex,hex>" --mode dark  --surface "#171717"
+
+   shadcn nova 프리셋의 --chart-1~5는 무채색 그레이스케일(oklch chroma 0)이라
+   계열 식별(categorical)에 쓸 수 없다. 차트 색은 아래 --viz-* 만 사용한다.
+
+   역할 구분:
+   · favorable/unfavorable = diverging 양극(blue↔red). 개선/악화 극성 표현.
+   · anchor = 중립 합계(Target/Forecast 기둥). 무채색이 의도이며 계열색이 아니다.
+   · series-1/2 = categorical 식별(사업부). 고정 순서, 절대 순환 배정하지 않는다.
+   · status-* = 상태 전용. 계열색으로 재사용 금지, 항상 아이콘+라벨과 함께 쓴다.  */
+.viz-root {
+  --viz-favorable: #2a78d6;
+  --viz-unfavorable: #e34948;
+  --viz-anchor: #52514e;
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  --viz-track: #cde2fb;
+  --viz-grid: #e1e0d9;
+  --viz-baseline: #c3c2b7;
+  --viz-delta-good: #006300;
+  --viz-status-good: #0ca30c;
+  --viz-status-warning: #fab219;
+  --viz-status-serious: #ec835a;
+  --viz-status-critical: #d03b3b;
+}
+
+/* dark는 자동 반전이 아니라 다크 서피스(#171717) 기준으로 각각 선택·검증한 스텝이다.
+   status-*는 모드 불변(palette 규정)이므로 재선언하지 않는다. */
+.dark .viz-root {
+  --viz-favorable: #3987e5;
+  --viz-unfavorable: #e66767;
+  --viz-anchor: #c3c2b7;
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+  --viz-track: #184f95;
+  --viz-grid: #2c2c2a;
+  --viz-baseline: #383835;
+  --viz-delta-good: #0ca30c;
+}

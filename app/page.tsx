@@ -1,69 +1,143 @@
-import Image from "next/image";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DivisionCard } from "@/components/cockpit/division-card";
+import { OpBridgeChart } from "@/components/cockpit/op-bridge-chart";
+import { RiskSignalList } from "@/components/cockpit/risk-signal-list";
+import { StatTile } from "@/components/cockpit/stat-tile";
+import { nextAutomotive } from "@/lib/mock-data/next-automotive";
+import {
+  formatEok,
+  formatEokSigned,
+  formatPercent,
+  formatPpSigned,
+} from "@/lib/format";
+import { gapOf, marginOf } from "@/lib/types/cockpit";
 
-export default function Home() {
+export default function ExecutiveCockpitPage() {
+  const company = nextAutomotive;
+  const revenueGap = gapOf(company.revenue);
+  const profitGap = gapOf(company.operatingProfit);
+  const targetMargin = marginOf(company.revenue.target, company.operatingProfit.target);
+  const forecastMargin = marginOf(
+    company.revenue.forecast,
+    company.operatingProfit.forecast,
+  );
+  const criticalCount = company.risks.filter((r) => r.severity === "critical").length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <header className="space-y-1">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <h1 className="text-xl font-semibold">Executive Cockpit</h1>
+          <span className="text-sm text-muted-foreground">
+            {company.name} · {company.englishName}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">{company.period}</p>
+      </header>
+
+      {/* Hero figure — 이 화면이 이끄는 단 하나의 숫자. 뷰당 1개만 둔다. */}
+      <Card className="viz-root">
+        <CardContent className="flex flex-wrap items-end justify-between gap-6">
+          <div className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">
+              영업이익 Gap <span className="text-xs">(Forecast − Target)</span>
+            </p>
+            <p className="text-5xl leading-none font-semibold text-foreground">
+              {formatEokSigned(profitGap)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Target {formatEok(company.operatingProfit.target)}은 변경하지 않는다.
+              차이는 Forecast에만 반영하고 잔여 Gap으로 명시한다.
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-3 sm:flex sm:items-end sm:gap-8">
+            <StatTile
+              label="영업이익 Forecast"
+              value={formatEok(company.operatingProfit.forecast)}
+              delta={{
+                text: formatEokSigned(profitGap),
+                direction: profitGap >= 0 ? "up" : "down",
+                isGood: profitGap >= 0,
+              }}
+              caption={`Target ${formatEok(company.operatingProfit.target)}`}
+            />
+            <StatTile
+              label="매출 Forecast"
+              value={formatEok(company.revenue.forecast)}
+              delta={{
+                text: formatEokSigned(revenueGap),
+                direction: revenueGap >= 0 ? "up" : "down",
+                isGood: revenueGap >= 0,
+              }}
+              caption={`Target ${formatEok(company.revenue.target)}`}
+            />
+            <StatTile
+              label="영업이익률 Forecast"
+              value={formatPercent(forecastMargin)}
+              delta={{
+                text: formatPpSigned(forecastMargin - targetMargin),
+                direction: forecastMargin >= targetMargin ? "up" : "down",
+                isGood: forecastMargin >= targetMargin,
+              }}
+              caption={`Target ${formatPercent(targetMargin)}`}
+            />
+            <StatTile
+              label="확정 Action 회수액"
+              value={formatEok(company.committedActionRecovery)}
+              caption={`잔여 Gap ${formatEok(Math.abs(profitGap))}`}
+            />
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">영업이익 Target → Forecast 브릿지</CardTitle>
+          <CardDescription>
+            목표와 전망의 차이를 물량·단가·원가·수율·Action 요인으로 분해한다. 요인 합계는
+            Gap {formatEokSigned(profitGap)}과 정확히 일치한다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OpBridgeChart bridge={company.bridge} />
+        </CardContent>
+      </Card>
+
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-base font-semibold">사업부 듀얼 매트릭스</h2>
+          <p className="text-xs text-muted-foreground">
+            기존 사업과 신사업은 평가 기준이 다르므로 같은 축에 합산하지 않고 나란히 본다.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {company.divisions.map((division) => (
+            <DivisionCard key={division.id} division={division} />
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Risk Sensing — 감지된 신호 {company.risks.length}건
+          </CardTitle>
+          <CardDescription>
+            {criticalCount > 0
+              ? `심각 ${criticalCount}건은 Management Review 안건으로 에스컬레이션 대상이다.`
+              : "현재 심각 등급 신호는 없다."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RiskSignalList risks={company.risks} />
+        </CardContent>
+      </Card>
+
+      <p className="pb-2 text-xs text-muted-foreground">
+        본 화면의 수치는 CLAUDE.md 2장 가상 고객사 스펙에 기반한 Mock 데이터다. 실제 재무
+        데이터가 아니다.
+      </p>
+    </main>
   );
 }

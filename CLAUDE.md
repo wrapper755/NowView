@@ -22,6 +22,19 @@ npm run start   # 빌드 산출물 실행
 * **Tailwind v4에는 `tailwind.config.ts`가 없다.** 테마는 `app/globals.css`의 `@theme`/CSS 변수로 설정한다. Shadcn도 `components.json`에서 `tailwind.config: ""`로 이를 반영한다.
 * **React Flow는 스타일시트를 직접 import해야 한다.** `import '@xyflow/react/dist/style.css'` 없이는 노드·엣지가 레이아웃 없이 렌더되어 "아무것도 안 보이는" 상태가 된다. 첫 React Flow 화면을 만들 때 함께 넣는다.
 * **React Flow / Recharts는 클라이언트 컴포넌트다.** 둘 다 브라우저 전용 API에 의존하므로 사용하는 파일 최상단에 `'use client'`가 필요하다. App Router 기본값은 서버 컴포넌트다.
+* **Recharts 커스텀 `shape` + entrance 애니메이션은 같이 쓰면 안 된다.** `<Bar shape={<Custom/>}>`에
+  애니메이션이 켜져 있으면 막대가 `height: 0`에 멈춘 채 렌더된다 — 에러도 콘솔 경고도 없고 SVG 골격만
+  그려지므로 원인 파악이 오래 걸린다. 커스텀 shape를 쓸 때는 `isAnimationActive={false}`를 함께 준다.
+  (실제로 `components/cockpit/op-bridge-chart.tsx`에서 겪었다.)
+* **`<Cell radius>`는 배열을 받지 못한다** (타입이 `string | number`). 모서리별 반경이 필요하면
+  `<Bar shape>`로 `<Rectangle radius={[…]}/>`를 직접 그린다.
+* **커스텀 `tick` 엘리먼트를 주면 Recharts 기본 클래스가 붙지 않는다.** `.recharts-cartesian-axis-tick-value`
+  선택자로 축 라벨을 찾는 테스트는 실패한다. 또한 v3의 zIndex 레이어 구조 때문에 축 눈금이
+  `.recharts-xAxis`의 자손이 아닐 수 있으므로, 좌표 기준으로 찾는 편이 안전하다.
+* **테마 의존 UI를 `useState`+`useEffect`(mounted 플래그)로 그리면 lint가 막는다** —
+  `react-hooks/set-state-in-effect`. 적용 테마를 렌더 결과에 반영하는 대신 `dark:` 변형(CSS)으로
+  전환하면 마크업이 양쪽 테마에서 동일해져 hydration 불일치도 같이 사라진다.
+  `components/theme-toggle.tsx`가 그 패턴이다(`resolvedTheme`은 클릭 시점에만 읽는다).
 
 ---
 
@@ -75,6 +88,7 @@ npm run start   # 빌드 산출물 실행
 | BPM 상태 머신 | LangGraph StateGraph | Camunda 8 (BPMN 2.0) | Camunda는 Zeebe 브로커 운영이 필요해 프로토타입에 과중하다. LangGraph는 BPM 상태 전이와 에이전트 오케스트레이션을 하나의 그래프 런타임으로 처리한다. |
 | 차트 | Recharts | Apache ECharts | Shadcn/UI·Tailwind와의 컴포지션이 자연스럽다. 차트 라이브러리는 하나만 쓴다 — 두 개를 섞으면 테마·툴팁·반응형 동작이 갈라진다. |
 | Shadcn 프리미티브 | Radix (`-b radix`) | Base UI, React Aria | 기존 shadcn/ui 문서·스니펫이 Radix 기반이라 이식 비용이 가장 낮다. |
+| 테마 전환 | next-themes (`attribute="class"`) | 직접 구현 | 초기 렌더에 잘못된 테마가 번쩍이는(FOUC) 문제를 직접 처리하지 않아도 된다. `.dark` 클래스 방식이 Tailwind v4 `@custom-variant dark`와 `globals.css`의 `.dark .viz-root`를 동시에 만족시켜, UI 토큰과 차트 색이 항상 함께 전환된다. |
 
 BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 바꾸지 않는다. 시각화는 `@xyflow/react` 커스텀 노드로 처리하고, 상태의 원천은 LangGraph 그래프로 유지한다.
 
@@ -82,9 +96,31 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 ## 4. Project Directory Structure
 
-아래는 **목표 구조**다. 현재 실제로 존재하는 것은 `create-next-app` + `shadcn init` 산출물뿐이다:
-`app/{layout.tsx,page.tsx,globals.css,favicon.ico}`, `lib/utils.ts`, `public/`, `components.json`, `AGENTS.md`, 설정 파일들.
-`app/bpm-tracker/` 이하 5개 화면, `app/api/`, `components/*`, `lib/store|types|mock-data`, `services/`는 **아직 없다.** 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
+아래는 **목표 구조**다. 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
+
+**현재 구현된 것** — ① Executive Cockpit (`app/page.tsx`) 및 그 부속:
+`app/{layout.tsx,page.tsx,globals.css}`, `components/cockpit/*`, `components/ui/*`(card·badge·separator·progress·button),
+`components/theme-provider.tsx`·`theme-toggle.tsx`(라이트/다크 전환),
+`lib/types/cockpit.ts`, `lib/mock-data/next-automotive.ts`, `lib/format.ts`, `lib/utils.ts`, `.claude/launch.json`.
+
+**아직 없는 것** — `app/bpm-tracker/`·`workspace/`·`rolling-plan/`·`evolution/` 4개 화면, `app/api/`,
+`components/flow|workspace|demo`, `lib/store`(Zustand), `services/`. GNB는 이 4개를 "준비중"으로 비활성 표시하며,
+라우트를 만들 때 `app/layout.tsx`의 `NAV_ITEMS`에 `href`를 채운다.
+
+### 4.1 데이터 시각화 규칙
+
+차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
+
+* **shadcn nova 프리셋의 `--chart-1~5`는 무채색 그레이스케일**(`oklch(… 0 0)`)이다. 계열 식별에 쓰면
+  chroma floor를 통과하지 못하므로 차트에 쓰지 않는다.
+* 역할을 섞지 않는다: `favorable`/`unfavorable`은 극성(개선/악화), `series-1|2`는 엔티티 식별,
+  `status-*`는 상태 전용이다. 계열색을 상태색으로, 상태색을 계열색으로 재사용하지 않는다.
+* 계열색은 **엔티티에 고정 배정**한다. 목록 순서나 순위에 따라 다시 칠하면 안 된다.
+* 상태는 색 단독으로 전달하지 않는다 — `SeverityTag`(아이콘+한글 라벨)를 항상 동반한다.
+  라이트 서피스에서 warning/serious는 대비 3:1 미만이라 이 조합이 유일한 완화 수단이다.
+* 색을 바꾸면 **눈으로 판단하지 말고 검증기를 돌린다.** 서피스는 카드 배경 기준(라이트 `#ffffff`,
+  다크 `#171717`)이며 명령은 `globals.css`의 `.viz-root` 주석에 적어 두었다.
+* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
 
 ```text
 NowView/
