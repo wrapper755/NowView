@@ -11,14 +11,19 @@ CORS를 만들지 않고, LLM 자격증명을 서버에만 두고, 화면이 계
 
 from __future__ import annotations
 
+import asyncio
+import json as jsonlib
 import logging
 import os
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from .agents import AgentContractError, make_runner
+from .events import KEEPALIVE_SECONDS, hub
 from .instances import InstanceStore, config_for, snapshot
 from .seek import SeekError, seek
 from .spec import ProcessSpec
@@ -66,6 +71,12 @@ class ResumeRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+@app.on_event("startup")
+async def _bind_event_loop() -> None:
+    # 변경 알림은 스레드풀(동기 엔드포인트)에서 오므로 루프 참조가 필요하다.
+    hub.bind_loop(asyncio.get_running_loop())
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {
@@ -75,6 +86,7 @@ def health() -> dict[str, Any]:
         "storage": {"kind": backend.kind, "describe": backend.describe},
         "ollama": {"url": OLLAMA_URL, "model": OLLAMA_MODEL},
         "instances": len(store.list_ids()),
+        "eventSubscribers": hub.subscriber_count,
     }
 
 
@@ -93,6 +105,7 @@ def create_instance(body: CreateRequest) -> dict[str, Any]:
 
     if body.advance:
         _run(instance, None)
+    hub.publish(instance.id)
     return snapshot(instance)
 
 
@@ -113,6 +126,7 @@ def resume_instance(instance_id: str, body: ResumeRequest) -> dict[str, Any]:
             detail=f"멈춰 있지 않은 인스턴스다 (상태: {current['status']}). 재개할 지점이 없다.",
         )
     _run(instance, Command(resume=body.payload))
+    hub.publish(instance_id)
     after = snapshot(instance)
     # 입력이 반려되면 같은 지점에 error를 달고 다시 멈춘다 — 400이 아니라 그 상태를
     # 그대로 돌려준다. 클라이언트가 무엇이 틀렸는지 읽고 다시 보내면 된다.
@@ -139,12 +153,16 @@ class SeekRequest(BaseModel):
 def seek_instance(instance_id: str, body: SeekRequest) -> dict[str, Any]:
     instance = _lookup(instance_id)
     try:
-        return seek(
+        result = seek(
             instance,
             target_node_id=body.target_node_id,
             decision=body.decision,
             acknowledged_by=body.acknowledged_by,
         )
+        # 되감기는 인스턴스를 바꾸지 않지만, 앞으로 갈 때는 바뀐다. 구분하지 않고
+        # 알린다 — 구독자가 다시 읽어도 같은 값이면 화면은 그대로다.
+        hub.publish(instance_id)
+        return result
     except SeekError as exc:
         # 요청 자체가 성립하지 않는다(없는 노드, 미실행 분기, 결정 누락) — 400이다.
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -172,10 +190,78 @@ def instance_history(instance_id: str) -> dict[str, Any]:
     return {"instanceId": instance_id, "history": entries}
 
 
+@app.get("/events")
+async def events(
+    request: Request,
+    instances: str = Query(description="쉼표로 구분한 인스턴스 id 목록"),
+) -> StreamingResponse:
+    """
+    인스턴스 변경을 SSE로 밀어 준다.
+
+    **여러 인스턴스를 한 스트림으로 합친다.** 인스턴스마다 연결을 열면 브라우저의
+    동시 연결 한도(HTTP/1.1에서 도메인당 6개)를 SSE가 잡아먹어 다른 요청이 굶는다.
+
+    보내는 것:
+    * `event: snapshot` — 그 인스턴스의 현재 스냅샷. 연결 직후 전부 한 번 보낸다.
+    * `event: ready` — 초기 버스트가 끝났다는 표시. **클라이언트가 이걸 기다려야 한다** —
+      스냅샷이 하나씩 오므로 언제 "전부 받았는지"를 알 방법이 따로 필요하다.
+    * `: keepalive` 주석 — 프록시가 조용한 연결을 끊지 않게 한다.
+
+    스냅샷 만들기는 동기(DB 접근)이므로 스레드풀에서 돌린다 — 이벤트 루프를 막으면
+    다른 요청이 함께 늦어진다.
+    """
+    ids = [x for x in (i.strip() for i in instances.split(",")) if x]
+    if not ids:
+        raise HTTPException(status_code=400, detail="instances가 비어 있다")
+    for instance_id in ids:
+        _lookup(instance_id)  # 없는 인스턴스면 스트림을 열기 전에 404
+
+    async def emit(instance_id: str) -> str:
+        instance = await run_in_threadpool(store.get, instance_id)
+        payload = await run_in_threadpool(snapshot, instance)
+        return f"event: snapshot\ndata: {jsonlib.dumps(payload, ensure_ascii=False)}\n\n"
+
+    async def generate():
+        # 연결 직후 현재 상태를 전부 보낸다 — 클라이언트가 따로 조회하지 않아도 되게.
+        for instance_id in ids:
+            yield await emit(instance_id)
+        yield f"event: ready\ndata: {jsonlib.dumps({'instances': ids})}\n\n"
+
+        last_keepalive = asyncio.get_running_loop().time()
+        # `async with`라서 연결이 끊겨 break하든 취소되든 구독이 반드시 해제된다.
+        async with hub.subscribe(ids) as queue:
+            while True:
+                changed = await hub.wait(queue)
+                if await request.is_disconnected():
+                    break
+                if changed is not None:
+                    yield await emit(changed)
+                else:
+                    # 안전망: 알림을 놓쳤을 수 있으니 전부 다시 보낸다(events.py 참조).
+                    for instance_id in ids:
+                        yield await emit(instance_id)
+                now = asyncio.get_running_loop().time()
+                if now - last_keepalive >= KEEPALIVE_SECONDS:
+                    last_keepalive = now
+                    yield ": keepalive\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            # nginx 계열이 버퍼링하면 이벤트가 몰려서 늦게 도착한다.
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @app.delete("/instances/{instance_id}", status_code=204)
 def delete_instance(instance_id: str) -> None:
     _lookup(instance_id)
     store.delete(instance_id)
+    hub.publish(instance_id)
 
 
 # ------------------------------------------------------------------ 내부

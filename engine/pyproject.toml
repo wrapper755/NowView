@@ -17,6 +17,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8.3",
+    "pytest-asyncio>=1.4.0",
     "ruff>=0.8",
 ]
 
@@ -35,4 +36,6 @@ pythonpath = ["."]
 # 실제 LLM을 부르는 테스트는 기본 실행에서 뺀다 — 네트워크·비결정성 때문이다.
 # 돌리려면 `pytest -m llm`.
 markers = ["llm: ollama 실호출이 필요한 테스트"]
+# 비동기 테스트(허브·SSE)에 필요하다. strict가 기본이라 마커를 붙인 것만 돈다.
+asyncio_mode = "strict"
 addopts = "-m 'not llm'"

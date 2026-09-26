@@ -5,12 +5,12 @@ LangGraph StateGraph 기반 BPM 런타임. Next 앱의 `/api/engine/*`가 이것
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 56개 (SQLite만, LLM 제외)
+uv run pytest                                      # 63개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 90개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 97개
 ```
 
 전체 스택은 저장소 루트에서:
@@ -88,6 +88,22 @@ LLM이 재호출되고 승인이 사라지므로, 되감기는 조회로만 구�
 되짚어 돌려준다. 승인 노드를 통과해야 하면 호출자가 결정을 줘야 한다 — 엔진이 임의로
 승인하면 Human-in-the-Loop이 무너진다.
 
+## 변경 알림 (SSE)
+
+`GET /events?instances=a,b,c`가 스냅샷을 밀어 준다. **폴링이 아니라 push인 이유**: 상태가
+바뀌는 계기가 전부 우리 코드를 지나간다(생성·승인·장면 이동). 그 지점에서 `hub.publish`한다.
+
+* 연결 직후 현재 스냅샷을 전부 보내고 `event: ready`로 끝을 알린다 — 클라이언트가 "전부
+  받았는지"를 알 방법이 따로 필요하다.
+* 여러 인스턴스를 한 스트림으로 합친다 — 인스턴스마다 열면 브라우저 동시 연결 한도를
+  SSE가 잡아먹는다.
+* 알림은 **부수 효과**다. 루프가 없거나 구독자가 없으면 조용히 넘긴다 — 여기서 터지면
+  승인이 실패하는 셈이 된다.
+* **한 프로세스 안에서만 성립한다.** 안전망으로 20초마다 전부 다시 보낸다. 워커를 여럿
+  쓸 때는 Postgres `LISTEN`/`NOTIFY`로 바꿔야 한다.
+* 구독 해제는 `async with hub.subscribe(...)`로 확정한다 — async generator로 두면
+  `break`로 빠져나갈 때 `finally`가 미뤄져 구독자가 누적된다(테스트가 잡았다).
+
 ## 상태 소유권이 넘어왔다
 
 TS 쪽 `/api/bpm/*`는 진행 지점을 받아 계산해 돌려주는 **무상태 계산기**다. 여기서는
@@ -163,6 +179,7 @@ Next 쪽은 `ENGINE_URL`(기본 `http://localhost:8077`)로 이 서비스를 가
 
 * **화면이 이 엔진을 쓰지 않는다** — 다섯 화면은 여전히 Mock을 직접 import한다
   (정적 프리렌더 유지). 엔진은 `/api/engine/*`로만 노출된다.
-* **실시간성이 폴링이다** — 실행 중 3초, 대기 15초, 탭이 보일 때만. 인스턴스가 많아지면
-  SSE로 바꿔야 한다.
+* **SSE 알림이 한 프로세스 안에서만 성립한다** — 워커를 여럿 띄우면 다른 프로세스의
+  변경은 허브를 지나가지 않고 안전망 재조회(20초)에 의존한다. Postgres `LISTEN`/`NOTIFY`로
+  바꿔야 한다.
 * **같은 인스턴스를 여러 사람이 볼 때의 충돌** — 지금은 마지막 요청이 이긴다.

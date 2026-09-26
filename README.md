@@ -135,7 +135,7 @@ Dockerfile      앱 이미지 (docker-compose.yml이 엔진·Postgres와 함께 
 ## 현재 상태
 
 **구현 완료** — 화면 5개, 시나리오 3개, API 계층, 데모 플레이어, 상태 영속화,
-장면별 설계표 생성기, 테스트 139개(TS) + 90개(엔진, 두 백엔드).
+장면별 설계표 생성기, 테스트 139개(TS) + 97개(엔진, 두 백엔드).
 
 **BPM 엔진이 실제로 돈다** — `engine/`의 LangGraph StateGraph가 사람 승인에서 진짜로
 멈추고(`interrupt`) 재개된다(`resume`). 게이트웨이는 Agent가 판정한 플래그로 분기하므로
