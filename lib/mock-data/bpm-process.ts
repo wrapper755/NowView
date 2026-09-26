@@ -92,7 +92,7 @@ export const bpmProcess: BpmProcessInstance = {
       actor: "Simulation Agent",
       agentId: "agent-simulation",
       stage: "management-review",
-      position: { x: 588, y: MAIN_LANE_Y },
+      position: { x: 628, y: MAIN_LANE_Y },
       outcome: "라인 재배치 / 전장 물량 이관 / 보전비 이연 — 손익 영향 산출 완료",
       duration: "11분 04초",
     },
@@ -102,7 +102,7 @@ export const bpmProcess: BpmProcessInstance = {
       label: "Management Review",
       actor: "경영진 (CFO 주재)",
       stage: "management-review",
-      position: { x: 784, y: MAIN_LANE_Y },
+      position: { x: 824, y: MAIN_LANE_Y },
       outcome: "Agent 보고서 검토 중 — 대안 선택 및 승인 대기",
     },
     {
@@ -111,7 +111,7 @@ export const bpmProcess: BpmProcessInstance = {
       label: "실행 과제 변환·배포",
       actor: "사업기획팀",
       stage: "management-action",
-      position: { x: 980, y: MAIN_LANE_Y },
+      position: { x: 1020, y: MAIN_LANE_Y },
     },
     {
       id: "rolling",
@@ -119,7 +119,7 @@ export const bpmProcess: BpmProcessInstance = {
       label: "Forecast 즉시 갱신",
       actor: "Rolling Plan Engine",
       stage: "rolling-plan",
-      position: { x: 1176, y: MAIN_LANE_Y },
+      position: { x: 1216, y: MAIN_LANE_Y },
     },
     {
       id: "evolution",
@@ -128,14 +128,14 @@ export const bpmProcess: BpmProcessInstance = {
       actor: "Evolution Agent",
       agentId: "agent-evolution",
       stage: "management-evolution",
-      position: { x: 1372, y: MAIN_LANE_Y },
+      position: { x: 1412, y: MAIN_LANE_Y },
     },
     {
       id: "end",
       kind: "end",
       label: "루프 종료",
       stage: "management-evolution",
-      position: { x: 1568, y: MAIN_LANE_Y + 10 },
+      position: { x: 1608, y: MAIN_LANE_Y + 10 },
     },
   ],
 
@@ -143,19 +143,21 @@ export const bpmProcess: BpmProcessInstance = {
     { id: "e-start-sensing", source: "start", target: "sensing" },
     { id: "e-sensing-rca", source: "sensing", target: "rca" },
     { id: "e-rca-gw", source: "rca", target: "gw-escalate" },
+    // 분기 라벨은 짧게 — 게이트웨이와 다음 노드 사이 간격이 좁아 긴 라벨은 노드에 가려진다.
+    // 조건 자체는 게이트웨이 노드 라벨("부서 간 조정 필요?")이 이미 말해 준다.
     {
       id: "e-gw-simulate",
       source: "gw-escalate",
       target: "simulate",
       sourceHandle: "main",
-      label: "예 · 조정 필요",
+      label: "예",
     },
     {
       id: "e-gw-op",
       source: "gw-escalate",
       target: "op-control",
       sourceHandle: "branch",
-      label: "아니오 · 현업 처리",
+      label: "아니오",
     },
     { id: "e-simulate-review", source: "simulate", target: "review" },
     { id: "e-review-action", source: "review", target: "action" },

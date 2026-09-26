@@ -139,7 +139,7 @@ export function ProcessCanvas({
       nodesConnectable={false}
       edgesFocusable={false}
       fitView
-      fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
+      fitViewOptions={{ padding: 0.08, maxZoom: 1 }}
       minZoom={0.3}
       maxZoom={1.6}
       proOptions={{ hideAttribution: false }}

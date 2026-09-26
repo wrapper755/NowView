@@ -83,7 +83,7 @@ export function BpmTrackerShell({ process }: { process: BpmProcessInstance }) {
         <CardContent className="space-y-4">
           <StepControls process={process} />
           {/* React Flow는 부모에 명시적 높이가 있어야 렌더된다 (100% 높이를 상속받지 못한다). */}
-          <div className="viz-root h-[440px] w-full overflow-hidden rounded-lg border">
+          <div className="viz-root h-[360px] w-full overflow-hidden rounded-lg border">
             <ProcessCanvas
               process={process}
               statuses={statuses}

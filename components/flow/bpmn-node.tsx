@@ -118,10 +118,12 @@ export function BpmnNode({ data, selected }: NodeProps<BpmnFlowNode>) {
           />
         </div>
 
-        {/* 라벨을 도형 밖 아래에 둔다. 도형 안에 넣으면 잘린다. */}
+        {/* 라벨은 도형 밖에 둔다 — 안에 넣으면 잘린다.
+            게이트웨이는 분기 엣지가 아래로 빠지므로 라벨을 위에 둬야 엣지 라벨과 겹치지 않는다. */}
         <span
           className={cn(
-            "absolute top-full left-1/2 mt-1 w-32 -translate-x-1/2 text-center text-[10px] leading-tight text-muted-foreground",
+            "absolute left-1/2 w-32 -translate-x-1/2 text-center text-[10px] leading-tight text-muted-foreground",
+            isGateway ? "bottom-full mb-1" : "top-full mt-1",
             dimmed && "opacity-60",
           )}
         >
