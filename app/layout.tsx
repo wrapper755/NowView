@@ -42,7 +42,7 @@ const NAV_ITEMS: Array<{ label: string; icon: LucideIcon; href?: string }> = [
   { label: "BPM & Agent Tracker", icon: Activity, href: "/bpm-tracker" },
   { label: "Collaboration Station", icon: Users, href: "/workspace" },
   { label: "Rolling Plan", icon: ListChecks, href: "/rolling-plan" },
-  { label: "Evolution Lab", icon: FlaskConical },
+  { label: "Evolution Lab", icon: FlaskConical, href: "/evolution" },
 ];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
