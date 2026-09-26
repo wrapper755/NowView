@@ -19,14 +19,18 @@ function formatValue(value: number, unit: string): string {
 /**
  * 개선량 한 줄.
  *
- * 화살표 방향은 **값의 증감**이 아니라 **좋아졌는지**를 가리킨다 — 소요시간이 줄어든 것은
- * 위로 향한 개선이다. 숫자는 원래 방향(줄었으면 감소)으로 적어 오해를 막는다.
+ * **화살표는 값의 증감을, 색은 좋아졌는지를 가리킨다.**
+ *
+ * 처음에는 화살표에 "개선 여부"를 실었는데, 소요시간이 줄어든 경우 `↑ -2일`처럼 화살표와
+ * 부호가 서로 반대로 읽혔다. 값의 방향과 평가를 한 기호에 겹쳐 실으면 둘 다 흐려진다.
+ * 이제 소요시간 단축은 `↓ -2일`(초록)로, 이행률 상승은 `↑ +16.7%`(초록)로 나온다 —
+ * 화살표와 숫자가 늘 같은 쪽을 가리키고, 좋고 나쁨은 색과 아래의 목표 달성 여부가 말한다.
  */
 function Improvement({ metric }: { metric: ExecutionMetric }) {
-  const improvement = improvementOf(metric);
   const raw = metric.current - metric.previous;
+  const improved = improvementOf(metric) > 0;
 
-  if (improvement === 0) {
+  if (raw === 0) {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
         <Minus aria-hidden className="size-3" />
@@ -35,8 +39,8 @@ function Improvement({ metric }: { metric: ExecutionMetric }) {
     );
   }
 
-  const Icon = improvement > 0 ? ArrowUp : ArrowDown;
-  const color = improvement > 0 ? "var(--viz-delta-good)" : "var(--viz-status-critical)";
+  const Icon = raw > 0 ? ArrowUp : ArrowDown;
+  const color = improved ? "var(--viz-delta-good)" : "var(--viz-status-critical)";
 
   return (
     <span

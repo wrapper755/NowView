@@ -46,7 +46,17 @@ export function NodeDetailPanel({
    * 어긋난다 — 실제로 "진행 중"인 노드에 기여도 62%와 "손익 영향 산출 완료"가 표시됐다.
    * `waiting`은 사람의 판단을 기다리는 상태라 outcome이 결과가 아닌 대기 사유이므로 보여 준다.
    */
-  const showsOutcome = status === "done" || status === "waiting";
+  const showsOutcome =
+    status === "done" || status === "waiting" || node.kind === "gateway";
+
+  /**
+   * 게이트웨이는 은닉 대상이 아니다.
+   *
+   * 분기 판정은 오래 걸리는 산출 작업이 아니라 즉시 평가다. 게다가 **캔버스가 이미 어느
+   * 경로를 탔는지 점선으로 보여 주고 있어서**, 상세 패널만 "산출물 확정 전"이라고 하면
+   * 같은 화면이 서로 다른 말을 한다.
+   */
+  const showsPendingMark = status === "active" && node.kind !== "gateway";
 
   return (
     <div className="space-y-3.5">
@@ -90,7 +100,7 @@ export function NodeDetailPanel({
         </>
       ) : null}
 
-      {status === "active" ? (
+      {showsPendingMark ? (
         <>
           <Separator />
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
