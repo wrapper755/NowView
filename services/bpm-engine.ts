@@ -26,6 +26,29 @@ export function clampStepIndex(process: BpmProcessInstance, index: number): numb
 }
 
 /**
+ * 대안 선택과 승인이 걸리는 노드.
+ *
+ * **`sequence` 순서로 찾아야 한다.** `nodes` 배열 순서로 첫 `user-task`를 집으면
+ * 선택되지 않은 분기의 노드가 잡힌다 — 실제로 그랬다. 시나리오 1·3에서 `op-control`이
+ * 먼저 선언되어 있고 그 노드는 `sequence`에 없으므로 `indexOf`가 -1이 되어, 승인 후
+ * 진행 지점이 Management Action이 아니라 0(맨 처음)으로 돌아갔다. 데모 플레이어가
+ * 장면마다 `step`을 절대값으로 덮어써서 가려져 있었다.
+ */
+export function approvalNodeId(process: BpmProcessInstance): string | undefined {
+  return process.sequence.find(
+    (id) => process.nodes.find((node) => node.id === id)?.kind === "user-task",
+  );
+}
+
+/** 승인 후 이동할 진행 지점 — 승인 노드의 **다음** 지점. */
+export function approvalStepIndex(process: BpmProcessInstance): number {
+  const nodeId = approvalNodeId(process);
+  const at = nodeId ? process.sequence.indexOf(nodeId) : -1;
+  // 승인 노드가 없으면 진행 지점을 건드리지 않는다는 뜻으로 현재 기본값을 쓴다.
+  return at >= 0 ? clampStepIndex(process, at + 1) : process.defaultStepIndex;
+}
+
+/**
  * 노드 하나의 상태를 파생한다.
  *
  * `sequence`에 없으면 선택되지 않은 분기이므로 `skipped`.

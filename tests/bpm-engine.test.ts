@@ -13,7 +13,10 @@ import { describe, expect, it } from "vitest";
 import { scenarios } from "@/lib/mock-data/scenarios";
 import { agentActivities, runningAgentCount } from "@/services/agent-orchestrator";
 import {
+  approvalNodeId,
+  approvalStepIndex,
   currentNode,
+  deriveNodeStatus,
   deriveNodeStatuses,
   isAwaitingHuman,
   maxStepIndex,
@@ -127,5 +130,37 @@ describe("시나리오 3.3의 두 경로", () => {
   it("납기 안건은 현업 통제로 처리되어 경영 검토를 건너뛴다", () => {
     expect(delivery.process.sequence).toContain("op-control");
     expect(delivery.process.sequence).not.toContain("review");
+  });
+});
+
+describe("승인 지점", () => {
+  it("선택되지 않은 분기의 user-task를 집지 않는다", () => {
+    // `nodes` 배열 순서로 찾으면 시나리오 1·3에서 `op-control`이 잡힌다.
+    // 그 노드는 `sequence`에 없어 indexOf가 -1이 되고, 승인 후 진행 지점이
+    // Management Action이 아니라 0(맨 처음)으로 돌아갔다 — 실제로 그랬다.
+    for (const scenario of scenarios) {
+      const nodeId = approvalNodeId(scenario.process);
+      expect(nodeId).toBeDefined();
+      expect(scenario.process.sequence).toContain(nodeId!);
+    }
+  });
+
+  it("승인 후 지점이 승인 노드의 바로 다음이다", () => {
+    for (const scenario of scenarios) {
+      const { process } = scenario;
+      const at = process.sequence.indexOf(approvalNodeId(process)!);
+      expect(approvalStepIndex(process)).toBe(at + 1);
+      // 0으로 되돌아가지 않는다 — 이것이 깨졌던 증상이다.
+      expect(approvalStepIndex(process)).toBeGreaterThan(0);
+    }
+  });
+
+  it("승인 지점의 노드는 승인 대기 상태로 파생된다", () => {
+    for (const scenario of scenarios) {
+      const { process } = scenario;
+      const at = process.sequence.indexOf(approvalNodeId(process)!);
+      const node = process.nodes.find((n) => n.id === approvalNodeId(process))!;
+      expect(deriveNodeStatus(process, node, at)).toBe("waiting");
+    }
   });
 });

@@ -4,20 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_SCENARIO_ID, scenarioById, scenarios } from "@/lib/mock-data/scenarios";
 import { evolutionLab } from "@/lib/mock-data/evolution-lab";
 import type { ReviewDecision } from "@/lib/types/workspace";
-import { clampStepIndex, maxStepIndex } from "@/services/bpm-engine";
-
-/**
- * 승인 시 프로세스가 이동할 지점.
- *
- * 시나리오마다 다르다 — 수익성 안건은 Management Action, 납기 안건은 현업 통제 이후의
- * 효과 확인 단계다. 노드 id를 고정하지 않고 승인 노드의 **다음** 지점으로 잡는다.
- */
-function approvalStepIndex(scenarioId: string): number {
-  const { process } = scenarioById(scenarioId);
-  const decisionNode = process.nodes.find((n) => n.kind === "user-task");
-  const at = decisionNode ? process.sequence.indexOf(decisionNode.id) : -1;
-  return at >= 0 ? at + 1 : 0;
-}
+import { approvalStepIndex, clampStepIndex, maxStepIndex } from "@/services/bpm-engine";
 
 function lastSceneIndex(scenarioId: string): number {
   return scenarioById(scenarioId).scenes.length - 1;
@@ -161,7 +148,7 @@ export const useDemoController = create<DemoControllerState>()(
             decisionByScenario: { ...state.decisionByScenario, [id]: decision },
             stepByScenario: {
               ...state.stepByScenario,
-              [id]: clampStepIndex(scenarioById(id).process, approvalStepIndex(id)),
+              [id]: approvalStepIndex(scenarioById(id).process),
             },
           };
         }),
