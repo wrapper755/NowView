@@ -28,9 +28,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 로컬 런타임(Node 22)과 맞춘다. @types/node도 ^22다 — 어긋나면
           # 타입 정의와 실제 런타임이 다른 상태로 검증하게 된다.
@@ -50,7 +50,7 @@ jobs:
       # Next.js 빌드 캐시. 빌드가 가장 느린 단계라 여기만 캐시한다.
       # 소스가 바뀌면 키가 갈라지고, 락파일만 같으면 이전 캐시를 가져다 쓴다.
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
