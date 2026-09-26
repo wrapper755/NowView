@@ -206,7 +206,8 @@ NowView/
 
 ```
 GET  /api/mock                  사용 가능한 데이터셋 목록
-GET  /api/mock/[dataset]        company · bpm-process · review-case · rolling-plan · evolution-lab
+GET  /api/mock/[dataset]        company · rolling-plan · framework · evolution-lab · scenarios
+                                process-<시나리오id> · review-<시나리오id> (레지스트리에서 생성)
 GET  /api/bpm/state?step=N      해당 지점의 노드 상태·Agent 활동·현재 단계
 POST /api/bpm/transition        {step, action: next|prev|reset|goto, target?} → 다음 지점
 POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결정·과제·Gap 변화
@@ -437,9 +438,21 @@ Value Driver (성과 동인)
   Management Review로 에스컬레이션되고, 시나리오 2는 구매·생산 권한 안이라 현업 통제로
   처리된다. 결정 주체도 경영진 vs 구매본부로 다르지만 화면과 규칙은 그대로 재사용한다.
 
-**시나리오 2를 붙이며 드러난 것** — 대안의 부수 효과가 `utilizationPerUnit`(가동률)으로
-타입에 박혀 있었다. 납기 시나리오에는 맞지 않아 `secondaryLabel`/`secondaryUnit`/
-`secondaryPerUnit`으로 일반화했다. 재사용 검증이 실제로 한 건을 잡아낸 셈이다.
+**시나리오를 붙이며 드러난 것** — 매번 하나씩 나왔고, 그때마다 구조를 고쳤다:
+* **시나리오 2**: 대안의 부수 효과가 `utilizationPerUnit`(가동률)으로 타입에 박혀 있었다.
+  납기 안건에는 맞지 않아 `secondaryLabel`/`secondaryUnit`/`secondaryPerUnit`으로 일반화했다.
+* **시나리오 3**: `app/api/mock/datasets.ts`가 시나리오별 데이터셋을 하드코딩하고 있어
+  시나리오마다 두 항목씩 손으로 더해야 했다. 레지스트리에서 생성하도록 바꿨고,
+  같은 데이터를 가리키던 옛 이름(`bpm-process`·`review-case`)은 중복이라 제거했다.
+
+**시나리오 3에서 화면·스토어·서비스는 한 줄도 고치지 않았다.** 새 데이터 파일 2개,
+장면 배열 1개, 레지스트리 1항목, 그리고 전사 자산(리스크 신호·Framework)에 축 하나를
+더한 것이 전부다. 장면별 설계표도 손대지 않았는데 시나리오 3을 자동으로 잡는다.
+
+**결정의 성격이 셋 다 다르다** — 이것이 기획안 4.2의 "추가로 보여줄 경영 가치"다:
+1번은 조치(에스컬레이션·경영진), 2번은 조치(현업 권한 내), 3번은 **배분**이다.
+배분은 어느 대안을 골라도 반대편이 줄어 비용이 0인 안이 없고, 회수가 빠른 안이 곧
+좋은 안도 아니다(2안은 0.5년이지만 신사업 시점 경쟁력을 포기한다).
 
 ### 4.14 장면별 설계표 (기획안 4.2)
 

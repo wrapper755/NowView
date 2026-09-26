@@ -189,5 +189,72 @@ export const deliveryScenes: DemoScene[] = [
   },
 ];
 
+/**
+ * 시나리오 3 — 재원 배분. 앞 둘이 "무엇을 고칠 것인가"였다면 이번은
+ * "한정된 재원을 어디에 둘 것인가"다. 어느 안을 골라도 반대편이 준다.
+ */
+export const allocationScenes: DemoScene[] = [
+  {
+    id: "a-sensing",
+    route: "/",
+    step: 0,
+    stage: "risk-sensing",
+    title: "투자회수 지연 감지",
+    narration:
+      "전장 누적 투자 840억 대비 회수가 58.0%로 임계 75%를 밑돈다. 사업부 편차가 아니라 전사 포트폴리오 신호다.",
+    decided: false,
+  },
+  {
+    id: "a-analysis",
+    route: "/bpm-tracker",
+    step: 2,
+    stage: "risk-sensing",
+    title: "회수 지연 원인 분해",
+    narration:
+      "Portfolio Agent가 양산 시점 이동 46%로 기여도를 나눈다. 3년 전망을 분기 예보로 추정해 신뢰도는 낮음이다.",
+    decided: false,
+  },
+  {
+    id: "a-escalation",
+    route: "/bpm-tracker",
+    step: 4,
+    stage: "management-review",
+    title: "전사 배분으로 에스컬레이션",
+    narration:
+      "사업부 권한을 넘는 재원 이동이라 전사 경영 검토로 올라간다. Simulation Agent가 배분 대안 3안을 산출한다.",
+    decided: false,
+  },
+  {
+    id: "a-review",
+    route: "/workspace",
+    step: 5,
+    stage: "management-review",
+    title: "배분 결정 — 비용 0인 안이 없다",
+    narration:
+      "어느 안을 골라도 반대편 재원이 준다. 회수가 가장 빠른 2안은 신사업 시점 경쟁력을 포기하는 선택이기도 하다.",
+    decided: false,
+  },
+  {
+    id: "a-action",
+    route: "/bpm-tracker",
+    step: 6,
+    stage: "management-action",
+    title: "투자·운영계획 반영",
+    narration:
+      "3안 조건부 분할이 승인됐다. 회수 전망의 불확실성이 큰 상황에서 틀렸을 때의 손실이 가장 작은 선택이다.",
+    decided: true,
+  },
+  {
+    id: "a-rolling",
+    route: "/rolling-plan",
+    step: 7,
+    stage: "rolling-plan",
+    title: "세 안건이 한 Plan에 모인다",
+    narration:
+      "수익성·납기·배분 세 안건의 승인 과제가 같은 Rolling Plan에 잡힌다. 전사 Gap은 셋이 나눠 메운다.",
+    decided: true,
+  },
+];
+
 /** 자동 재생 시 장면 전환 간격(ms). 내레이션을 읽을 시간을 기준으로 잡았다. */
 export const DEMO_SCENE_INTERVAL_MS = 7000;

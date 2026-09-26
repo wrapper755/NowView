@@ -10,11 +10,17 @@
  * `secondaryUnit`/`secondaryPerUnit`으로 일반화했다.
  */
 
+import { allocationProcess } from "@/lib/mock-data/bpm-process-allocation";
 import { deliveryProcess } from "@/lib/mock-data/bpm-process-delivery";
 import { bpmProcess } from "@/lib/mock-data/bpm-process";
+import { allocationReviewCase } from "@/lib/mock-data/review-case-allocation";
 import { deliveryReviewCase } from "@/lib/mock-data/review-case-delivery";
 import { reviewCase } from "@/lib/mock-data/review-case";
-import { deliveryScenes, profitabilityScenes } from "@/lib/demo-scenario";
+import {
+  allocationScenes,
+  deliveryScenes,
+  profitabilityScenes,
+} from "@/lib/demo-scenario";
 import { simulateAlternative } from "@/services/agent-orchestrator";
 import type { Scenario } from "@/lib/types/scenario";
 import type { ReviewCase, ReviewDecision } from "@/lib/types/workspace";
@@ -77,6 +83,22 @@ export const scenarios: Scenario[] = [
       deliveryReviewCase,
       "MCU 입고 지연이 주 원인이므로 재고 완충이 가장 빠른 대응이다. 운전자본 부담은 25일 수준으로 제한한다.",
       "2026-10-05 11:40",
+    ),
+  },
+  {
+    id: "scn-allocation",
+    title: "기존 사업과 신사업 간 재원 배분",
+    shortTitle: "재원 배분",
+    summary:
+      "신사업 투자회수가 계획을 밑돈다. 사업부 권한을 넘는 재원 이동이라 전사 경영 검토로 올라가며, 어느 대안을 골라도 반대편 재원이 준다.",
+    riskId: "risk-newbiz-roi",
+    process: allocationProcess,
+    reviewCase: allocationReviewCase,
+    scenes: allocationScenes,
+    demoDecision: demoDecisionFor(
+      allocationReviewCase,
+      "회수 전망의 불확실성이 큰 상황에서 한 번에 배분하지 않는다. 1차 40%만 집행하고 수율 92%와 신규 수주 확정을 2차 조건으로 둔다.",
+      "2026-10-12 16:05",
     ),
   },
 ];

@@ -234,6 +234,20 @@ export const nextAutomotive: CompanySnapshot = {
         "현 리드타임 26주가 최소 2개 분기 지속된다고 가정했다. 대체 소자가 승인되면 성립하지 않는다.",
     },
     {
+      id: "risk-newbiz-roi",
+      title: "신사업 투자회수율 계획 미달",
+      detail:
+        "전장 누적 투자 840억 대비 누적 회수 487억(58.0%)으로 2023년 심의 계획(3년차 75%)을 17%p 밑돈다. 사업부 편차가 아니라 전사 포트폴리오 신호다.",
+      severity: "serious",
+      division: "전사",
+      kri: { label: "신사업 투자회수율", value: "58.0%", threshold: "75.0%" },
+      stage: "management-review",
+      owner: "재무팀 한지훈",
+      origin: "leading",
+      assumption:
+        "확보된 2개 고객사의 중장기 물량 추세를 전체에 적용해 회수 전망을 세웠다. 나머지 고객사가 다르게 움직이면 회수율이 크게 달라진다.",
+    },
+    {
       id: "risk-aluminum",
       title: "알루미늄 잉곳 구매단가 상승",
       detail:
