@@ -7,6 +7,7 @@
  * 사유(`rationale`)가 반드시 남는다 — 근거 없는 승인은 기록으로 남길 가치가 없다.
  */
 
+import type { AgentEscalation, Confidence, DataSource } from "@/lib/types/agent";
 import type { Severity } from "@/lib/types/cockpit";
 
 /**
@@ -71,7 +72,12 @@ export interface AgentReportSection {
   id: string;
   title: string;
   body: string;
-  sources: string[];
+  /** 근거 소스와 그 품질. 불완전한 데이터 위에 선 결론임을 숨기지 않는다. */
+  sources: DataSource[];
+  /** 이 절의 신뢰도. */
+  confidence: Confidence;
+  /** `high`가 아니면 그 이유. */
+  confidenceNote?: string;
 }
 
 export interface ReviewCase {
@@ -84,6 +90,13 @@ export interface ReviewCase {
   /** 전사 영업이익 Gap(억원). 음수이며 Cockpit 값과 일치해야 한다. */
   profitGap: number;
   report: AgentReportSection[];
+  /**
+   * Agent가 답하지 못해 사람에게 넘긴 판단.
+   *
+   * 결정의 전제이므로 승인 화면에서 먼저 보여야 한다 — 답하지 않은 질문 위에서 내린
+   * 결정은 그 가정이 틀리면 함께 무너진다.
+   */
+  escalations: AgentEscalation[];
   /** Agent 권고안. 사람이 따를 의무는 없다. */
   recommendedAlternativeId: string;
   alternatives: Alternative[];

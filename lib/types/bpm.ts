@@ -7,6 +7,7 @@
  * 노드마다 status 필드를 두면 순서와 상태가 따로 놀아 곧 어긋난다.
  */
 
+import type { AgentEscalation, Confidence, DataSource } from "@/lib/types/agent";
 import type { ManagementStage } from "@/lib/types/cockpit";
 
 /** BPMN 2.0 요소 종류. 모양과 아이콘으로 구분하며 색에만 의존하지 않는다. */
@@ -81,9 +82,24 @@ export interface AgentRun {
   nodeId: string;
   /** 산출물 요약. */
   output: string;
-  /** 근거로 참조한 데이터 소스. 사람이 검증할 수 있어야 한다. */
-  sources: string[];
+  /**
+   * 근거로 참조한 데이터 소스와 **그 품질**. 사람이 검증할 수 있어야 한다.
+   *
+   * 이름만 나열하면 결론을 얼마나 믿어야 할지 알 수 없다 — 추정치인지, 결손이 있는지,
+   * 언제 것인지가 신뢰도를 좌우한다.
+   */
+  sources: DataSource[];
   duration: string;
+  /** 이 산출물의 신뢰도. */
+  confidence: Confidence;
+  /** `high`가 아니면 그 이유를 적는다. */
+  confidenceNote?: string;
+  /**
+   * Agent가 스스로 답하지 못하고 사람에게 넘긴 판단.
+   *
+   * 정보가 부족할 때 Agent는 추측하지 않고 질문한다(기획안 3.6).
+   */
+  escalations?: AgentEscalation[];
 }
 
 export interface BpmProcessInstance {

@@ -199,24 +199,83 @@ export const bpmProcess: BpmProcessInstance = {
       nodeId: "sensing",
       output:
         "가동률 82.1%(임계 85%) 3일 연속 미달. 동일 기간 내연 부품 발주량 -11.4%, 고정비 흡수율 91.4%.",
-      sources: ["MES 설비 가동 로그", "ERP 수주 잔량", "월 결산 고정비 배부표"],
+      sources: [
+        { name: "MES 설비 가동 로그", quality: "complete" },
+        { name: "ERP 수주 잔량", quality: "complete" },
+        {
+          name: "월 결산 고정비 배부표",
+          quality: "stale",
+          caveat: "9월 마감 전 잠정치다. 확정 시 배부액이 ±2억 움직일 수 있다.",
+        },
+      ],
       duration: "4분 12초",
+      confidence: "high",
     },
     {
       agentId: "agent-rca",
       nodeId: "rca",
       output:
         "기여도 분해 — 발주 축소 62%, 고정비 흡수율 하락 24%, 직행률 저하 9%, 기타 5%. 전동화 전환 추세로 회복 가능성 낮음.",
-      sources: ["고객 발주 예보(3개월)", "라인별 가동 실적", "직행률 일별 추이"],
+      sources: [
+        {
+          name: "고객 발주 예보(3개월)",
+          quality: "estimated",
+          caveat: "고객이 제공한 예보이며 확정 발주가 아니다. 과거 예보 대비 실적 편차는 ±6%였다.",
+        },
+        {
+          name: "라인별 가동 실적",
+          quality: "partial",
+          caveat: "3·4라인은 센서 미연동으로 수동 집계분이 섞여 있다.",
+        },
+        { name: "직행률 일별 추이", quality: "complete" },
+      ],
       duration: "7분 38초",
+      confidence: "medium",
+      confidenceNote:
+        "발주 예보가 추정치여서 기여도 62%는 ±8%p 범위로 본다. 구조적 추세인지는 아래 질문의 답에 달려 있다.",
+      escalations: [
+        {
+          id: "esc-demand-structural",
+          question: "내연 부품 발주 축소가 구조적 추세인가, 일시적 조정인가?",
+          reason:
+            "고객 중장기 물량 계획을 제공받지 못했다. Agent가 접근할 수 있는 데이터는 3개월 예보까지다.",
+          owner: "영업본부 박지우",
+          ifUnanswered:
+            "구조적 추세로 가정하고 분석했다. 일시적 조정이라면 라인 재배치는 과잉 대응이 된다.",
+        },
+      ],
     },
     {
       agentId: "agent-simulation",
       nodeId: "simulate",
       output:
         "1안 라인 재배치 +18억/가동률 +3.2%p, 2안 전장 물량 이관 +12억/리드타임 리스크, 3안 보전비 이연 +9억/설비 리스크 누적.",
-      sources: ["라인별 표준원가", "전장 수주 파이프라인", "설비 보전 이력"],
+      sources: [
+        { name: "라인별 표준원가", quality: "complete" },
+        {
+          name: "전장 수주 파이프라인",
+          quality: "estimated",
+          caveat: "수주 확정 전 물량이 포함되어 있다. 확정 물량만 보면 효과는 약 12억으로 줄어든다.",
+        },
+        {
+          name: "설비 보전 이력",
+          quality: "partial",
+          caveat: "2024년 이전 이력은 시스템 이관 시 누락되었다.",
+        },
+      ],
       duration: "11분 04초",
+      confidence: "medium",
+      confidenceNote:
+        "파이프라인에 미확정 물량이 포함되어 1안 효과 18억은 상단 추정에 가깝다.",
+      escalations: [
+        {
+          id: "esc-customer-approval",
+          question: "전환 라인의 기존 품번을 고객이 이관 승인할 것인가?",
+          reason: "고객 승인 이력은 시스템에 없다. 영업 협의 결과가 필요하다.",
+          owner: "영업본부 박지우",
+          ifUnanswered: "승인된다고 가정한 수치다. 거절되면 1안은 실행 자체가 불가하다.",
+        },
+      ],
     },
   ],
 };

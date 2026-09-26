@@ -1,6 +1,7 @@
 import { Hourglass } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
+import { ConfidenceTag, DataSourceList } from "@/components/shared/data-source";
 import { StatusMark } from "@/components/flow/bpmn-node";
 import { MANAGEMENT_STAGE_LABEL } from "@/lib/types/cockpit";
 import type { AgentRun, BpmNodeSpec, BpmNodeStatus } from "@/lib/types/bpm";
@@ -105,19 +106,13 @@ export function NodeDetailPanel({
           <div className="space-y-1.5">
             <h5 className="text-xs font-medium text-muted-foreground">Agent 분석 결과</h5>
             <p className="text-xs leading-relaxed text-foreground">{run.output}</p>
+            <ConfidenceTag confidence={run.confidence} note={run.confidenceNote} />
           </div>
           <div className="space-y-1.5">
             <h5 className="text-xs font-medium text-muted-foreground">
               참조 데이터 소스
             </h5>
-            <ul className="space-y-1">
-              {run.sources.map((source) => (
-                <li key={source} className="flex gap-1.5 text-xs text-muted-foreground">
-                  <span aria-hidden>·</span>
-                  {source}
-                </li>
-              ))}
-            </ul>
+            <DataSourceList sources={run.sources} />
           </div>
         </>
       ) : null}

@@ -6,6 +6,7 @@ import { AgentReportViewer } from "@/components/workspace/agent-report-viewer";
 import { AlternativeComparison } from "@/components/workspace/alternative-comparison";
 import { DecisionPanel } from "@/components/workspace/decision-panel";
 import { SimulatorPanel } from "@/components/workspace/simulator-panel";
+import { EscalationCard } from "@/components/shared/data-source";
 import {
   Card,
   CardContent,
@@ -48,6 +49,29 @@ export function WorkspaceShell({ reviewCase }: { reviewCase: ReviewCase }) {
 
   return (
     <div className="space-y-4">
+      {/* 미답 질문은 결정의 전제다. 보고서보다 먼저 보여야 "무엇을 모른 채 결정하는지"를 안다. */}
+      {reviewCase.escalations.length > 0 ? (
+        <Card className="viz-root">
+          <CardHeader>
+            <CardTitle className="text-base">
+              Agent가 답하지 못한 질문 {reviewCase.escalations.length}건
+            </CardTitle>
+            <CardDescription>
+              정보가 부족할 때 Agent는 추측하지 않고 사람에게 묻는다. 답을 받지 못한 채
+              진행하면 아래 가정 위에서 결정하는 것이며, 그 가정이 틀리면 권고도 함께
+              무너진다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {reviewCase.escalations.map((escalation) => (
+                <EscalationCard key={escalation.id} escalation={escalation} />
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Agent 분석 보고서</CardTitle>

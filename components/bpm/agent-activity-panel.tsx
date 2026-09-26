@@ -1,5 +1,10 @@
 import { Bot, Check, Hourglass, Minus, type LucideIcon } from "lucide-react";
 
+import {
+  ConfidenceTag,
+  DataSourceList,
+  EscalationCard,
+} from "@/components/shared/data-source";
 import { cn } from "@/lib/utils";
 import type { AgentActivity, AgentActivityStatus } from "@/services/agent-orchestrator";
 
@@ -69,15 +74,21 @@ export function AgentActivityPanel({ activities }: { activities: AgentActivity[]
                   <span className="text-[10px] text-muted-foreground tabular-nums">
                     {activity.run.duration}
                   </span>
-                  {activity.run.sources.map((source) => (
-                    <span
-                      key={source}
-                      className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                    >
-                      {source}
-                    </span>
-                  ))}
+                  <ConfidenceTag
+                    confidence={activity.run.confidence}
+                    note={activity.run.confidenceNote}
+                  />
                 </div>
+                <div className="mt-1.5">
+                  <DataSourceList sources={activity.run.sources} />
+                </div>
+                {activity.run.escalations?.length ? (
+                  <ul className="mt-2 space-y-2">
+                    {activity.run.escalations.map((escalation) => (
+                      <EscalationCard key={escalation.id} escalation={escalation} />
+                    ))}
+                  </ul>
+                ) : null}
               </>
             ) : activity.status === "running" ? (
               <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">

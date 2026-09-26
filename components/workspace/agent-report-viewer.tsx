@@ -1,6 +1,7 @@
 import { FileText } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
+import { ConfidenceTag, DataSourceList } from "@/components/shared/data-source";
 import type { AgentReportSection } from "@/lib/types/workspace";
 
 /**
@@ -26,16 +27,15 @@ export function AgentReportViewer({ report }: { report: AgentReportSection[] }) 
 
           <p className="text-xs leading-relaxed text-foreground">{section.body}</p>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <FileText aria-hidden className="size-3 shrink-0 text-muted-foreground" />
-            {section.sources.map((source) => (
-              <span
-                key={source}
-                className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-              >
-                {source}
-              </span>
-            ))}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <FileText aria-hidden className="size-3 shrink-0 text-muted-foreground" />
+              <ConfidenceTag
+                confidence={section.confidence}
+                note={section.confidenceNote}
+              />
+            </div>
+            <DataSourceList sources={section.sources} />
           </div>
 
           {index < report.length - 1 ? <Separator className="mt-4" /> : null}
