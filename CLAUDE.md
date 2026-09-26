@@ -5,14 +5,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev     # 개발 서버 (Turbopack)
-npm run build   # 프로덕션 빌드 — TypeScript 타입 검사를 포함한다
-npm run lint    # eslint (flat config: eslint.config.mjs)
-npm run start   # 빌드 산출물 실행
+npm run dev        # 개발 서버 (Turbopack)
+npm run build      # 프로덕션 빌드 — TypeScript 타입 검사를 포함한다
+npm run lint       # eslint (flat config: eslint.config.mjs)
+npm run test       # Vitest 1회 실행
+npm run test:watch # Vitest 감시 모드
+npm run start      # 빌드 산출물 실행
 ```
 
-* **타입 검사 단독 실행**: `npx tsc --noEmit`. `npm run build`가 타입 검사를 겸하므로 별도 `typecheck` 스크립트는 두지 않았다.
-* **테스트 러너 미설치.** 테스트를 도입하면 여기에 러너와 **단일 테스트 실행 방법**을 함께 기록한다.
+**단일 테스트 실행**
+
+```bash
+npx vitest run tests/framework.test.ts                        # 파일 하나
+npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름으로 하나만
+```
+
+* **타입 검사 단독 실행**: `npx tsc --noEmit`. `npm run build`가 타입 검사를 겸하므로 별도 `typecheck` 스크립트는 두지 않았다. `tsconfig.json`의 `include`가 `**/*.ts`라 테스트도 함께 검사된다.
 * **Shadcn 컴포넌트 추가**: `npx shadcn@latest add <component>` → `components/ui/`에 생성된다.
 
 ## Scaffolding Notes (한 번만 읽으면 되는 함정)
@@ -471,3 +479,26 @@ curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
 * **사람·시스템 노드의 입력은 선행 Agent 산출물이다.** 경영진은 원천 데이터가 아니라
   Agent 보고서를 보고 판단한다. 처음엔 해당 노드의 실행 기록만 봐서 Management Review의
   입력이 "미정의"로 나왔다 — 생성기를 쓸 때 이 경로를 빠뜨리기 쉽다.
+
+### 4.15 테스트
+
+`tests/`에 Vitest로 **순수 로직만** 검증한다(86개). 렌더링 테스트는 두지 않았다 —
+jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레이아웃·가독성처럼 계산으로
+못 잡는 것은 어차피 브라우저에서 눈으로 봐야 한다.
+
+| 파일 | 무엇을 잠그는가 |
+|---|---|
+| `invariants.test.ts` | 화면 간 수치 연동 항등식 (4.6) — 합산, 브릿지, 분기 합, 시나리오 간 연결 |
+| `bpm-engine.test.ts` | 상태 파생 규칙 (4.5) — skipped/waiting 판정, **미완료 Agent 산출물 은닉** |
+| `rolling-plan.test.ts` | **이중 계상 금지** (4.6), 승인→과제 변환, Plan 조정 |
+| `framework.test.ts` | KPI–KRI–Control 연결 무결성 (4.8), 이탈 판정 방향 |
+| `simulation.test.ts` | 선형 관계·회수 기간·등급 단조성, 시나리오 레지스트리 무결성 |
+| `metrics.test.ts` | 표기 유틸, 경영 수행 성과가 **실제 데이터에서 계산되는지** (4.9) |
+
+* 검증 대상은 **이미 한 번 이상 실제로 틀렸던 것들**을 우선했다. 미완료 산출물 은닉은
+  두 경로로 새어 나갔고, 이중 계상과 자리표시자 노출은 숫자가 그럴듯해 눈으로 안 잡힌다.
+* 테스트를 넣으면서 실제 불일치를 하나 잡았다 — BMS 라인 수율의 감지 임계치가 리스크
+  신호에만 `95.0%`(목표값)로 적혀 있었다. Framework·Evolution Lab·백테스트는 모두 `90`이다.
+* `vitest.config.mts`가 `.mts`인 이유와 `resolve.tsconfigPaths`는 그 파일 주석에 적어 두었다.
+* `@types/node`는 `^20`에서 `^22`로 올렸다. 런타임이 Node 22인데 스캐폴딩 값이 20이라
+  Vitest peer dependency와 충돌했다 — 우회가 아니라 실제와 맞춘 것이다.

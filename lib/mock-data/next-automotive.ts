@@ -214,7 +214,8 @@ export const nextAutomotive: CompanySnapshot = {
         "양산 6개월차에도 수율이 목표를 8%p 밑돌아 폐기·재작업 비용이 누적. 공정 파라미터 재설정 과제가 진행 중이다.",
       severity: "serious",
       division: "친환경/전장",
-      kri: { label: "BMS 라인 수율", value: "87.2%", threshold: "95.0%" },
+      // 95%는 목표(division metric target)이고 감지 임계치는 90%다 — 둘을 혼동했었다.
+      kri: { label: "BMS 라인 수율", value: "87.2%", threshold: "90.0%" },
       stage: "management-action",
       owner: "전장기술팀 이도현",
       origin: "observed",
