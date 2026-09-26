@@ -1,3 +1,5 @@
+import { Hourglass } from "lucide-react";
+
 import { Separator } from "@/components/ui/separator";
 import { StatusMark } from "@/components/flow/bpmn-node";
 import { MANAGEMENT_STAGE_LABEL } from "@/lib/types/cockpit";
@@ -36,7 +38,14 @@ export function NodeDetailPanel({
     );
   }
 
-  const isRealized = status === "done" || status === "active" || status === "waiting";
+  /**
+   * `outcome`은 완료된 결과를 서술한 문장이다("…산출 완료" 같은).
+   *
+   * `active`(아직 수행 중)에 이를 보여 주면 Agent 현황 패널이 같은 결론을 감추고 있는 것과
+   * 어긋난다 — 실제로 "진행 중"인 노드에 기여도 62%와 "손익 영향 산출 완료"가 표시됐다.
+   * `waiting`은 사람의 판단을 기다리는 상태라 outcome이 결과가 아닌 대기 사유이므로 보여 준다.
+   */
+  const showsOutcome = status === "done" || status === "waiting";
 
   return (
     <div className="space-y-3.5">
@@ -68,7 +77,7 @@ export function NodeDetailPanel({
         ) : null}
       </dl>
 
-      {isRealized && node.outcome ? (
+      {showsOutcome && node.outcome ? (
         <>
           <Separator />
           <div className="space-y-1.5">
@@ -77,6 +86,16 @@ export function NodeDetailPanel({
             </h5>
             <p className="text-xs leading-relaxed text-foreground">{node.outcome}</p>
           </div>
+        </>
+      ) : null}
+
+      {status === "active" ? (
+        <>
+          <Separator />
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Hourglass aria-hidden className="size-3 shrink-0" />
+            수행 중 — 산출물 확정 전
+          </p>
         </>
       ) : null}
 
