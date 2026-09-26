@@ -436,3 +436,21 @@ Value Driver (성과 동인)
 **시나리오 2를 붙이며 드러난 것** — 대안의 부수 효과가 `utilizationPerUnit`(가동률)으로
 타입에 박혀 있었다. 납기 시나리오에는 맞지 않아 `secondaryLabel`/`secondaryUnit`/
 `secondaryPerUnit`으로 일반화했다. 재사용 검증이 실제로 한 건을 잡아낸 셈이다.
+
+### 4.14 장면별 설계표 (기획안 4.2)
+
+`docs/scene-design.md`는 **손으로 쓰지 않고 구현에서 생성한다**(`services/scene-design.ts`).
+
+```bash
+curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
+```
+
+* 설계표는 기획안 4.2가 "Business 설계를 BPM과 Agent 구현으로 연결하는 공통 명세"로
+  규정한 문서다. 손으로 쓰면 구현이 바뀔 때 문서만 낡아 명세로서 쓸모가 없어진다.
+  **데이터를 고친 뒤 다시 생성할 것.**
+* 코드에 근거가 없는 항목은 지어내지 않고 `미정의 — 경영 판단 기준 작성 필요`로 남긴다.
+  현재 140행 중 9칸이며, Mock에 `outcome`이 없는 후반 노드들이다. 기획안은 경영 내용을
+  임근석 박사가 주도한다고 했으므로 이 칸은 사람이 채울 자리다.
+* **사람·시스템 노드의 입력은 선행 Agent 산출물이다.** 경영진은 원천 데이터가 아니라
+  Agent 보고서를 보고 판단한다. 처음엔 해당 노드의 실행 기록만 봐서 Management Review의
+  입력이 "미정의"로 나왔다 — 생성기를 쓸 때 이 경로를 빠뜨리기 쉽다.
