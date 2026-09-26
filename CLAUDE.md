@@ -650,6 +650,15 @@ gh api repos/actions/checkout/releases/latest --jq .tag_name
 
 현재 checkout v7 · setup-node v7 · cache v6이며, 올린 뒤 경고가 사라진 것을 확인했다.
 
+**부동 메이저 태그가 있다고 가정하지 말 것.** `actions/*`는 `v7` 같은 이동 태그를 두지만
+`astral-sh/setup-uv`는 **v8부터 두지 않는다** — 최신 릴리스가 `v10.2.0`인 것을 조회하고도
+`@v10`으로 줄여 쓰는 바람에 `Unable to resolve action … unable to find version v10`으로
+engine 잡이 실패했다. 새 액션을 쓸 때는 태그 목록을 직접 본다:
+
+```bash
+gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
+```
+
 저장소를 **private으로 둔 이유**: INNONOW 방법론, 벤치마킹 대상 실제 회사명(SJG세종·인팩),
 실명이 들어 있다. 공개로 바꾸는 것은 언제든 가능하지만 되돌리는 것은 사실상 불가능하다
 (캐시·포크·검색 색인).

@@ -78,7 +78,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: astral-sh/setup-uv@v10
+      # **전체 버전으로 고정한다.** `astral-sh/setup-uv`는 v8부터 부동 메이저 태그(`v10`)를
+      # 두지 않아 `@v10`은 "unable to find version"으로 실패한다 — actions/* 는 두므로
+      # 관례처럼 짧게 쓰다가 걸렸다. 올릴 때 태그 존재를 직접 확인할 것:
+      #   gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           # 엔진 의존성만 캐시 키에 넣는다 — 앱 쪽 변경으로 캐시가 날아가지 않게 한다.
