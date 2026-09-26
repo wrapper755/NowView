@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DivisionCard } from "@/components/cockpit/division-card";
+import { ExecutionPerformancePanel } from "@/components/cockpit/execution-performance-panel";
 import {
   FrameworkChainTable,
   FrameworkSummaryLine,
@@ -9,6 +10,7 @@ import { RiskSignalList } from "@/components/cockpit/risk-signal-list";
 import { StatTile } from "@/components/shared/stat-tile";
 import { managementFramework } from "@/lib/mock-data/framework";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
+import { executionMetrics } from "@/services/execution-performance";
 import { buildChains, summarize } from "@/services/framework";
 import {
   formatEok,
@@ -31,6 +33,8 @@ export default function ExecutiveCockpitPage() {
   // 끊어진 연결(존재하지 않는 KPI·통제 참조)이 있으면 여기서 즉시 터진다.
   const frameworkChains = buildChains(managementFramework);
   const frameworkSummary = summarize(managementFramework);
+  // 시스템 산출값 4종은 Agent 기록·과제·백테스트에서 계산된다.
+  const executionPerformance = executionMetrics();
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -126,6 +130,22 @@ export default function ExecutiveCockpitPage() {
           ))}
         </div>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            경영 수행 성과 — 속도 · 정확성 · 실행력
+          </CardTitle>
+          <CardDescription>
+            위쪽이 사업 성과(손익·품질·재고)라면 이것은 그 결과를 만드는 경영 활동 자체의
+            품질이다. 둘을 섞으면 &ldquo;손익은 나빠졌지만 대응은 빨라졌다&rdquo;를 말할 수
+            없다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="viz-root">
+          <ExecutionPerformancePanel metrics={executionPerformance} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
