@@ -14,8 +14,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDemoController } from "@/lib/store/demo-controller";
-import type { ReviewCase } from "@/lib/types/workspace";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+
+import { formatEok } from "@/lib/format";
+import {
+  selectDecision,
+  selectScenario,
+  useDemoController,
+} from "@/lib/store/demo-controller";
 
 /**
  * 협업 스테이션의 클라이언트 경계.
@@ -23,8 +30,10 @@ import type { ReviewCase } from "@/lib/types/workspace";
  * 선택 대안과 레버 값은 로컬 상태다 — 승인 전까지는 이 화면 안의 검토 과정일 뿐이다.
  * 승인된 결정만 전역 스토어로 올라가고, 그 순간 ② 트래커의 진행 지점도 함께 움직인다.
  */
-export function WorkspaceShell({ reviewCase }: { reviewCase: ReviewCase }) {
-  const decision = useDemoController((s) => s.decision);
+export function WorkspaceShell() {
+  const scenario = useDemoController(selectScenario);
+  const reviewCase = scenario.reviewCase;
+  const decision = useDemoController(selectDecision);
   const approve = useDemoController((s) => s.approve);
   const clearDecision = useDemoController((s) => s.clearDecision);
 
@@ -49,6 +58,32 @@ export function WorkspaceShell({ reviewCase }: { reviewCase: ReviewCase }) {
 
   return (
     <div className="space-y-4">
+      <header className="space-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <h1 className="text-xl font-semibold">Human-Agent Collaboration Station</h1>
+          <span className="text-sm text-muted-foreground">{reviewCase.subject}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+            {scenario.shortTitle}
+          </span>
+          <span className="tabular-nums">
+            전사 영업이익 Gap{" "}
+            <span className="font-medium text-foreground">
+              {formatEok(reviewCase.profitGap)}
+            </span>
+          </span>
+          <span className="font-mono text-[10px]">{reviewCase.processId}</span>
+          <Link
+            href="/bpm-tracker"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-foreground hover:bg-muted"
+          >
+            프로세스에서 이 단계 보기
+            <ArrowUpRight aria-hidden className="size-3" />
+          </Link>
+        </div>
+      </header>
+
       {/* 미답 질문은 결정의 전제다. 보고서보다 먼저 보여야 "무엇을 모른 채 결정하는지"를 안다. */}
       {reviewCase.escalations.length > 0 ? (
         <Card className="viz-root">

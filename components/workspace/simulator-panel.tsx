@@ -7,7 +7,7 @@ import { StatTile } from "@/components/shared/stat-tile";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { formatEok, formatEokSigned, formatPpSigned } from "@/lib/format";
+import { formatEok, formatEokSigned } from "@/lib/format";
 import type { Alternative } from "@/lib/types/workspace";
 import { simulateAlternative } from "@/services/agent-orchestrator";
 
@@ -104,11 +104,13 @@ export function SimulatorPanel({
           caption={`${alternative.tag} ${alternative.name}`}
         />
         <StatTile
-          label="가동률 개선"
+          label={lever.secondaryLabel}
           value={
-            result.utilizationImpact === 0 ? "효과 없음" : formatPpSigned(result.utilizationImpact)
+            result.secondaryImpact === 0
+              ? "효과 없음"
+              : `${result.secondaryImpact > 0 ? "+" : ""}${result.secondaryImpact.toFixed(1)}${lever.secondaryUnit}`
           }
-          caption="목표 88.0%"
+          caption="Agent 제안 기준"
         />
         <StatTile
           label="실행 비용"

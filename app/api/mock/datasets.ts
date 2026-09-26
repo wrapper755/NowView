@@ -8,6 +8,10 @@
  */
 
 import { bpmProcess } from "@/lib/mock-data/bpm-process";
+import { deliveryProcess } from "@/lib/mock-data/bpm-process-delivery";
+import { deliveryReviewCase } from "@/lib/mock-data/review-case-delivery";
+import { managementFramework } from "@/lib/mock-data/framework";
+import { scenarios } from "@/lib/mock-data/scenarios";
 import { evolutionLab } from "@/lib/mock-data/evolution-lab";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
 import { reviewCase } from "@/lib/mock-data/review-case";
@@ -35,6 +39,29 @@ export const MOCK_DATASETS: Record<string, MockDataset> = {
   "rolling-plan": {
     description: "FY2026 Rolling Plan — 분기 전망, 갱신 이력, 실행 과제",
     load: () => rollingPlan,
+  },
+  scenarios: {
+    description: "시나리오 목록 — 안건별 프로세스·Review·데모 각본 묶음",
+    load: () =>
+      scenarios.map(({ id, title, shortTitle, summary, riskId }) => ({
+        id,
+        title,
+        shortTitle,
+        summary,
+        riskId,
+      })),
+  },
+  framework: {
+    description: "Management Framework — Value Driver·KPI·KRI·Control 연결",
+    load: () => managementFramework,
+  },
+  "bpm-process-delivery": {
+    description: "시나리오 2 — 납기 준수 BPM 프로세스 인스턴스",
+    load: () => deliveryProcess,
+  },
+  "review-case-delivery": {
+    description: "시나리오 2 — 현업 통제 조치 선택 안건",
+    load: () => deliveryReviewCase,
   },
   "evolution-lab": {
     description: "KRI 임계치 백테스트 및 프레임워크 개선 제안",

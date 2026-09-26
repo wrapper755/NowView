@@ -96,8 +96,8 @@ export function completedRuns(
 export interface SimulationResult {
   /** 연간 영업이익 개선액(억원). */
   profitImpact: number;
-  /** 가동률 개선(%p). */
-  utilizationImpact: number;
+  /** 부수 효과 지표의 개선량. 단위는 `lever.secondaryUnit`이 정한다. */
+  secondaryImpact: number;
   /** 일회성 실행 비용(억원). */
   cost: number;
   /**
@@ -133,13 +133,13 @@ export function simulateAlternative(
   alternative: Alternative,
   leverValue: number,
 ): SimulationResult {
-  const { profitPerUnit, utilizationPerUnit, costPerUnit } = alternative.lever;
+  const { profitPerUnit, secondaryPerUnit, costPerUnit } = alternative.lever;
   const profitImpact = leverValue * profitPerUnit;
   const cost = leverValue * costPerUnit;
 
   return {
     profitImpact,
-    utilizationImpact: leverValue * utilizationPerUnit,
+    secondaryImpact: leverValue * secondaryPerUnit,
     cost,
     paybackYears: profitImpact > 0 ? cost / profitImpact : null,
     severity: severityAt(alternative, leverValue),

@@ -9,10 +9,7 @@
  * 같은 결과가 된다 — 스크러버로 아무 데나 찍어도 앞뒤가 맞는다.
  */
 
-import { reviewCase } from "@/lib/mock-data/review-case";
 import type { ManagementStage } from "@/lib/types/cockpit";
-import type { ReviewDecision } from "@/lib/types/workspace";
-import { simulateAlternative } from "@/services/agent-orchestrator";
 
 export interface DemoScene {
   id: string;
@@ -40,30 +37,8 @@ export interface DemoScene {
   kri?: { id: string; threshold: number };
 }
 
-const recommended = reviewCase.alternatives.find(
-  (a) => a.id === reviewCase.recommendedAlternativeId,
-);
-if (!recommended) {
-  throw new Error("데모 시나리오: Agent 권고안을 찾을 수 없다");
-}
 
-/**
- * 데모가 자동으로 적용하는 결정.
- *
- * 금액은 `simulateAlternative`로 계산해 화면·API와 같은 값이 되게 한다(하드코딩 금지).
- * `decidedAt`은 **고정 문자열**이다 — 스토어가 모듈 로드 시점에 만들어지므로 `new Date()`를
- * 쓰면 서버와 클라이언트 값이 달라져 하이드레이션이 깨진다.
- */
-export const DEMO_DECISION: ReviewDecision = {
-  alternativeId: recommended.id,
-  leverValue: recommended.lever.base,
-  profitImpact: simulateAlternative(recommended, recommended.lever.base).profitImpact,
-  rationale:
-    "가동률 회복이 구조적 문제에 대한 정면 대응이라 판단한다. 전환 기간 중 납기 리스크는 2개 라인으로 제한해 감수한다.",
-  decidedAt: "2026-09-30 15:20",
-};
-
-export const demoScenario: DemoScene[] = [
+export const profitabilityScenes: DemoScene[] = [
   {
     id: "sensing",
     route: "/",
@@ -143,6 +118,73 @@ export const demoScenario: DemoScene[] = [
     title: "루프 종료 · 다음 사이클",
     narration:
       "한 바퀴가 끝났다. 목표는 그대로 두고 전망과 실행계획만 갱신했으며, 남은 Gap은 다음 루프가 이어받는다.",
+    decided: true,
+  },
+];
+
+/**
+ * 시나리오 2 — 납기 준수. 게이트웨이에서 **현업 통제 경로가 선택되는** 흐름이다.
+ * 시나리오 1이 에스컬레이션 경로였으므로, 둘을 합쳐야 기획안 3.3의 두 경로가 모두 보인다.
+ */
+export const deliveryScenes: DemoScene[] = [
+  {
+    id: "d-sensing",
+    route: "/",
+    step: 0,
+    stage: "risk-sensing",
+    title: "납기 이탈 감지",
+    narration:
+      "주간 납기 준수율이 94.2%로 임계 97%를 밑돌았다. 4주간 지연 출하 37건이 모두 전장 ECU 품번이다.",
+    decided: false,
+  },
+  {
+    id: "d-analysis",
+    route: "/bpm-tracker",
+    step: 2,
+    stage: "risk-sensing",
+    title: "공급망 기인 원인 분해",
+    narration:
+      "Supply Risk Agent가 MCU 입고 지연 58%, 긴급 오더 충돌 27%로 기여도를 나눈다. 공급사 회신일이 추정치라 신뢰도는 보통이다.",
+    decided: false,
+  },
+  {
+    id: "d-gateway",
+    route: "/bpm-tracker",
+    step: 3,
+    stage: "operation-control",
+    title: "현업 처리 경로 선택",
+    narration:
+      "이번에는 게이트웨이가 구매·생산 권한 내라고 판단해 경영 검토를 건너뛴다. 시나리오 1과 반대 경로이며, 점선이 반대쪽으로 간다.",
+    decided: false,
+  },
+  {
+    id: "d-control",
+    route: "/workspace",
+    step: 4,
+    stage: "operation-control",
+    title: "현업의 조치 선택",
+    narration:
+      "결정 주체가 경영진이 아니라 구매본부다. 권한 층위는 달라도 근거 제시와 사유 기록 규칙은 똑같이 적용된다.",
+    decided: false,
+  },
+  {
+    id: "d-verify",
+    route: "/bpm-tracker",
+    step: 5,
+    stage: "operation-control",
+    title: "통제 효과 확인",
+    narration:
+      "안전재고 상향 적용 2주 후 납기 준수율이 96.1%로 회복됐다. 다만 임계 97%에는 아직 못 미친다.",
+    decided: true,
+  },
+  {
+    id: "d-rolling",
+    route: "/rolling-plan",
+    step: 6,
+    stage: "rolling-plan",
+    title: "두 안건이 같은 Plan에 모인다",
+    narration:
+      "수익성 안건과 납기 안건의 승인 과제가 같은 Rolling Plan에 함께 잡힌다. 전사 Gap은 두 시나리오가 나눠 메운다.",
     decided: true,
   },
 ];

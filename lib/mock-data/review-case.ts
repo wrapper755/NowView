@@ -118,7 +118,9 @@ export const reviewCase: ReviewCase = {
         step: 1,
         base: 2,
         profitPerUnit: 9,
-        utilizationPerUnit: 1.6,
+        secondaryLabel: "가동률 개선",
+        secondaryUnit: "%p",
+        secondaryPerUnit: 1.6,
         costPerUnit: 11,
       },
       riskBands: [
@@ -149,7 +151,9 @@ export const reviewCase: ReviewCase = {
         step: 5,
         base: 20,
         profitPerUnit: 0.6,
-        utilizationPerUnit: 0.1,
+        secondaryLabel: "가동률 개선",
+        secondaryUnit: "%p",
+        secondaryPerUnit: 0.1,
         costPerUnit: 0.3,
       },
       riskBands: [
@@ -180,7 +184,9 @@ export const reviewCase: ReviewCase = {
         step: 1,
         base: 3,
         profitPerUnit: 3,
-        utilizationPerUnit: 0,
+        secondaryLabel: "가동률 개선",
+        secondaryUnit: "%p",
+        secondaryPerUnit: 0,
         costPerUnit: 0,
       },
       riskBands: [

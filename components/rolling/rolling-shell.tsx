@@ -16,9 +16,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { scenarios } from "@/lib/mock-data/scenarios";
 import { useDemoController } from "@/lib/store/demo-controller";
 import type { RollingPlan } from "@/lib/types/rolling";
-import type { ReviewCase } from "@/lib/types/workspace";
 import {
   assertQuartersBalance,
   decisionToAction,
@@ -33,31 +33,38 @@ import {
  * 승인이 곧바로 추적 가능한 과제가 되는 것이 루프 4→5단계의 연결 지점이다.
  * 스토어는 메모리에만 있으므로 전체 새로고침하면 이 과제는 사라진다.
  */
-export function RollingShell({
-  plan,
-  reviewCase,
-}: {
-  plan: RollingPlan;
-  reviewCase: ReviewCase;
-}) {
-  const decision = useDemoController((s) => s.decision);
+export function RollingShell({ plan }: { plan: RollingPlan }) {
+  const decisionByScenario = useDemoController((s) => s.decisionByScenario);
 
+  /**
+   * **Rolling Plan은 전사 자산이라 모든 시나리오의 승인 과제를 함께 받는다.**
+   *
+   * 시나리오마다 Plan을 복제하면 재사용이 아니라 복사가 된다. 전사 Gap은 하나이고
+   * 두 안건이 그것을 나눠 메우므로, 과제도 한 목록에 모여야 합산이 맞는다.
+   */
   const actions = useMemo(() => {
     // 분기 합이 전사 수치와 어긋난 Rolling Plan은 보고서로 쓸 수 없다.
     assertQuartersBalance(plan);
 
-    if (!decision) return plan.actions;
-
-    const alternative = reviewCase.alternatives.find((a) => a.id === decision.alternativeId);
-    if (!alternative) return plan.actions;
+    const approved = scenarios.flatMap((scenario) => {
+      const decision = decisionByScenario[scenario.id];
+      if (!decision) return [];
+      const alternative = scenario.reviewCase.alternatives.find(
+        (a) => a.id === decision.alternativeId,
+      );
+      if (!alternative) return [];
+      return [decisionToAction(decision, alternative, scenario.reviewCase.riskId)];
+    });
 
     // 승인 직후 과제는 아직 Forecast 미반영이므로 목록 맨 앞에 둔다.
-    return [decisionToAction(decision, alternative, reviewCase.riskId), ...plan.actions];
-  }, [decision, plan, reviewCase]);
+    return [...approved, ...plan.actions];
+  }, [decisionByScenario, plan]);
+
+  const approvedCount = actions.length - plan.actions.length;
 
   const summary = useMemo(() => summarizeGap(plan, actions), [plan, actions]);
   // 승인 전에는 조정 후 계획을 유효한 값으로 보여주지 않는다.
-  const planItems = useMemo(() => planView(plan, decision !== null), [plan, decision]);
+  const planItems = useMemo(() => planView(plan, approvedCount > 0), [plan, approvedCount]);
 
   return (
     <div className="space-y-4">
@@ -91,16 +98,16 @@ export function RollingShell({
         <CardHeader>
           <CardTitle className="text-base">
             실행 과제 {actions.length}건
-            {decision ? (
+            {approvedCount > 0 ? (
               <span className="ml-2 text-xs font-normal text-muted-foreground">
-                승인 1건 신규 반영
+                승인 {approvedCount}건 신규 반영
               </span>
             ) : null}
           </CardTitle>
           <CardDescription>
-            {decision ? (
+            {approvedCount > 0 ? (
               <>
-                Management Review 승인 결과가 과제로 배포되었다. 아직 Forecast에 반영되지
+                승인 결과가 과제로 배포되었다. 아직 Forecast에 반영되지
                 않았으므로 다음 Rolling 회차에서 갱신된다.
               </>
             ) : (

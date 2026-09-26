@@ -246,6 +246,18 @@ export const nextAutomotive: CompanySnapshot = {
       origin: "observed",
     },
     {
+      id: "risk-delivery",
+      title: "전장 ECU 납기 준수율 하락",
+      detail:
+        "4주간 지연 출하 37건으로 주간 납기 준수율이 94.2%까지 떨어졌다. MCU 입고 지연이 주 원인이며 구매·생산 권한 안에서 대응 가능하다.",
+      severity: "serious",
+      division: "친환경/전장",
+      kri: { label: "납기 준수율", value: "94.2%", threshold: "97.0%" },
+      stage: "operation-control",
+      owner: "구매본부 최민서",
+      origin: "observed",
+    },
+    {
       id: "risk-sop-delay",
       title: "K-EV9 양산 일정 지연",
       detail:

@@ -1,4 +1,4 @@
-import { bpmProcess } from "@/lib/mock-data/bpm-process";
+import { DEFAULT_SCENARIO_ID, scenarioById } from "@/lib/mock-data/scenarios";
 import { badRequest, ok, readIntParam } from "@/lib/api/response";
 import { agentActivities, runningAgentCount } from "@/services/agent-orchestrator";
 import {
@@ -22,29 +22,33 @@ import {
  */
 export function GET(request: Request) {
   const url = new URL(request.url);
-  const step = readIntParam(url, "step", bpmProcess.defaultStepIndex);
+  // 시나리오를 지정하지 않으면 첫 번째를 쓴다. 상태는 여전히 서버에 저장하지 않는다.
+  const { process } = scenarioById(
+    url.searchParams.get("scenario") ?? DEFAULT_SCENARIO_ID,
+  );
+  const step = readIntParam(url, "step", process.defaultStepIndex);
 
   if (step === null) {
     return badRequest("step은 정수여야 한다", { received: url.searchParams.get("step") });
   }
 
-  const max = maxStepIndex(bpmProcess);
+  const max = maxStepIndex(process);
   if (step < 0 || step > max) {
     return badRequest(`step은 0 이상 ${max} 이하여야 한다`, { received: step });
   }
 
-  const node = currentNode(bpmProcess, step);
+  const node = currentNode(process, step);
 
   return ok({
-    processId: bpmProcess.id,
+    processId: process.id,
     step,
     maxStep: max,
-    stage: currentStage(bpmProcess, step),
-    progressPercent: progressPercent(bpmProcess, step),
-    awaitingHuman: isAwaitingHuman(bpmProcess, step),
+    stage: currentStage(process, step),
+    progressPercent: progressPercent(process, step),
+    awaitingHuman: isAwaitingHuman(process, step),
     currentNode: node ? { id: node.id, label: node.label, kind: node.kind, actor: node.actor } : null,
-    nodeStatuses: deriveNodeStatuses(bpmProcess, step),
-    runningAgents: runningAgentCount(bpmProcess, step),
-    agents: agentActivities(bpmProcess, step),
+    nodeStatuses: deriveNodeStatuses(process, step),
+    runningAgents: runningAgentCount(process, step),
+    agents: agentActivities(process, step),
   });
 }

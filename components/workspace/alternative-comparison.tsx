@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 
 import { SeverityTag } from "@/components/shared/severity";
 import { cn } from "@/lib/utils";
-import { formatEok, formatEokSigned, formatPpSigned } from "@/lib/format";
+import { formatEok, formatEokSigned } from "@/lib/format";
 import type { Alternative } from "@/lib/types/workspace";
 import { baselineResult } from "@/services/agent-orchestrator";
 
@@ -41,16 +41,17 @@ export function AlternativeComparison({
       ),
     },
     {
-      key: "utilization",
-      label: "가동률 개선",
+      // 부수 효과 지표는 시나리오마다 다르므로 라벨도 데이터에서 온다.
+      key: "secondary",
+      label: alternatives[0].lever.secondaryLabel,
       render: (alt: Alternative) => {
-        const { utilizationImpact } = baselineResult(alt);
+        const { secondaryImpact } = baselineResult(alt);
         return (
           <span className="tabular-nums">
-            {utilizationImpact === 0 ? (
+            {secondaryImpact === 0 ? (
               <span className="text-muted-foreground">효과 없음</span>
             ) : (
-              formatPpSigned(utilizationImpact)
+              `${secondaryImpact > 0 ? "+" : ""}${secondaryImpact.toFixed(1)}${alt.lever.secondaryUnit}`
             )}
           </span>
         );

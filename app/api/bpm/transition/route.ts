@@ -1,4 +1,4 @@
-import { bpmProcess } from "@/lib/mock-data/bpm-process";
+import { DEFAULT_SCENARIO_ID, scenarioById } from "@/lib/mock-data/scenarios";
 import { badRequest, ok, readJson } from "@/lib/api/response";
 import {
   clampStepIndex,
@@ -12,6 +12,8 @@ const ACTIONS = ["next", "prev", "reset", "goto"] as const;
 type TransitionAction = (typeof ACTIONS)[number];
 
 interface TransitionRequest {
+  /** 대상 시나리오. 생략하면 첫 번째. */
+  scenarioId?: string;
   /** 현재 진행 지점. 서버가 상태를 들고 있지 않으므로 요청이 가져와야 한다. */
   step: number;
   action: TransitionAction;
@@ -23,7 +25,7 @@ function parse(body: unknown): { ok: true; value: TransitionRequest } | { ok: fa
   if (typeof body !== "object" || body === null) {
     return { ok: false, message: "본문은 객체여야 한다" };
   }
-  const { step, action, target } = body as Record<string, unknown>;
+  const { step, action, target, scenarioId } = body as Record<string, unknown>;
 
   if (!Number.isInteger(step)) return { ok: false, message: "step은 정수여야 한다" };
   if (typeof action !== "string" || !ACTIONS.includes(action as TransitionAction)) {
@@ -35,7 +37,12 @@ function parse(body: unknown): { ok: true; value: TransitionRequest } | { ok: fa
 
   return {
     ok: true,
-    value: { step: step as number, action: action as TransitionAction, target: target as number | undefined },
+    value: {
+      step: step as number,
+      action: action as TransitionAction,
+      target: target as number | undefined,
+      scenarioId: typeof scenarioId === "string" ? scenarioId : undefined,
+    },
   };
 }
 
@@ -66,22 +73,23 @@ export async function POST(request: Request) {
   const parsed = parse(body.data);
   if (!parsed.ok) return badRequest(parsed.message, body.data);
 
-  const max = maxStepIndex(bpmProcess);
+  const { process } = scenarioById(parsed.value.scenarioId ?? DEFAULT_SCENARIO_ID);
+  const max = maxStepIndex(process);
   if (parsed.value.step < 0 || parsed.value.step > max) {
     return badRequest(`step은 0 이상 ${max} 이하여야 한다`, { received: parsed.value.step });
   }
 
   const requested = nextStep(parsed.value);
-  const step = clampStepIndex(bpmProcess, requested);
+  const step = clampStepIndex(process, requested);
 
   return ok({
-    processId: bpmProcess.id,
+    processId: process.id,
     previousStep: parsed.value.step,
     step,
     clamped: step !== requested,
     maxStep: max,
-    stage: currentStage(bpmProcess, step),
-    awaitingHuman: isAwaitingHuman(bpmProcess, step),
-    nodeStatuses: deriveNodeStatuses(bpmProcess, step),
+    stage: currentStage(process, step),
+    awaitingHuman: isAwaitingHuman(process, step),
+    nodeStatuses: deriveNodeStatuses(process, step),
   });
 }

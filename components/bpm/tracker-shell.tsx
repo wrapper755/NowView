@@ -14,8 +14,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useDemoController } from "@/lib/store/demo-controller";
-import type { BpmProcessInstance } from "@/lib/types/bpm";
+import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+
+import {
+  selectScenario,
+  selectStepIndex,
+  useDemoController,
+} from "@/lib/store/demo-controller";
 import { agentActivities, runningAgentCount } from "@/services/agent-orchestrator";
 import { currentNode, deriveNodeStatuses, isAwaitingHuman } from "@/services/bpm-engine";
 
@@ -25,8 +31,10 @@ import { currentNode, deriveNodeStatuses, isAwaitingHuman } from "@/services/bpm
  * 프로세스 데이터는 서버에서 내려받고(직렬화 가능한 순수 데이터), 진행 지점은 Zustand에서,
  * 노드 선택은 로컬 상태로 둔다 — 선택은 이 화면 안에서만 의미가 있으므로 전역에 올리지 않는다.
  */
-export function BpmTrackerShell({ process }: { process: BpmProcessInstance }) {
-  const stepIndex = useDemoController((s) => s.stepIndex);
+export function BpmTrackerShell() {
+  const scenario = useDemoController(selectScenario);
+  const process = scenario.process;
+  const stepIndex = useDemoController(selectStepIndex);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const statuses = useMemo(() => deriveNodeStatuses(process, stepIndex), [process, stepIndex]);
@@ -50,6 +58,33 @@ export function BpmTrackerShell({ process }: { process: BpmProcessInstance }) {
 
   return (
     <div className="space-y-4">
+      <header className="space-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+          <h1 className="text-xl font-semibold">Live BPM &amp; Agent Process Tracker</h1>
+          <span className="text-sm text-muted-foreground">{process.subject}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+          <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">
+            {scenario.shortTitle}
+          </span>
+          <span className="tabular-nums">
+            {process.kri.label}{" "}
+            <span className="font-medium text-foreground">{process.kri.value}</span>
+            <span className="mx-1 text-muted-foreground/60">/</span>
+            임계 {process.kri.threshold}
+          </span>
+          <span className="tabular-nums">착수 {process.startedAt}</span>
+          <span className="font-mono text-[10px]">{process.id}</span>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-foreground hover:bg-muted"
+          >
+            Cockpit의 해당 리스크 보기
+            <ArrowUpRight aria-hidden className="size-3" />
+          </Link>
+        </div>
+      </header>
+
       {awaitingHuman ? (
         <div
           className="flex items-start gap-2.5 rounded-lg border p-3"

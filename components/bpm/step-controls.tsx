@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useDemoController } from "@/lib/store/demo-controller";
+import { selectStepIndex, useDemoController } from "@/lib/store/demo-controller";
 import { MANAGEMENT_STAGE_LABEL } from "@/lib/types/cockpit";
 import type { BpmProcessInstance } from "@/lib/types/bpm";
 import { currentStage, maxStepIndex, progressPercent } from "@/services/bpm-engine";
@@ -15,7 +15,7 @@ import { currentStage, maxStepIndex, progressPercent } from "@/services/bpm-engi
  * 나중에 플레이어가 붙어도 이 컨트롤과 상태가 어긋나지 않는다.
  */
 export function StepControls({ process }: { process: BpmProcessInstance }) {
-  const stepIndex = useDemoController((s) => s.stepIndex);
+  const stepIndex = useDemoController(selectStepIndex);
   const next = useDemoController((s) => s.next);
   const prev = useDemoController((s) => s.prev);
   const reset = useDemoController((s) => s.reset);

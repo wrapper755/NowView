@@ -27,8 +27,16 @@ export interface SimulationLever {
   base: number;
   /** 레버 1단위당 영업이익 개선액(억원). 연간 기준이다. */
   profitPerUnit: number;
-  /** 레버 1단위당 가동률 개선(%p). */
-  utilizationPerUnit: number;
+  /**
+   * 부수 효과 지표의 이름·단위·계수.
+   *
+   * 시나리오마다 다르다 — 수익성 안건은 가동률(%p), 납기 안건은 납기 준수율(%p)이다.
+   * 처음에는 `utilizationPerUnit`으로 가동률이 타입에 박혀 있었는데, 두 번째 시나리오를
+   * 붙이면서 그것이 시나리오 고유 가정이었음이 드러나 일반화했다.
+   */
+  secondaryLabel: string;
+  secondaryUnit: string;
+  secondaryPerUnit: number;
   /**
    * 레버 1단위당 실행 비용(억원). 일회성 투자·이설 비용이다.
    *

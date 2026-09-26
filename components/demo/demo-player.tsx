@@ -15,12 +15,13 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DEMO_SCENE_INTERVAL_MS, type DemoScene } from "@/lib/demo-scenario";
+import { scenarios } from "@/lib/mock-data/scenarios";
 import {
-  DEMO_SCENE_INTERVAL_MS,
-  demoScenario,
-  type DemoScene,
-} from "@/lib/demo-scenario";
-import { LAST_SCENE_INDEX, useDemoController } from "@/lib/store/demo-controller";
+  selectScenario,
+  selectSceneIndex,
+  useDemoController,
+} from "@/lib/store/demo-controller";
 import { MANAGEMENT_STAGE_LABEL } from "@/lib/types/cockpit";
 
 /**
@@ -34,7 +35,12 @@ export function DemoPlayer() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const sceneIndex = useDemoController((s) => s.sceneIndex);
+  const scenario = useDemoController(selectScenario);
+  const sceneIndex = useDemoController(selectSceneIndex);
+  const activeScenarioId = useDemoController((s) => s.activeScenarioId);
+  const setScenario = useDemoController((s) => s.setScenario);
+  const demoScenario = scenario.scenes;
+  const LAST_SCENE_INDEX = demoScenario.length - 1;
   const isPlaying = useDemoController((s) => s.isPlaying);
   const isExpanded = useDemoController((s) => s.isPlayerExpanded);
   const goToScene = useDemoController((s) => s.goToScene);
@@ -51,14 +57,14 @@ export function DemoPlayer() {
       goToScene(index);
       if (target.route !== pathname) router.push(target.route);
     },
-    [goToScene, pathname, router],
+    [demoScenario, LAST_SCENE_INDEX, goToScene, pathname, router],
   );
 
   // 자동 재생. setState는 타이머 콜백 안에서만 일어나므로 effect 본문에서 상태를 바꾸지 않는다.
   useEffect(() => {
     if (!isPlaying) return;
     const id = setInterval(() => {
-      const { sceneIndex: current } = useDemoController.getState();
+      const current = selectSceneIndex(useDemoController.getState());
       if (current >= LAST_SCENE_INDEX) {
         setPlaying(false);
         return;
@@ -66,7 +72,7 @@ export function DemoPlayer() {
       jump(current + 1);
     }, DEMO_SCENE_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [isPlaying, jump, setPlaying]);
+  }, [isPlaying, jump, setPlaying, LAST_SCENE_INDEX]);
 
   if (!isExpanded) {
     return (
@@ -108,6 +114,34 @@ export function DemoPlayer() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          {/* 시나리오 전환. 각 시나리오는 자기 진행·결정을 따로 들고 있어 오가도 유지된다. */}
+          <div
+            role="tablist"
+            aria-label="시나리오 선택"
+            className="flex gap-0.5 rounded-lg border p-0.5"
+          >
+            {scenarios.map((s) => (
+              <button
+                key={s.id}
+                role="tab"
+                type="button"
+                aria-selected={s.id === activeScenarioId}
+                title={s.summary}
+                onClick={() => {
+                  setScenario(s.id);
+                  const target = s.scenes[0];
+                  if (target.route !== pathname) router.push(target.route);
+                }}
+                className={
+                  s.id === activeScenarioId
+                    ? "rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground"
+                    : "rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                }
+              >
+                {s.shortTitle}
+              </button>
+            ))}
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -120,7 +154,7 @@ export function DemoPlayer() {
         </div>
       </div>
 
-      <SceneScrubber sceneIndex={sceneIndex} onJump={jump} />
+      <SceneScrubber scenes={demoScenario} sceneIndex={sceneIndex} onJump={jump} />
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t p-2.5">
         <div className="flex items-center gap-1">
@@ -187,15 +221,17 @@ export function DemoPlayer() {
 
 /** 장면 스크러버. 어느 장면으로든 바로 건너뛸 수 있다. */
 function SceneScrubber({
+  scenes,
   sceneIndex,
   onJump,
 }: {
+  scenes: DemoScene[];
   sceneIndex: number;
   onJump: (index: number) => void;
 }) {
   return (
     <ol className="flex gap-1 px-3.5 pb-1">
-      {demoScenario.map((s: DemoScene, index) => {
+      {scenes.map((s: DemoScene, index: number) => {
         const isCurrent = index === sceneIndex;
         const isPast = index < sceneIndex;
         return (

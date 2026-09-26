@@ -1,5 +1,4 @@
 import { RollingShell } from "@/components/rolling/rolling-shell";
-import { reviewCase } from "@/lib/mock-data/review-case";
 import { rollingPlan } from "@/lib/mock-data/rolling-plan";
 
 export const metadata = {
@@ -21,7 +20,7 @@ export default function RollingPlanPage() {
         </p>
       </header>
 
-      <RollingShell plan={rollingPlan} reviewCase={reviewCase} />
+      <RollingShell plan={rollingPlan} />
 
       <p className="pb-2 text-xs text-muted-foreground">
         본 화면의 전망·과제 데이터는 Mock이다. 승인된 과제는 브라우저 메모리에만 남으므로
