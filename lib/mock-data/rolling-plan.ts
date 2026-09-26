@@ -60,6 +60,90 @@ export const rollingPlan: RollingPlan = {
     },
   ],
 
+  /**
+   * 실행계획 — 1안 라인 재배치(전환 라인 수 2개)가 승인될 때 조정되는 항목들.
+   *
+   * 전환 투자비 22억 대비 연간 회수 18억이므로 회수 기간은 약 1.2년이다. 이 관계가
+   * 깨지지 않도록 투자비를 바꿀 때는 `review-case.ts`의 회수액도 함께 본다.
+   */
+  plan: [
+    {
+      id: "plan-line-conversion",
+      dimension: "activity",
+      label: "파워트레인 3·4라인 전장 조립 전환",
+      baseline: "계획 없음",
+      planned: "2개 라인 전환 공사",
+      drivenByDecision: true,
+      owner: "생산본부 김상현",
+      period: "4Q26 ~ 1Q27",
+      note: "저가동 내연 라인을 전장 조립으로 돌려 가동률을 직접 끌어올린다.",
+    },
+    {
+      id: "plan-pt-volume",
+      dimension: "volume",
+      label: "파워트레인 분기 생산 물량",
+      baseline: "48만 개",
+      planned: "41만 개",
+      drivenByDecision: true,
+      owner: "생산관리팀",
+      period: "4Q26",
+      note: "전환 공사 기간 중 해당 라인 생산이 중단된다.",
+    },
+    {
+      id: "plan-ee-volume",
+      dimension: "volume",
+      label: "전장 조립 분기 물량",
+      baseline: "12만 개",
+      planned: "18만 개",
+      drivenByDecision: true,
+      owner: "전장기술팀 이도현",
+      period: "1Q27",
+      note: "전환 완료 후 ECU 신규 수주 물량을 흡수한다.",
+    },
+    {
+      id: "plan-conversion-window",
+      dimension: "schedule",
+      label: "전환 공사 기간",
+      baseline: "해당 없음",
+      planned: "2026-10-14 ~ 2027-01-20 (14주)",
+      drivenByDecision: true,
+      owner: "생산본부 김상현",
+      period: "4Q26 ~ 1Q27",
+    },
+    {
+      id: "plan-capex",
+      dimension: "resource",
+      label: "라인 전환 투자비",
+      baseline: "0억",
+      planned: "22억",
+      drivenByDecision: true,
+      owner: "재무팀 한지훈",
+      period: "4Q26 집행",
+      note: "연간 회수 18억 기준 회수 기간 약 1.2년.",
+    },
+    {
+      id: "plan-headcount",
+      dimension: "resource",
+      label: "전환 투입 인력",
+      baseline: "0명",
+      planned: "생산기술 12명 · 설비 협력사 3사",
+      drivenByDecision: true,
+      owner: "생산기술팀",
+      period: "전환 기간 전담",
+    },
+    {
+      id: "plan-maintenance",
+      dimension: "activity",
+      label: "설비 예방보전 집행",
+      baseline: "분기 정기 집행",
+      planned: "분기 정기 집행 유지",
+      drivenByDecision: false,
+      owner: "생산본부",
+      period: "상시",
+      note: "3안 보전비 이연을 선택하지 않았으므로 기존 계획을 그대로 둔다.",
+    },
+  ],
+
   actions: [
     {
       id: "act-yield-tf",

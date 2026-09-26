@@ -65,6 +65,49 @@ export interface QuarterPoint {
   closed: boolean;
 }
 
+/**
+ * 실행계획(Plan)의 축 — 기획안 3.4가 규정한 "활동·물량·일정·자원".
+ *
+ * 넷을 나누는 이유: 승인 하나가 이 네 축에 각각 다른 방식으로 파급되는데, 뭉뚱그리면
+ * "무엇을 언제 누가 얼마로 하는가"가 사라진다.
+ */
+export type PlanDimension = "activity" | "volume" | "schedule" | "resource";
+
+export const PLAN_DIMENSION_LABEL: Record<PlanDimension, string> = {
+  activity: "활동",
+  volume: "물량",
+  schedule: "일정",
+  resource: "자원",
+};
+
+/**
+ * 실행계획 항목 하나.
+ *
+ * 값을 숫자가 아니라 문자열로 들고 있다 — 일정("2026-10-14 ~ 2027-01-20")과
+ * 활동("2개 라인 전환 공사")은 수치화되지 않는다. 계산이 필요한 것은 Forecast의 몫이고,
+ * Plan은 "무엇을 어떻게 할 것인가"를 서술한다.
+ */
+export interface PlanItem {
+  id: string;
+  dimension: PlanDimension;
+  label: string;
+  /** 승인 전 계획. */
+  baseline: string;
+  /** 승인된 대응안을 반영한 조정 후 계획. */
+  planned: string;
+  /**
+   * 승인에 의해 바뀌는 항목인가.
+   *
+   * `true`인 항목은 **승인 전에는 `planned`를 보여주지 않는다** — 결정되지 않은 계획을
+   * 확정된 것처럼 보이면 안 된다(Agent 산출물을 미리 노출하지 않는 것과 같은 이유).
+   */
+  drivenByDecision: boolean;
+  owner: string;
+  /** 적용 시점·기간. */
+  period: string;
+  note?: string;
+}
+
 export interface RollingPlan {
   /** 확정 목표 영업이익(억원). 절대 바뀌지 않는다. */
   target: number;
@@ -75,4 +118,11 @@ export interface RollingPlan {
   quarters: QuarterPoint[];
   revisions: ForecastRevision[];
   actions: ActionItem[];
+  /**
+   * 실행계획. Target·Forecast와 나란한 세 번째 축이다(기획안 3.4).
+   *
+   * Target은 고정, Forecast는 갱신, Plan은 **조정**된다 — 승인된 대응안과 운영 여건의
+   * 변화를 반영한다.
+   */
+  plan: PlanItem[];
 }

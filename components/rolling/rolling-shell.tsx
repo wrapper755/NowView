@@ -7,6 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import { ActionTracker } from "@/components/rolling/action-tracker";
 import { ForecastTrendChart } from "@/components/rolling/forecast-trend-chart";
 import { GapPanel } from "@/components/rolling/gap-panel";
+import { PlanPanel } from "@/components/rolling/plan-panel";
 import { RevisionHistory } from "@/components/rolling/revision-history";
 import {
   Card,
@@ -18,7 +19,12 @@ import {
 import { useDemoController } from "@/lib/store/demo-controller";
 import type { RollingPlan } from "@/lib/types/rolling";
 import type { ReviewCase } from "@/lib/types/workspace";
-import { assertQuartersBalance, decisionToAction, summarizeGap } from "@/services/rolling-plan";
+import {
+  assertQuartersBalance,
+  decisionToAction,
+  planView,
+  summarizeGap,
+} from "@/services/rolling-plan";
 
 /**
  * Rolling Plan 화면의 클라이언트 경계.
@@ -50,6 +56,8 @@ export function RollingShell({
   }, [decision, plan, reviewCase]);
 
   const summary = useMemo(() => summarizeGap(plan, actions), [plan, actions]);
+  // 승인 전에는 조정 후 계획을 유효한 값으로 보여주지 않는다.
+  const planItems = useMemo(() => planView(plan, decision !== null), [plan, decision]);
 
   return (
     <div className="space-y-4">
@@ -112,6 +120,20 @@ export function RollingShell({
         </CardHeader>
         <CardContent>
           <ActionTracker actions={actions} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">실행계획 (Plan)</CardTitle>
+          <CardDescription>
+            Target은 고정하고 Forecast는 갱신하며, Plan은 승인된 대응안과 운영 여건 변화를
+            반영해 <strong className="font-medium text-foreground">조정</strong>한다.
+            승인 전에는 조정 후 값을 확정된 계획으로 보여주지 않는다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PlanPanel items={planItems} />
         </CardContent>
       </Card>
 

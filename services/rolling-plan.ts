@@ -8,7 +8,7 @@
  * Target은 입력으로만 받고 어떤 함수도 이를 바꾸지 않는다 (CLAUDE.md 1장).
  */
 
-import type { ActionItem, RollingPlan } from "@/lib/types/rolling";
+import type { ActionItem, PlanItem, RollingPlan } from "@/lib/types/rolling";
 import type { Alternative, ReviewDecision } from "@/lib/types/workspace";
 
 export interface GapSummary {
@@ -75,6 +75,35 @@ export function decisionToAction(
     reflectedInForecast: false,
     sourceRiskId,
   };
+}
+
+/** 실행계획 항목의 현재 상태. 승인 여부에 따라 보여 줄 값이 달라진다. */
+export interface PlanItemView {
+  item: PlanItem;
+  /** 지금 유효한 계획값. 승인 전 `drivenByDecision` 항목은 baseline이 유효하다. */
+  effective: string;
+  /** 승인으로 조정되었는가. */
+  adjusted: boolean;
+  /** 승인을 기다리는 조정인가. */
+  awaitingDecision: boolean;
+}
+
+/**
+ * 승인 여부를 반영한 실행계획.
+ *
+ * 승인 전에는 `planned`를 유효한 값으로 보여주지 않는다 — 결정되지 않은 계획을 확정된
+ * 것처럼 표시하면 안 된다. 대신 "승인 시 조정 예정"으로 남겨 둔다.
+ */
+export function planView(plan: RollingPlan, hasDecision: boolean): PlanItemView[] {
+  return plan.plan.map((item) => {
+    const adjusted = item.drivenByDecision && hasDecision;
+    return {
+      item,
+      effective: adjusted || !item.drivenByDecision ? item.planned : item.baseline,
+      adjusted,
+      awaitingDecision: item.drivenByDecision && !hasDecision,
+    };
+  });
 }
 
 /** 분기 합계가 전사 수치와 맞는지 확인한다. 어긋난 Rolling Plan은 보고서로 쓸 수 없다. */
