@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DivisionCard } from "@/components/cockpit/division-card";
 import { OpBridgeChart } from "@/components/cockpit/op-bridge-chart";
 import { RiskSignalList } from "@/components/cockpit/risk-signal-list";
-import { StatTile } from "@/components/cockpit/stat-tile";
+import { StatTile } from "@/components/shared/stat-tile";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
 import {
   formatEok,

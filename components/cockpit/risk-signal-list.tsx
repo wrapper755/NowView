@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { SeverityTag, severityColor } from "@/components/cockpit/severity";
+import { SeverityTag, severityColor } from "@/components/shared/severity";
 import {
   MANAGEMENT_STAGE_LABEL,
   type RiskSignal,

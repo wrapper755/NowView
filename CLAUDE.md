@@ -106,31 +106,76 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 ## 4. Project Directory Structure
 
-아래는 **목표 구조**다. 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
+아래는 **실제 구조**다(목표 설계가 아니라 파일 시스템 기준). 구조를 바꾸면 이 트리를 갱신한다.
 
-**현재 구현된 것** — ①~⑤ 다섯 화면 전부:
-* `app/{layout.tsx,page.tsx,globals.css}`,
-  `app/{bpm-tracker,workspace,rolling-plan,evolution}/page.tsx`
-* `components/cockpit/*`, `components/flow/*`(BPMN 노드·캔버스), `components/bpm/*`(트래커 패널),
-  `components/workspace/*`(보고서·비교표·시뮬레이터·의사결정),
-  `components/rolling/*`(Gap 패널·추이 차트·과제·갱신 이력),
-  `components/evolution/*`(임계치 튜닝·백테스트·제안 목록),
-  `components/ui/*`, `components/theme-provider.tsx`·`theme-toggle.tsx`
-* `lib/types/{cockpit,bpm,workspace,rolling,evolution}.ts`,
-  `lib/mock-data/{next-automotive,bpm-process,review-case,rolling-plan,evolution-lab}.ts`,
-  `lib/store/demo-controller.ts`, `lib/format.ts`, `lib/utils.ts`,
-  `services/{bpm-engine,agent-orchestrator,rolling-plan,evolution-lab}.ts`, `.claude/launch.json`
+```text
+NowView/
+├── CLAUDE.md
+├── AGENTS.md                     # next dev 자동 생성 (Next.js 에이전트 규칙)
+├── components.json               # Shadcn 설정
+├── .claude/launch.json           # preview 서버 설정 (nowview-dev)
+├── app/
+│   ├── layout.tsx                # 전사 레이아웃, GNB, 테마 공급자
+│   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
+│   ├── page.tsx                  # ① Executive Cockpit
+│   ├── bpm-tracker/page.tsx      # ② Live BPM & Agent Process Tracker
+│   ├── workspace/page.tsx        # ③ Human-Agent Collaboration Station
+│   ├── rolling-plan/page.tsx     # ④ Rolling Plan & Action Tracker
+│   └── evolution/page.tsx        # ⑤ Management Evolution Lab
+├── components/
+│   ├── ui/                       # Shadcn 원시 컴포넌트 8종
+│   ├── shared/                   # 두 화면 이상이 쓰는 조각: stat-tile, severity
+│   ├── cockpit/                  # ① division-card, op-bridge-chart, risk-signal-list
+│   ├── flow/                     # React Flow 전용: bpmn-node, process-canvas
+│   ├── bpm/                      # ② tracker-shell, step-controls, node-detail-panel,
+│   │                             #   agent-activity-panel
+│   ├── workspace/                # ③ workspace-shell, agent-report-viewer,
+│   │                             #   alternative-comparison, simulator-panel, decision-panel
+│   ├── rolling/                  # ④ rolling-shell, gap-panel, forecast-trend-chart,
+│   │                             #   action-tracker, revision-history
+│   ├── evolution/                # ⑤ evolution-shell, kri-tuning-panel, backtest-chart,
+│   │                             #   proposal-list
+│   ├── theme-provider.tsx
+│   └── theme-toggle.tsx
+├── lib/
+│   ├── format.ts                 # 억원·퍼센트 표기
+│   ├── utils.ts                  # cn()
+│   ├── store/demo-controller.ts  # Zustand: 진행 지점 + 승인 결정
+│   ├── types/                    # cockpit, bpm, workspace, rolling, evolution
+│   └── mock-data/                # next-automotive, bpm-process, review-case,
+│                                 #   rolling-plan, evolution-lab
+└── services/
+    ├── bpm-engine.ts             # 워크플로우 상태 파생
+    ├── agent-orchestrator.ts     # Agent 활동 + 대안 시뮬레이션
+    ├── rolling-plan.ts           # Gap 집계, 결정→과제 변환
+    └── evolution-lab.ts          # 임계치 백테스트 조회
+```
 
-4장 트리와 다른 점:
-* 트래커의 비-플로우 패널은 `components/bpm/`에 둔다 — `components/flow/`는 React Flow
-  노드·엣지·캔버스 전용으로 좁혀 쓴다. 화면별 패널은 같은 방식으로
-  `components/rolling/`·`components/evolution/`에 둔다.
-* `services/`가 4개다(4장 트리에는 2개만 있다): `rolling-plan.ts`, `evolution-lab.ts`를 추가했다.
-* `components/cockpit/{stat-tile,severity}`는 Cockpit 전용이 아니라 **네 화면이 쓰는 공용 조각**이다.
-  `components/shared/`로 옮길 시점이 지났다 — 다음 작업 때 정리할 것.
+**디렉토리 규칙**
+* `components/<화면>/` — 그 화면 전용 패널. 화면을 추가하면 디렉토리도 함께 만든다.
+* `components/flow/` — React Flow 노드·엣지·캔버스 **전용**. 트래커의 나머지 패널은 `components/bpm/`이다.
+* `components/shared/` — 두 화면 이상이 쓰게 된 조각만 올린다. 한 화면만 쓰면 그 화면 디렉토리에 둔다.
+* `services/` — 화면이 실제로 호출하는 파생·계산 로직. 인터페이스만 있는 스텁은 두지 않는다.
 
-**아직 없는 것** — `app/api/`(Mock Data·BPM 상태 전이 API), `components/demo`(플로팅 데모 플레이어),
+**아직 없는 것** — `app/api/`(Mock Data·BPM 상태 전이 API), `components/demo/`(플로팅 데모 플레이어),
 `lib/store` 영속화. 다섯 화면 모두 Mock 데이터를 직접 import하며 API 계층을 거치지 않는다.
+
+### 4.1 데이터 시각화 규칙
+
+차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
+
+* **shadcn nova 프리셋의 `--chart-1~5`는 무채색 그레이스케일**(`oklch(… 0 0)`)이다. 계열 식별에 쓰면
+  chroma floor를 통과하지 못하므로 차트에 쓰지 않는다.
+* 역할을 섞지 않는다: `favorable`/`unfavorable`은 극성(개선/악화), `series-1|2`는 엔티티 식별,
+  `status-*`는 상태 전용이다. 계열색을 상태색으로, 상태색을 계열색으로 재사용하지 않는다.
+* 계열색은 **엔티티에 고정 배정**한다. 목록 순서나 순위에 따라 다시 칠하면 안 된다.
+* 상태는 색 단독으로 전달하지 않는다 — `SeverityTag`(아이콘+한글 라벨)를 항상 동반한다.
+  라이트 서피스에서 warning/serious는 대비 3:1 미만이라 이 조합이 유일한 완화 수단이다.
+* 색을 바꾸면 **눈으로 판단하지 말고 검증기를 돌린다.** 서피스는 카드 배경 기준(라이트 `#ffffff`,
+  다크 `#171717`)이며 명령은 `globals.css`의 `.viz-root` 주석에 적어 두었다.
+* **단위가 다른 두 계열을 한 차트에 겹치지 않는다.** 축이 둘이면 없는 상관관계를 만들어낸다.
+  Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
+* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
 
 ### 4.2 BPM 상태 모델
 
@@ -149,7 +194,8 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 ### 4.3 화면 간 수치·상태 연동
 
-세 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 보여 준다.
+다섯 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 본다 —
+감지(①) → 프로세스(②) → 판단(③) → 반영(④) → 시스템 개선(⑤).
 숫자가 어긋나면 데모 전체의 신뢰가 무너지므로 아래 항등식을 깨지 말 것:
 
 * `review-case.ts`의 각 대안 `lever.base × profitPerUnit` = `bpm-process.ts`의 Simulation Agent
@@ -187,52 +233,3 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 * **개선 제안은 앞 화면에서 실제로 드러난 공백에서만 뽑는다.** 임의로 지어낸 항목을 섞으면
   "루프가 학습한다"는 주장 자체가 무너진다.
 
-### 4.1 데이터 시각화 규칙
-
-차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
-
-* **shadcn nova 프리셋의 `--chart-1~5`는 무채색 그레이스케일**(`oklch(… 0 0)`)이다. 계열 식별에 쓰면
-  chroma floor를 통과하지 못하므로 차트에 쓰지 않는다.
-* 역할을 섞지 않는다: `favorable`/`unfavorable`은 극성(개선/악화), `series-1|2`는 엔티티 식별,
-  `status-*`는 상태 전용이다. 계열색을 상태색으로, 상태색을 계열색으로 재사용하지 않는다.
-* 계열색은 **엔티티에 고정 배정**한다. 목록 순서나 순위에 따라 다시 칠하면 안 된다.
-* 상태는 색 단독으로 전달하지 않는다 — `SeverityTag`(아이콘+한글 라벨)를 항상 동반한다.
-  라이트 서피스에서 warning/serious는 대비 3:1 미만이라 이 조합이 유일한 완화 수단이다.
-* 색을 바꾸면 **눈으로 판단하지 말고 검증기를 돌린다.** 서피스는 카드 배경 기준(라이트 `#ffffff`,
-  다크 `#171717`)이며 명령은 `globals.css`의 `.viz-root` 주석에 적어 두었다.
-* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
-
-```text
-NowView/
-├── CLAUDE.md
-├── AGENTS.md                     # next dev 자동 생성 (Next.js 에이전트 규칙)
-├── components.json               # Shadcn 설정
-├── package.json
-├── tsconfig.json
-├── app/
-│   ├── layout.tsx                # 전사 레이아웃, GNB, 데모 컨트롤러
-│   ├── page.tsx                  # ① Executive Cockpit (대시보드)
-│   ├── bpm-tracker/              # ② Live BPM & Agent Process Tracker
-│   │   └── page.tsx
-│   ├── workspace/                # ③ Human-Agent Collaboration Station
-│   │   └── page.tsx
-│   ├── rolling-plan/             # ④ Rolling Plan & Action Tracker
-│   │   └── page.tsx
-│   ├── evolution/                # ⑤ Management Evolution Lab
-│   │   └── page.tsx
-│   └── api/
-│       ├── mock/                 # 부품사 Mock Data API
-│       └── bpm/                  # BPM & Agent 상태 전이 API
-├── components/
-│   ├── ui/                       # Shadcn 공통 UI 컴포넌트
-│   ├── cockpit/                  # Waterfall 차트, 듀얼 매트릭스 카드
-│   ├── flow/                     # React Flow 기반 BPMN 노드/엣지 커스텀
-│   ├── workspace/                # Agent Report Viewer, 시뮬레이터 슬라이더
-│   └── demo/                     # Demo Scenario Controller (플로팅 플레이어)
-├── lib/
-│   ├── store/                    # Zustand Demo Controller 상태
-│   ├── types/                    # BPM, Agent, Financial Data 타입 정의
-│   └── mock-data/                # 1조원 부품사 재무/운영 JSON 데이터
-└── services/
-    ├── bpm-engine.ts             # 워크플로우 상태 제어 인터페이스
-    └── agent-orchestrator.ts     # Multi-Agent 분석 및 시뮬레이션 호출기

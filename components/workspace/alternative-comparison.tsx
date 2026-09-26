@@ -2,7 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 
-import { SeverityTag } from "@/components/cockpit/severity";
+import { SeverityTag } from "@/components/shared/severity";
 import { cn } from "@/lib/utils";
 import { formatEokSigned, formatPpSigned } from "@/lib/format";
 import type { Alternative } from "@/lib/types/workspace";

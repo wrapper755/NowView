@@ -2,8 +2,8 @@
 
 import { RotateCcw, TriangleAlert } from "lucide-react";
 
-import { SeverityTag } from "@/components/cockpit/severity";
-import { StatTile } from "@/components/cockpit/stat-tile";
+import { SeverityTag } from "@/components/shared/severity";
+import { StatTile } from "@/components/shared/stat-tile";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";

@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react";
 
-import { StatTile } from "@/components/cockpit/stat-tile";
+import { StatTile } from "@/components/shared/stat-tile";
 import { Separator } from "@/components/ui/separator";
 import { formatEok, formatEokSigned, formatPercent } from "@/lib/format";
 import type { GapSummary } from "@/services/rolling-plan";

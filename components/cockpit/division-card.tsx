@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DeltaLine } from "@/components/cockpit/stat-tile";
-import { SeverityTag, metricSeverity, severityColor } from "@/components/cockpit/severity";
+import { DeltaLine } from "@/components/shared/stat-tile";
+import { SeverityTag, metricSeverity, severityColor } from "@/components/shared/severity";
 import {
   formatEok,
   formatEokSigned,
