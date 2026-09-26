@@ -121,7 +121,12 @@ NowView/
 │   ├── bpm-tracker/page.tsx      # ② Live BPM & Agent Process Tracker
 │   ├── workspace/page.tsx        # ③ Human-Agent Collaboration Station
 │   ├── rolling-plan/page.tsx     # ④ Rolling Plan & Action Tracker
-│   └── evolution/page.tsx        # ⑤ Management Evolution Lab
+│   ├── evolution/page.tsx        # ⑤ Management Evolution Lab
+│   └── api/
+│       ├── mock/route.ts         # 데이터셋 목록
+│       ├── mock/datasets.ts      # 데이터셋 레지스트리 (라우트 아님)
+│       ├── mock/[dataset]/       # 데이터셋 조회
+│       └── bpm/                  # state · transition · decision
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트 8종
 │   ├── shared/                   # 두 화면 이상이 쓰는 조각: stat-tile, severity
@@ -140,6 +145,7 @@ NowView/
 ├── lib/
 │   ├── format.ts                 # 억원·퍼센트 표기
 │   ├── utils.ts                  # cn()
+│   ├── api/response.ts           # Route Handler 공통 응답·본문 파싱
 │   ├── store/demo-controller.ts  # Zustand: 진행 지점 + 승인 결정
 │   ├── types/                    # cockpit, bpm, workspace, rolling, evolution
 │   └── mock-data/                # next-automotive, bpm-process, review-case,
@@ -157,10 +163,35 @@ NowView/
 * `components/shared/` — 두 화면 이상이 쓰게 된 조각만 올린다. 한 화면만 쓰면 그 화면 디렉토리에 둔다.
 * `services/` — 화면이 실제로 호출하는 파생·계산 로직. 인터페이스만 있는 스텁은 두지 않는다.
 
-**아직 없는 것** — `app/api/`(Mock Data·BPM 상태 전이 API), `components/demo/`(플로팅 데모 플레이어),
-`lib/store` 영속화. 다섯 화면 모두 Mock 데이터를 직접 import하며 API 계층을 거치지 않는다.
+**아직 없는 것** — `components/demo/`(플로팅 데모 플레이어), `lib/store` 영속화.
 
-### 4.1 데이터 시각화 규칙
+### 4.1 API 계층
+
+```
+GET  /api/mock                  사용 가능한 데이터셋 목록
+GET  /api/mock/[dataset]        company · bpm-process · review-case · rolling-plan · evolution-lab
+GET  /api/bpm/state?step=N      해당 지점의 노드 상태·Agent 활동·현재 단계
+POST /api/bpm/transition        {step, action: next|prev|reset|goto, target?} → 다음 지점
+POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결정·과제·Gap 변화
+```
+
+**상태를 서버에 저장하지 않는다.** 진행 지점은 요청이 들고 오고 서버는 파생 상태를 계산해
+돌려줄 뿐이다 — 서버리스에서 인메모리 상태는 인스턴스마다 갈라지고, 이 프로젝트는 이미
+클라이언트(Zustand)가 진행 지점을 소유한다. 실제 백엔드(FastAPI/LangGraph)가 붙으면
+여기가 그 접합면이다.
+
+* **API는 로직을 다시 구현하지 않고 `services/`를 그대로 호출한다.** 화면과 API가 같은
+  함수를 쓰므로 결과가 어긋날 수 없다. 덕분에 "미완료 Agent의 산출물은 감춘다"나
+  "이중 계상 금지" 같은 규칙이 API에서도 저절로 지켜진다.
+* **사유 10자 검사는 UI와 API 양쪽에 있다.** 버튼 비활성은 편의일 뿐 강제가 아니며 API를
+  직접 부르면 우회된다. 두 곳이 갈라지지 않도록 `DECISION_RATIONALE_MIN_LENGTH` 상수를 공유한다.
+* 범위를 벗어난 전이는 400이 아니라 잘라내고 `clamped: true`로 알린다 — 마지막 단계에서
+  next를 누르는 것은 오류가 아니라 정상적인 UI 동작이다.
+* **화면들은 아직 이 API를 쓰지 않는다.** 다섯 화면 모두 `lib/mock-data/*`를 직접 import해
+  정적 프리렌더를 유지한다. API는 외부 소비자(별도 클라이언트, Python 서비스)를 위한 경계다.
+  화면을 API로 옮기면 정적 렌더를 잃으므로, 실제 백엔드가 붙을 때 함께 판단할 것.
+
+### 4.2 데이터 시각화 규칙
 
 차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
 
@@ -177,7 +208,7 @@ NowView/
   Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
 * 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
 
-### 4.2 BPM 상태 모델
+### 4.3 BPM 상태 모델
 
 **노드 상태는 저장하지 않고 파생한다.** 실행 순서(`BpmProcessInstance.sequence`)와 현재 진행 지점이
 유일한 진실이고, 노드별 상태·Agent 실행 상태는 전부 `services/`에서 계산한다
@@ -192,7 +223,7 @@ NowView/
 * **단계별 문구를 하드코딩하지 말 것.** 사람 대기 배너는 `user-task`면 모두 뜨는데, Review 전용 문구를
   넣어 두었다가 Management Action 단계에서 "대안 선택과 승인"을 말하는 버그가 있었다.
 
-### 4.3 화면 간 수치·상태 연동
+### 4.4 화면 간 수치·상태 연동
 
 다섯 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 본다 —
 감지(①) → 프로세스(②) → 판단(③) → 반영(④) → 시스템 개선(⑤).
@@ -221,7 +252,7 @@ NowView/
 ⑤ Evolution Lab은 예외로 **전역 상태를 바꾸지 않는다.** 채택·보류는 화면 로컬 상태다 —
 프레임워크 변경은 배포 절차를 타야 하고, 이 단계의 결정은 다음 루프부터 효력이 생긴다.
 
-### 4.4 Mock 데이터를 지어낼 때의 규칙
+### 4.5 Mock 데이터를 지어낼 때의 규칙
 
 화면이 주장하는 바를 데이터가 배반하지 않아야 한다. 지금까지 지킨 것들:
 

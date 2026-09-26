@@ -73,6 +73,14 @@ export interface ReviewCase {
   alternatives: Alternative[];
 }
 
+/**
+ * 결정 사유 최소 길이.
+ *
+ * UI(승인 버튼 활성 조건)와 API(`/api/bpm/decision` 검증)가 같은 값을 써야 한다 —
+ * 두 곳에 각자 숫자를 박아 두면 한쪽만 바뀌어 규칙이 갈라진다.
+ */
+export const DECISION_RATIONALE_MIN_LENGTH = 10;
+
 /** 사람이 내린 결정. 사유 없이는 만들 수 없다. */
 export interface ReviewDecision {
   alternativeId: string;

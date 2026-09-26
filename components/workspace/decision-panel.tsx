@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { formatEok, formatEokSigned } from "@/lib/format";
-import type { Alternative, ReviewDecision } from "@/lib/types/workspace";
+import {
+  DECISION_RATIONALE_MIN_LENGTH,
+  type Alternative,
+  type ReviewDecision,
+} from "@/lib/types/workspace";
 import { simulateAlternative } from "@/services/agent-orchestrator";
 
 /** 결정 시각 표시용. 클릭 시점에만 계산하므로 서버 렌더와 어긋날 일이 없다. */
@@ -41,7 +45,7 @@ export function DecisionPanel({
 }) {
   const [rationale, setRationale] = useState("");
   const result = simulateAlternative(alternative, leverValue);
-  const canApprove = rationale.trim().length >= 10;
+  const canApprove = rationale.trim().length >= DECISION_RATIONALE_MIN_LENGTH;
 
   if (decision) {
     return <DecisionRecord decision={decision} profitGap={profitGap} onClear={onClear} />;
@@ -66,7 +70,7 @@ export function DecisionPanel({
         <Label htmlFor="decision-rationale" className="text-xs">
           결정 사유
           <span className="ml-1 font-normal text-muted-foreground">
-            (필수 · 10자 이상)
+            (필수 · {DECISION_RATIONALE_MIN_LENGTH}자 이상)
           </span>
         </Label>
         <Textarea
