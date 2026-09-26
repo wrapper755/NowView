@@ -39,16 +39,22 @@ function Measure({
   referenceLabel: string;
   breached?: boolean;
 }) {
+  /**
+   * 값과 기준을 각각 **줄바꿈 불가 단위**로 묶는다.
+   *
+   * 단위에 공백이 있으면("% QoQ") 그 사이에서 줄이 끊겨 `임계 5%` / `QoQ`처럼 갈라진다.
+   * 오류처럼 읽히므로 각 덩어리는 통째로 넘기고, 값과 기준 사이에서만 줄을 바꾼다.
+   */
   return (
     <span className="tabular-nums">
       <span
-        className="font-medium text-foreground"
+        className="font-medium whitespace-nowrap text-foreground"
         style={breached ? { color: "var(--viz-status-critical)" } : undefined}
       >
         {value}
         {unit}
-      </span>
-      <span className="ml-1 text-[10px] text-muted-foreground">
+      </span>{" "}
+      <span className="text-[10px] whitespace-nowrap text-muted-foreground">
         {referenceLabel} {reference}
         {unit}
       </span>
