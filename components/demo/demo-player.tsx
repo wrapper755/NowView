@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -31,6 +31,12 @@ import { MANAGEMENT_STAGE_LABEL } from "@/lib/types/cockpit";
  * 다섯 화면을 6단계 루프 순서로 이어 준다. 장면을 옮길 때 스토어 상태(BPM 지점·승인)와
  * 화면 전환을 **한 핸들러 안에서 함께** 처리한다 — 상태 변화를 감시하는 effect로 라우팅하면
  * 사용자가 직접 이동했을 때 플레이어가 되돌려 버리는 싸움이 난다.
+ *
+ * **엔진 모드에서도 동작한다**(CLAUDE.md 4.18). 장면이 선언한 진행 지점을 엔진 인스턴스에
+ * 반영한다 — 뒤로는 체크포인트를 읽고, 앞으로는 실제로 진행한다.
+ *
+ * **자동 재생은 고정 간격이 아니다.** 장면이 반영된 뒤에 머무름을 시작하므로 LLM 모드에서
+ * 왕복이 수십 초여도 장면이 밀리지 않는다.
  */
 export function DemoPlayer() {
   const router = useRouter();
@@ -68,24 +74,69 @@ export function DemoPlayer() {
       const target = demoScenario[clamped];
       goToScene(index);
       if (target.route !== pathname) router.push(target.route);
-      void applyScene(scenario, target);
+      return applyScene(scenario, target);
     },
     [demoScenario, LAST_SCENE_INDEX, goToScene, pathname, router, applyScene, scenario],
   );
 
-  // 자동 재생. setState는 타이머 콜백 안에서만 일어나므로 effect 본문에서 상태를 바꾸지 않는다.
+  /**
+   * 최신 `jump`을 ref에 담아 둔다.
+   *
+   * **자동 재생 effect가 `jump`에 의존하면 안 된다.** `jump`은 `pathname`에 의존하는데,
+   * 장면이 화면을 바꾸면 pathname이 바뀌어 effect가 재실행되고 머무름 타이머가 처음부터
+   * 다시 걸린다 — LLM 왕복이 40초여도 7초 뒤에 다음 장면이 발사된다. 고치려던 바로
+   * 그 문제다. ref는 렌더 중이 아니라 effect에서 갱신한다(`react-hooks/refs`).
+   */
+  const jumpRef = useRef(jump);
+  useEffect(() => {
+    jumpRef.current = jump;
+  }, [jump]);
+
+  /**
+   * 자동 재생 — **고정 간격이 아니라 자기 예약 루프**다.
+   *
+   * `setInterval`로 7초마다 넘기면 Mock 모드에서는 맞지만 엔진 LLM 모드에서 깨진다.
+   * 앞 장면의 왕복이 수십 초 걸리는데 타이머는 그것을 모르고 다음 장면을 발사하므로
+   * 요청이 겹치고, 화면은 아직 반영되지 않은 장면의 내레이션을 읽는다.
+   *
+   * 그래서 **장면이 반영된 뒤에 머무름을 시작한다.** 한 장면에 머무는 시간은
+   * "엔진 왕복 + `DEMO_SCENE_INTERVAL_MS`"가 되고, Mock 모드에서는 왕복이 0이라
+   * 기존과 똑같이 7초다.
+   *
+   * setState는 전부 타이머·비동기 콜백 안에서 일어난다 — effect 본문에서 상태를 바꾸면
+   * `react-hooks/set-state-in-effect`에 걸린다.
+   */
   useEffect(() => {
     if (!isPlaying) return;
-    const id = setInterval(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const advance = async () => {
+      if (cancelled) return;
       const current = selectSceneIndex(useDemoController.getState());
       if (current >= LAST_SCENE_INDEX) {
         setPlaying(false);
         return;
       }
-      jump(current + 1);
-    }, DEMO_SCENE_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [isPlaying, jump, setPlaying, LAST_SCENE_INDEX]);
+
+      const result = await jumpRef.current(current + 1);
+      if (cancelled) return;
+      if (result === "failed") {
+        // 엔진이 실패했는데 계속 넘어가면 화면과 인스턴스가 어긋난 채로 데모가 진행된다.
+        // 멈추고 사유를 보여 주는 편이 낫다(내레이션 아래 배너).
+        setPlaying(false);
+        return;
+      }
+      timer = setTimeout(() => void advance(), DEMO_SCENE_INTERVAL_MS);
+    };
+
+    timer = setTimeout(() => void advance(), DEMO_SCENE_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // `jump`을 빼는 것이 핵심이다(위 ref 주석 참조).
+  }, [isPlaying, setPlaying, LAST_SCENE_INDEX]);
 
   if (!isExpanded) {
     return (
