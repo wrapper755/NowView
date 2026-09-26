@@ -64,9 +64,11 @@ export function BpmTrackerShell({ process }: { process: BpmProcessInstance }) {
             <p className="text-sm font-medium text-foreground">
               사람의 판단을 기다리는 중 — {active?.label}
             </p>
+            {/* 이 배너는 모든 user-task 단계에서 뜬다. Review 전용 문구를 쓰면
+                Management Action 단계에서 "대안 선택"을 말하게 되므로 일반화해 둔다. */}
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Agent는 수집·분석·시뮬레이션까지 수행했다. 대안 선택과 승인은 {active?.actor}의
-              책임이다.
+              Agent가 수행할 수 있는 단계는 끝났다. 이 단계의 판단과 실행은{" "}
+              {active?.actor ?? "담당자"}의 책임이다.
             </p>
           </div>
         </div>

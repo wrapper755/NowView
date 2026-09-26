@@ -108,18 +108,23 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 
 아래는 **목표 구조**다. 실제 구조가 이 트리와 갈라지면 실제 구조를 기준으로 삼고 이 절을 갱신한다.
 
-**현재 구현된 것** — ① Executive Cockpit, ② Live BPM & Agent Process Tracker:
-* `app/{layout.tsx,page.tsx,globals.css}`, `app/bpm-tracker/page.tsx`
+**현재 구현된 것** — ① Executive Cockpit, ② Live BPM & Agent Process Tracker,
+③ Human-Agent Collaboration Station:
+* `app/{layout.tsx,page.tsx,globals.css}`, `app/bpm-tracker/page.tsx`, `app/workspace/page.tsx`
 * `components/cockpit/*`, `components/flow/*`(BPMN 노드·캔버스), `components/bpm/*`(트래커 패널),
-  `components/ui/*`(card·badge·separator·progress·button), `components/theme-provider.tsx`·`theme-toggle.tsx`
-* `lib/types/{cockpit,bpm}.ts`, `lib/mock-data/{next-automotive,bpm-process}.ts`, `lib/store/demo-controller.ts`,
-  `lib/format.ts`, `lib/utils.ts`, `services/{bpm-engine,agent-orchestrator}.ts`, `.claude/launch.json`
+  `components/workspace/*`(보고서·비교표·시뮬레이터·의사결정),
+  `components/ui/*`, `components/theme-provider.tsx`·`theme-toggle.tsx`
+* `lib/types/{cockpit,bpm,workspace}.ts`, `lib/mock-data/{next-automotive,bpm-process,review-case}.ts`,
+  `lib/store/demo-controller.ts`, `lib/format.ts`, `lib/utils.ts`,
+  `services/{bpm-engine,agent-orchestrator}.ts`, `.claude/launch.json`
 
 4장 트리와 다른 점: 트래커 화면의 비-플로우 패널은 `components/bpm/`에 둔다 —
 `components/flow/`는 React Flow 노드·엣지·캔버스 전용으로 좁혀 쓴다.
+`components/cockpit/{stat-tile,severity}`는 Cockpit 전용이 아니라 **다른 화면에서도 쓰는 공용 조각**이다
+(협업 스테이션이 가져다 쓴다). 세 번째 화면이 또 가져다 쓰게 되면 `components/shared/`로 옮길 것.
 
-**아직 없는 것** — `app/workspace/`·`rolling-plan/`·`evolution/` 3개 화면, `app/api/`,
-`components/workspace|demo`(플로팅 데모 플레이어 포함). GNB는 이 3개를 "준비중"으로 비활성 표시하며,
+**아직 없는 것** — `app/rolling-plan/`·`evolution/` 2개 화면, `app/api/`,
+`components/demo`(플로팅 데모 플레이어). GNB는 이 2개를 "준비중"으로 비활성 표시하며,
 라우트를 만들 때 `app/layout.tsx`의 `NAV_ITEMS`에 `href`를 채운다.
 
 ### 4.2 BPM 상태 모델
@@ -134,6 +139,22 @@ BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 �
 * **아직 완료되지 않은 Agent의 산출물은 어느 패널에서도 보여주지 않는다.** 미래 결과를 미리 노출하면
   분석이 이미 끝난 것처럼 읽힌다. 노드 상세 패널에서 이 검사를 빠뜨려 한 번 새어 나온 적이 있으므로,
   `run`을 넘기기 전 상태가 `done`인지 확인한다.
+* **단계별 문구를 하드코딩하지 말 것.** 사람 대기 배너는 `user-task`면 모두 뜨는데, Review 전용 문구를
+  넣어 두었다가 Management Action 단계에서 "대안 선택과 승인"을 말하는 버그가 있었다.
+
+### 4.3 화면 간 수치·상태 연동
+
+세 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 보여 준다.
+숫자가 어긋나면 데모 전체의 신뢰가 무너지므로 아래 항등식을 깨지 말 것:
+
+* `review-case.ts`의 각 대안 `lever.base × profitPerUnit` = `bpm-process.ts`의 Simulation Agent
+  산출물 문구에 적힌 금액 (1안 2×9=18억, 2안 20×0.6=12억, 3안 3×3=9억).
+* `review-case.profitGap`(-69억) = `next-automotive.ts`의 전사 영업이익 Gap.
+* `riskId`·`processId`로 세 화면이 같은 건을 가리킨다.
+
+**상태 연동:** 협업 스테이션에서 승인하면 Zustand 스토어의 `decision`이 기록되고 BPM 진행 지점이
+Management Action 단계로 이동한다. 스토어는 메모리에만 있으므로 **전체 새로고침하면 초기화된다** —
+연동을 확인하려면 GNB나 화면 내 링크로 클라이언트 라우팅 이동해야 한다.
 
 ### 4.1 데이터 시각화 규칙
 

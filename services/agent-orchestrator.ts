@@ -13,6 +13,8 @@ import type {
   BpmNodeStatus,
   BpmProcessInstance,
 } from "@/lib/types/bpm";
+import type { Severity } from "@/lib/types/cockpit";
+import type { Alternative } from "@/lib/types/workspace";
 
 /** Agent 실행 상태. 노드 상태에서 파생하므로 따로 저장하지 않는다. */
 export type AgentActivityStatus = "done" | "running" | "queued" | "skipped";
@@ -87,4 +89,47 @@ export function completedRuns(
   stepIndex: number,
 ): AgentActivity[] {
   return agentActivities(process, stepIndex).filter((a) => a.status === "done" && a.run);
+}
+
+// ── 대안 시뮬레이션 ────────────────────────────────────────────────────────────
+
+export interface SimulationResult {
+  /** 영업이익 개선액(억원). */
+  profitImpact: number;
+  /** 가동률 개선(%p). */
+  utilizationImpact: number;
+  /** 해당 레버 값에서의 리스크 등급. */
+  severity: Severity;
+}
+
+/**
+ * 레버 값에서의 리스크 등급. 구간을 넘어서면 가장 높은 등급으로 고정한다.
+ * 구간은 오름차순 전제이므로 처음 만족하는 구간이 답이다.
+ */
+function severityAt(alternative: Alternative, leverValue: number): Severity {
+  const band = alternative.riskBands.find((b) => leverValue <= b.upTo);
+  return band?.severity ?? alternative.riskBands[alternative.riskBands.length - 1].severity;
+}
+
+/**
+ * 대안 하나를 주어진 레버 값으로 시뮬레이션한다.
+ *
+ * 응답은 선형이다 — Mock 단계에서 비선형 곡선을 만들면 없는 정밀도를 주장하게 된다.
+ * 실제 엔진 연동 시 이 함수만 교체하면 화면은 그대로 둘 수 있다.
+ */
+export function simulateAlternative(
+  alternative: Alternative,
+  leverValue: number,
+): SimulationResult {
+  const { profitPerUnit, utilizationPerUnit } = alternative.lever;
+  return {
+    profitImpact: leverValue * profitPerUnit,
+    utilizationImpact: leverValue * utilizationPerUnit,
+    severity: severityAt(alternative, leverValue),
+  };
+}
+
+/** Agent가 제안한 기본값에서의 결과. 대안 비교표의 기준선이다. */
+export function baselineResult(alternative: Alternative): SimulationResult {
+  return simulateAlternative(alternative, alternative.lever.base);
 }
