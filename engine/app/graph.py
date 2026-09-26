@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -192,6 +193,9 @@ def _user_node(spec: ProcessSpec, node):
                 "leverValue": answer.get("leverValue"),
                 "rationale": answer["rationale"].strip(),
                 "decidedBy": answer.get("decidedBy") or node.actor,
+                # 결정 시각은 "무슨 일이 일어났는가"의 일부이므로 엔진이 남긴다.
+                # 화면이 찍으면 새로고침할 때마다 값이 달라진다.
+                "decidedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
             },
         }
 

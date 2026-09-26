@@ -151,3 +151,37 @@ describe("Agent 산출물", () => {
     }
   });
 });
+
+describe("시나리오 전환 시 대안 선택", () => {
+  it("한 시나리오의 권고안 id가 다른 시나리오에 존재하지 않는다", () => {
+    // 화면이 `useState`로 첫 렌더의 권고안 id를 들고 있다가 시나리오가 바뀌면,
+    // 그 id가 새 목록에 없어 `alternatives[0]`으로 떨어진다 — 실제로 시나리오 3에서
+    // 권고안(3안)이 아니라 1안이 승인됐다. 이 전제가 성립하는 한 재발 가능하므로
+    // 화면은 시나리오가 바뀔 때 선택을 되돌려야 한다(`workspace-shell`).
+    for (const a of scenarios) {
+      for (const b of scenarios) {
+        if (a.id === b.id) continue;
+        const ids = b.reviewCase.alternatives.map((alt) => alt.id);
+        expect(ids).not.toContain(a.reviewCase.recommendedAlternativeId);
+      }
+    }
+  });
+
+  it("권고안의 레버 기본값이 시나리오마다 다르다", () => {
+    // 레버 값도 함께 되돌려야 한다 — 옛 시나리오의 기본값이 남으면 금액이 어긋난다.
+    const bases = scenarios.map((s) => {
+      const rec = s.reviewCase.alternatives.find(
+        (a) => a.id === s.reviewCase.recommendedAlternativeId,
+      )!;
+      return rec.lever.base;
+    });
+    expect(new Set(bases).size).toBeGreaterThan(1);
+  });
+
+  it("모든 시나리오의 권고안이 그 시나리오 목록 안에 있다", () => {
+    for (const scenario of scenarios) {
+      const ids = scenario.reviewCase.alternatives.map((a) => a.id);
+      expect(ids).toContain(scenario.reviewCase.recommendedAlternativeId);
+    }
+  });
+});

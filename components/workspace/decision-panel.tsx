@@ -35,6 +35,9 @@ export function DecisionPanel({
   decision,
   onApprove,
   onClear,
+  pending = false,
+  rejection,
+  notAwaiting = false,
 }: {
   alternative: Alternative;
   leverValue: number;
@@ -42,13 +45,36 @@ export function DecisionPanel({
   decision: ReviewDecision | null;
   onApprove: (decision: ReviewDecision) => void;
   onClear: () => void;
+  /** 엔진에 재개 요청을 보내는 중. 두 번 눌리는 것을 막는다. */
+  pending?: boolean;
+  /**
+   * 엔진이 승인 입력을 반려한 이유.
+   *
+   * **오류가 아니라 상태다** — 같은 지점에 다시 멈춘 것이므로 입력한 내용을 지우지 않고
+   * 무엇이 틀렸는지만 덧붙인다. UI 검사(`canApprove`)를 통과해도 엔진이 거부할 수 있고
+   * (버튼 비활성은 강제가 아니다), 그때 사람에게 보여 줄 문구가 필요하다.
+   */
+  rejection?: string;
+  /** 엔진 모드인데 지금 이 단계가 승인 지점이 아니다. */
+  notAwaiting?: boolean;
 }) {
   const [rationale, setRationale] = useState("");
   const result = simulateAlternative(alternative, leverValue);
-  const canApprove = rationale.trim().length >= DECISION_RATIONALE_MIN_LENGTH;
+  const canApprove = rationale.trim().length >= DECISION_RATIONALE_MIN_LENGTH && !pending;
 
   if (decision) {
     return <DecisionRecord decision={decision} profitGap={profitGap} onClear={onClear} />;
+  }
+
+  if (notAwaiting) {
+    // 실행 중인 그래프에서는 아무 때나 승인할 수 없다. 대기 지점이 아닌데 입력란을
+    // 띄우면 "지금 결재할 수 있다"는 잘못된 인상을 준다.
+    return (
+      <p className="text-sm text-muted-foreground">
+        지금은 승인 지점이 아니다. Agent가 수행 중이거나 이 단계를 이미 지났다 —
+        프로세스가 승인 노드에 도달하면 여기서 결재할 수 있다.
+      </p>
+    );
   }
 
   return (
@@ -101,10 +127,20 @@ export function DecisionPanel({
         }
       >
         <ShieldCheck aria-hidden className="size-4" />
-        승인하고 실행 과제로 배포
+        {pending ? "재개 요청 중…" : "승인하고 실행 과제로 배포"}
       </Button>
 
-      {!canApprove ? (
+      {rejection ? (
+        <p
+          role="alert"
+          className="rounded border p-2 text-[11px]"
+          style={{ borderColor: "var(--viz-status-serious)" }}
+        >
+          엔진이 승인 입력을 반려했다 — {rejection}
+        </p>
+      ) : null}
+
+      {!canApprove && !pending ? (
         <p className="text-center text-[11px] text-muted-foreground">
           사유를 입력해야 승인할 수 있다.
         </p>

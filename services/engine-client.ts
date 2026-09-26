@@ -52,6 +52,8 @@ export interface EngineSnapshot {
     leverValue?: number;
     rationale: string;
     decidedBy?: string;
+    /** 엔진이 찍는다 — 화면이 찍으면 새로고침할 때마다 값이 달라진다. */
+    decidedAt?: string;
   } | null;
   acknowledged: string[];
   pendingApproval: {

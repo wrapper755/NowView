@@ -17,6 +17,8 @@ import {
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
+import { EnginePanel } from "@/components/engine/engine-panel";
+import { useEngineProcess } from "@/components/engine/use-engine-process";
 import {
   selectScenario,
   selectStepIndex,
@@ -30,19 +32,32 @@ import { currentNode, deriveNodeStatuses, isAwaitingHuman } from "@/services/bpm
  *
  * 프로세스 데이터는 서버에서 내려받고(직렬화 가능한 순수 데이터), 진행 지점은 Zustand에서,
  * 노드 선택은 로컬 상태로 둔다 — 선택은 이 화면 안에서만 의미가 있으므로 전역에 올리지 않는다.
+ *
+ * **엔진 모드에서는 같은 자리에 엔진이 돌려준 값이 들어간다.** 컴포넌트 트리는 그대로다 —
+ * 화면마다 `if (engineMode)`가 흩어지면 두 경로가 조금씩 달라진다(`services/engine-view.ts`).
  */
 export function BpmTrackerShell() {
   const scenario = useDemoController(selectScenario);
   const process = scenario.process;
   const stepIndex = useDemoController(selectStepIndex);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const engine = useEngineProcess(scenario.id, process);
 
-  const statuses = useMemo(() => deriveNodeStatuses(process, stepIndex), [process, stepIndex]);
-  const activities = useMemo(() => agentActivities(process, stepIndex), [process, stepIndex]);
+  const mockStatuses = useMemo(
+    () => deriveNodeStatuses(process, stepIndex),
+    [process, stepIndex],
+  );
+  const mockActivities = useMemo(
+    () => agentActivities(process, stepIndex),
+    [process, stepIndex],
+  );
 
-  const active = currentNode(process, stepIndex);
-  const awaitingHuman = isAwaitingHuman(process, stepIndex);
-  const runningCount = runningAgentCount(process, stepIndex);
+  const view = engine.view;
+  const statuses = view?.statuses ?? mockStatuses;
+  const activities = view?.activities ?? mockActivities;
+  const active = view ? view.activeNode : currentNode(process, stepIndex);
+  const awaitingHuman = view ? view.awaitingHuman : isAwaitingHuman(process, stepIndex);
+  const runningCount = view ? view.runningCount : runningAgentCount(process, stepIndex);
 
   // 선택된 노드가 없으면 현재 진행 중인 노드를 보여준다 — 빈 패널보다 유용하다.
   const detailNode = selectedNodeId
@@ -53,7 +68,9 @@ export function BpmTrackerShell() {
   // 결과가 상세 패널에만 새어 나와, Agent 현황 패널(산출물을 감춘다)과 어긋난다.
   const detailRun =
     detailNode && detailStatus === "done"
-      ? process.runs.find((r) => r.nodeId === detailNode.id)
+      ? view
+        ? view.runByNode[detailNode.id]
+        : process.runs.find((r) => r.nodeId === detailNode.id)
       : undefined;
 
   return (
@@ -118,7 +135,10 @@ export function BpmTrackerShell() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <StepControls process={process} />
+          <EnginePanel {...engine.panelProps} />
+          {/* 엔진 모드에서는 진행 지점을 임의로 옮길 수 없다 — 실행의 결과이고
+              시간을 되감을 수 없다. 단계 이동은 Mock 모드에서만 의미가 있다. */}
+          {engine.view ? null : <StepControls process={process} />}
           {/* React Flow는 부모에 명시적 높이가 있어야 렌더된다 (100% 높이를 상속받지 못한다). */}
           <div className="viz-root h-[360px] w-full overflow-hidden rounded-lg border">
             <ProcessCanvas
