@@ -178,7 +178,17 @@ def _reachable_from(spec: ProcessSpec, frontier: list[str]) -> set[str]:
 
 
 def snapshot(instance: Instance) -> dict[str, Any]:
-    state = instance.graph.get_state(config_for(instance.id))
+    """현재 상태의 스냅샷."""
+    return snapshot_of(instance, instance.graph.get_state(config_for(instance.id)))
+
+
+def snapshot_of(instance: Instance, state: Any, *, historical: bool = False) -> dict[str, Any]:
+    """
+    주어진 체크포인트 상태로 스냅샷을 만든다.
+
+    **과거 체크포인트도 같은 함수로 그린다.** 데모가 앞 장면을 보여줄 때 화면이 그 시점의
+    상태를 그대로 받아야 하는데, 과거용 변환을 따로 쓰면 두 경로가 갈라진다.
+    """
     values: dict[str, Any] = state.values or {}
     visited: list[str] = list(values.get("visited") or [])
     frontier: list[str] = list(state.next or [])
@@ -213,6 +223,10 @@ def snapshot(instance: Instance) -> dict[str, Any]:
         "acknowledged": values.get("acknowledged") or [],
         "pendingApproval": pending,
         "specWarnings": instance.warnings,
+        # **과거 시점을 보고 있는가.** true면 화면이 "지금"이 아니라 되감아 본 상태다 —
+        # 구분하지 않으면 사람이 승인할 수 있는 지점이라고 착각한다.
+        "historical": historical,
+        "checkpointId": state.config.get("configurable", {}).get("checkpoint_id"),
     }
 
 

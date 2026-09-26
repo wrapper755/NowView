@@ -89,7 +89,8 @@ export function WorkspaceShell() {
 
   // 엔진 모드의 잠금은 "결정이 기록되었는가"가 아니라 "지금 내 결재가 걸려 있는가"다.
   // 승인 지점이 아니면(아직 Agent가 돌고 있거나 이미 지나갔으면) 고를 것이 없다.
-  const engineAwaitingDecision = engineApproval?.kind === "decision";
+  // 과거 시점을 보고 있으면 승인할 수 없다 — 그 시점의 대기는 이미 지나간 일이다.
+  const engineAwaitingDecision = engineApproval?.kind === "decision" && !engine.historical;
   const locked = engine.view ? !engineAwaitingDecision : decision !== null;
 
   // 변환은 ④ Rolling Plan과 같은 함수를 쓴다 — 각자 변환하면 이 화면의 금액과

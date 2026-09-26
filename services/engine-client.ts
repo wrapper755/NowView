@@ -69,6 +69,14 @@ export interface EngineSnapshot {
   } | null;
   /** 명세 자체의 문제. 조용히 삼키지 않고 그대로 올린다. */
   specWarnings: string[];
+  /**
+   * 과거 시점을 되짚어 본 스냅샷인가.
+   *
+   * true면 "지금"이 아니다 — 데모가 앞 장면을 보여주는 중이고, 인스턴스의 실제 진행은
+   * 그보다 앞서 있다. 구분하지 않으면 승인할 수 있는 지점이라고 착각한다.
+   */
+  historical: boolean;
+  checkpointId?: string | null;
 }
 
 async function call<T>(
@@ -137,6 +145,22 @@ export function getInstance(instanceId: string) {
   return call<EngineSnapshot>(`/instances/${encodeURIComponent(instanceId)}`, {
     method: "GET",
     timeoutMs: 10_000,
+  });
+}
+
+/**
+ * 장면 이동 — 목표 노드가 현재 지점이 되게 한다.
+ *
+ * 뒤로는 **읽기 전용**이다(과거 체크포인트를 읽기만 한다). 앞으로는 실제로 진행하며,
+ * 승인 노드를 통과해야 하면 `decision`이 필요하다 — 엔진이 임의로 승인하지 않는다.
+ */
+export function seekInstance(
+  instanceId: string,
+  body: { targetNodeId: string; decision?: unknown; acknowledgedBy?: string },
+) {
+  return call<EngineSnapshot>(`/instances/${encodeURIComponent(instanceId)}/seek`, {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }
 

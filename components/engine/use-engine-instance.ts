@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useEngineSession } from "@/lib/store/engine-session";
 import type { AgentMode, EngineSnapshot } from "@/services/engine-client";
 
 export interface EngineError {
@@ -52,6 +53,8 @@ async function callApi<T>(path: string, init?: RequestInit): Promise<T> {
 const POLL_INTERVAL_MS = 3000;
 
 export function useEngineInstance(instanceId: string | null) {
+  // 다른 곳(데모 플레이어 등)이 엔진 상태를 바꾸면 이 값이 올라가고 다시 읽는다.
+  const revision = useEngineSession((s) => s.revision);
   const [state, setState] = useState<EngineInstanceState>({
     snapshot: null,
     loading: false,
@@ -84,7 +87,7 @@ export function useEngineInstance(instanceId: string | null) {
       return;
     }
     void refresh(instanceId);
-  }, [instanceId, refresh]);
+  }, [instanceId, refresh, revision]);
 
   // 실행 중일 때만 주기적으로 다시 읽는다. "Live" 트래커가 이름값을 하는 지점이다.
   const status = state.snapshot?.status;

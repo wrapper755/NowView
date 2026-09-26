@@ -136,8 +136,8 @@ export function BpmTrackerShell() {
         </CardHeader>
         <CardContent className="space-y-4">
           <EnginePanel {...engine.panelProps} />
-          {/* 엔진 모드에서는 진행 지점을 임의로 옮길 수 없다 — 실행의 결과이고
-              시간을 되감을 수 없다. 단계 이동은 Mock 모드에서만 의미가 있다. */}
+          {/* 엔진 모드에서는 단계 버튼을 감춘다. 진행은 실행의 결과이므로 임의로
+              앞당길 수 없고, 되짚어 보기는 데모 플레이어가 장면 단위로 한다. */}
           {engine.view ? null : <StepControls process={process} />}
           {/* React Flow는 부모에 명시적 높이가 있어야 렌더된다 (100% 높이를 상속받지 못한다). */}
           <div className="viz-root h-[360px] w-full overflow-hidden rounded-lg border">

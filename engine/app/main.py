@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 
 from .agents import AgentContractError, make_runner
 from .instances import InstanceStore, config_for, snapshot
+from .seek import SeekError, seek
 from .spec import ProcessSpec
 from .store import build_backend
 
@@ -116,6 +117,59 @@ def resume_instance(instance_id: str, body: ResumeRequest) -> dict[str, Any]:
     # 입력이 반려되면 같은 지점에 error를 달고 다시 멈춘다 — 400이 아니라 그 상태를
     # 그대로 돌려준다. 클라이언트가 무엇이 틀렸는지 읽고 다시 보내면 된다.
     return after
+
+
+class SeekRequest(BaseModel):
+    """
+    장면 이동 — 목표 노드가 현재 지점이 되게 한다.
+
+    뒤로 가면 체크포인트를 되감고(승인도 함께 사라진다), 앞으로 가면 사람 대기마다
+    주어진 입력을 넣어 진행한다. 승인 노드를 통과해야 한다면 `decision`이 필요하다 —
+    엔진이 임의로 승인하면 Human-in-the-Loop이 무너진다.
+    """
+
+    target_node_id: str = Field(alias="targetNodeId")
+    decision: dict[str, Any] | None = None
+    acknowledged_by: str | None = Field(default=None, alias="acknowledgedBy")
+
+    model_config = {"populate_by_name": True}
+
+
+@app.post("/instances/{instance_id}/seek")
+def seek_instance(instance_id: str, body: SeekRequest) -> dict[str, Any]:
+    instance = _lookup(instance_id)
+    try:
+        return seek(
+            instance,
+            target_node_id=body.target_node_id,
+            decision=body.decision,
+            acknowledged_by=body.acknowledged_by,
+        )
+    except SeekError as exc:
+        # 요청 자체가 성립하지 않는다(없는 노드, 미실행 분기, 결정 누락) — 400이다.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AgentContractError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.get("/instances/{instance_id}/history")
+def instance_history(instance_id: str) -> dict[str, Any]:
+    """
+    체크포인트 이력 — 어디로 되감을 수 있는지 보여 준다.
+
+    최신순이다. 되감았다가 다시 진행하면 같은 노드의 체크포인트가 여러 개 생긴다.
+    """
+    instance = _lookup(instance_id)
+    entries = []
+    for state in instance.graph.get_state_history(config_for(instance.id)):
+        values = state.values or {}
+        entries.append({
+            "checkpointId": state.config["configurable"].get("checkpoint_id"),
+            "next": list(state.next or ()),
+            "visited": list(values.get("visited") or []),
+            "hasDecision": values.get("decision") is not None,
+        })
+    return {"instanceId": instance_id, "history": entries}
 
 
 @app.delete("/instances/{instance_id}", status_code=204)

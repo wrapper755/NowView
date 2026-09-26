@@ -30,18 +30,31 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
 
   const instance = useEngineInstance(instanceId);
 
+  /**
+   * 데모가 과거 시점을 보여주는 중이면 라이브 대신 그 스냅샷을 그린다.
+   *
+   * 되감기가 읽기 전용이라 다시 조회하면 "지금"이 온다 — 그래서 플레이어가 받아 둔
+   * 과거 스냅샷을 스토어에서 읽는다. 서버가 돌려준 값이므로 지어낸 상태가 아니다.
+   */
+  const override = useEngineSession(
+    useCallback((s) => s.viewByScenario[scenarioId] ?? null, [scenarioId]),
+  );
+  const snapshot = override ?? instance.snapshot;
+
   const view: EngineProcessView | null = useMemo(() => {
-    if (!instance.snapshot) return null;
+    if (!snapshot) return null;
     // 시나리오를 바꾸면 스냅샷이 잠시 이전 프로세스의 것일 수 있다. 그대로 변환하면
     // 없는 노드를 찾다가 터지므로, 같은 시나리오일 때만 뷰를 만든다.
-    if (instance.snapshot.scenarioId !== scenarioId) return null;
-    return engineProcessView(process, instance.snapshot);
-  }, [instance.snapshot, process, scenarioId]);
+    if (snapshot.scenarioId !== scenarioId) return null;
+    return engineProcessView(process, snapshot);
+  }, [snapshot, process, scenarioId]);
 
   const onStart = useCallback(async () => {
     const snapshot = await instance.create(scenarioId, agentMode);
     if (snapshot) attach(scenarioId, snapshot.instanceId);
   }, [instance, scenarioId, agentMode, attach]);
+
+  const setView = useEngineSession((s) => s.setView);
 
   const onStop = useCallback(() => {
     // 인스턴스를 지우지 않고 화면만 Mock으로 되돌린다 — 서버에 남겨 두면 나중에
@@ -49,15 +62,20 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
     detach(scenarioId);
   }, [detach, scenarioId]);
 
+  /** 데모가 보여주던 과거 시점을 걷고 라이브로 돌아온다. */
+  const onLive = useCallback(() => setView(scenarioId, null), [setView, scenarioId]);
+
   return {
     view,
-    snapshot: view ? instance.snapshot : null,
+    snapshot: view ? snapshot : null,
+    /** 과거 시점을 보고 있는가 — 승인 버튼을 잠그는 데 쓴다. */
+    historical: Boolean(snapshot?.historical),
     instanceId,
     pending: instance.pending,
     error: instance.error,
     resume: instance.resume,
     panelProps: {
-      snapshot: view ? instance.snapshot : null,
+      snapshot: view ? snapshot : null,
       loading: instance.loading,
       pending: instance.pending,
       error: instance.error,
@@ -66,6 +84,8 @@ export function useEngineProcess(scenarioId: string, process: BpmProcessInstance
       onStart,
       onStop,
       onRefresh: instance.refresh,
+      historical: Boolean(snapshot?.historical),
+      onLive,
     },
   };
 }

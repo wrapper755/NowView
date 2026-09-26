@@ -28,6 +28,8 @@ export interface EngineSnapshots {
   snapshotByScenario: Record<string, EngineSnapshot>;
   loading: boolean;
   error: EngineError | null;
+  /** 갱신 카운터. 파생 memo의 의존성에 넣으면 seek 후에도 다시 계산된다. */
+  revision: number;
 }
 
 /**
@@ -62,6 +64,8 @@ export function useEngineSnapshots(): EngineSnapshots {
   const key = attached.map((a) => `${a.scenarioId}:${a.instanceId}`).join("|");
 
   const engagedScenarioIds = useMemo(() => attached.map((a) => a.scenarioId), [attached]);
+  // 플레이어가 seek하면 ①④⑤도 같은 변화를 봐야 한다.
+  const revision = useEngineSession((s) => s.revision);
   const [fetched, setFetched] = useState<Fetched>(NOTHING_FETCHED);
 
   useEffect(() => {
@@ -110,7 +114,7 @@ export function useEngineSnapshots(): EngineSnapshots {
     return () => {
       cancelled = true;
     };
-  }, [key, attached]);
+  }, [key, attached, revision]);
 
   return {
     engagedScenarioIds,
@@ -118,6 +122,7 @@ export function useEngineSnapshots(): EngineSnapshots {
     // 화면이 실제와 어긋난다.
     snapshotByScenario: fetched.forKey === key ? fetched.snapshots : {},
     loading: key !== "" && fetched.forKey !== key,
+    revision,
     error: fetched.forKey === key ? fetched.error : null,
   };
 }

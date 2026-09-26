@@ -59,6 +59,7 @@ function snapshotWith(overrides: Partial<EngineSnapshot> = {}): EngineSnapshot {
       rationaleMinLength: 10,
     },
     specWarnings: [],
+    historical: false,
     ...overrides,
   };
 }

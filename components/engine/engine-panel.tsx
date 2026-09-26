@@ -3,15 +3,15 @@
 /**
  * 엔진 모드 제어 — 인스턴스를 만들고, 상태를 보여주고, 실패를 드러낸다.
  *
- * **Mock이 기본이고 엔진은 옮겨 타는 것이다.** 데모는 계속 Mock 경로로 돌아야 하고
- * (어느 장면으로든 건너뛰는 모델은 실행 중인 그래프에서 성립하지 않는다), 엔진을
- * 켜지 않은 사람에게는 화면이 이전과 똑같아야 한다.
+ * **Mock이 기본이고 엔진은 옮겨 타는 것이다.** 엔진을 켜지 않은 사람에게는 화면이
+ * 이전과 똑같아야 한다. 데모 플레이어는 두 모드 모두에서 동작한다 — 엔진 모드에서는
+ * 장면이 선언한 지점으로 인스턴스를 옮긴다(`use-engine-playback`).
  *
  * 그래서 이 패널은 **지금 무엇을 보고 있는지**를 가장 먼저 말한다. 산출물이 Mock인지
  * 실제 LLM 호출인지 구분되지 않으면 데모의 주장을 검증할 수 없다(기획안 2.3).
  */
 
-import { AlertTriangle, Loader2, Play, RefreshCw, Square } from "lucide-react";
+import { AlertTriangle, History, Loader2, Play, RefreshCw, Square } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { EngineError } from "@/components/engine/use-engine-instance";
@@ -40,6 +40,8 @@ export function EnginePanel({
   onStart,
   onStop,
   onRefresh,
+  historical = false,
+  onLive,
 }: {
   snapshot: EngineSnapshot | null;
   loading: boolean;
@@ -50,6 +52,9 @@ export function EnginePanel({
   onStart: () => void;
   onStop: () => void;
   onRefresh: () => void;
+  /** 데모가 과거 시점을 보여주는 중인가. */
+  historical?: boolean;
+  onLive?: () => void;
 }) {
   const engaged = snapshot !== null;
 
@@ -69,11 +74,12 @@ export function EnginePanel({
         <p className="min-w-0 flex-1 text-xs text-muted-foreground">
           {engaged ? (
             <>
-              LangGraph 인스턴스가 상태를 소유한다. 진행 지점은 실행의 결과이며 되감을 수 없다.
+              LangGraph 인스턴스가 상태를 소유한다. 진행 지점은 실행의 결과이고, 지난
+              지점은 체크포인트로 되짚어 볼 수 있다.
             </>
           ) : (
             <>
-              화면이 Mock 데이터를 직접 읽고 있다. 데모 플레이어는 이 모드에서만 동작한다.
+              화면이 Mock 데이터를 직접 읽고 있다. 데모 플레이어는 두 모드 모두에서 동작한다.
             </>
           )}
         </p>
@@ -128,6 +134,29 @@ export function EnginePanel({
           </>
         )}
       </div>
+
+      {historical ? (
+        // 과거 시점인데 그 사실을 표시하지 않으면 지금 승인할 수 있다고 착각한다.
+        <div
+          className="flex flex-wrap items-center gap-2 border-t px-3 py-2"
+          style={{ borderTopColor: "var(--viz-status-warning)" }}
+        >
+          <History
+            aria-hidden
+            className="size-3.5 shrink-0"
+            style={{ color: "var(--viz-status-warning)" }}
+          />
+          <p className="min-w-0 flex-1 text-xs text-foreground">
+            지난 시점을 되짚어 보는 중이다 — 인스턴스의 실제 진행은 이보다 앞서 있고,
+            여기서는 승인할 수 없다.
+          </p>
+          {onLive ? (
+            <Button size="sm" variant="outline" onClick={onLive}>
+              현재로
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       {pending && agentMode === "llm" && !engaged ? (
         // LLM 모드는 Agent 노드마다 10초 이상 걸린다. 아무 표시가 없으면 멈춘 것처럼 보인다.

@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 
+import { useEnginePlayback } from "@/components/engine/use-engine-playback";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DEMO_SCENE_INTERVAL_MS, type DemoScene } from "@/lib/demo-scenario";
@@ -44,20 +45,32 @@ export function DemoPlayer() {
   const isPlaying = useDemoController((s) => s.isPlaying);
   const isExpanded = useDemoController((s) => s.isPlayerExpanded);
   const goToScene = useDemoController((s) => s.goToScene);
+  const { applyScene, pending: enginePending, error: engineError } = useEnginePlayback();
   const setPlaying = useDemoController((s) => s.setPlaying);
   const togglePlayer = useDemoController((s) => s.togglePlayer);
   const exitDemo = useDemoController((s) => s.exitDemo);
 
   const scene = demoScenario[sceneIndex];
 
-  /** 장면 이동 = 스토어 상태 적용 + 화면 전환. 둘은 항상 같이 일어난다. */
+  /**
+   * 장면 이동 = 스토어 상태 적용 + 화면 전환. 둘은 항상 같이 일어난다.
+   *
+   * **엔진 모드면 인스턴스도 그 장면으로 옮긴다.** 뒤로는 과거 체크포인트를 읽고
+   * (인스턴스는 그대로), 앞으로는 실제로 진행하며 장면이 선언한 결정을 넣는다.
+   * 엔진이 붙어 있지 않으면 `applyScene`이 아무것도 하지 않으므로 Mock 경로 그대로다.
+   *
+   * 스토어 상태를 **먼저** 적용한다 — 엔진 왕복(LLM 모드에서는 수십 초)을 기다리는
+   * 동안 화면이 멈춰 있으면 플레이어가 고장난 것처럼 보인다.
+   */
   const jump = useCallback(
     (index: number) => {
-      const target = demoScenario[Math.min(Math.max(index, 0), LAST_SCENE_INDEX)];
+      const clamped = Math.min(Math.max(index, 0), LAST_SCENE_INDEX);
+      const target = demoScenario[clamped];
       goToScene(index);
       if (target.route !== pathname) router.push(target.route);
+      void applyScene(scenario, target);
     },
-    [demoScenario, LAST_SCENE_INDEX, goToScene, pathname, router],
+    [demoScenario, LAST_SCENE_INDEX, goToScene, pathname, router, applyScene, scenario],
   );
 
   // 자동 재생. setState는 타이머 콜백 안에서만 일어나므로 effect 본문에서 상태를 바꾸지 않는다.
@@ -111,6 +124,20 @@ export function DemoPlayer() {
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             {scene.narration}
           </p>
+          {/* 엔진 모드에서는 장면 이동이 서버 왕복이다. 진행·실패를 숨기면
+              플레이어가 멈춘 것인지 실패한 것인지 알 수 없다. */}
+          {enginePending ? (
+            <p className="mt-1 text-[11px] text-muted-foreground">엔진에 장면을 반영하는 중…</p>
+          ) : null}
+          {engineError ? (
+            <p
+              role="alert"
+              className="mt-1 text-[11px]"
+              style={{ color: "var(--viz-status-serious)" }}
+            >
+              엔진 장면 이동 실패 — {engineError.message}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">

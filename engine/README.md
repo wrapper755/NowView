@@ -5,12 +5,12 @@ LangGraph StateGraph 기반 BPM 런타임. Next 앱의 `/api/engine/*`가 이것
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 41개 (SQLite만, LLM 제외)
+uv run pytest                                      # 56개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 61개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 90개
 ```
 
 전체 스택은 저장소 루트에서:
@@ -77,6 +77,16 @@ Python을 고른 이유는 기능 부족이 아니다:
   배포 시점에 터진다. `TEST_DATABASE_URL`을 주면 양쪽을 돌고, 없으면 Postgres 쪽을
   건너뛴다 — CI에서는 `REQUIRE_POSTGRES=1`로 **건너뛰기를 실패로 바꾼다**(초록색
   체크만 보고는 "검증했다"와 "건너뛰었다"를 구분할 수 없다).
+
+## 되감기 — 데모 플레이어가 엔진 위에서 도는 이유
+
+노드마다 체크포인트가 남으므로 지난 시점을 되짚어 볼 수 있다(`seek.py`). **뒤로는 읽기
+전용이고 앞으로는 실행이다.** 과거 체크포인트에서 `invoke`하면 거기서부터 다시 실행되어
+LLM이 재호출되고 승인이 사라지므로, 되감기는 조회로만 구현한다.
+
+멈출 수 있는 곳은 사람 대기 지점뿐이라, 목표가 Agent·시스템 노드면 지나친 뒤 그 지점을
+되짚어 돌려준다. 승인 노드를 통과해야 하면 호출자가 결정을 줘야 한다 — 엔진이 임의로
+승인하면 Human-in-the-Loop이 무너진다.
 
 ## 상태 소유권이 넘어왔다
 
@@ -153,5 +163,5 @@ Next 쪽은 `ENGINE_URL`(기본 `http://localhost:8077`)로 이 서비스를 가
 
 * **화면이 이 엔진을 쓰지 않는다** — 다섯 화면은 여전히 Mock을 직접 import한다
   (정적 프리렌더 유지). 엔진은 `/api/engine/*`로만 노출된다.
-* **데모 플레이어와 공존하지 않는다** — "아무 장면으로나 건너뛴다"는 모델은 실행 중인
-  그래프에서 성립하지 않는다(시간을 되감을 수 없다). 데모는 계속 Mock 경로를 쓴다.
+* **폴링이 ②에만 있다**(3초). ①④⑤는 인스턴스 구성이 바뀔 때만 다시 읽는다.
+* **같은 인스턴스를 여러 사람이 볼 때의 충돌** — 지금은 마지막 요청이 이긴다.
