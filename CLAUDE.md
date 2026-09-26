@@ -20,6 +20,8 @@ npm run start   # 빌드 산출물 실행
 * **`package.json`의 `name`은 `nowview`** 다. 디렉토리명 `NowView`는 npm 명명 규칙(대문자 불가) 위반이라 `create-next-app .`이 거부한다. 재스캐폴딩이 필요하면 소문자 하위 디렉토리에 생성한 뒤 내용을 올려야 한다.
 * **`AGENTS.md`는 `next dev`가 자동 생성·재삽입한다.** Next.js 16 자체 에이전트 규칙 블록이며, 지워도 되살아난다. 커밋에 포함시켜 트리를 깨끗하게 유지한다. 이 프로젝트의 지침은 `AGENTS.md`가 아니라 이 파일이다.
 * **Tailwind v4에는 `tailwind.config.ts`가 없다.** 테마는 `app/globals.css`의 `@theme`/CSS 변수로 설정한다. Shadcn도 `components.json`에서 `tailwind.config: ""`로 이를 반영한다.
+* **React Flow는 스타일시트를 직접 import해야 한다.** `import '@xyflow/react/dist/style.css'` 없이는 노드·엣지가 레이아웃 없이 렌더되어 "아무것도 안 보이는" 상태가 된다. 첫 React Flow 화면을 만들 때 함께 넣는다.
+* **React Flow / Recharts는 클라이언트 컴포넌트다.** 둘 다 브라우저 전용 API에 의존하므로 사용하는 파일 최상단에 `'use client'`가 필요하다. App Router 기본값은 서버 컴포넌트다.
 
 ---
 
@@ -59,9 +61,9 @@ npm run start   # 빌드 산출물 실행
 ## 3. Tech Stack
 
 * **Frontend**: Next.js 16.3.6 (App Router, Turbopack), React 19.2, TypeScript 5, Tailwind CSS v4, Shadcn/UI (`radix-nova` 프리셋 / Radix 기반 / Lucide 아이콘)
-* **Process Visualization**: `@xyflow/react` (React Flow)
-* **Data Visualization**: **Recharts** (단일 차트 라이브러리), Lucide React
-* **State Management**: Zustand (시나리오 데모 플레이어 상태 관리용)
+* **Process Visualization**: `@xyflow/react` 12.12 (React Flow)
+* **Data Visualization**: **Recharts** 3.10 (단일 차트 라이브러리), Lucide React
+* **State Management**: Zustand 5.0 (시나리오 데모 플레이어 상태 관리용)
 * **Backend / API**: Next.js Server Actions & Route Handlers (FastAPI/Python LangGraph 연동 지원)
 * **Workflow / Agent Engine**: **LangGraph StateGraph** (BPM 상태 머신 + Multi-Agent 오케스트레이션 공용)
 * **Database & Mock**: PostgreSQL, DuckDB, JSON Mock Datasets
