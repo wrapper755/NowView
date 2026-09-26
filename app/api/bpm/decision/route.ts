@@ -75,7 +75,7 @@ function stampNow(): string {
  * 승인의 결과를 한 번에 돌려준다: 기록된 결정, 그로부터 만들어진 실행 과제,
  * 프로세스가 이동할 지점, 그리고 Gap이 어떻게 달라지는지.
  *
- * Gap 계산은 `summarizeGap`을 그대로 쓰므로 **이중 계상 규칙(CLAUDE.md 4.3)이 여기서도
+ * Gap 계산은 `summarizeGap`을 그대로 쓰므로 **이중 계상 규칙(CLAUDE.md "화면 간 수치·상태 연동")이 여기서도
  * 지켜진다** — 신규 과제는 미반영으로 잡히고 현재 Forecast를 바꾸지 않는다.
  */
 export async function POST(request: Request) {

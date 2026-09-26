@@ -1,7 +1,7 @@
 /**
  * Rolling Plan Mock.
  *
- * **수치 연동 규칙 (CLAUDE.md 4.3):**
+ * **수치 연동 규칙 (CLAUDE.md "화면 간 수치·상태 연동"):**
  *   · target 428 / forecast 359 는 `next-automotive.ts`의 전사 영업이익과 같아야 한다.
  *   · 분기 합이 각각 428, 359 여야 한다 (100+106+108+114 / 96+88+82+93).
  *   · `reflectedInForecast: true`인 과제의 목표 회수액 합 20억은 `next-automotive.ts`의

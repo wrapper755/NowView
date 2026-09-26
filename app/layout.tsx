@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { DemoPlayer } from "@/components/demo/demo-player";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -98,7 +99,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </header>
 
-          <div className="flex-1">{children}</div>
+          {/* 플로팅 플레이어가 화면 하단을 가리므로 그만큼 여백을 둔다. */}
+          <div className="flex-1 pb-40">{children}</div>
+
+          <DemoPlayer />
         </ThemeProvider>
       </body>
     </html>

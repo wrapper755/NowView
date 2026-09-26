@@ -140,11 +140,13 @@ NowView/
 │   │                             #   action-tracker, revision-history
 │   ├── evolution/                # ⑤ evolution-shell, kri-tuning-panel, backtest-chart,
 │   │                             #   proposal-list
+│   ├── demo/demo-player.tsx      # 플로팅 시나리오 플레이어 (전 화면 공통)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── format.ts                 # 억원·퍼센트 표기
 │   ├── utils.ts                  # cn()
+│   ├── demo-scenario.ts          # 데모 각본 (연출 설정이라 mock-data가 아니다)
 │   ├── api/response.ts           # Route Handler 공통 응답·본문 파싱
 │   ├── store/demo-controller.ts  # Zustand: 진행 지점 + 승인 결정
 │   ├── types/                    # cockpit, bpm, workspace, rolling, evolution
@@ -163,9 +165,26 @@ NowView/
 * `components/shared/` — 두 화면 이상이 쓰게 된 조각만 올린다. 한 화면만 쓰면 그 화면 디렉토리에 둔다.
 * `services/` — 화면이 실제로 호출하는 파생·계산 로직. 인터페이스만 있는 스텁은 두지 않는다.
 
-**아직 없는 것** — `components/demo/`(플로팅 데모 플레이어), `lib/store` 영속화.
+**아직 없는 것** — `lib/store` 영속화(전체 새로고침 시 진행 상태 초기화).
 
-### 4.1 API 계층
+### 4.1 데모 플레이어
+
+`components/demo/demo-player.tsx`가 레이아웃에 상주하며 다섯 화면을 6단계 루프 순서로 잇는다.
+각본은 `lib/demo-scenario.ts`다.
+
+* **각 장면은 목표 상태를 전부 선언한다** — 화면 경로, BPM 지점, 승인 여부. 이전 장면 대비
+  증분이 아니라 절대 상태이므로 스크러버로 아무 장면이나 찍어도 앞뒤가 맞는다.
+  역방향으로 점프하면 승인이 지워지고, 다시 앞으로 가면 같은 상태가 재현된다.
+* **장면 이동은 한 핸들러에서 상태 적용과 라우팅을 함께 한다.** 상태를 감시하는 effect로
+  라우팅하면 사용자가 GNB로 직접 이동했을 때 플레이어가 되돌려 버리는 싸움이 난다.
+* `DEMO_DECISION.decidedAt`은 **고정 문자열**이다. 스토어가 모듈 로드 시점에 만들어지므로
+  `new Date()`를 쓰면 서버와 클라이언트 값이 달라져 하이드레이션이 깨진다.
+  금액은 `simulateAlternative`로 계산해 화면·API와 같은 값이 되게 한다(하드코딩 금지).
+* 자동 재생의 `setState`는 타이머 콜백 안에서만 일어난다 — effect 본문에서 상태를 바꾸면
+  `react-hooks/set-state-in-effect`에 걸린다.
+* 플레이어가 화면 하단을 가리므로 `app/layout.tsx`의 본문 래퍼에 `pb-40`을 둔다.
+
+### 4.2 API 계층
 
 ```
 GET  /api/mock                  사용 가능한 데이터셋 목록
@@ -191,7 +210,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
   정적 프리렌더를 유지한다. API는 외부 소비자(별도 클라이언트, Python 서비스)를 위한 경계다.
   화면을 API로 옮기면 정적 렌더를 잃으므로, 실제 백엔드가 붙을 때 함께 판단할 것.
 
-### 4.2 데이터 시각화 규칙
+### 4.3 데이터 시각화 규칙
 
 차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
 
@@ -208,7 +227,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
   Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
 * 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
 
-### 4.3 BPM 상태 모델
+### 4.4 BPM 상태 모델
 
 **노드 상태는 저장하지 않고 파생한다.** 실행 순서(`BpmProcessInstance.sequence`)와 현재 진행 지점이
 유일한 진실이고, 노드별 상태·Agent 실행 상태는 전부 `services/`에서 계산한다
@@ -223,7 +242,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
 * **단계별 문구를 하드코딩하지 말 것.** 사람 대기 배너는 `user-task`면 모두 뜨는데, Review 전용 문구를
   넣어 두었다가 Management Action 단계에서 "대안 선택과 승인"을 말하는 버그가 있었다.
 
-### 4.4 화면 간 수치·상태 연동
+### 4.5 화면 간 수치·상태 연동
 
 다섯 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 본다 —
 감지(①) → 프로세스(②) → 판단(③) → 반영(④) → 시스템 개선(⑤).
@@ -252,7 +271,7 @@ POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결�
 ⑤ Evolution Lab은 예외로 **전역 상태를 바꾸지 않는다.** 채택·보류는 화면 로컬 상태다 —
 프레임워크 변경은 배포 절차를 타야 하고, 이 단계의 결정은 다음 루프부터 효력이 생긴다.
 
-### 4.5 Mock 데이터를 지어낼 때의 규칙
+### 4.6 Mock 데이터를 지어낼 때의 규칙
 
 화면이 주장하는 바를 데이터가 배반하지 않아야 한다. 지금까지 지킨 것들:
 
