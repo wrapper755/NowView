@@ -16,12 +16,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EngineErrorBanner } from "@/components/engine/engine-panel";
+import { useEngineDecisions } from "@/components/engine/use-engine-decisions";
 import { scenarios } from "@/lib/mock-data/scenarios";
 import { useDemoController } from "@/lib/store/demo-controller";
 import type { RollingPlan } from "@/lib/types/rolling";
 import {
   assertQuartersBalance,
   decisionToAction,
+  mergeDecisions,
   planView,
   summarizeGap,
 } from "@/services/rolling-plan";
@@ -31,10 +34,20 @@ import {
  *
  * ③ 협업 스테이션에서 승인한 결정이 있으면 그것을 실행 과제로 변환해 목록에 더한다 —
  * 승인이 곧바로 추적 가능한 과제가 되는 것이 루프 4→5단계의 연결 지점이다.
- * 스토어는 메모리에만 있으므로 전체 새로고침하면 이 과제는 사라진다.
+ *
+ * **Mock 승인과 엔진 승인을 함께 받는다.** 한 시나리오에 엔진 인스턴스가 붙어 있으면
+ * 그 시나리오의 권위는 엔진에 있다 — 둘을 다 더하면 같은 승인이 두 번 잡힌다
+ * (`mergeDecisions`). 이 화면은 정적 프리렌더를 유지하므로 엔진 결정은 클라이언트에서
+ * 채운다(②·③과 같은 방식).
  */
 export function RollingShell({ plan }: { plan: RollingPlan }) {
-  const decisionByScenario = useDemoController((s) => s.decisionByScenario);
+  const mockDecisions = useDemoController((s) => s.decisionByScenario);
+  const engine = useEngineDecisions();
+
+  const decisionByScenario = useMemo(
+    () => mergeDecisions(mockDecisions, engine),
+    [mockDecisions, engine],
+  );
 
   /**
    * **Rolling Plan은 전사 자산이라 모든 시나리오의 승인 과제를 함께 받는다.**
@@ -68,6 +81,25 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
 
   return (
     <div className="space-y-4">
+      {/* 엔진 인스턴스를 못 읽으면 그 시나리오의 과제가 목록에서 빠진다. 조용히 넘기면
+          Gap이 실제보다 덜 메워진 것으로 보이는데, 숫자가 그럴듯해 눈으로 안 잡힌다. */}
+      {engine.error ? (
+        <div className="rounded-lg border">
+          <EngineErrorBanner error={engine.error} />
+          <p className="px-3 pb-3 text-xs text-muted-foreground">
+            엔진이 소유한 안건 {engine.engagedScenarioIds.length}건의 승인 과제가 아래 목록에
+            빠져 있다. 아래 수치는 그만큼 덜 메워진 상태다.
+          </p>
+        </div>
+      ) : null}
+
+      {engine.engagedScenarioIds.length > 0 && !engine.error ? (
+        <p className="text-xs text-muted-foreground">
+          엔진 모드 안건 {engine.engagedScenarioIds.length}건이 포함되어 있다 — 그 안건은
+          Mock 승인이 아니라 엔진에 기록된 결정을 쓴다(같은 승인이 두 번 잡히지 않게).
+        </p>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="viz-root lg:col-span-1">
           <CardHeader>

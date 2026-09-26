@@ -12,7 +12,8 @@ import { describe, expect, it } from "vitest";
 
 import { scenarios } from "@/lib/mock-data/scenarios";
 import type { EngineSnapshot } from "@/services/engine-client";
-import { engineProcessView } from "@/services/engine-view";
+import { engineDecisionToReview, engineProcessView } from "@/services/engine-view";
+import { simulateAlternative } from "@/services/agent-orchestrator";
 
 const scenario = scenarios.find((s) => s.id === "scn-profitability")!;
 const process = scenario.process;
@@ -214,5 +215,60 @@ describe("Agent 활동", () => {
       expect(view.activities.length).toBeGreaterThan(0);
       expect(Object.keys(view.runByNode)).toHaveLength(0);
     }
+  });
+});
+
+describe("엔진 결정 → 화면 결정", () => {
+  const reviewCase = scenario.reviewCase;
+  const recommended = reviewCase.alternatives.find(
+    (a) => a.id === reviewCase.recommendedAlternativeId,
+  )!;
+
+  it("금액은 화면이 계산한다", () => {
+    // 엔진은 "무엇을 골랐는가"만 돌려준다. 엔진이 금액도 내면 화면·API와 갈라진다.
+    const converted = engineDecisionToReview(reviewCase, {
+      nodeId: "review",
+      alternativeId: recommended.id,
+      leverValue: 3,
+      rationale: "충분히 긴 사유를 적었습니다.",
+      decidedAt: "2026-09-26 22:53",
+    })!;
+    expect(converted.profitImpact).toBe(simulateAlternative(recommended, 3).profitImpact);
+    expect(converted.leverValue).toBe(3);
+  });
+
+  it("결정 시각은 엔진이 찍은 것을 쓴다", () => {
+    // 화면이 찍으면 새로고침할 때마다 값이 달라진다.
+    const converted = engineDecisionToReview(reviewCase, {
+      nodeId: "review",
+      alternativeId: recommended.id,
+      rationale: "사유",
+      decidedAt: "2026-09-26 22:53",
+    })!;
+    expect(converted.decidedAt).toBe("2026-09-26 22:53");
+  });
+
+  it("레버가 없으면 그 대안의 기본값을 쓴다", () => {
+    const converted = engineDecisionToReview(reviewCase, {
+      nodeId: "review",
+      alternativeId: recommended.id,
+      rationale: "사유",
+    })!;
+    expect(converted.leverValue).toBe(recommended.lever.base);
+  });
+
+  it("다른 시나리오의 대안이면 null이다", () => {
+    // 억지로 끼워 넣으면 엉뚱한 금액이 Gap에 더해진다.
+    const other = scenarios.find((s) => s.id !== scenario.id)!;
+    const converted = engineDecisionToReview(reviewCase, {
+      nodeId: "review",
+      alternativeId: other.reviewCase.recommendedAlternativeId,
+      rationale: "사유",
+    });
+    expect(converted).toBeNull();
+  });
+
+  it("결정이 없으면 null이다", () => {
+    expect(engineDecisionToReview(reviewCase, null)).toBeNull();
   });
 });

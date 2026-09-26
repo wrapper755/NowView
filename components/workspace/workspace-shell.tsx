@@ -26,7 +26,7 @@ import {
   useDemoController,
 } from "@/lib/store/demo-controller";
 import type { ReviewDecision } from "@/lib/types/workspace";
-import { simulateAlternative } from "@/services/agent-orchestrator";
+import { engineDecisionToReview } from "@/services/engine-view";
 
 /**
  * 협업 스테이션의 클라이언트 경계.
@@ -92,25 +92,12 @@ export function WorkspaceShell() {
   const engineAwaitingDecision = engineApproval?.kind === "decision";
   const locked = engine.view ? !engineAwaitingDecision : decision !== null;
 
-  /**
-   * 엔진 결정을 화면 타입으로 옮긴다.
-   *
-   * **금액은 여기서 계산한다** — 엔진은 "무엇을 골랐는가"만 돌려준다(규칙 소유권,
-   * CLAUDE.md 4.16). 엔진이 금액도 계산하면 화면·API와 값이 갈라질 수 있다.
-   */
-  const engineReviewDecision: ReviewDecision | null = useMemo(() => {
-    if (!engineDecision) return null;
-    const chosen = reviewCase.alternatives.find((a) => a.id === engineDecision.alternativeId);
-    if (!chosen) return null;
-    const lever = engineDecision.leverValue ?? chosen.lever.base;
-    return {
-      alternativeId: chosen.id,
-      leverValue: lever,
-      profitImpact: simulateAlternative(chosen, lever).profitImpact,
-      rationale: engineDecision.rationale,
-      decidedAt: engineDecision.decidedAt ?? "—",
-    };
-  }, [engineDecision, reviewCase]);
+  // 변환은 ④ Rolling Plan과 같은 함수를 쓴다 — 각자 변환하면 이 화면의 금액과
+  // 과제 목표액이 갈라질 수 있고, 그건 눈으로 잡히지 않는다.
+  const engineReviewDecision = useMemo(
+    () => engineDecisionToReview(reviewCase, engineDecision),
+    [engineDecision, reviewCase],
+  );
 
   /**
    * 승인. 모드에 따라 가는 곳이 다르다.

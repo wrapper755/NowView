@@ -77,6 +77,35 @@ export function decisionToAction(
   };
 }
 
+/**
+ * 여러 시나리오의 승인 결정을 하나로 합친다 — Mock 경로와 엔진 경로가 섞일 때 쓴다.
+ *
+ * **이중 계상 금지가 여기에도 걸린다.** ④ Rolling Plan은 전사 자산이라 모든 시나리오의
+ * 승인을 함께 받는데(CLAUDE.md 4.13), 한 시나리오에 엔진 인스턴스가 붙어 있으면 그
+ * 시나리오의 권위는 엔진에 있다. Mock 스토어의 결정과 함께 더하면 같은 승인이 두 번
+ * 잡히고, **금액이 그럴듯해서 눈으로는 잡히지 않는다.**
+ *
+ * 엔진이 소유한 시나리오는 아직 승인 전이어도 Mock 결정을 쓰지 않는다 — 실행 중인
+ * 그래프가 승인 지점에 닿지도 않았는데 과제가 잡히면 "결정되지 않은 것을 확정된 것처럼
+ * 표시하는" 것이 된다(4.10과 같은 이유).
+ */
+export function mergeDecisions(
+  mock: Record<string, ReviewDecision | null>,
+  engine: { engagedScenarioIds: string[]; decisionByScenario: Record<string, ReviewDecision> },
+): Record<string, ReviewDecision> {
+  const engaged = new Set(engine.engagedScenarioIds);
+  const merged: Record<string, ReviewDecision> = {};
+
+  for (const [scenarioId, decision] of Object.entries(mock)) {
+    if (!decision || engaged.has(scenarioId)) continue;
+    merged[scenarioId] = decision;
+  }
+  for (const [scenarioId, decision] of Object.entries(engine.decisionByScenario)) {
+    merged[scenarioId] = decision;
+  }
+  return merged;
+}
+
 /** 실행계획 항목의 현재 상태. 승인 여부에 따라 보여 줄 값이 달라진다. */
 export interface PlanItemView {
   item: PlanItem;

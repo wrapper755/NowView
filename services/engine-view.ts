@@ -9,7 +9,7 @@
  * 브라우저에서 눈으로 잡기 어렵다. 테스트로 잠근다(`tests/engine-view.test.ts`).
  */
 
-import type { AgentActivity, AgentActivityStatus } from "@/services/agent-orchestrator";
+import { simulateAlternative, type AgentActivity, type AgentActivityStatus } from "@/services/agent-orchestrator";
 import type { EngineSnapshot } from "@/services/engine-client";
 import type { AgentEscalation, DataSource } from "@/lib/types/agent";
 import type {
@@ -18,6 +18,7 @@ import type {
   BpmNodeStatus,
   BpmProcessInstance,
 } from "@/lib/types/bpm";
+import type { ReviewCase, ReviewDecision } from "@/lib/types/workspace";
 
 const NODE_STATUSES: BpmNodeStatus[] = ["done", "active", "waiting", "pending", "skipped"];
 
@@ -71,6 +72,36 @@ function toAgentRun(run: EngineSnapshot["runs"][number]): AgentRun {
       id: `${run.nodeId}-esc-${index}`,
       ...escalation,
     })) as AgentEscalation[],
+  };
+}
+
+/**
+ * 엔진 결정 → 화면의 `ReviewDecision`.
+ *
+ * **금액은 여기서 계산한다.** 엔진은 "무엇을 골랐는가"(대안·레버)만 돌려주고 손익은
+ * `simulateAlternative`가 낸다 — 엔진이 금액도 계산하면 화면·API와 값이 갈라진다
+ * (CLAUDE.md 4.16 규칙 소유권). 반대로 **결정 시각은 엔진이 찍은 것을 그대로 쓴다**.
+ *
+ * ③과 ④가 같은 함수를 쓴다. 두 화면이 각자 변환하면 협업 스테이션이 보여주는 금액과
+ * Rolling Plan의 과제 목표액이 갈라질 수 있는데, 그건 눈으로 잡히지 않는다.
+ *
+ * 대안이 그 안건 목록에 없으면 `null`이다 — 다른 시나리오의 결정을 억지로 끼워 넣으면
+ * 엉뚱한 금액이 Gap에 더해진다.
+ */
+export function engineDecisionToReview(
+  reviewCase: ReviewCase,
+  decision: EngineSnapshot["decision"],
+): ReviewDecision | null {
+  if (!decision) return null;
+  const chosen = reviewCase.alternatives.find((a) => a.id === decision.alternativeId);
+  if (!chosen) return null;
+  const leverValue = decision.leverValue ?? chosen.lever.base;
+  return {
+    alternativeId: chosen.id,
+    leverValue,
+    profitImpact: simulateAlternative(chosen, leverValue).profitImpact,
+    rationale: decision.rationale,
+    decidedAt: decision.decidedAt ?? "—",
   };
 }
 

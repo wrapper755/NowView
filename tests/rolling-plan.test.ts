@@ -10,7 +10,12 @@ import { describe, expect, it } from "vitest";
 
 import { rollingPlan } from "@/lib/mock-data/rolling-plan";
 import { scenarios } from "@/lib/mock-data/scenarios";
-import { decisionToAction, planView, summarizeGap } from "@/services/rolling-plan";
+import {
+  decisionToAction,
+  mergeDecisions,
+  planView,
+  summarizeGap,
+} from "@/services/rolling-plan";
 
 const profitability = scenarios.find((s) => s.id === "scn-profitability")!;
 
@@ -128,5 +133,84 @@ describe("실행계획(Plan) 조정", () => {
   it("활동·물량·일정·자원 네 축을 모두 덮는다", () => {
     const dimensions = new Set(rollingPlan.plan.map((p) => p.dimension));
     expect(dimensions).toEqual(new Set(["activity", "volume", "schedule", "resource"]));
+  });
+});
+
+describe("Mock 승인과 엔진 승인 병합 (4.17)", () => {
+  const mockDecision = profitability.demoDecision;
+  const engineDecision = {
+    ...profitability.demoDecision,
+    rationale: "엔진에서 승인한 결정이다.",
+    decidedAt: "2026-09-26 22:53",
+  };
+
+  it("엔진이 소유한 시나리오는 엔진 결정만 쓴다", () => {
+    // 둘을 다 더하면 같은 승인이 두 번 잡히고 Gap이 실제보다 메워진 것처럼 보인다.
+    const merged = mergeDecisions(
+      { [profitability.id]: mockDecision },
+      {
+        engagedScenarioIds: [profitability.id],
+        decisionByScenario: { [profitability.id]: engineDecision },
+      },
+    );
+    expect(Object.keys(merged)).toEqual([profitability.id]);
+    expect(merged[profitability.id].rationale).toBe("엔진에서 승인한 결정이다.");
+  });
+
+  it("엔진이 소유했지만 아직 승인 전이면 Mock 결정을 되살리지 않는다", () => {
+    // 실행 중인 그래프가 승인 지점에 닿지도 않았는데 과제가 잡히면, 결정되지 않은 것을
+    // 확정된 것처럼 표시하는 셈이다(4.10과 같은 이유).
+    const merged = mergeDecisions(
+      { [profitability.id]: mockDecision },
+      { engagedScenarioIds: [profitability.id], decisionByScenario: {} },
+    );
+    expect(merged).toEqual({});
+  });
+
+  it("엔진이 소유하지 않은 시나리오는 Mock 결정이 그대로 남는다", () => {
+    const other = scenarios.find((s) => s.id !== profitability.id)!;
+    const merged = mergeDecisions(
+      { [profitability.id]: mockDecision, [other.id]: other.demoDecision },
+      {
+        engagedScenarioIds: [profitability.id],
+        decisionByScenario: { [profitability.id]: engineDecision },
+      },
+    );
+    expect(new Set(Object.keys(merged))).toEqual(new Set([profitability.id, other.id]));
+    expect(merged[other.id]).toBe(other.demoDecision);
+  });
+
+  it("null 결정은 건너뛴다", () => {
+    const merged = mergeDecisions(
+      { [profitability.id]: null },
+      { engagedScenarioIds: [], decisionByScenario: {} },
+    );
+    expect(merged).toEqual({});
+  });
+
+  it("병합 결과로 만든 과제가 하나뿐이고 목표액이 엔진 결정과 같다", () => {
+    const merged = mergeDecisions(
+      { [profitability.id]: mockDecision },
+      {
+        engagedScenarioIds: [profitability.id],
+        decisionByScenario: { [profitability.id]: engineDecision },
+      },
+    );
+    const actions = Object.entries(merged).map(([scenarioId, decision]) => {
+      const scenario = scenarios.find((s) => s.id === scenarioId)!;
+      const alternative = scenario.reviewCase.alternatives.find(
+        (a) => a.id === decision.alternativeId,
+      )!;
+      return decisionToAction(decision, alternative, scenario.reviewCase.riskId);
+    });
+
+    expect(actions).toHaveLength(1);
+    expect(actions[0].targetRecovery).toBe(engineDecision.profitImpact);
+    // 승인 직후 과제는 Forecast를 바꾸지 않는다 — 다음 회차에서 반영된다.
+    expect(actions[0].reflectedInForecast).toBe(false);
+
+    const summary = summarizeGap(rollingPlan, [...actions, ...rollingPlan.actions]);
+    expect(summary.pendingRecovery).toBe(engineDecision.profitImpact);
+    expect(summary.forecast).toBe(rollingPlan.forecast);
   });
 });
