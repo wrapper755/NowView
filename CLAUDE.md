@@ -31,6 +31,35 @@ uv run pytest -m llm                               # ollama 실호출 (약 40초
 uv run ruff check .
 ```
 
+**로컬 프로세스 제어 (웹 · 엔진 · DB)**
+
+```bash
+npm run stack:start            # 엔진 → 웹 순서로 띄운다 (db는 별도: stack:start db)
+npm run stack:status
+npm run stack:restart engine
+npm run stack:stop             # 시작과 반대 순서로 내린다
+npm run stack:logs engine 80
+```
+
+`scripts/stack.sh`가 그 일을 한다. **수동으로 띄우고 죽이다가 두 번 망가뜨려서 만든 것이다:**
+
+* **`start`는 멱등이다.** 포트가 이미 잡혀 있으면 두 번째를 띄우지 않는다 — 실제로 중복
+  기동으로 프로세스가 연결이 쌓인 채(`Recv-Q`) 먹통이 됐다.
+* **종료는 리스닝 포트로 PID를 찾는다.** `pkill -f "uvicorn app.main:app"`은 **자기 셸의
+  명령줄까지 매치**해 스스로를 죽인다(exit 143/144). 실제로 그랬다.
+* **소유는 PID가 아니라 프로세스 그룹으로 판정한다.** `setsid`로 띄우면 기록되는 것은
+  래퍼(`uv run`)의 PID인데 포트를 쥐는 것은 그 아래 uvicorn 워커다 — PID로 비교하면
+  우리가 띄운 것도 "외부"로 오판한다. 종료도 그룹째 보낸다(`--reload`는 reloader와 워커가
+  따로 있어 부모만 죽이면 자식이 포트를 쥐고 남는다).
+* **우리가 띄우지 않은 프로세스는 건드리지 않는다.** IDE 프리뷰가 3000을 쓰고 있을 수
+  있다 — `--force`가 있어야 내린다.
+* `start engine`은 **기본이 `--reload`다.** 없이 띄워 두고 코드를 고쳐 "왜 반영이 안 되나"를
+  두 번 헤맸다.
+
+**함정**: `wait_until 15 ! port_open 8077`처럼 쓸 수 없다. `!`는 예약어라서 소스 텍스트에서만
+부정으로 동작하고, 확장된 인자로 넘기면 `!`라는 **명령**을 찾는다 — 대기가 절대 성공하지
+않아 매번 KILL로 넘어가고 포트가 이미 비었는데도 실패로 보고했다. `port_closed` 헬퍼를 뒀다.
+
 **전체 스택 (앱 · 엔진 · Postgres)**
 
 ```bash
@@ -150,7 +179,8 @@ NowView/
 ├── CLAUDE.md
 ├── AGENTS.md                     # next dev 자동 생성 (Next.js 에이전트 규칙)
 ├── components.json               # Shadcn 설정
-├── .claude/launch.json           # preview 서버 설정 (nowview-dev)
+├── .claude/launch.json           # preview 서버 설정 (nowview-dev, nowview-engine)
+├── scripts/stack.sh              # 로컬 프로세스 제어 (start/stop/restart/status/logs)
 ├── app/
 │   ├── layout.tsx                # 전사 레이아웃, GNB, 테마 공급자
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트

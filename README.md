@@ -24,6 +24,8 @@ npm run dev     # http://localhost:3000
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest 1회 실행 (139개) |
 | `npm run test:watch` | Vitest 감시 모드 |
+| `npm run stack:start` \| `stack:stop` \| `stack:restart` | 웹·엔진을 함께 띄우거나 내린다 |
+| `npm run stack:status` \| `stack:logs <web\|engine>` | 상태·로그 |
 
 단일 테스트는 `npx vitest run tests/framework.test.ts -t "예방 통제가 없는"`.
 
@@ -38,10 +40,16 @@ TS 앱(`verify`), Python 엔진(`engine`, Postgres 포함), 컨테이너 이미�
 docker compose up --build
 ```
 
-앱 `:3000` · 엔진 `:8077` · Postgres `:55432`. 엔진만 로컬에서 띄우려면:
+앱 `:3000` · 엔진 `:8077` · Postgres `:55432`.
+
+컨테이너 없이 로컬 프로세스로 돌리려면 제어 스크립트를 쓴다 — `start`가 멱등이고,
+우리가 띄우지 않은 프로세스는 건드리지 않는다:
 
 ```bash
-cd engine && uv sync && uv run uvicorn app.main:app --port 8077 --reload
+npm run stack:start        # 엔진 → 웹
+npm run stack:status
+npm run stack:restart engine
+npm run stack:stop
 ```
 
 ```bash

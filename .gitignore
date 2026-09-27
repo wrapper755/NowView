@@ -54,3 +54,6 @@ engine/*.sqlite
 *.swp
 *.swo
 *~
+
+# 로컬 개발 프로세스 제어(scripts/stack.sh)의 PID·로그
+.dev/

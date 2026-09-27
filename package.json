@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "stack": "scripts/stack.sh",
+    "stack:start": "scripts/stack.sh start",
+    "stack:stop": "scripts/stack.sh stop",
+    "stack:restart": "scripts/stack.sh restart",
+    "stack:status": "scripts/stack.sh status",
+    "stack:logs": "scripts/stack.sh logs"
   },
   "dependencies": {
     "@xyflow/react": "^12.12.0",
