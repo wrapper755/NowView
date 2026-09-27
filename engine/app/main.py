@@ -25,6 +25,7 @@ from starlette.concurrency import run_in_threadpool
 from .agents import AgentContractError, make_runner
 from .events import KEEPALIVE_SECONDS, hub
 from .instances import InstanceStore, config_for, snapshot
+from .notify import build_notifier
 from .seek import SeekError, seek
 from .spec import ProcessSpec
 from .store import build_backend
@@ -49,6 +50,9 @@ store = InstanceStore(
     runner_factory=lambda mode: make_runner(mode, model=OLLAMA_MODEL, base_url=OLLAMA_URL),
 )
 
+# 변경 전파. Postgres면 LISTEN/NOTIFY로 **다른 워커까지** 간다(notify.py).
+notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
+
 
 class CreateRequest(BaseModel):
     spec: ProcessSpec
@@ -72,9 +76,16 @@ class ResumeRequest(BaseModel):
 
 
 @app.on_event("startup")
-async def _bind_event_loop() -> None:
+async def _start_notifications() -> None:
     # 변경 알림은 스레드풀(동기 엔드포인트)에서 오므로 루프 참조가 필요하다.
     hub.bind_loop(asyncio.get_running_loop())
+    await notifier.start()
+
+
+@app.on_event("shutdown")
+async def _stop_notifications() -> None:
+    # LISTEN 연결을 정리하지 않으면 재시작 때 Postgres에 유령 세션이 남는다.
+    await notifier.stop()
 
 
 @app.get("/health")
@@ -87,6 +98,11 @@ def health() -> dict[str, Any]:
         "ollama": {"url": OLLAMA_URL, "model": OLLAMA_MODEL},
         "instances": len(store.list_ids()),
         "eventSubscribers": hub.subscriber_count,
+        # 전파 방식을 드러내지 않으면 "여러 워커인데 알림이 로컬"인 상태를 눈치챌 수 없다.
+        "notify": {
+            "kind": notifier.kind,
+            "listening": getattr(notifier, "listening", None),
+        },
     }
 
 
@@ -105,7 +121,7 @@ def create_instance(body: CreateRequest) -> dict[str, Any]:
 
     if body.advance:
         _run(instance, None)
-    hub.publish(instance.id)
+    notifier.publish(instance.id)
     return snapshot(instance)
 
 
@@ -126,7 +142,7 @@ def resume_instance(instance_id: str, body: ResumeRequest) -> dict[str, Any]:
             detail=f"멈춰 있지 않은 인스턴스다 (상태: {current['status']}). 재개할 지점이 없다.",
         )
     _run(instance, Command(resume=body.payload))
-    hub.publish(instance_id)
+    notifier.publish(instance_id)
     after = snapshot(instance)
     # 입력이 반려되면 같은 지점에 error를 달고 다시 멈춘다 — 400이 아니라 그 상태를
     # 그대로 돌려준다. 클라이언트가 무엇이 틀렸는지 읽고 다시 보내면 된다.
@@ -161,7 +177,7 @@ def seek_instance(instance_id: str, body: SeekRequest) -> dict[str, Any]:
         )
         # 되감기는 인스턴스를 바꾸지 않지만, 앞으로 갈 때는 바뀐다. 구분하지 않고
         # 알린다 — 구독자가 다시 읽어도 같은 값이면 화면은 그대로다.
-        hub.publish(instance_id)
+        notifier.publish(instance_id)
         return result
     except SeekError as exc:
         # 요청 자체가 성립하지 않는다(없는 노드, 미실행 분기, 결정 누락) — 400이다.
@@ -261,7 +277,7 @@ async def events(
 def delete_instance(instance_id: str) -> None:
     _lookup(instance_id)
     store.delete(instance_id)
-    hub.publish(instance_id)
+    notifier.publish(instance_id)
 
 
 # ------------------------------------------------------------------ 내부

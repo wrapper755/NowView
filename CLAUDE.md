@@ -26,7 +26,7 @@ npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 63개 (SQLite만, LLM 제외)
+uv run pytest                                      # 68개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 ```
@@ -42,7 +42,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (97개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (104개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -540,7 +540,7 @@ curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
 ### 4.15 테스트
 
 `tests/`에 Vitest로 **순수 로직만** 검증한다(139개). 엔진 테스트는 `engine/tests/`에
-pytest로 따로 있다(63개) — 4.16 참조. 렌더링 테스트는 두지 않았다 —
+pytest로 따로 있다(68개) — 4.16 참조. 렌더링 테스트는 두지 않았다 —
 jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레이아웃·가독성처럼 계산으로
 못 잡는 것은 어차피 브라우저에서 눈으로 봐야 한다.
 
@@ -802,10 +802,10 @@ Evolution Agent가 "단일 임계치 85% → 3단계 구간 + 2개월 연속 이
   "영구 실패"가 아니라 "지금은 서 있지 않다"는 뜻이고, 그 동안만 폴백이 돈다.
 * **알림은 부수 효과다.** `publish`는 루프가 없거나 구독자가 없으면 조용히 넘긴다 —
   여기서 터지면 승인이 실패하는 셈이 된다.
-* **한 프로세스 안에서만 성립한다.** 워커를 여럿 띄우면 다른 프로세스의 변경은 허브를
-  지나가지 않는다. 그래서 스트림에 **안전망 재조회**(20초)를 함께 뒀다 — 알림을 놓쳐도
-  그 주기 안에 따라잡는다. 진짜로 여러 워커를 쓸 때는 Postgres `LISTEN`/`NOTIFY`로
-  바꿔야 한다.
+* **프로세스 경계를 넘는다** — Postgres 백엔드면 `LISTEN`/`NOTIFY`로 전파한다(4.20).
+  SQLite면 애초에 여러 워커로 운영할 수 없으므로 로컬 전달만 한다.
+* **안전망 재조회(20초)는 그대로 뒀다.** `LISTEN` 연결이 끊겼다 붙는 사이의 알림은
+  사라진다 — 그것까지 되살리려 하면 Postgres의 알림 큐를 우리가 다시 구현하는 셈이다.
 * 프록시가 조용한 연결을 끊지 않게 15초마다 주석(`: keepalive`)을 보내고, 버퍼링을 막는
   헤더(`X-Accel-Buffering: no`, `no-transform`)를 엔진과 BFF 양쪽에 둔다 — 한쪽만
   두면 중간 프록시가 모아서 늦게 도착한다.
@@ -820,6 +820,41 @@ Evolution Agent가 "단일 임계치 85% → 3단계 구간 + 2개월 연속 이
 
 **실측**: 승인 후 화면 반영까지 **약 0.9초**(엔진 쪽 push는 0.06초), 22초간 폴링 조회
 **0건**. SSE를 막으면 16초 주기로 폴백이 돈다.
+
+### 4.20 프로세스 경계를 넘는 전파 (Postgres LISTEN/NOTIFY)
+
+허브(`events.py`)는 **자기 프로세스의** SSE 구독자에게만 전달한다. 워커를 여럿 띄우면
+A에서 승인한 것이 B에 연결된 브라우저에 가지 않고, 그 브라우저는 안전망 재조회(20초)를
+기다린다 — 그 상태를 "실시간"이라고 부를 수 없다.
+
+```
+승인(워커 A) → SELECT pg_notify('nowview_instance', id)
+                 → Postgres → LISTEN 중인 모든 워커 → 각자 hub.fanout(id) → SSE
+```
+
+* **역할을 나눴다.** `events.py`는 구독 관리와 로컬 전달(`fanout`), `notify.py`는 프로세스
+  경계를 넘는 전파(`publish`). 화면에서 `hub.publish`를 부르던 곳은 모두 `notifier.publish`다.
+* **`NOTIFY`가 아니라 `pg_notify`를 쓴다.** `NOTIFY`는 유틸리티 문이라 바인드 파라미터를
+  받지 못한다 — id를 문자열로 붙이면 따옴표 처리를 직접 해야 하고 그건 틀리기 쉽다.
+* **전송은 동기, 수신은 비동기다.** 변경은 `def` 엔드포인트(스레드풀)에서 일어나므로 전송은
+  기존 커넥션 풀로 그냥 보낸다. 수신은 `LISTEN` 전용 연결을 붙들어야 해서 별도 async
+  태스크로 돈다(끊기면 2초 뒤 다시 붙는다).
+* **보낸 프로세스도 자기 알림을 되받는다** — `LISTEN`이 별도 연결이고 Postgres는 채널을
+  듣는 모든 연결에 보낸다. 그래서 Postgres 경로에서는 로컬 전달을 따로 하지 않는다.
+  하면 같은 변경이 두 번 전달된다(값이 틀리지는 않지만 쓸모없는 왕복이다).
+* **전송 실패가 변경을 실패시키지 않는다.** 알림은 부수 효과다 — 여기서 터지면 승인이
+  실패하는 셈이고, 그건 알림을 놓치는 것보다 훨씬 나쁘다. 놓친 알림은 안전망이 덮는다.
+* **`/health`가 전파 방식을 알려 준다**(`notify.kind`·`listening`). 드러내지 않으면
+  "여러 워커인데 알림이 로컬"인 상태를 눈치챌 방법이 없다 — `storage`를 노출한 것과 같은 이유다.
+* 종료 시 `LISTEN` 연결을 정리한다. 안 하면 재시작 때 Postgres에 유령 세션이 남는다.
+
+**테스트가 "다른 워커에도 간다"를 직접 잠근다.** 허브를 **둘** 만들어 서로 다른 프로세스처럼
+쓰고, 한쪽에서 알린 것이 다른 쪽에 도착하는지 본다 — 같은 프로세스 안이지만 연결이 다르므로
+Postgres를 실제로 거친다.
+
+**실측**: 엔진을 **두 프로세스**(:8077, :8078)로 같은 Postgres에 띄우고, A에 만든 인스턴스를
+B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했다. 폴링도 안전망도 아닌 순수
+전파다. 두 프로세스 모두 `/health`에 `notify=postgres listening=true`가 떴다.
 
 ---
 
@@ -944,8 +979,6 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 
 **남은 것:**
 
-* **여러 워커로 띄우면 SSE 알림이 갈라진다**(4.19). 다른 프로세스의 변경은 허브를 지나가지
-  않으므로 안전망 재조회(20초)에 의존하게 된다. Postgres `LISTEN`/`NOTIFY`로 바꿔야 한다.
 * **React Flow 캔버스가 갱신마다 다시 그려지지 않는지는 확인하지 않았다.** 지금은 사람
   대기에서 대부분 멈춰 있어 갱신이 드물지만, Agent가 여러 개 도는 프로세스에서는 확인이
   필요하다.

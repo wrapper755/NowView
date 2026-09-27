@@ -34,7 +34,7 @@ async def test_구독자에게_전달된다():
 
     task = asyncio.create_task(listen())
     await asyncio.sleep(0)  # 구독이 등록될 틈을 준다
-    hub.publish("inst-a")
+    hub.fanout("inst-a")
     await asyncio.wait_for(task, timeout=2)
 
     assert received == ["inst-a"]
@@ -52,7 +52,7 @@ async def test_구독하지_않은_인스턴스는_전달되지_않는다():
 
     task = asyncio.create_task(listen())
     await asyncio.sleep(0)
-    hub.publish("inst-b")
+    hub.fanout("inst-b")
     with pytest.raises(TimeoutError):
         await asyncio.wait_for(asyncio.shield(task), timeout=0.2)
     task.cancel()
@@ -74,8 +74,8 @@ async def test_한_스트림이_여러_인스턴스를_받는다():
 
     task = asyncio.create_task(listen())
     await asyncio.sleep(0)
-    hub.publish("inst-a")
-    hub.publish("inst-b")
+    hub.fanout("inst-a")
+    hub.fanout("inst-b")
     await asyncio.wait_for(task, timeout=2)
 
     assert set(received) == {"inst-a", "inst-b"}
@@ -93,7 +93,7 @@ async def test_구독이_끝나면_정리된다():
     task = asyncio.create_task(listen())
     await asyncio.sleep(0)
     assert hub.subscriber_count == 1
-    hub.publish("inst-a")
+    hub.fanout("inst-a")
     await asyncio.wait_for(task, timeout=2)
 
     # 끊길 때마다 쌓이면 메모리와 알림 비용이 계속 늘어난다.
@@ -103,7 +103,7 @@ async def test_구독이_끝나면_정리된다():
 def test_루프가_없으면_조용히_넘긴다():
     # 알림은 부수 효과다. 여기서 터지면 승인이 실패하는 셈이 된다.
     hub = Hub()
-    hub.publish("inst-a")  # bind_loop 전
+    hub.fanout("inst-a")  # bind_loop 전
     assert hub.subscriber_count == 0
 
 
@@ -111,7 +111,7 @@ def test_루프가_없으면_조용히_넘긴다():
 async def test_구독자가_없어도_조용히_넘긴다():
     hub = Hub()
     hub.bind_loop(asyncio.get_running_loop())
-    hub.publish("inst-없음")
+    hub.fanout("inst-없음")
     assert hub.subscriber_count == 0
 
 

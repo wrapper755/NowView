@@ -5,12 +5,12 @@ LangGraph StateGraph 기반 BPM 런타임. Next 앱의 `/api/engine/*`가 이것
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 63개 (SQLite만, LLM 제외)
+uv run pytest                                      # 68개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 97개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 104개
 ```
 
 전체 스택은 저장소 루트에서:
@@ -91,7 +91,7 @@ LLM이 재호출되고 승인이 사라지므로, 되감기는 조회로만 구�
 ## 변경 알림 (SSE)
 
 `GET /events?instances=a,b,c`가 스냅샷을 밀어 준다. **폴링이 아니라 push인 이유**: 상태가
-바뀌는 계기가 전부 우리 코드를 지나간다(생성·승인·장면 이동). 그 지점에서 `hub.publish`한다.
+바뀌는 계기가 전부 우리 코드를 지나간다(생성·승인·장면 이동). 그 지점에서 `notifier.publish`한다.
 
 * 연결 직후 현재 스냅샷을 전부 보내고 `event: ready`로 끝을 알린다 — 클라이언트가 "전부
   받았는지"를 알 방법이 따로 필요하다.
@@ -99,8 +99,11 @@ LLM이 재호출되고 승인이 사라지므로, 되감기는 조회로만 구�
   SSE가 잡아먹는다.
 * 알림은 **부수 효과**다. 루프가 없거나 구독자가 없으면 조용히 넘긴다 — 여기서 터지면
   승인이 실패하는 셈이 된다.
-* **한 프로세스 안에서만 성립한다.** 안전망으로 20초마다 전부 다시 보낸다. 워커를 여럿
-  쓸 때는 Postgres `LISTEN`/`NOTIFY`로 바꿔야 한다.
+* **프로세스 경계를 넘는다** — Postgres 백엔드면 `pg_notify`로 보내고 `LISTEN` 전용 연결로
+  받아 모든 워커에 전달한다(`notify.py`). SQLite면 애초에 여러 워커로 운영할 수 없으므로
+  로컬 전달만 한다. 안전망으로 20초마다 전부 다시 보내는 것은 그대로다 — `LISTEN` 연결이
+  끊겼다 붙는 사이의 알림은 사라진다.
+* 전송 실패가 변경을 실패시키지 않는다. 알림은 부수 효과다.
 * 구독 해제는 `async with hub.subscribe(...)`로 확정한다 — async generator로 두면
   `break`로 빠져나갈 때 `finally`가 미뤄져 구독자가 누적된다(테스트가 잡았다).
 
@@ -167,7 +170,7 @@ temperature 0에서도 같은 질문에 `14.2`와 `14.5`가 나왔다. 그래서
 
 | 변수 | 기본값 |
 |---|---|
-| `DATABASE_URL` | (없음) — 있으면 Postgres, 없으면 SQLite |
+| `DATABASE_URL` | (없음) — 있으면 Postgres + LISTEN/NOTIFY, 없으면 SQLite + 로컬 알림 |
 | `NOWVIEW_ENGINE_DB` | `engine-state.sqlite` (SQLite일 때만) |
 | `OLLAMA_URL` | `http://localhost:11434` |
 | `OLLAMA_MODEL` | `kimi-k3:cloud` |
@@ -177,9 +180,6 @@ Next 쪽은 `ENGINE_URL`(기본 `http://localhost:8077`)로 이 서비스를 가
 
 ## 아직 안 된 것
 
-* **화면이 이 엔진을 쓰지 않는다** — 다섯 화면은 여전히 Mock을 직접 import한다
-  (정적 프리렌더 유지). 엔진은 `/api/engine/*`로만 노출된다.
-* **SSE 알림이 한 프로세스 안에서만 성립한다** — 워커를 여럿 띄우면 다른 프로세스의
-  변경은 허브를 지나가지 않고 안전망 재조회(20초)에 의존한다. Postgres `LISTEN`/`NOTIFY`로
-  바꿔야 한다.
+* **`LISTEN` 재연결 구간의 알림은 사라진다** — 안전망 재조회(20초)가 덮는다. 그것까지
+  되살리려면 Postgres의 알림 큐를 다시 구현하는 셈이 된다.
 * **같은 인스턴스를 여러 사람이 볼 때의 충돌** — 지금은 마지막 요청이 이긴다.
