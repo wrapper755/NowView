@@ -182,7 +182,9 @@ NowView/
 ├── AGENTS.md                     # next dev 자동 생성 (Next.js 에이전트 규칙)
 ├── components.json               # Shadcn 설정
 ├── .claude/launch.json           # preview 서버 설정 (nowview-dev, nowview-engine)
-├── scripts/stack.sh              # 로컬 프로세스 제어 (start/stop/restart/status/logs)
+├── scripts/
+│   ├── stack.sh                  # 로컬 프로세스 제어 (start/stop/restart/status/logs)
+│   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── app/
 │   ├── layout.tsx                # 전사 레이아웃, GNB, 테마 공급자
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
@@ -338,8 +340,12 @@ DELETE /api/engine/instances/{id}
 * 계열색은 **엔티티에 고정 배정**한다. 목록 순서나 순위에 따라 다시 칠하면 안 된다.
 * 상태는 색 단독으로 전달하지 않는다 — `SeverityTag`(아이콘+한글 라벨)를 항상 동반한다.
   라이트 서피스에서 warning/serious는 대비 3:1 미만이라 이 조합이 유일한 완화 수단이다.
-* 색을 바꾸면 **눈으로 판단하지 말고 검증기를 돌린다.** 서피스는 카드 배경 기준(라이트 `#ffffff`,
-  다크 `#171717`)이며 명령은 `globals.css`의 `.viz-root` 주석에 적어 두었다.
+* 색을 바꾸면 **눈으로 판단하지 말고 검증기를 돌린다** — `scripts/validate_palette.js`.
+  서피스는 **카드 배경**이다(라이트 `#ffffff`, 다크 `#171717`). 페이지 배경(`#f4f4f4` /
+  `#0a0a0a`)이 아니다 — 차트는 카드 안에 있다. 실행 명령 네 줄은 `globals.css`의
+  `.viz-root` 주석에 그대로 적어 두었고, 현재 값은 양쪽 모드에서 전부 PASS다.
+  검사 항목은 lightness band · chroma floor · CVD 분리(protan/deutan) · 정상시야 분리 ·
+  서피스 대비이며, 하나라도 FAIL이면 종료코드 1이다.
 * **단위가 다른 두 계열을 한 차트에 겹치지 않는다.** 축이 둘이면 없는 상관관계를 만들어낸다.
   Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
 * 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
@@ -995,10 +1001,20 @@ import되므로 `globals.css`보다 나중에 온다 — 같은 특이도로 덮
 * `Controls`를 쓰는 화면을 추가하면 같은 문제가 이미 해결되어 있다 — 토큰으로 칠하므로
   테마 전환도 따라온다.
 
-**`scripts/validate_palette.js`는 저장소에 없다.** `globals.css` 주석과 4.4가 그 명령을
-가리키는데 파일이 커밋된 적이 없다. 위 변경은 **서피스 두 값을 바꾸지 않았으므로**
-검증 전제가 그대로이고(실측으로 확인했다) 재실행이 필요하지 않았지만, 다음에 팔레트를
-손대려면 그 스크립트부터 복원해야 한다.
+**`scripts/validate_palette.js`가 없었다 — 넣었다.** `globals.css` 주석과 4.4가 오래
+그 명령을 가리키고 있었지만 파일이 커밋된 적이 없었다. 즉 "색을 바꾸면 검증기를 돌린다"가
+돌릴 것 없이 적혀만 있었다. Claude Code `dataviz` 스킬의 구현을 **그대로** 가져왔다 —
+고치면 스킬이 갱신될 때 병합할 수 없으므로 로직은 손대지 않는다.
+
+들여온 뒤 **문서가 이미 주장하던 두 가지를 그대로 재현하는지로 검증했다**:
+
+| 문서의 주장 | 검증기 출력 |
+|---|---|
+| nova `--chart-1~5`는 chroma floor를 통과하지 못한다 | 5개 전부 `C = 0` → FAIL (`reads gray`) |
+| 라이트에서 warning·serious는 대비 3:1 미만 | `#fab219` **1.83:1** · `#ec835a` **2.64:1** → WARN |
+
+현재 팔레트는 계열색·diverging 모두 **라이트/다크 양쪽에서 전 항목 PASS**다.
+4.24의 토큰 변경은 서피스 두 값을 바꾸지 않았으므로 이 결과가 그대로 유효하다.
 
 ---
 

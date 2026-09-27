@@ -183,9 +183,19 @@
 }
 
 /* ── Data-viz 팔레트 ────────────────────────────────────────────────────────
-   검증된 팔레트이며 값을 바꾸면 반드시 검증기를 재실행한다:
-     node scripts/validate_palette.js "<hex,hex>" --mode light --surface "#ffffff"
-     node scripts/validate_palette.js "<hex,hex>" --mode dark  --surface "#171717"
+   검증된 팔레트이며 값을 바꾸면 반드시 검증기를 재실행한다. 서피스는 **카드 배경**이다
+   (페이지 배경이 아니다 — 차트는 카드 안에 있다):
+
+     # 계열색
+     node scripts/validate_palette.js "#2a78d6,#eb6834" --mode light --surface "#ffffff"
+     node scripts/validate_palette.js "#3987e5,#d95926" --mode dark  --surface "#171717"
+     # diverging 양극
+     node scripts/validate_palette.js "#2a78d6,#e34948" --mode light --surface "#ffffff"
+     node scripts/validate_palette.js "#3987e5,#e66767" --mode dark  --surface "#171717"
+
+   anchor·track·grid·baseline은 계열색이 아니므로(무채색이 의도다) 이 검사에 넣지 않는다.
+   status-*도 계열색이 아니다 — 검증기는 대비만 보면 되고, 라이트에서 warning 1.83:1 ·
+   serious 2.64:1로 3:1에 미달하는 것이 이미 알려진 사실이다(아래 SeverityTag 규정).
 
    shadcn nova 프리셋의 --chart-1~5는 무채색 그레이스케일(oklch chroma 0)이라
    계열 식별(categorical)에 쓸 수 없다. 차트 색은 아래 --viz-* 만 사용한다.
