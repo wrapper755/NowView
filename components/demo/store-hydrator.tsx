@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { useDemoController } from "@/lib/store/demo-controller";
 import { useEngineSession } from "@/lib/store/engine-session";
+import { useUiPrefs } from "@/lib/store/ui-prefs";
 
 /**
  * 저장된 데모 상태를 mount 이후에 복원한다.
@@ -18,8 +19,9 @@ import { useEngineSession } from "@/lib/store/engine-session";
 export function StoreHydrator() {
   useEffect(() => {
     void useDemoController.persist.rehydrate();
-    // 엔진 세션도 같은 이유로 자동 복원을 끄고 여기서 되살린다.
+    // 엔진 세션·표시 설정도 같은 이유로 자동 복원을 끄고 여기서 되살린다.
     void useEngineSession.persist.rehydrate();
+    void useUiPrefs.persist.rehydrate();
   }, []);
 
   return null;

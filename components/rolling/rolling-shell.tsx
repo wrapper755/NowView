@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import { ActionTracker } from "@/components/rolling/action-tracker";
+import { Commentary } from "@/components/shared/commentary";
 import { ForecastTrendChart } from "@/components/rolling/forecast-trend-chart";
 import { GapPanel } from "@/components/rolling/gap-panel";
 import { PlanPanel } from "@/components/rolling/plan-panel";
@@ -115,9 +116,11 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
         <Card className="viz-root lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base">Gap 관리</CardTitle>
-            <CardDescription>
-              목표는 고정하고 전망만 갱신한다. 남은 차이는 명시한다.
-            </CardDescription>
+            <Commentary block>
+              <CardDescription>
+                목표는 고정하고 전망만 갱신한다. 남은 차이는 명시한다.
+              </CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             <GapPanel summary={summary} />
@@ -128,7 +131,8 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
           <CardHeader>
             <CardTitle className="text-base">분기별 Target vs Forecast</CardTitle>
             <CardDescription>
-              1~3Q는 마감 확정, 4Q는 전망이다. 분기 합은 전사 Target·Forecast와 일치한다.
+              1~3Q는 마감 확정, 4Q는 전망이다.{" "}
+              <Commentary>분기 합은 전사 Target·Forecast와 일치한다.</Commentary>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -155,8 +159,10 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
               </>
             ) : (
               <>
-                담당·기한·목표 회수액이 없는 과제는 만들지 않는다. 추적할 수 없는 과제는
-                실행되지 않은 것과 같다.{" "}
+                <Commentary>
+                  담당·기한·목표 회수액이 없는 과제는 만들지 않는다. 추적할 수 없는 과제는
+                  실행되지 않은 것과 같다.{" "}
+                </Commentary>
                 <Link
                   href="/workspace"
                   className="inline-flex items-center gap-0.5 font-medium text-foreground hover:underline"
@@ -176,11 +182,13 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">실행계획 (Plan)</CardTitle>
-          <CardDescription>
-            Target은 고정하고 Forecast는 갱신하며, Plan은 승인된 대응안과 운영 여건 변화를
-            반영해 <strong className="font-medium text-foreground">조정</strong>한다.
-            승인 전에는 조정 후 값을 확정된 계획으로 보여주지 않는다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              Target은 고정하고 Forecast는 갱신하며, Plan은 승인된 대응안과 운영 여건 변화를
+              반영해 <strong className="font-medium text-foreground">조정</strong>한다.
+              승인 전에는 조정 후 값을 확정된 계획으로 보여주지 않는다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent>
           <PlanPanel items={planItems} />
@@ -190,10 +198,12 @@ export function RollingShell({ plan }: { plan: RollingPlan }) {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Rolling 갱신 이력</CardTitle>
-          <CardDescription>
-            회차마다 움직이는 것은 Forecast뿐이다. Target {plan.target}억은 모든 회차에서
-            동일하다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              회차마다 움직이는 것은 Forecast뿐이다. Target {plan.target}억은 모든 회차에서
+              동일하다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent>
           <RevisionHistory revisions={plan.revisions} target={plan.target} />

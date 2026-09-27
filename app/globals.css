@@ -49,7 +49,10 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* 카드(--card)는 #ffffff 그대로 둔다 — 차트 팔레트가 그 값을 서피스로 검증했다.
+     대신 페이지를 한 단 낮춰 박스가 떠 보이게 한다. 둘 다 oklch(1 0 0)이던 동안은
+     카드 경계가 ring 하나뿐이어서 "박스가 분간되지 않는다"가 맞았다. */
+  --background: oklch(0.967 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -57,15 +60,17 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.935 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  /* 페이지가 0.967이 되었으므로 muted도 함께 내린다 — 같이 두면 카드 밖의 칩·배지가
+     배경에 묻힌다. */
+  --muted: oklch(0.932 0 0);
+  --muted-foreground: oklch(0.505 0 0);
+  --accent: oklch(0.932 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.872 0 0);
+  --input: oklch(0.872 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -99,8 +104,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  /* 다크는 페이지 #0a0a0a와 카드 #171717의 차이가 L* 5뿐이라 면만으로는 약하다.
+     배경을 더 내릴 여지가 없으므로(이미 거의 검정) 경계를 세운다. */
+  --border: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -127,12 +134,68 @@
   html {
     @apply font-sans;
   }
+  /* 섹션 탭(components/shared/section-nav.tsx)이 앵커 대상에 다는 표시.
+     sticky 헤더(GNB + 섹션 탭)가 섹션 제목을 가리지 않도록 그 높이만큼 띄운다.
+     JS 스크롤과 브라우저의 hash 이동(새로고침·링크 붙여넣기) 양쪽에 걸려야 하는데,
+     앞의 것은 헤더 높이를 실측하고 여기는 리터럴이므로 헤더 구성이 바뀌면 함께 본다. */
+  [data-index-target] {
+    scroll-margin-top: 96px;
+  }
+
+  /* 데모 플레이어는 화면 하단에 고정되어 있다. 그만큼 본문 아래에 자리를 비워 둬야
+     스크롤 끝에서 마지막 내용이 가리지 않는다 — 떠 있는 카드였을 때는 스크롤 도중
+     표 위를 덮었다. 높이는 플레이어가 자기를 재서 `--demo-player-h`에 넣는다.
+     폴백(7rem)은 ResizeObserver가 발화하지 않는 숨겨진 탭용이며 넉넉히 잡았다. */
+  body {
+    padding-bottom: calc(var(--demo-player-h, 7rem) + 1rem);
+  }
+}
+
+/* ── React Flow 컨트롤 ──────────────────────────────────────────────────────
+   `@xyflow/react/dist/style.css`는 버튼 배경을 `#fefefe`로 **박아 둔다**. 아이콘은
+   `currentColor`를 타고 우리 foreground를 따라가므로 다크에서 흰 버튼에 흰 아이콘이
+   되어 **아무것도 보이지 않는다**(실측: 배경 rgb(254,254,254), fill L* 98).
+   색이 아니라 대비가 사라지는 문제라 콘솔 경고도 없다. 토큰으로 되돌린다. */
+.react-flow__controls {
+  box-shadow: none;
+}
+/* 클래스를 두 번 적어 특이도를 올린다. `@xyflow/react/dist/style.css`는 컴포넌트에서
+   import되어 globals.css **뒤에** 주입되므로, 같은 특이도로는 우리 규칙이 진다. */
+.react-flow__controls-button.react-flow__controls-button {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+.react-flow__controls-button.react-flow__controls-button:hover {
+  background: var(--muted);
+}
+.react-flow__controls-button.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__controls-button.react-flow__controls-button:disabled {
+  opacity: 0.4;
+}
+.react-flow__attribution.react-flow__attribution {
+  background: transparent;
+}
+.react-flow__attribution a {
+  color: var(--muted-foreground);
 }
 
 /* ── Data-viz 팔레트 ────────────────────────────────────────────────────────
-   검증된 팔레트이며 값을 바꾸면 반드시 검증기를 재실행한다:
-     node scripts/validate_palette.js "<hex,hex>" --mode light --surface "#ffffff"
-     node scripts/validate_palette.js "<hex,hex>" --mode dark  --surface "#171717"
+   검증된 팔레트이며 값을 바꾸면 반드시 검증기를 재실행한다. 서피스는 **카드 배경**이다
+   (페이지 배경이 아니다 — 차트는 카드 안에 있다):
+
+     # 계열색
+     node scripts/validate_palette.js "#2a78d6,#eb6834" --mode light --surface "#ffffff"
+     node scripts/validate_palette.js "#3987e5,#d95926" --mode dark  --surface "#171717"
+     # diverging 양극
+     node scripts/validate_palette.js "#2a78d6,#e34948" --mode light --surface "#ffffff"
+     node scripts/validate_palette.js "#3987e5,#e66767" --mode dark  --surface "#171717"
+
+   anchor·track·grid·baseline은 계열색이 아니므로(무채색이 의도다) 이 검사에 넣지 않는다.
+   status-*도 계열색이 아니다 — 검증기는 대비만 보면 되고, 라이트에서 warning 1.83:1 ·
+   serious 2.64:1로 3:1에 미달하는 것이 이미 알려진 사실이다(아래 SeverityTag 규정).
 
    shadcn nova 프리셋의 --chart-1~5는 무채색 그레이스케일(oklch chroma 0)이라
    계열 식별(categorical)에 쓸 수 없다. 차트 색은 아래 --viz-* 만 사용한다.

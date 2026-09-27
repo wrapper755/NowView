@@ -59,6 +59,37 @@ export function DemoPlayer() {
   const scene = demoScenario[sceneIndex];
 
   /**
+   * 본문 아래에 비워 둘 자리를 **재서** CSS에 알린다(`globals.css`가 `--demo-player-h`를
+   * 읽는다). 플레이어는 화면 하단에 고정되어 있으므로 자리를 비워 두지 않으면 스크롤
+   * 끝에서 마지막 내용이 가린다.
+   *
+   * 값을 상수로 박지 않는 이유: 접으면 얇아지고, 화면이 좁으면 컨트롤이 한 줄 더
+   * 내려가며, 내레이션이 두 줄이 되기도 한다. 예전 플로팅 카드에서도 "높이 170px"을
+   * 손으로 적어 두고 있었는데 그 값은 곧 실제와 어긋난다.
+   */
+  const barRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    const root = document.documentElement;
+    if (!el) return;
+
+    const apply = () => {
+      root.style.setProperty("--demo-player-h", `${el.getBoundingClientRect().height}px`);
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    // ResizeObserver가 숨겨진 탭에서 발화하지 않는 동안 화면 폭이 바뀌면(컨트롤이 한
+    // 줄 더 내려간다) 값이 낡은 채로 남는다 — 실제로 그 상태를 봤다. resize로도 잰다.
+    window.addEventListener("resize", apply, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", apply);
+      root.style.removeProperty("--demo-player-h");
+    };
+  }, [isExpanded]);
+
+  /**
    * 장면 이동 = 스토어 상태 적용 + 화면 전환. 둘은 항상 같이 일어난다.
    *
    * **엔진 모드면 인스턴스도 그 장면으로 옮긴다.** 뒤로는 과거 체크포인트를 읽고
@@ -140,157 +171,160 @@ export function DemoPlayer() {
 
   if (!isExpanded) {
     return (
-      <button
-        type="button"
-        onClick={togglePlayer}
-        className="fixed bottom-4 left-1/2 z-50 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/95 px-3.5 py-2 text-xs font-medium shadow-lg backdrop-blur hover:bg-muted"
-        aria-expanded={false}
+      <aside
+        ref={barRef}
+        aria-label="데모 시나리오 플레이어"
+        className="fixed inset-x-0 bottom-0 z-50 flex justify-center border-t bg-background/95 py-2 backdrop-blur"
       >
-        <PlayCircle aria-hidden className="size-3.5" />
-        데모 시나리오
-        <span className="text-muted-foreground tabular-nums">
-          {sceneIndex + 1}/{demoScenario.length}
-        </span>
-        <ChevronUp aria-hidden className="size-3.5 text-muted-foreground" />
-      </button>
+        <button
+          type="button"
+          onClick={togglePlayer}
+          className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-muted"
+          aria-expanded={false}
+        >
+          <PlayCircle aria-hidden className="size-3.5" />
+          데모 시나리오
+          <span className="text-muted-foreground tabular-nums">
+            {sceneIndex + 1}/{demoScenario.length}
+          </span>
+          <ChevronUp aria-hidden className="size-3.5 text-muted-foreground" />
+        </button>
+      </aside>
     );
   }
 
   return (
     <aside
+      ref={barRef}
       aria-label="데모 시나리오 플레이어"
-      className="fixed bottom-4 left-1/2 z-50 w-[min(44rem,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border bg-background/95 shadow-lg backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur"
     >
-      <div className="flex items-start gap-3 p-3.5">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[10px] text-muted-foreground tabular-nums">
-              장면 {sceneIndex + 1} / {demoScenario.length}
-            </span>
-            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-              {MANAGEMENT_STAGE_LABEL[scene.stage]}
-            </span>
-            <span className="text-sm font-semibold text-foreground">{scene.title}</span>
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {scene.narration}
-          </p>
-          {/* 엔진 모드에서는 장면 이동이 서버 왕복이다. 진행·실패를 숨기면
-              플레이어가 멈춘 것인지 실패한 것인지 알 수 없다. */}
-          {enginePending ? (
-            <p className="mt-1 text-[11px] text-muted-foreground">엔진에 장면을 반영하는 중…</p>
-          ) : null}
-          {engineError ? (
-            <p
-              role="alert"
-              className="mt-1 text-[11px]"
-              style={{ color: "var(--viz-status-serious)" }}
-            >
-              엔진 장면 이동 실패 — {engineError.message}
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <SceneScrubber scenes={demoScenario} sceneIndex={sceneIndex} onJump={jump} />
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2.5">
+          <div className="min-w-0 flex-1 basis-80">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                장면 {sceneIndex + 1} / {demoScenario.length}
+              </span>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                {MANAGEMENT_STAGE_LABEL[scene.stage]}
+              </span>
+              <span className="text-sm font-semibold text-foreground">{scene.title}</span>
+            </div>
+            {/* 두 줄로 제한한다 — 바 높이가 흔들리면 본문에 비워 둔 자리와 어긋난다. */}
+            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+              {scene.narration}
             </p>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1">
-          {/* 시나리오 전환. 각 시나리오는 자기 진행·결정을 따로 들고 있어 오가도 유지된다. */}
-          <div
-            role="tablist"
-            aria-label="시나리오 선택"
-            className="flex gap-0.5 rounded-lg border p-0.5"
-          >
-            {scenarios.map((s) => (
-              <button
-                key={s.id}
-                role="tab"
-                type="button"
-                aria-selected={s.id === activeScenarioId}
-                title={s.summary}
-                onClick={() => {
-                  setScenario(s.id);
-                  const target = s.scenes[0];
-                  if (target.route !== pathname) router.push(target.route);
-                }}
-                className={
-                  s.id === activeScenarioId
-                    ? "rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground"
-                    : "rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
-                }
+            {/* 엔진 모드에서는 장면 이동이 서버 왕복이다. 진행·실패를 숨기면
+                플레이어가 멈춘 것인지 실패한 것인지 알 수 없다. */}
+            {enginePending ? (
+              <p className="text-[11px] text-muted-foreground">엔진에 장면을 반영하는 중…</p>
+            ) : null}
+            {engineError ? (
+              <p
+                role="alert"
+                className="text-[11px]"
+                style={{ color: "var(--viz-status-serious)" }}
               >
-                {s.shortTitle}
-              </button>
-            ))}
+                엔진 장면 이동 실패 — {engineError.message}
+              </p>
+            ) : null}
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            onClick={togglePlayer}
-            aria-label="플레이어 접기"
-          >
-            <X aria-hidden className="size-3.5" />
-          </Button>
-        </div>
-      </div>
 
-      <SceneScrubber scenes={demoScenario} sceneIndex={sceneIndex} onJump={jump} />
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* 시나리오 전환. 각 시나리오는 자기 진행·결정을 따로 들고 있어 오가도 유지된다. */}
+            <div
+              role="tablist"
+              aria-label="시나리오 선택"
+              className="flex gap-0.5 rounded-lg border p-0.5"
+            >
+              {scenarios.map((s) => (
+                <button
+                  key={s.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={s.id === activeScenarioId}
+                  title={s.summary}
+                  onClick={() => {
+                    setScenario(s.id);
+                    const target = s.scenes[0];
+                    if (target.route !== pathname) router.push(target.route);
+                  }}
+                  className={
+                    s.id === activeScenarioId
+                      ? "rounded-md bg-muted px-2 py-1 text-[11px] font-medium text-foreground"
+                      : "rounded-md px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  }
+                >
+                  {s.shortTitle}
+                </button>
+              ))}
+            </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t p-2.5">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={() => {
-              setPlaying(false);
-              exitDemo();
-              if (demoScenario[0].route !== pathname) router.push(demoScenario[0].route);
-            }}
-            disabled={sceneIndex === 0 && !isPlaying}
-          >
-            <RotateCcw aria-hidden className="size-3" />
-            처음으로
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={() => jump(sceneIndex - 1)}
-            disabled={sceneIndex === 0}
-          >
-            <ChevronLeft aria-hidden className="size-3" />
-            이전
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <Button
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={() => setPlaying(!isPlaying)}
-            disabled={sceneIndex >= LAST_SCENE_INDEX && !isPlaying}
-          >
-            {isPlaying ? (
-              <>
-                <Pause aria-hidden className="size-3" />
-                일시정지
-              </>
-            ) : (
-              <>
-                <Play aria-hidden className="size-3" />
-                자동 재생
-              </>
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px]"
-            onClick={() => jump(sceneIndex + 1)}
-            disabled={sceneIndex >= LAST_SCENE_INDEX}
-          >
-            다음
-            <ChevronRight aria-hidden className="size-3" />
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => {
+                setPlaying(false);
+                exitDemo();
+                if (demoScenario[0].route !== pathname) router.push(demoScenario[0].route);
+              }}
+              disabled={sceneIndex === 0 && !isPlaying}
+            >
+              <RotateCcw aria-hidden className="size-3" />
+              처음으로
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-7"
+              onClick={() => jump(sceneIndex - 1)}
+              disabled={sceneIndex === 0}
+              aria-label="이전 장면"
+            >
+              <ChevronLeft aria-hidden className="size-3" />
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => setPlaying(!isPlaying)}
+              disabled={sceneIndex >= LAST_SCENE_INDEX && !isPlaying}
+            >
+              {isPlaying ? (
+                <>
+                  <Pause aria-hidden className="size-3" />
+                  일시정지
+                </>
+              ) : (
+                <>
+                  <Play aria-hidden className="size-3" />
+                  자동 재생
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-7"
+              onClick={() => jump(sceneIndex + 1)}
+              disabled={sceneIndex >= LAST_SCENE_INDEX}
+              aria-label="다음 장면"
+            >
+              <ChevronRight aria-hidden className="size-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              onClick={togglePlayer}
+              aria-label="플레이어 접기"
+            >
+              <X aria-hidden className="size-3.5" />
+            </Button>
+          </div>
         </div>
       </div>
     </aside>

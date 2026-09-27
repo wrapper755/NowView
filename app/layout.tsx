@@ -13,6 +13,8 @@ import {
 import { DemoPlayer } from "@/components/demo/demo-player";
 import { StoreHydrator } from "@/components/demo/store-hydrator";
 import { SnapshotSync } from "@/components/engine/snapshot-sync";
+import { CommentaryToggle } from "@/components/shared/commentary-toggle";
+import { SectionNav } from "@/components/shared/section-nav";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -97,14 +99,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 </ul>
               </nav>
 
+              <CommentaryToggle />
               <ThemeToggle />
             </div>
+
+            {/* 화면 안 섹션 이동. 스크롤이 길어(Cockpit 기준 약 3,300px) 찾기 어려운데,
+                왼쪽 레일로 두면 GNB와 시선 축이 갈리고 본문까지 밀어낸다 — 같은 줄에 둔다. */}
+            <SectionNav />
           </header>
 
-          {/* 플로팅 플레이어가 화면 하단을 가리므로 그만큼 여백을 둔다.
-              플레이어 최대 높이 170px + 하단 오프셋 16px = 186px이 필요하다(측정값).
-              내레이션이 길어지면 플레이어가 커지므로 `lib/demo-scenario.ts`의 길이 제약과 함께 본다. */}
-          <div className="flex-1 pb-48">{children}</div>
+          {/* 하단 여백은 데모 플레이어 높이만큼 CSS가 준다(globals.css의
+              `[data-demo-player]`). 플레이어가 접히면 여백도 함께 줄어든다. */}
+          <div className="flex-1">{children}</div>
 
           <StoreHydrator />
           {/* 엔진 스냅샷을 여기서만 받는다(SSE, 폴백은 폴링) — 화면마다 받으면 같은
