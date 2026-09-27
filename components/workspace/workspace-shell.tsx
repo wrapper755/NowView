@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { EnginePanel } from "@/components/engine/engine-panel";
+import { Commentary } from "@/components/shared/commentary";
 import { useEngineProcess } from "@/components/engine/use-engine-process";
 import { AgentReportViewer } from "@/components/workspace/agent-report-viewer";
 import { AlternativeComparison } from "@/components/workspace/alternative-comparison";
@@ -166,9 +167,9 @@ export function WorkspaceShell() {
               Agent가 답하지 못한 질문 {reviewCase.escalations.length}건
             </CardTitle>
             <CardDescription>
-              정보가 부족할 때 Agent는 추측하지 않고 사람에게 묻는다. 답을 받지 못한 채
-              진행하면 아래 가정 위에서 결정하는 것이며, 그 가정이 틀리면 권고도 함께
-              무너진다.
+              <Commentary>정보가 부족할 때 Agent는 추측하지 않고 사람에게 묻는다. </Commentary>
+              답을 받지 못한 채 진행하면 아래 가정 위에서 결정하는 것이며, 그 가정이 틀리면
+              권고도 함께 무너진다.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -184,10 +185,12 @@ export function WorkspaceShell() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Agent 분석 보고서</CardTitle>
-          <CardDescription>
-            Agent가 수집·분석한 내용과 그 근거다. 결론만이 아니라 무엇을 보고 그렇게
-            말했는지 확인할 수 있어야 한다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              Agent가 수집·분석한 내용과 그 근거다. 결론만이 아니라 무엇을 보고 그렇게
+              말했는지 확인할 수 있어야 한다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent>
           <AgentReportViewer report={reviewCase.report} />
@@ -220,8 +223,8 @@ export function WorkspaceShell() {
               시뮬레이터 — {alternative.tag} {alternative.name}
             </CardTitle>
             <CardDescription>
-              가정을 바꿔 가며 손익·가동률·리스크를 다시 계산한다. 대안 하나로 Gap이 모두
-              메워지지는 않는다.
+              가정을 바꿔 가며 손익·가동률·리스크를 다시 계산한다.{" "}
+              <Commentary>대안 하나로 Gap이 모두 메워지지는 않는다.</Commentary>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -238,9 +241,11 @@ export function WorkspaceShell() {
         <Card className="viz-root lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-base">의사결정</CardTitle>
-            <CardDescription>
-              선택과 승인은 사람이 한다. Agent 권고는 참고일 뿐이다.
-            </CardDescription>
+            <Commentary block>
+              <CardDescription>
+                선택과 승인은 사람이 한다. Agent 권고는 참고일 뿐이다.
+              </CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             <DecisionPanel

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { KriTuningPanel } from "@/components/evolution/kri-tuning-panel";
+import { Commentary } from "@/components/shared/commentary";
 import { EngineEvolutionPanel } from "@/components/evolution/engine-evolution-panel";
 import { ProposalList } from "@/components/evolution/proposal-list";
 import {
@@ -56,8 +57,10 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
             <div className="min-w-0">
               <CardTitle className="text-base">KRI 감지 임계치 튜닝</CardTitle>
               <CardDescription>
-                과거 데이터로 재현한 백테스트다. 임계치를 조이면 더 빨리 잡히지만 오탐도
-                함께 늘어난다.
+                과거 데이터로 재현한 백테스트다.{" "}
+                <Commentary>
+                  임계치를 조이면 더 빨리 잡히지만 오탐도 함께 늘어난다.
+                </Commentary>
               </CardDescription>
             </div>
 
@@ -104,8 +107,11 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
             ) : null}
           </CardTitle>
           <CardDescription>
-            제안은 모두 이번 루프에서 실제로 드러난 공백에서 나왔다. 기대 효과와 부작용을
-            함께 보고 판단한다. 개선 대상은 Framework {targetCounts.framework}건 · Process{" "}
+            <Commentary>
+              제안은 모두 이번 루프에서 실제로 드러난 공백에서 나왔다. 기대 효과와 부작용을
+              함께 보고 판단한다.{" "}
+            </Commentary>
+            개선 대상은 Framework {targetCounts.framework}건 · Process{" "}
             {targetCounts.process}건 · Agent {targetCounts.agent}건이다.
           </CardDescription>
         </CardHeader>
@@ -122,8 +128,9 @@ export function EvolutionShell({ lab }: { lab: EvolutionLab }) {
         <CardHeader>
           <CardTitle className="text-base">엔진 Evolution Agent 산출물</CardTitle>
           <CardDescription>
-            루프의 6단계는 에이전트 룰 개선이다. 엔진에서 그 노드가 실제로 돌면 산출물이
-            여기 나타난다 — 위의 개선 제안은 Mock이고, 이것은 실행 기록이다.
+            <Commentary>루프의 6단계는 에이전트 룰 개선이다. </Commentary>
+            엔진에서 그 노드가 실제로 돌면 산출물이 여기 나타난다 — 위의 개선 제안은
+            Mock이고, 이것은 실행 기록이다.
           </CardDescription>
         </CardHeader>
         <CardContent>

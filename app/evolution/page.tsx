@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import { EvolutionShell } from "@/components/evolution/evolution-shell";
+import { Commentary } from "@/components/shared/commentary";
 import { evolutionLab } from "@/lib/mock-data/evolution-lab";
 
 export const metadata = {
@@ -28,19 +29,23 @@ export default function EvolutionPage() {
             <ArrowUpRight aria-hidden className="size-3" />
           </Link>
         </div>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          앞 단계들이 &ldquo;이번 건을 어떻게 할 것인가&rdquo;를 다뤘다면, 이 단계는
-          &ldquo;다음에 같은 일이 생기면 더 빨리 잡히는가&rdquo;를 다룬다. 여기서의 결정은
-          다음 루프부터 효력이 생긴다.
-        </p>
+        <Commentary block>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            앞 단계들이 &ldquo;이번 건을 어떻게 할 것인가&rdquo;를 다뤘다면, 이 단계는
+            &ldquo;다음에 같은 일이 생기면 더 빨리 잡히는가&rdquo;를 다룬다. 여기서의
+            결정은 다음 루프부터 효력이 생긴다.
+          </p>
+        </Commentary>
       </header>
 
       <EvolutionShell lab={evolutionLab} />
 
-      <p className="pb-2 text-xs text-muted-foreground">
-        백테스트 수치는 Mock이다. 채택·보류 결정은 이 화면에만 남으며 실제 프레임워크 배포로
-        이어지지 않는다.
-      </p>
+      <Commentary block>
+        <p className="pb-2 text-xs text-muted-foreground">
+          백테스트 수치는 Mock이다. 채택·보류 결정은 이 화면에만 남으며 실제 프레임워크
+          배포로 이어지지 않는다.
+        </p>
+      </Commentary>
     </main>
   );
 }

@@ -9,6 +9,7 @@ import {
   ExecutionPerformanceSection,
   RiskSignalSection,
 } from "@/components/cockpit/live-sections";
+import { Commentary } from "@/components/shared/commentary";
 import { StatTile } from "@/components/shared/stat-tile";
 import { managementFramework } from "@/lib/mock-data/framework";
 import { nextAutomotive } from "@/lib/mock-data/next-automotive";
@@ -62,10 +63,12 @@ export default function ExecutiveCockpitPage() {
             <p className="text-5xl leading-none font-semibold text-foreground">
               {formatEokSigned(profitGap)}
             </p>
-            <p className="text-xs text-muted-foreground">
-              Target {formatEok(company.operatingProfit.target)}은 변경하지 않는다.
-              차이는 Forecast에만 반영하고 잔여 Gap으로 명시한다.
-            </p>
+            <Commentary block>
+              <p className="text-xs text-muted-foreground">
+                Target {formatEok(company.operatingProfit.target)}은 변경하지 않는다.
+                차이는 Forecast에만 반영하고 잔여 Gap으로 명시한다.
+              </p>
+            </Commentary>
           </div>
 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-3 sm:flex sm:items-end sm:gap-8">
@@ -112,8 +115,10 @@ export default function ExecutiveCockpitPage() {
         <CardHeader>
           <CardTitle className="text-base">영업이익 Target → Forecast 브릿지</CardTitle>
           <CardDescription>
-            목표와 전망의 차이를 물량·단가·원가·수율·Action 요인으로 분해한다. 요인 합계는
-            Gap {formatEokSigned(profitGap)}과 정확히 일치한다.
+            목표와 전망의 차이를 물량·단가·원가·수율·Action 요인으로 분해한다.{" "}
+            <Commentary>
+              요인 합계는 Gap {formatEokSigned(profitGap)}과 정확히 일치한다.
+            </Commentary>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,9 +129,11 @@ export default function ExecutiveCockpitPage() {
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-base font-semibold">사업부 듀얼 매트릭스</h2>
-          <p className="text-xs text-muted-foreground">
-            기존 사업과 신사업은 평가 기준이 다르므로 같은 축에 합산하지 않고 나란히 본다.
-          </p>
+          <Commentary block>
+            <p className="text-xs text-muted-foreground">
+              기존 사업과 신사업은 평가 기준이 다르므로 같은 축에 합산하지 않고 나란히 본다.
+            </p>
+          </Commentary>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {company.divisions.map((division) => (
@@ -140,11 +147,13 @@ export default function ExecutiveCockpitPage() {
           <CardTitle className="text-base">
             경영 수행 성과 — 속도 · 정확성 · 실행력
           </CardTitle>
-          <CardDescription>
-            위쪽이 사업 성과(손익·품질·재고)라면 이것은 그 결과를 만드는 경영 활동 자체의
-            품질이다. 둘을 섞으면 &ldquo;손익은 나빠졌지만 대응은 빨라졌다&rdquo;를 말할 수
-            없다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              위쪽이 사업 성과(손익·품질·재고)라면 이것은 그 결과를 만드는 경영 활동 자체의
+              품질이다. 둘을 섞으면 &ldquo;손익은 나빠졌지만 대응은 빨라졌다&rdquo;를 말할
+              수 없다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent className="viz-root">
           {/* 엔진이 돌았으면 Agent 소요시간이 실측값으로 바뀐다. 페이지는 서버
@@ -158,11 +167,13 @@ export default function ExecutiveCockpitPage() {
           <CardTitle className="text-base">
             Management Framework — KPI · KRI · Control 연결
           </CardTitle>
-          <CardDescription>
-            무엇을 보고 어떻게 판단할지에 대한 공통 기준이다. 지표를 나열하는 것이 아니라
-            연결이 어디서 끊기는지를 본다 — 임계치를 벗어났는데 예방 통제가 없거나 통제가
-            예외·미수행이면 그 자리가 구멍이다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              무엇을 보고 어떻게 판단할지에 대한 공통 기준이다. 지표를 나열하는 것이 아니라
+              연결이 어디서 끊기는지를 본다 — 임계치를 벗어났는데 예방 통제가 없거나 통제가
+              예외·미수행이면 그 자리가 구멍이다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent className="viz-root space-y-3">
           <FrameworkSummaryLine {...frameworkSummary} />
@@ -189,10 +200,12 @@ export default function ExecutiveCockpitPage() {
         </CardContent>
       </Card>
 
-      <p className="pb-2 text-xs text-muted-foreground">
-        본 화면의 수치는 CLAUDE.md 2장 가상 고객사 스펙에 기반한 Mock 데이터다. 실제 재무
-        데이터가 아니다.
-      </p>
+      <Commentary block>
+        <p className="pb-2 text-xs text-muted-foreground">
+          본 화면의 수치는 CLAUDE.md 2장 가상 고객사 스펙에 기반한 Mock 데이터다. 실제 재무
+          데이터가 아니다.
+        </p>
+      </Commentary>
     </main>
   );
 }

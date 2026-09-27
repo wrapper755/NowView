@@ -7,6 +7,7 @@ import { AgentActivityPanel } from "@/components/bpm/agent-activity-panel";
 import { NodeDetailPanel } from "@/components/bpm/node-detail-panel";
 import { StepControls } from "@/components/bpm/step-controls";
 import { ProcessCanvas } from "@/components/flow/process-canvas";
+import { Commentary } from "@/components/shared/commentary";
 import {
   Card,
   CardContent,
@@ -173,10 +174,12 @@ export function BpmTrackerShell() {
                 </span>
               ) : null}
             </CardTitle>
-            <CardDescription>
-              산출물에는 참조한 데이터 소스를 함께 표시한다. 최종 판단은 사람이 지므로 근거를
-              되짚을 수 있어야 한다.
-            </CardDescription>
+            <Commentary block>
+              <CardDescription>
+                산출물에는 참조한 데이터 소스를 함께 표시한다. 최종 판단은 사람이 지므로
+                근거를 되짚을 수 있어야 한다.
+              </CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             <AgentActivityPanel activities={activities} />

@@ -127,6 +127,21 @@
   html {
     @apply font-sans;
   }
+  /* 섹션 탭(components/shared/section-nav.tsx)이 앵커 대상에 다는 표시.
+     sticky 헤더(GNB + 섹션 탭)가 섹션 제목을 가리지 않도록 그 높이만큼 띄운다.
+     JS 스크롤과 브라우저의 hash 이동(새로고침·링크 붙여넣기) 양쪽에 걸려야 하는데,
+     앞의 것은 헤더 높이를 실측하고 여기는 리터럴이므로 헤더 구성이 바뀌면 함께 본다. */
+  [data-index-target] {
+    scroll-margin-top: 96px;
+  }
+
+  /* 데모 플레이어는 화면 하단에 고정되어 있다. 그만큼 본문 아래에 자리를 비워 둬야
+     스크롤 끝에서 마지막 내용이 가리지 않는다 — 떠 있는 카드였을 때는 스크롤 도중
+     표 위를 덮었다. 높이는 플레이어가 자기를 재서 `--demo-player-h`에 넣는다.
+     폴백(7rem)은 ResizeObserver가 발화하지 않는 숨겨진 탭용이며 넉넉히 잡았다. */
+  body {
+    padding-bottom: calc(var(--demo-player-h, 7rem) + 1rem);
+  }
 }
 
 /* ── Data-viz 팔레트 ────────────────────────────────────────────────────────
