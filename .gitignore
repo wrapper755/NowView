@@ -49,3 +49,8 @@ __pycache__/
 .ruff_cache/
 # LangGraph checkpointer 상태. 인스턴스 진행 상황이라 커밋 대상이 아니다.
 engine/*.sqlite
+
+# 편집기 스왑·백업 파일 (한 번 실수로 커밋했다)
+*.swp
+*.swo
+*~
