@@ -49,7 +49,10 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* 카드(--card)는 #ffffff 그대로 둔다 — 차트 팔레트가 그 값을 서피스로 검증했다.
+     대신 페이지를 한 단 낮춰 박스가 떠 보이게 한다. 둘 다 oklch(1 0 0)이던 동안은
+     카드 경계가 ring 하나뿐이어서 "박스가 분간되지 않는다"가 맞았다. */
+  --background: oklch(0.967 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -57,15 +60,17 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.935 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  /* 페이지가 0.967이 되었으므로 muted도 함께 내린다 — 같이 두면 카드 밖의 칩·배지가
+     배경에 묻힌다. */
+  --muted: oklch(0.932 0 0);
+  --muted-foreground: oklch(0.505 0 0);
+  --accent: oklch(0.932 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.872 0 0);
+  --input: oklch(0.872 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -99,8 +104,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  /* 다크는 페이지 #0a0a0a와 카드 #171717의 차이가 L* 5뿐이라 면만으로는 약하다.
+     배경을 더 내릴 여지가 없으므로(이미 거의 검정) 경계를 세운다. */
+  --border: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -142,6 +149,37 @@
   body {
     padding-bottom: calc(var(--demo-player-h, 7rem) + 1rem);
   }
+}
+
+/* ── React Flow 컨트롤 ──────────────────────────────────────────────────────
+   `@xyflow/react/dist/style.css`는 버튼 배경을 `#fefefe`로 **박아 둔다**. 아이콘은
+   `currentColor`를 타고 우리 foreground를 따라가므로 다크에서 흰 버튼에 흰 아이콘이
+   되어 **아무것도 보이지 않는다**(실측: 배경 rgb(254,254,254), fill L* 98).
+   색이 아니라 대비가 사라지는 문제라 콘솔 경고도 없다. 토큰으로 되돌린다. */
+.react-flow__controls {
+  box-shadow: none;
+}
+/* 클래스를 두 번 적어 특이도를 올린다. `@xyflow/react/dist/style.css`는 컴포넌트에서
+   import되어 globals.css **뒤에** 주입되므로, 같은 특이도로는 우리 규칙이 진다. */
+.react-flow__controls-button.react-flow__controls-button {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+}
+.react-flow__controls-button.react-flow__controls-button:hover {
+  background: var(--muted);
+}
+.react-flow__controls-button.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__controls-button.react-flow__controls-button:disabled {
+  opacity: 0.4;
+}
+.react-flow__attribution.react-flow__attribution {
+  background: transparent;
+}
+.react-flow__attribution a {
+  color: var(--muted-foreground);
 }
 
 /* ── Data-viz 팔레트 ────────────────────────────────────────────────────────
