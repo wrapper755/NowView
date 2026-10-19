@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SC01 — 고객 생산계획 변경에 따른 공급전망 갱신과 목표 미달 위험 대응.
+
+  업무 흐름의 유일한 원천이다. Chaeksas 엔진이 이 파일을 그대로 해석하고, Chaeksas Studio
+  (bpmn-js)로 열어 고칠 수 있다. 다이어그램(DI)은 없다 — Studio에서 열면 자동 배치된다.
+
+  BPM이 쥐는 것: 순서 · 사람 대기(배정·인수·검토) · 분기 · 인계.
+  BPM이 쥐지 않는 것: 계산 · 원천 검증 · 이슈 갱신 — 서비스 태스크가 NowView 계산 서비스
+  (`nowview.sc01`)를 부른다. 엔진은 숫자를 모른다(구현명세 AG-01, 설계 G12).
+
+  단계 대응(SC01 설계서 1.5): S01 접수 → S02 원천 확인(CT01) → S03·S04 전망 작성·비교 계산 →
+  S05 영업 검토(CT02) → S06 현업 배정(CT03) ∥ S07 경영 검토 연결 → S08 인계.
+  역할 배정은 `app/sc01/process.py`의 NODE_ROLES에 있다 — BPMN 확장에 역할 칸이 없다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc01">
+  <bpmn:message id="Msg_correction" name="원천정정"/>
+  <bpmn:process id="nowview.sc01" name="SC01 고객계획 변경 대응" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{
+        "run_location": "server",
+        "service_keys": {"nowview.sc01": "nowview-in-process"},
+        "inputs": [
+          {"name": "데모실행ID", "type": "string", "required": true},
+          {"name": "원천ID", "type": "string", "required": true}
+        ]
+      }</chk:process>
+    </bpmn:extensionElements>
+
+    <bpmn:startEvent id="Start" name="고객계획 수신"/>
+
+    <!-- S01·S02 원천 자동 검증 — 필수값·매핑·정수·중복·완전성·물량 범위(UI03-01) -->
+    <bpmn:serviceTask id="Task_Validate" name="원천 자동 검증">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{
+          "app_id": "nowview.sc01", "operation": "validate_source",
+          "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID"},
+          "output": {"검증통과": "passed", "검증오류수": "error_count"}
+        }</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S02 CT01 자료 적합성 확인 — 영업담당 (TASK-DQ) -->
+    <bpmn:userTask id="Approve_DQ" name="원천 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "고객계획 원천 확인",
+          "description": "고객·모델·공장·대상 월, 월 전체/잔여, 당사 배정 여부를 확인한다. 40%를 다시 곱하지 않는다.",
+          "show": ["원천ID", "검증통과", "검증오류수"],
+          "fields": [
+            {"key": "확인결과", "label": "확인 결과", "type": "choice", "required": true,
+             "choices": ["확인완료", "보완요청"]},
+            {"key": "확인의견", "label": "확인 의견", "type": "text", "required": true},
+            {"key": "확인근거", "label": "근거", "type": "text", "required": true}
+          ]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="Gw_DQ" name="원천 확인 결과" default="Flow_dq_fix"/>
+
+    <!-- 보완 — 정정본이 오면 새 원천ID로 다시 검증한다. 이전 원천은 지우지 않는다(1.10). -->
+    <bpmn:receiveTask id="Wait_Correction" name="정정본 대기" messageRef="Msg_correction">
+      <bpmn:extensionElements>
+        <chk:receive>{"message": "원천정정", "payload": ["원천ID"]}</chk:receive>
+      </bpmn:extensionElements>
+    </bpmn:receiveTask>
+
+    <!-- S03·S04 비교 계산 실행 — 영업담당이 누른다(UI03 "비교 계산") -->
+    <bpmn:manualTask id="Confirm_Calc" name="비교 계산 실행">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "비교 계산 실행",
+          "description": "T01 · 직전 승인 전망 F01 · 확인된 원천으로 최신 전망을 만들고 지표를 계산한다.",
+          "show": ["원천ID"],
+          "fields": [{"key": "계산메모", "label": "메모", "type": "text"}]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:manualTask>
+    <!-- 폼이 없으면 Chaeksas가 「승인/반려」 결정을 요구한다 — 계산 실행은 승인이 아니므로 칸을 둔다. -->
+
+    <bpmn:serviceTask id="Task_Calc" name="전망 생성 · 지표 계산">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{
+          "app_id": "nowview.sc01", "operation": "compare",
+          "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID"},
+          "output": {"계산ID": "run_id", "위험수준": "risk", "이슈ID": "issue_id"}
+        }</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S05 CT02 공급전망·Risk 검토 — 영업팀장 (TASK-SALES) -->
+    <bpmn:userTask id="Approve_Sales" name="영업 검토">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "공급전망 변동 · 위험 검토",
+          "description": "변경의 의미·지속성·고객 재확인 필요성과 후속 처리 경로를 판단한다. 계산 경보는 바꾸지 않는다.",
+          "show": ["계산ID", "위험수준", "이슈ID"],
+          "fields": [
+            {"key": "영업의견", "label": "검토 의견", "type": "text", "required": true},
+            {"key": "영업근거", "label": "근거", "type": "text", "required": true},
+            {"key": "경영검토요청", "label": "경영 검토 추가 요청(중요 미만일 때)", "type": "bool",
+             "default": false}
+          ]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <!--
+      현업 검토는 경보와 무관하게 항상 간다(S08·UI04-04). 경영 검토는 중요이거나 사유 있는 수동
+      요청일 때 함께 간다(WF-05). 둘은 병행한다 — 경영 검토 중이라고 현업 대응을 멈추지 않는다(1.5).
+    -->
+    <bpmn:inclusiveGateway id="Gw_Route" name="후속 처리 경로"/>
+
+    <!-- S06 CT03 현업 검토 배정 — 영업팀장 (EV04) -->
+    <bpmn:userTask id="Approve_Dispatch" name="현업 검토 배정">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "생산·자재 영향 검토 배정",
+          "show": ["계산ID", "이슈ID"],
+          "fields": [
+            {"key": "생산담당자", "label": "생산 담당", "type": "text", "required": true},
+            {"key": "자재담당자", "label": "자재 담당", "type": "text", "required": true},
+            {"key": "배정사유", "label": "검토 목적", "type": "text", "required": true}
+          ]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <!-- 생산과 자재는 반드시 별도 업무다(UI05-01) -->
+    <bpmn:parallelGateway id="Gw_Ops_Split" name="생산 ∥ 자재"/>
+
+    <bpmn:userTask id="Accept_PROD" name="생산 영향 검토 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "생산계획 영향 검토 인수",
+          "show": ["계산ID", "이슈ID", "배정사유"],
+          "fields": [{"key": "생산인수의견", "label": "인수 의견", "type": "text"}]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Accept_MAT" name="자재 영향 검토 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "소요자재·발주 영향 검토 인수",
+          "show": ["계산ID", "이슈ID", "배정사유"],
+          "fields": [{"key": "자재인수의견", "label": "인수 의견", "type": "text"}]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <bpmn:parallelGateway id="Gw_Ops_Join" name="현업 인수 모으기"/>
+
+    <!-- S07 경영 검토 연결 — 영업팀장 (EV05) -->
+    <bpmn:userTask id="Approve_Review" name="Management Review 요청">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "통합 손익 검토 요청",
+          "show": ["계산ID", "위험수준", "이슈ID"],
+          "fields": [
+            {"key": "경영관리담당자", "label": "경영관리 담당", "type": "text", "required": true},
+            {"key": "검토요청사유", "label": "요청 사유", "type": "text", "required": true}
+          ]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="Accept_FIN" name="손익분석 보고 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{
+          "title": "손익분석 보고 요청 인수",
+          "description": "장면 1에서는 인수까지다 — 분석 보고 완료로 표시하지 않는다.",
+          "show": ["계산ID", "이슈ID", "검토요청사유"],
+          "fields": [{"key": "경영관리인수의견", "label": "인수 의견", "type": "text"}]
+        }</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+
+    <bpmn:inclusiveGateway id="Gw_Join" name="후속 인수 모으기"/>
+
+    <!-- S08 인계 판정 — 조건을 다시 확인하고 SCENE_HANDED_OFF를 한 번만 남긴다(UI06-01) -->
+    <bpmn:serviceTask id="Task_Handoff" name="장면 인계 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{
+          "app_id": "nowview.sc01", "operation": "hand_off",
+          "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
+          "output": {"인계완료": "handed_off"}
+        }</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End" name="장면 1 인계 완료"/>
+
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Validate"/>
+    <bpmn:sequenceFlow id="Flow_validated" sourceRef="Task_Validate" targetRef="Approve_DQ"/>
+    <bpmn:sequenceFlow id="Flow_dq" sourceRef="Approve_DQ" targetRef="Gw_DQ"/>
+    <bpmn:sequenceFlow id="Flow_dq_ok" name="확인완료" sourceRef="Gw_DQ" targetRef="Confirm_Calc">
+      <bpmn:conditionExpression>확인결과 == '확인완료' and 검증통과</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_dq_fix" name="보완 필요" sourceRef="Gw_DQ" targetRef="Wait_Correction"/>
+    <bpmn:sequenceFlow id="Flow_corrected" sourceRef="Wait_Correction" targetRef="Task_Validate"/>
+    <bpmn:sequenceFlow id="Flow_calc" sourceRef="Confirm_Calc" targetRef="Task_Calc"/>
+    <bpmn:sequenceFlow id="Flow_calced" sourceRef="Task_Calc" targetRef="Approve_Sales"/>
+    <bpmn:sequenceFlow id="Flow_sales" sourceRef="Approve_Sales" targetRef="Gw_Route"/>
+    <bpmn:sequenceFlow id="Flow_ops" name="현업 검토(항상)" sourceRef="Gw_Route" targetRef="Approve_Dispatch">
+      <bpmn:conditionExpression>true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_review" name="중요 또는 수동 요청" sourceRef="Gw_Route" targetRef="Approve_Review">
+      <bpmn:conditionExpression>위험수준 == 'CRITICAL' or 경영검토요청</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_dispatched" sourceRef="Approve_Dispatch" targetRef="Gw_Ops_Split"/>
+    <bpmn:sequenceFlow id="Flow_prod" sourceRef="Gw_Ops_Split" targetRef="Accept_PROD"/>
+    <bpmn:sequenceFlow id="Flow_mat" sourceRef="Gw_Ops_Split" targetRef="Accept_MAT"/>
+    <bpmn:sequenceFlow id="Flow_prod_done" sourceRef="Accept_PROD" targetRef="Gw_Ops_Join"/>
+    <bpmn:sequenceFlow id="Flow_mat_done" sourceRef="Accept_MAT" targetRef="Gw_Ops_Join"/>
+    <bpmn:sequenceFlow id="Flow_ops_done" sourceRef="Gw_Ops_Join" targetRef="Gw_Join"/>
+    <bpmn:sequenceFlow id="Flow_requested" sourceRef="Approve_Review" targetRef="Accept_FIN"/>
+    <bpmn:sequenceFlow id="Flow_fin_done" sourceRef="Accept_FIN" targetRef="Gw_Join"/>
+    <bpmn:sequenceFlow id="Flow_join" sourceRef="Gw_Join" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_end" sourceRef="Task_Handoff" targetRef="End"/>
+  </bpmn:process>
+</bpmn:definitions>

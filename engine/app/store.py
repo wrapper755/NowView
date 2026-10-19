@@ -162,6 +162,8 @@ class Backend:
     #: 사람이 읽는 설명. `/health`에 그대로 싣는다 — 어느 백엔드로 돌고 있는지
     #: 알 수 없으면 "SQLite로 운영에 올렸다"를 눈치챌 방법이 없다.
     describe: str
+    #: SQLite 파일 경로. 다른 저장소가 **같은 파일에 자기 연결**을 열 때 쓴다(sc01/store.py).
+    sqlite_path: str | None = None
 
     def close(self) -> None:
         self.specs.close()
@@ -174,7 +176,7 @@ def build_sqlite_backend(path: str = DEFAULT_SQLITE_PATH) -> Backend:
     # 체크포인터와 명세가 같은 연결을 쓴다 — 파일이 둘로 갈리면 한쪽만 지워지는 상태가 생긴다.
     checkpointer = SqliteSaver(specs.conn)
     checkpointer.setup()
-    return Backend("sqlite", checkpointer, specs, f"sqlite:{path}")
+    return Backend("sqlite", checkpointer, specs, f"sqlite:{path}", sqlite_path=path)
 
 
 def build_postgres_backend(url: str, *, max_size: int = 10) -> Backend:

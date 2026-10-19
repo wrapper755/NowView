@@ -27,6 +27,9 @@ from .agents import AgentContractError, make_runner
 from .events import KEEPALIVE_SECONDS, hub
 from .instances import InstanceStore, config_for, snapshot
 from .notify import build_notifier
+from .sc01.api import build_router as build_sc01_router
+from .sc01.process import Sc01Process
+from .sc01.store import build_sc01_store
 from .seek import SeekError, seek
 from .spec import ProcessSpec
 from .store import build_backend
@@ -53,6 +56,10 @@ store = InstanceStore(
 
 # 변경 전파. Postgres면 LISTEN/NOTIFY로 **다른 워커까지** 간다(notify.py).
 notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
+
+# SC01 — Chaeksas BPM 엔진 위의 장면 1(app/sc01). 같은 저장소·같은 알림 경로를 쓴다.
+sc01 = Sc01Process(build_sc01_store(backend), publish=notifier.publish)
+app.include_router(build_sc01_router(sc01, hub))
 
 
 class CreateRequest(BaseModel):

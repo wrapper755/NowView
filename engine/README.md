@@ -1,16 +1,21 @@
 # NowView BPM Engine
 
-LangGraph StateGraph 기반 BPM 런타임. Next 앱의 `/api/engine/*`가 이것을 프록시한다.
+BPM 런타임. Next 앱의 `/api/engine/*`가 이것을 프록시한다. 엔진이 둘 들어 있다:
+
+* **`/sc01/*` — Chaeksas BPM**(`chaeksas-core`, BPMN 2.0 해석기). SC01 장면 1. 업무 흐름은
+  `processes/sc01.bpmn`, 시드는 `seed/SYN-SC01-v0.2.xlsx`. 설계는 루트 `CLAUDE.md` 4.26.
+* **`/instances/*` — LangGraph StateGraph.** 이전 3개 시나리오. 화면이 SC01로 옮겨 가면
+  걷어낸다(CLAUDE.md 5.6). 아래 절들은 이쪽 이야기다.
 
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 68개 (SQLite만, LLM 제외)
+uv run pytest                                      # 162개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 104개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 218개
 ```
 
 전체 스택은 저장소 루트에서:

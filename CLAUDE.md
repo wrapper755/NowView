@@ -26,7 +26,7 @@ npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 74개 (SQLite만, LLM 제외)
+uv run pytest                                      # 162개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (약 40초)
 uv run ruff check .
 ```
@@ -71,7 +71,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (104개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (218개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -122,11 +122,15 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
   * **Human-in-the-Loop**: AI Agent는 데이터 수집, 이상 징후 감지, 다차원 원인 분석, 대안 시뮬레이션을 수행하고, 최종 판단과 승인은 사람이 책임진다.
-  * **Deterministic BPM + Probabilistic AI**: 워크플로우 통제는 결정론적 BPM(LangGraph StateGraph)으로 통제하고, 데이터 해석 및 분석은 LLM 에이전트가 담당한다.
+  * **Deterministic BPM + Probabilistic AI**: 워크플로우 통제는 결정론적 BPM(Chaeksas BPMN 엔진 — 4.26, 이전 시나리오는 아직 LangGraph)으로 통제하고, 데이터 해석 및 분석은 LLM 에이전트가 담당한다.
 
 ---
 
 ## 2. Business Context & Virtual Company Spec
+
+> **이 절은 기획안 v0.1 기준이고 화면도 아직 이 설정이다.** 기획안 v0.5와 SC01 설계 문서는
+> 상세 대상을 **A제품·울산공장(a~e모델), 2027년 7월 b모델 고객계획 감소**로 다시 정했다 —
+> 엔진 쪽은 이미 그 기준이다(4.26). 화면을 SC01로 바꾸는 단계(5.6)에서 이 절을 함께 고쳐 쓴다.
 
 ### 2.1 가상 고객사: (주)넥스트오토모티브 (Next Automotive Corp.)
 * **기업 규모**: 연간 매출 1조 200억 원 / 목표 영업이익 428억 원 (영업이익률 4.2%)
@@ -156,19 +160,19 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **Data Visualization**: **Recharts** 3.10 (단일 차트 라이브러리), Lucide React
 * **State Management**: Zustand 5.0 (시나리오 데모 플레이어 상태 관리용)
 * **Backend / API**: Next.js Server Actions & Route Handlers (FastAPI/Python LangGraph 연동 지원)
-* **Workflow / Agent Engine**: **LangGraph StateGraph** (BPM 상태 머신 + Multi-Agent 오케스트레이션 공용)
+* **Workflow / Agent Engine**: **Chaeksas BPM** (`chaeksas-core`, BPMN 2.0 해석기 — 라이브러리로 임베드, 4.26). 기존 3개 시나리오는 화면 전환 전까지 **LangGraph StateGraph**로 돈다
 * **Database & Mock**: PostgreSQL, DuckDB, JSON Mock Datasets
 
 ### 3.1 확정된 기술 선택 (Decided — 재검토 불필요)
 
 | 영역 | 선택 | 배제한 대안 | 사유 |
 |---|---|---|---|
-| BPM 상태 머신 | LangGraph StateGraph | Camunda 8 (BPMN 2.0) | Camunda는 Zeebe 브로커 운영이 필요해 프로토타입에 과중하다. LangGraph는 BPM 상태 전이와 에이전트 오케스트레이션을 하나의 그래프 런타임으로 처리한다. |
+| BPM 상태 머신 | **Chaeksas BPM** (`chaeksas-core` 임베드) | LangGraph StateGraph(이전 선택), Camunda 8, Chaeksas Center 연동 | 2026-10-19 사용자 결정으로 LangGraph를 대체한다. BPMN 2.0을 그대로 해석하므로 업무 흐름이 **BPMN 파일 하나**에 있고 Chaeksas Studio로 열 수 있다. Camunda는 Zeebe 브로커 운영이 과중했다. Center·서버 실행기 경유는 정의마다 서명·배포가 필요하고 결재 응답이 관리자 토큰 전용이며 작업 결과 값을 돌려주지 않아 배제했다(4.26). |
 | 차트 | Recharts | Apache ECharts | Shadcn/UI·Tailwind와의 컴포지션이 자연스럽다. 차트 라이브러리는 하나만 쓴다 — 두 개를 섞으면 테마·툴팁·반응형 동작이 갈라진다. |
 | Shadcn 프리미티브 | Radix (`-b radix`) | Base UI, React Aria | 기존 shadcn/ui 문서·스니펫이 Radix 기반이라 이식 비용이 가장 낮다. |
 | 테마 전환 | next-themes (`attribute="class"`) | 직접 구현 | 초기 렌더에 잘못된 테마가 번쩍이는(FOUC) 문제를 직접 처리하지 않아도 된다. `.dark` 클래스 방식이 Tailwind v4 `@custom-variant dark`와 `globals.css`의 `.dark .viz-root`를 동시에 만족시켜, UI 토큰과 차트 색이 항상 함께 전환된다. |
 
-BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 바꾸지 않는다. 시각화는 `@xyflow/react` 커스텀 노드로 처리하고, 상태의 원천은 LangGraph 그래프로 유지한다.
+시각화는 `@xyflow/react` 커스텀 노드로 그린다. **토폴로지의 원천은 BPMN 파일**(`engine/processes/*.bpmn`)이고 화면은 `GET /sc01/process`로 받는다 — 4.16의 "`lib/mock-data`가 토폴로지 원천"은 SC01부터 뒤집힌다.
 
 ---
 
@@ -245,10 +249,19 @@ NowView/
     │   ├── main.py               # FastAPI — instances 생명주기
     │   ├── spec.py               # 받는 명세 (Pydantic, camelCase 별칭)
     │   ├── state.py              # 인스턴스 상태
-    │   ├── graph.py              # 명세 → LangGraph StateGraph 조립
+    │   ├── sc01/                 # SC01 장면 1 — Chaeksas BPM 위 (4.26)
+    │   │   ├── seed.py           #   엑셀 시드의 원천 시트 적재
+    │   │   ├── calc.py           #   지표·위험 판정·손익 집계 (규칙 계산)
+    │   │   ├── domain.py         #   원천·이슈·업무·기한·인계 (문서 하나 = 데모 실행 하나)
+    │   │   ├── process.py        #   Chaeksas 엔진 래퍼 + 서비스 태스크 어댑터
+    │   │   ├── store.py          #   문서·이력 저장 (row_version 낙관적 잠금)
+    │   │   ├── demo.py · view.py · api.py   # 시연 각본 · 응답 모양 · /sc01/* 라우터
+    │   ├── graph.py              # 명세 → LangGraph StateGraph 조립 (이전 3개 시나리오)
     │   ├── agents.py             # MockRunner · OllamaRunner + 계약 검증
     │   └── instances.py          # 생명주기 · checkpointer · 스냅샷 파생
-    └── tests/                    # pytest 74개
+    ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천 (Chaeksas Studio로 열린다)
+    ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트는 시드, 파생 시트는 기대값
+    └── tests/                    # pytest 162개 (Postgres 포함 218개)
 ```
 
 **디렉토리 규칙**
@@ -584,7 +597,7 @@ curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
 ### 4.15 테스트
 
 `tests/`에 Vitest로 **순수 로직만** 검증한다(139개). 엔진 테스트는 `engine/tests/`에
-pytest로 따로 있다(74개) — 4.16 참조. 렌더링 테스트는 두지 않았다 —
+pytest로 따로 있다(162개) — 4.16·4.26 참조. 렌더링 테스트는 두지 않았다 —
 jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레이아웃·가독성처럼 계산으로
 못 잡는 것은 어차피 브라우저에서 눈으로 봐야 한다.
 
@@ -600,7 +613,7 @@ jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레�
 | `metrics.test.ts` | 표기 유틸, 경영 수행 성과가 **실제 데이터에서 계산되는지** (4.9), 엔진 실측값 반영 (4.17) |
 
 엔진 쪽은 `engine/tests/`에 pytest로 있다 — **SQLite와 Postgres 두 백엔드를 모두 돌린다**
-(74개 / 110개). 자리표시자·행 접근·날짜 타입이 전부 달라 한쪽만 돌리면 나머지가 배포
+(162개 / 218개). 자리표시자·행 접근·날짜 타입이 전부 달라 한쪽만 돌리면 나머지가 배포
 시점에 터진다. **`test_api.py`만 HTTP 엔드포인트를 거친다** — 나머지는 `InstanceStore`와
 그래프를 직접 쓴다. 운영에서 터진 것이 그 경계였기 때문이다(5.4의 524): 생성이 배경을
 기다리지 않는지, 배경 실패가 스냅샷에 드러나는지, **진행 중 알림에 `done`이 새지 않는지**를
@@ -1072,6 +1085,70 @@ import되므로 `globals.css`보다 나중에 온다 — 같은 특이도로 덮
 **데스크톱은 건드리지 않았다.** 전부 `sm:` 분기이고, 1280×800에서 해설 라벨·스크러버·
 플레이어 79px·캔버스 360px·문단 752px가 이전과 같은 것을 확인했다.
 
+### 4.26 SC01 · Chaeksas BPM (엔진 쪽 — 화면은 아직)
+
+기획안 v0.5와 SC01 문서 4종(설계서 v0.5·구현명세 v0.2·통합 가상 데이터 설계 v0.2·설계 Template v0.5)을
+엔진에 옮긴 것이다. **사건이 바뀌었다** — 가동률 이탈이 아니라 *2027년 7월 b모델 고객계획
+9,500→8,800대분*이고, 범위는 장면 1(감지 → 현업 통제·Review 인계)까지다. 원본 문서는 리포에
+없다(사용자 Downloads). 요구사항 ID(UI01-xx·CALC-xx·WF-xx·AT-xx)는 코드 주석과 테스트 이름에 그대로 쓴다.
+
+```
+engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pendings·answer·deliver)
+                                              │ chk:serviceCall nowview.sc01
+                                              ▼
+                          app/sc01/process.py _InProcessCalls → domain.py / calc.py
+                                              │ 문서 1개 + BPM 스냅샷을 한 번에 저장
+                                              ▼
+                          sc01_demo_run(row_version) · sc01_history → notifier → SSE
+```
+
+**경계**
+
+* **BPM이 쥐는 것: 순서·사람 대기·분기·인계. 숫자는 모른다.** 계산·원천 검증·이슈 갱신은 서비스
+  태스크가 부르는 `nowview.sc01` 앱이 한다 — 네트워크가 아니라 같은 프로세스의 어댑터다.
+  구현명세 AG-01·설계 G12의 "규칙 계산과 Agent/BPM을 가른다"가 여기서 갈린다.
+* **Chaeksas는 라이브러리로만 쓴다**(`chaeksas-core`, git 커밋 고정). Center·서버 실행기는 쓰지
+  않는다 — 정의 변경마다 서명·배포, 결재 응답은 관리자 토큰 전용, 작업 결과 값 미반환이라
+  화면이 결과를 읽을 길이 없다. 대신 **지금 엔진이 하던 것을 우리가 붙였다**: SSE(기존 허브·
+  notifier 재사용), 지난 시점(Chaeksas 스냅샷은 현재 하나뿐이라 `sc01_history`에 매번 문서 전체),
+  승인 규칙(폼에 없는 "의견·근거 필수", "담당자만 인수"는 `_before_answer`).
+* **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
+  저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
+  보지 않으므로(DATA-05) 실행 사이 조회가 필요 없다.
+* **엑셀이 기준 시드이자 기대값이다.** `seed.py`는 원천 시트만 읽고, 테스트가 파생 시트(월분기연간·
+  SC01검증)를 따로 읽어 대조한다 — 숫자를 테스트에 옮겨 적지 않는다. 엑셀을 고치면
+  `engine/seed/`의 파일을 바꾸고 `pytest`를 돌린다.
+* **역할 배정은 코드에 있다**(`domain.NODE_ROLES`). Chaeksas `chk:approval`에 역할 칸이 없다.
+  BPMN에 사람 노드를 더하고 표를 빠뜨리면 `test_every_user_task_has_a_role`이 잡는다.
+* **행위자는 `X-Demo-Actor` 헤더다 — 신뢰 경계가 아니다.** 구현명세는 세션에서 꺼내라고 하지만
+  인증이 없다(5.4). 서버는 "그 사용자가 그 역할·담당인가"까지 검사하고, 인증이 붙으면 헤더만
+  세션으로 바꾸면 된다.
+
+**흐름(BPMN)** — S01·S02 자동 검증 → `Approve_DQ`(영업담당, 보완이면 정정본 메시지 대기) →
+`Confirm_Calc` → 전망 생성·지표 계산 → `Approve_Sales`(영업팀장) → **포함 게이트웨이**: 현업
+배정(항상) ∥ Review 요청(`위험수준 == 'CRITICAL' or 경영검토요청`) → PROD·MAT(병렬)·FIN 인수 →
+인계 기록. 장면 완료는 **후속 업무 인수**이지 위험 해소·전망 승인이 아니다 — 끝나도 F02는
+`UNDER_REVIEW`, ISSUE-B07은 열린 중요다.
+
+**만들며 드러난 것**
+
+* **폼 없는 `manualTask`는 `decision`(승인/반려)을 요구한다.** "비교 계산 실행"에 승인을 넣는 꼴이라
+  선택 칸(메모)을 하나 뒀다.
+* **`chk:serviceCall`은 키 참조가 없으면 검사(B7)에서 막힌다.** 같은 프로세스 어댑터라 키가 필요
+  없지만 `service_keys`에 이름만 둔다.
+* **SQLite 연결을 잠금 없이 나눠 쓰자 SSE가 죽었다.** 쓰는 도중의 읽기가 빈 행을 받아
+  `json.loads(None)`. SC01 저장소는 **같은 파일에 자기 연결**을 열고 잠금으로 줄 세운다 —
+  LangGraph 체크포인터는 자기 잠금을 따로 쥐므로 연결을 나누면 서로를 모른다. 잠금을 끄면 회귀
+  테스트가 3회 중 3회 실패하는 것을 확인했다.
+* **`python:3.12-slim`에 git이 없다** — git 의존성이 깔리지 않는다. 엔진 Dockerfile에 git과
+  `processes/`·`seed/` 복사를 넣었다. 운영 서버에는 git이 있다.
+* **S0에서 8·9월 관심 평가를 이슈로 만들지 않는다**(UI01-04). 이슈는 7월 a·b 둘뿐이고, 계산은
+  같은 키의 열린 이슈에 run을 잇는다(B07: 관심→중요, 새 이슈 없음).
+
+**실측**: 실제 엔진(:8077)에서 각본 9단계를 HTTP로 돌려 인계까지 갔다(단계당 10~20ms). SSE가
+변경 16건을 모두 실어 BPM 대기 지점이 `Approve_DQ → … → Accept_FIN → []`로 바뀌는 것을 받았다.
+대시보드 연간 공장관리손익 T01 34.77억 · F01 33.23억 · F02 33.09억이 엑셀과 같다.
+
 ---
 
 ## 5. 다음 단계와 선행 조건
@@ -1390,3 +1467,28 @@ scripts/deploy.sh --logs engine 80
   응답에 실려 오기 때문이다 — 배경으로 보내면 그 설계를 함께 손봐야 한다.
 * **`failure`는 메모리에만 있다.** 엔진을 재시작하면 사라지고 인스턴스는 마지막
   체크포인트에서 다시 진행시킬 수 있는 상태로 남는다. 캐시된 그래프와 같은 성격이다.
+
+### 5.6 SC01 화면 전환과 LangGraph 걷어내기 — 다음
+
+엔진 쪽(1·2단계)은 끝났다 — 4.26. **화면은 아직 이전 3개 시나리오다.** 남은 순서는 구현명세 14장을 따른다.
+
+**3단계 — 화면과 업무**
+* UI01~UI06을 만든다. 다섯 화면(①~⑤)의 자리를 SC01로 다시 짠다 — 2절의 회사 설정과 4.6의 항등식
+  (428억·가동률)도 이때 새로 쓴다. 장면 2 이후(단가 인상·통합 손익·대안·Rolling·Evolution)는
+  문서에 이야기 수준만 있다(D18: 100→85→97억은 설명용). **지어내지 말고** 화면이 "후속 장면"이라고
+  말하게 한다.
+* 데모 플레이어 장면 = `GET /sc01/script` + `POST /sc01/demo-runs/{id}/script/{i}`. 되감기는
+  `GET …/history/{seq}`(읽기 전용).
+* 캔버스는 `GET /sc01/process`에서 노드·흐름을 받는다(BPMN에 DI가 없으므로 배치는 화면이 한다).
+* **그 다음에 LangGraph를 걷어낸다** — `graph.py`·`seek.py`·`instances.py`·`agents.py`·`spec.py`,
+  `services/engine-spec.ts`, LangGraph 의존성. 지금 지우지 않은 이유: 화면이 아직 그 엔진으로 돌아
+  지우면 엔진 모드가 대체물 없이 깨진다.
+
+**4단계 — Agent와 예외**
+* Agent(`summary·findings·evidence_refs·questions·suggested_tasks·limitations`, AG-01~03). 숫자는
+  규칙 결과와 대조해 다르면 실패로 처리한다. Chaeksas `chk:aiTask`는 결과 타입만 검증하므로 계약
+  검증은 우리가 붙인다. 실패해도 수동 검토로 진행된다(EX08) — 지금 흐름이 이미 Agent 없이 끝난다.
+* EX03(정정본 → F03, 기존 이슈 연결)·EX07(기한 초과 알림, 가상시계)·AT13의 멱등키. 시연 원천
+  변형(`domain.FIXTURES`)과 기한 계산은 이미 있다.
+* 운영 배포 전 확인: 인증이 없는 상태에서 `X-Demo-Actor`로 아무 역할이나 될 수 있다(4.26).
+

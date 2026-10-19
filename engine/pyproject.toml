@@ -2,7 +2,7 @@
 name = "nowview-engine"
 version = "0.1.0"
 description = "NowView BPM 엔진 — LangGraph StateGraph + Agent 오케스트레이션"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -12,7 +12,15 @@ dependencies = [
     "pydantic>=2.9",
     "langgraph-checkpoint-postgres>=3.1",
     "psycopg[binary,pool]>=3.2",
+    "chaeksas-core",
+    "openpyxl>=3.1",
 ]
+
+# Chaeksas BPM 엔진(BPMN 해석기)을 라이브러리로 쓴다 — Center·실행기는 쓰지 않는다.
+# 커밋에 고정한다: 브랜치를 따라가면 같은 락파일로 다른 엔진이 깔린다.
+# core가 같은 워크스페이스의 contracts·llm·extension_api를 끌고 온다.
+[tool.uv.sources]
+chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "6088b75eac13650283b2500ed8b95074e693417c", subdirectory = "packages/core" }
 
 [dependency-groups]
 dev = [
