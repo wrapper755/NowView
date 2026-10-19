@@ -47,16 +47,16 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             "overdue": domain.overdue(t, doc["clock"]),
             "assignedName": domain.USERS.get(t["assigned_to"] or "", {}).get("name"),
         }
-        for t in doc["tasks"].values()
+        for t in domain.ordered(doc["tasks"])
     ]
     latest_run = next(
-        (r for r in reversed(doc["calc_runs"].values()) if r["status"] == "SUCCEEDED"), None
+        (r for r in reversed(domain.ordered(doc["calc_runs"])) if r["status"] == "SUCCEEDED"), None
     )
     return {
         "demoRunId": doc["demo_run_id"],
         "caseId": doc["case_id"],
         "agentMode": doc.get("agent_mode", "mock"),
-        "agentOutputs": [_agent_view(o) for o in doc.get("agent_outputs", {}).values()],
+        "agentOutputs": [_agent_view(o) for o in domain.ordered(doc.get("agent_outputs", {}))],
         "alerts": doc.get("alerts", []),
         "bpmHistory": doc.get("bpm_history", []),
         "handoffHistory": doc.get("handoff_history", []),
@@ -74,15 +74,17 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             "position": sorted({t["node_id"] for t in doc["bpm"]["snapshot"]["tokens"]}),
             "visited": doc["bpm"].get("visited", []),
         },
-        "sources": list(doc["sources"].values()),
+        # 화면은 배열 순서를 그대로 쓴다(마지막 = 최신). 저장 순서가 아니라 만든 순서로 낸다.
+        "sources": domain.ordered(doc["sources"]),
         "forecasts": [
-            {k: v for k, v in f.items() if k != "quantities"} for f in doc["forecasts"].values()
+            {k: v for k, v in f.items() if k != "quantities"}
+            for f in domain.ordered(doc["forecasts"])
         ],
-        "calcRuns": list(doc["calc_runs"].values()),
+        "calcRuns": domain.ordered(doc["calc_runs"]),
         "latestRunId": latest_run["run_id"] if latest_run else None,
-        "issues": list(doc["issues"].values()),
+        "issues": sorted(doc["issues"].values(), key=lambda i: i["issue_id"]),
         "tasks": tasks,
-        "reviews": list(doc["reviews"].values()),
+        "reviews": sorted(doc["reviews"].values(), key=lambda r: r["at"]),
         "handoff": doc["handoff"],
         "handoffCheck": (
             domain.handoff_conditions(doc, latest_run["run_id"])
@@ -122,7 +124,7 @@ def dashboard(doc: dict, seed: Seed, *, period: str = "연간", month: int = 7) 
     review = next(
         (
             f
-            for f in reversed(doc["forecasts"].values())
+            for f in reversed(domain.ordered(doc["forecasts"]))
             if doc["calc_runs"].get(f"RUN-{f['version_id']}-001")
         ),
         None,

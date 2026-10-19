@@ -9,22 +9,66 @@ SC01 예외 경로 — EX03 정정본, EX07 기한 초과, AT13 멱등키.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
 
 import pytest
+from conftest import require_postgres
 
 from app.sc01 import demo
 from app.sc01.domain import DomainError
 from app.sc01.process import Sc01Process
-from app.sc01.store import SqliteSc01Store
+from app.sc01.store import PostgresSc01Store, SqliteSc01Store
+from app.sc01.view import view
+from app.store import build_postgres_backend
 
 OK_DQ = {"확인결과": "확인완료", "확인의견": "정정본 확인", "확인근거": "SRC03 원본"}
 SALES = {"영업의견": "정정본 반영 — 감소폭이 줄었다", "영업근거": "RUN-F03-001"}
 
 
-@pytest.fixture
-def proc() -> Sc01Process:
-    store = SqliteSc01Store(sqlite3.connect(":memory:", check_same_thread=False))
-    return Sc01Process(store, inline_agent=True)
+def jsonb_order(value):
+    """JSONB처럼 객체 키를 (바이트 길이, 바이트) 순으로 다시 놓는다 — 넣은 순서가 사라진다."""
+    if isinstance(value, dict):
+        keys = sorted(value, key=lambda k: (len(k.encode()), k.encode()))
+        return {k: jsonb_order(value[k]) for k in keys}
+    if isinstance(value, list):
+        return [jsonb_order(v) for v in value]
+    return value
+
+
+class JsonbLikeStore(SqliteSc01Store):
+    """읽을 때 JSONB처럼 키 순서를 바꾸는 SQLite — Postgres 없이도 순서 의존을 잡는다."""
+
+    def load(self, demo_run_id):
+        found = super().load(demo_run_id)
+        return (jsonb_order(found[0]), found[1]) if found else None
+
+    def at(self, demo_run_id, seq):
+        doc = super().at(demo_run_id, seq)
+        return jsonb_order(doc) if doc else None
+
+
+@pytest.fixture(params=["sqlite", "jsonb-like", "postgres"])
+def proc(request) -> Iterator[Sc01Process]:
+    """
+    세 저장소에서 같은 흐름을 돈다. Postgres JSONB는 키를 길이·바이트 순으로 다시 놓는다 —
+    운영계에서 업무 목록 순서가 바뀐 것으로 드러났다. jsonb-like는 그것을 Postgres 없이 재현한다.
+    """
+    backend = None
+    if request.param == "postgres":
+        backend = build_postgres_backend(require_postgres())
+        store = PostgresSc01Store(backend.pool)
+        with backend.pool.connection() as conn:
+            conn.execute("TRUNCATE sc01_demo_run, sc01_history")
+    else:
+        cls = JsonbLikeStore if request.param == "jsonb-like" else SqliteSc01Store
+        store = cls(sqlite3.connect(":memory:", check_same_thread=False))
+    try:
+        yield Sc01Process(store, inline_agent=True)
+    finally:
+        if backend is not None:
+            with backend.pool.connection() as conn:
+                conn.execute("TRUNCATE sc01_demo_run, sc01_history")
+            backend.close()
 
 
 def play(proc: Sc01Process, until: int | None = None) -> dict:
@@ -208,3 +252,54 @@ def test_an_old_format_document_still_works(proc) -> None:
     proc.store.save(rid, old, version, "old-format")
     doc = proc.act(rid, "Accept_PROD", {}, actor="u-prod")
     assert doc["tasks"]["TASK-PROD"]["status"] == "IN_PROGRESS"
+
+
+# ─────────────────────────── 순서 (JSONB) ───────────────────────────
+
+
+def test_order_follows_creation_not_storage(proc) -> None:
+    """
+    업무·계산·초안·원천은 **만든 순서**로 나온다 — 저장소가 키 순서를 바꿔도. 마지막이 최신이라는
+    가정을 화면이 쓰므로(최신 계산·최신 원천) 순서가 틀리면 엉뚱한 결과를 최신으로 보인다.
+    """
+    rid, _ = correct_after_handoff(proc)
+    proc.act(rid, "Approve_DQ", OK_DQ, actor="u-sales")
+    proc.act(rid, "Confirm_Calc", {}, actor="u-sales")
+    shown = view(proc.get(rid))
+    assert [t["task_id"] for t in shown["tasks"]] == [
+        "TASK-DQ",
+        "TASK-SALES",
+        "TASK-PROD",
+        "TASK-MAT",
+        "TASK-FIN",
+        "TASK-DQ-2",
+        "TASK-SALES-2",
+    ]
+    assert [r["run_id"] for r in shown["calcRuns"]] == ["RUN-F01-001", "RUN-F02-001", "RUN-F03-001"]
+    assert shown["latestRunId"] == "RUN-F03-001"
+    assert [s["source_id"] for s in shown["sources"]] == ["SRC02", "SRC03"]
+    assert [o["output_id"] for o in shown["agentOutputs"]] == ["AGT-001", "AGT-002"]
+
+
+def test_old_documents_get_their_order_back() -> None:
+    """순번(`seq`) 이전에 저장된 문서 — 키 순서가 섞였어도 id·배정 시각으로 되살린다."""
+    from app.sc01.domain import upgrade
+
+    store = SqliteSc01Store(sqlite3.connect(":memory:", check_same_thread=False))
+    proc = Sc01Process(store, inline_agent=True)
+    rid, _ = correct_after_handoff(proc)
+    proc.act(rid, "Approve_DQ", OK_DQ, actor="u-sales")
+    doc = proc.act(rid, "Confirm_Calc", {}, actor="u-sales")
+    for name in ("sources", "forecasts", "calc_runs", "agent_outputs", "tasks"):
+        for record in doc[name].values():
+            record.pop("seq", None)
+    shown = view(upgrade(jsonb_order(doc)))
+    assert [t["task_id"] for t in shown["tasks"]][:5] == [
+        "TASK-DQ",
+        "TASK-SALES",
+        "TASK-MAT",
+        "TASK-PROD",
+        "TASK-FIN",
+    ]  # 같은 시각(11:00)의 생산·자재는 id 순으로 — 원래 순서는 알 수 없다
+    assert shown["latestRunId"] == "RUN-F03-001"
+    assert [s["source_id"] for s in shown["sources"]] == ["SRC02", "SRC03"]
