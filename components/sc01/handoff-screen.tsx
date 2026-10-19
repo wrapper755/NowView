@@ -30,6 +30,13 @@ const ACTION_LABEL: Record<string, string> = {
   dispatched: "현업 검토 배정",
   review_requested: "Management Review 요청",
   SCENE_HANDED_OFF: "장면 1 인계 완료",
+  task_reconfirmed: "새 근거 재확인",
+  agent_requested: "Agent 초안 요청",
+  agent_succeeded: "Agent 초안 검증 통과",
+  agent_failed: "Agent 초안 실패",
+  agent_adopted: "초안을 의견에 가져옴",
+  bpm_superseded: "정정본으로 실행 대체",
+  overdue_alert: "기한 초과 알림",
 };
 
 /**
@@ -152,7 +159,10 @@ function Body({ view }: { view: DemoRunView }) {
                 .filter((t) => ["PROD", "MAT", "FIN"].includes(t.type))
                 .map((t) => (
                   <li key={t.task_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span>{TASK_TYPE_LABEL[t.type]} · {t.assignedName}</span>
+                    <span>
+                      <span className="font-mono text-xs">{t.task_id}</span> {TASK_TYPE_LABEL[t.type]} · {t.assignedName}
+                      {t.reconfirm ? <span className="ml-1 text-xs">(재확인 요청)</span> : null}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {TASK_STATUS_LABEL[t.status]}
                       {t.accepted_at ? ` · 인수 ${formatClock(t.accepted_at)}` : ""} · 기한 {formatClock(t.due_at)}
@@ -166,6 +176,37 @@ function Body({ view }: { view: DemoRunView }) {
           </CardContent>
         </Card>
       </div>
+
+      {view.bpmHistory.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>정정 이력</CardTitle>
+            <CardDescription>
+              정정본이 오면 이전 실행과 인계를 지우지 않고 이력으로 옮긴다. 최신 계산에 대한 인수 확인이 끝나야 다시
+              인계된다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1 text-sm">
+              {view.bpmHistory.map((b) => (
+                <li key={b.run_id} className="flex flex-wrap gap-x-2">
+                  <span className="tabular-nums text-muted-foreground">{formatClock(b.superseded_at)}</span>
+                  <span>
+                    BPM 실행 {b.run_id.slice(-6)} ({b.state === "cancelled" ? "진행 중 취소" : "완료 후 대체"}) →{" "}
+                    {b.by_source} 수신으로 새 실행
+                  </span>
+                </li>
+              ))}
+              {view.handoffHistory.map((h) => (
+                <li key={h.run_id + h.at} className="flex flex-wrap gap-x-2">
+                  <span className="tabular-nums text-muted-foreground">{formatClock(h.at)}</span>
+                  <span>이전 인계 ({h.run_id}) — 역사로 보존</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

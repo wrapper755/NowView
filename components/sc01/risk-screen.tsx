@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ActionForm } from "@/components/sc01/action-form";
+import { AgentPanel } from "@/components/sc01/agent-panel";
 import { Loading, RiskTag, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,8 +40,12 @@ const THRESHOLD: Record<string, { attention: string; critical: string }> = {
 export function RiskScreen() {
   const view = useSc01(selectView);
   const [pick, setPick] = useState<{ model: string; period: string }>({ model: "A-b", period: "2027-07-01" });
+  const [chosen, setChosen] = useState<string | null>(null);
 
-  const run = view?.calcRuns.find((r) => r.run_id === view.latestRunId && r.run_id !== "RUN-F01-001");
+  // S0의 기준 계산(F01 vs F01)은 비교 결과가 아니다. 정정이 있으면 계산이 여럿이다(EX03).
+  const runs = view?.calcRuns.filter((r) => r.run_id !== "RUN-F01-001") ?? [];
+  const latest = runs.at(-1);
+  const run = runs.find((r) => r.run_id === chosen) ?? latest;
 
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -55,14 +60,82 @@ export function RiskScreen() {
         </Card>
       ) : (
         <>
+          <RunPicker runs={runs} current={run} latest={latest!} onPick={setChosen} pick={pick} />
           <StateRow view={view} run={run} />
           <RiskDetail run={run} pick={pick} />
           <ModelCompare run={run} pick={pick} onPick={setPick} />
           <IssueHistory view={view} />
-          <Decisions view={view} />
+          <Decisions view={view} run={run} isLatest={run.run_id === latest?.run_id} />
         </>
       )}
     </main>
+  );
+}
+
+/**
+ * 계산이 여럿이면(정정본, EX03) 고른다. 이전 결과는 보존되고 "이전 결과"로 표시한다(UI04-05).
+ * 정정 차이(예: F02 8,800 → F03 9,000)는 **정정 이력**이다 — 공식 비교는 언제나 승인 전망 F01이다.
+ */
+function RunPicker({
+  runs,
+  current,
+  latest,
+  onPick,
+  pick,
+}: {
+  runs: CalcRun[];
+  current: CalcRun;
+  latest: CalcRun;
+  onPick: (id: string | null) => void;
+  pick: { model: string; period: string };
+}) {
+  if (runs.length < 2) return null;
+  const index = runs.findIndex((r) => r.run_id === current.run_id);
+  const before = index > 0 ? runs[index - 1] : null;
+  const at = (r: CalcRun) => r.results.find((x) => x.model_id === pick.model && x.period === pick.period);
+  const now = at(current);
+  const prev = before ? at(before) : undefined;
+  return (
+    <Card size="sm">
+      <CardContent className="space-y-2">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-muted-foreground">계산</span>
+          {runs.map((r) => (
+            <button
+              key={r.run_id}
+              type="button"
+              aria-pressed={r.run_id === current.run_id}
+              onClick={() => onPick(r.run_id === latest.run_id ? null : r.run_id)}
+              className={
+                r.run_id === current.run_id
+                  ? "rounded-md border bg-muted px-2 py-0.5 font-mono font-medium"
+                  : "rounded-md border px-2 py-0.5 font-mono text-muted-foreground hover:text-foreground"
+              }
+            >
+              {r.run_id}
+              {r.run_id === latest.run_id ? " (최신)" : " (이전 결과)"}
+            </button>
+          ))}
+        </div>
+        {current.run_id !== latest.run_id ? (
+          <p className="text-xs">
+            이전 결과를 보고 있다 — 검토·배정은 최신 결과에서 한다.{" "}
+            <button type="button" className="font-medium underline" onClick={() => onPick(null)}>
+              최신 결과로
+            </button>
+          </p>
+        ) : null}
+        {before && now && prev && now.latest !== prev.latest ? (
+          <p className="text-xs text-muted-foreground">
+            정정 이력 — {modelLabel(pick.model)} {Number(pick.period.slice(5, 7))}월: {before.versions.latest}{" "}
+            {formatQty(prev.latest)} → {current.versions.latest} {formatQty(now.latest)} (
+            {(now.latest ?? 0) > (prev.latest ?? 0) ? "+" : ""}
+            {formatQty((now.latest ?? 0) - (prev.latest ?? 0))}). 공식 비교는 직전 승인 전망{" "}
+            {current.versions.prior}이다.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -277,40 +350,60 @@ function IssueHistory({ view }: { view: DemoRunView }) {
   );
 }
 
-function Decisions({ view }: { view: DemoRunView }) {
-  const waiting = view.bpm?.waiting ?? [];
+function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; isLatest: boolean }) {
+  const waiting = isLatest ? (view.bpm?.waiting ?? []) : [];
   const sales = waiting.find((w) => w.nodeId === "Approve_Sales");
   const dispatch = waiting.find((w) => w.nodeId === "Approve_Dispatch");
   const reviewReq = waiting.find((w) => w.nodeId === "Approve_Review");
-  const review = view.reviews.at(-1);
+  const review = view.reviews.find((r) => r.run_id === run.run_id);
   const nameOf = useUserName();
+  // 초안을 "의견에 가져오기"하면 폼을 그 내용으로 다시 연다 — 사람이 고쳐 쓴 뒤 제출한다.
+  const [prefill, setPrefill] = useState<{ n: number; values?: Record<string, unknown> }>({ n: 0 });
 
   return (
     <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
+      <AgentPanel
+        runId={run.run_id}
+        outputs={view.agentOutputs}
+        canAdopt={Boolean(sales)}
+        onAdopt={(draft) =>
+          setPrefill((p) => ({
+            n: p.n + 1,
+            values: { 영업의견: draft.summary, 영업근거: draft.evidence_refs.join(", ") },
+          }))
+        }
+      />
+
       <Card>
         <CardHeader>
-          <CardTitle>영업 검토 (CT02)</CardTitle>
+          <CardTitle>영업 검토 (CT02) — 담당자 검토 의견</CardTitle>
           <CardDescription>
-            변경의 의미·지속성·고객 재확인 필요성과 처리 경로. 검토 완료에는 사람의 의견과 근거가 필요하다.
+            변경의 의미·지속성·고객 재확인 필요성과 처리 경로. 검토 완료에는 사람의 의견과 근거가 필요하다 —
+            Agent 초안이 없거나 실패해도 검토할 수 있다.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {sales ? (
-            <ActionForm waiting={sales} submitLabel="검토 완료" />
+            <ActionForm key={prefill.n} waiting={sales} submitLabel="검토 완료" initial={prefill.values} />
           ) : review ? (
             <div className="space-y-1 text-sm">
               <p className="text-xs text-muted-foreground">{formatClock(review.at)} · {nameOf(review.by)}</p>
               <p>{review.opinion}</p>
               <p className="text-xs text-muted-foreground">근거: {review.evidence}</p>
               {review.manual_review ? <p className="text-xs">경영 검토 수동 요청</p> : null}
+              <p className="text-xs text-muted-foreground">
+                {review.agent_output ? `검토 시점의 AI 초안: ${review.agent_output}` : "AI 초안 없이 검토했다"}
+              </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">아직 검토할 차례가 아니다.</p>
+            <p className="text-sm text-muted-foreground">
+              {isLatest ? "아직 검토할 차례가 아니다." : "이 계산에는 영업 검토 기록이 없다."}
+            </p>
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>후속 처리</CardTitle>
           <CardDescription>

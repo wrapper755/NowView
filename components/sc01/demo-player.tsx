@@ -2,12 +2,23 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ChevronUp, Pause, Play, PlayCircle, RotateCcw, Undo2, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Pause,
+  Play,
+  PlayCircle,
+  RotateCcw,
+  Undo2,
+  X,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { sc01Api } from "@/lib/sc01/client";
-import { historySeqFor, SC01_SCENES } from "@/lib/sc01/scenes";
+import { historySeqFor, nextBusinessEvening, SC01_SCENES } from "@/lib/sc01/scenes";
 import { useSc01 } from "@/lib/store/sc01";
 
 /** 장면이 반영된 뒤 머무는 시간. */
@@ -35,6 +46,10 @@ export function Sc01DemoPlayer() {
   const setPlaying = useSc01((s) => s.setPlaying);
   const togglePlayer = useSc01((s) => s.togglePlayer);
   const [pending, setPending] = useState(false);
+  const liveCase = useSc01((s) => s.live?.caseId ?? "BASE");
+  /** 초기화할 때 고를 시연 사례 — 기본 / EX08(Agent 응답 실패). 같은 각본을 다른 조건으로 돌린다. */
+  const [caseChoice, setCaseChoice] = useState<string | null>(null);
+  const caseId = caseChoice ?? liveCase;
   const [error, setError] = useState<string | null>(null);
   const scene = SC01_SCENES[sceneIndex];
 
@@ -151,7 +166,7 @@ export function Sc01DemoPlayer() {
     setPlaying(false);
     requestSeq.current++;
     setPending(true);
-    const r = await sc01Api.reset(demoRunId);
+    const r = await sc01Api.reset(demoRunId, caseId);
     setPending(false);
     if (!r.ok) {
       setError(r.error);
@@ -161,6 +176,21 @@ export function Sc01DemoPlayer() {
     useSc01.getState().setPast(null);
     setScene(0);
     if (pathname !== "/") router.push("/");
+  };
+
+  /** 가상시계 이동(시연관리자). 시각만 옮긴다 — 인수·승인은 실행하지 않는다. 기한을 넘기면 알림이 생긴다. */
+  const moveClock = async () => {
+    const live = useSc01.getState().live;
+    if (!demoRunId || !live) return;
+    setPending(true);
+    const r = await sc01Api.clock(demoRunId, nextBusinessEvening(live.clock));
+    setPending(false);
+    if (r.ok) {
+      useSc01.getState().setLive(r.data);
+      useSc01.getState().setPast(null);
+    } else {
+      setError(r.error);
+    }
   };
 
   if (!isExpanded) {
@@ -240,6 +270,26 @@ export function Sc01DemoPlayer() {
               <Undo2 aria-hidden className="size-3" />
               처음으로
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => void moveClock()}
+              title="가상시계를 다음 영업일 18:30으로 옮긴다 — 기한을 넘긴 업무에 알림이 생긴다(EX07)"
+            >
+              <Clock aria-hidden className="size-3" />
+              다음 영업일 18:30
+            </Button>
+            <select
+              value={caseId}
+              onChange={(e) => setCaseChoice(e.target.value)}
+              aria-label="초기화할 시연 사례"
+              title="초기화할 때 적용할 시연 사례"
+              className="h-7 rounded-md border bg-transparent px-1 text-[11px]"
+            >
+              <option value="BASE">기본 시연</option>
+              <option value="EX08">EX08 Agent 실패</option>
+            </select>
             <Button
               variant="outline"
               size="sm"

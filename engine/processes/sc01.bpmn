@@ -90,13 +90,28 @@
       </bpmn:extensionElements>
     </bpmn:serviceTask>
 
+    <!--
+      Agent 검토 지원 요청(AG-01). **기다리지 않는다** — 요청만 남기고 바로 영업 검토로 간다.
+      초안은 배경에서 만들어지고 검증을 통과해야 화면에 나온다. Agent가 실패해도 검토는 계속된다(EX08).
+      LLM을 이 노드 안에서 기다리면 프록시가 100초에 끊는다(CLAUDE.md 4.15).
+    -->
+    <bpmn:serviceTask id="Task_AgentRequest" name="Agent 검토 초안 요청">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{
+          "app_id": "nowview.sc01", "operation": "request_agent_draft",
+          "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
+          "output": {"초안ID": "output_id"}
+        }</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
     <!-- S05 CT02 공급전망·Risk 검토 — 영업팀장 (TASK-SALES) -->
     <bpmn:userTask id="Approve_Sales" name="영업 검토">
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "공급전망 변동 · 위험 검토",
           "description": "변경의 의미·지속성·고객 재확인 필요성과 후속 처리 경로를 판단한다. 계산 경보는 바꾸지 않는다.",
-          "show": ["계산ID", "위험수준", "이슈ID"],
+          "show": ["계산ID", "위험수준", "이슈ID", "초안ID"],
           "fields": [
             {"key": "영업의견", "label": "검토 의견", "type": "text", "required": true},
             {"key": "영업근거", "label": "근거", "type": "text", "required": true},
@@ -202,7 +217,8 @@
     <bpmn:sequenceFlow id="Flow_dq_fix" name="보완 필요" sourceRef="Gw_DQ" targetRef="Wait_Correction"/>
     <bpmn:sequenceFlow id="Flow_corrected" sourceRef="Wait_Correction" targetRef="Task_Validate"/>
     <bpmn:sequenceFlow id="Flow_calc" sourceRef="Confirm_Calc" targetRef="Task_Calc"/>
-    <bpmn:sequenceFlow id="Flow_calced" sourceRef="Task_Calc" targetRef="Approve_Sales"/>
+    <bpmn:sequenceFlow id="Flow_calced" sourceRef="Task_Calc" targetRef="Task_AgentRequest"/>
+    <bpmn:sequenceFlow id="Flow_agent" sourceRef="Task_AgentRequest" targetRef="Approve_Sales"/>
     <bpmn:sequenceFlow id="Flow_sales" sourceRef="Approve_Sales" targetRef="Gw_Route"/>
     <bpmn:sequenceFlow id="Flow_ops" name="현업 검토(항상)" sourceRef="Gw_Route" targetRef="Approve_Dispatch">
       <bpmn:conditionExpression>true</bpmn:conditionExpression>

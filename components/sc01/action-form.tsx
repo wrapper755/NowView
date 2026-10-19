@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Lock, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,11 @@ export function ActionForm({
   }));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * 멱등키 — 같은 입력으로 다시 누르면(응답을 못 받은 재시도) 같은 키를 보내 엔진이 두 번
+   * 실행하지 않게 한다. 입력을 고치면 다른 요청이므로 새 키다(같은 키 + 다른 본문 = 409).
+   */
+  const keyRef = useRef<string | null>(null);
 
   const me = users.find((u) => u.userId === actor);
   const wrongRole = waiting.role !== null && me?.role !== waiting.role;
@@ -49,10 +54,15 @@ export function ActionForm({
     if (!demoRunId) return;
     setBusy(true);
     setError(null);
-    const r = await sc01Api.act(demoRunId, waiting.nodeId, values, actor);
+    keyRef.current ??= crypto.randomUUID();
+    const r = await sc01Api.act(demoRunId, waiting.nodeId, values, actor, keyRef.current);
     setBusy(false);
-    if (r.ok) setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
+    if (r.ok) {
+      keyRef.current = null;
+      setLive(r.data);
+    } else {
+      setError(`${r.status} — ${r.error}`);
+    }
   };
 
   return (
@@ -69,7 +79,10 @@ export function ActionForm({
           field={f}
           value={values[f.key]}
           users={users}
-          onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
+          onChange={(v) => {
+            keyRef.current = null;
+            setValues((s) => ({ ...s, [f.key]: v }));
+          }}
         />
       ))}
       <div className="flex flex-wrap items-center gap-2">

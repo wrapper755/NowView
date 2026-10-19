@@ -1,119 +1,125 @@
 {
  "processId": "nowview.sc01",
- "name": "SC01 \uace0\uac1d\uacc4\ud68d \ubcc0\uacbd \ub300\uc751",
+ "name": "SC01 고객계획 변경 대응",
  "nodes": [
   {
    "id": "Start",
    "kind": "startEvent",
-   "name": "\uace0\uac1d\uacc4\ud68d \uc218\uc2e0",
+   "name": "고객계획 수신",
    "role": null
   },
   {
    "id": "Task_Validate",
    "kind": "serviceTask",
-   "name": "\uc6d0\ucc9c \uc790\ub3d9 \uac80\uc99d",
+   "name": "원천 자동 검증",
    "role": null
   },
   {
    "id": "Approve_DQ",
    "kind": "userTask",
-   "name": "\uc6d0\ucc9c \ud655\uc778",
-   "role": "\uc601\uc5c5\ub2f4\ub2f9"
+   "name": "원천 확인",
+   "role": "영업담당"
   },
   {
    "id": "Gw_DQ",
    "kind": "exclusiveGateway",
-   "name": "\uc6d0\ucc9c \ud655\uc778 \uacb0\uacfc",
+   "name": "원천 확인 결과",
    "role": null
   },
   {
    "id": "Wait_Correction",
    "kind": "receiveTask",
-   "name": "\uc815\uc815\ubcf8 \ub300\uae30",
+   "name": "정정본 대기",
    "role": null
   },
   {
    "id": "Confirm_Calc",
    "kind": "manualTask",
-   "name": "\ube44\uad50 \uacc4\uc0b0 \uc2e4\ud589",
-   "role": "\uc601\uc5c5\ub2f4\ub2f9"
+   "name": "비교 계산 실행",
+   "role": "영업담당"
   },
   {
    "id": "Task_Calc",
    "kind": "serviceTask",
-   "name": "\uc804\ub9dd \uc0dd\uc131 \u00b7 \uc9c0\ud45c \uacc4\uc0b0",
+   "name": "전망 생성 · 지표 계산",
+   "role": null
+  },
+  {
+   "id": "Task_AgentRequest",
+   "kind": "serviceTask",
+   "name": "Agent 검토 초안 요청",
    "role": null
   },
   {
    "id": "Approve_Sales",
    "kind": "userTask",
-   "name": "\uc601\uc5c5 \uac80\ud1a0",
-   "role": "\uc601\uc5c5\ud300\uc7a5"
+   "name": "영업 검토",
+   "role": "영업팀장"
   },
   {
    "id": "Gw_Route",
    "kind": "inclusiveGateway",
-   "name": "\ud6c4\uc18d \ucc98\ub9ac \uacbd\ub85c",
+   "name": "후속 처리 경로",
    "role": null
   },
   {
    "id": "Approve_Dispatch",
    "kind": "userTask",
-   "name": "\ud604\uc5c5 \uac80\ud1a0 \ubc30\uc815",
-   "role": "\uc601\uc5c5\ud300\uc7a5"
+   "name": "현업 검토 배정",
+   "role": "영업팀장"
   },
   {
    "id": "Gw_Ops_Split",
    "kind": "parallelGateway",
-   "name": "\uc0dd\uc0b0 \u2225 \uc790\uc7ac",
+   "name": "생산 ∥ 자재",
    "role": null
   },
   {
    "id": "Accept_PROD",
    "kind": "userTask",
-   "name": "\uc0dd\uc0b0 \uc601\ud5a5 \uac80\ud1a0 \uc778\uc218",
-   "role": "\uc0dd\uc0b0\ub2f4\ub2f9"
+   "name": "생산 영향 검토 인수",
+   "role": "생산담당"
   },
   {
    "id": "Accept_MAT",
    "kind": "userTask",
-   "name": "\uc790\uc7ac \uc601\ud5a5 \uac80\ud1a0 \uc778\uc218",
-   "role": "\uc790\uc7ac\ub2f4\ub2f9"
+   "name": "자재 영향 검토 인수",
+   "role": "자재담당"
   },
   {
    "id": "Gw_Ops_Join",
    "kind": "parallelGateway",
-   "name": "\ud604\uc5c5 \uc778\uc218 \ubaa8\uc73c\uae30",
+   "name": "현업 인수 모으기",
    "role": null
   },
   {
    "id": "Approve_Review",
    "kind": "userTask",
-   "name": "Management Review \uc694\uccad",
-   "role": "\uc601\uc5c5\ud300\uc7a5"
+   "name": "Management Review 요청",
+   "role": "영업팀장"
   },
   {
    "id": "Accept_FIN",
    "kind": "userTask",
-   "name": "\uc190\uc775\ubd84\uc11d \ubcf4\uace0 \uc778\uc218",
-   "role": "\uacbd\uc601\uad00\ub9ac\ub2f4\ub2f9"
+   "name": "손익분석 보고 인수",
+   "role": "경영관리담당"
   },
   {
    "id": "Gw_Join",
    "kind": "inclusiveGateway",
-   "name": "\ud6c4\uc18d \uc778\uc218 \ubaa8\uc73c\uae30",
+   "name": "후속 인수 모으기",
    "role": null
   },
   {
    "id": "Task_Handoff",
    "kind": "serviceTask",
-   "name": "\uc7a5\uba74 \uc778\uacc4 \uae30\ub85d",
+   "name": "장면 인계 기록",
    "role": null
   },
   {
    "id": "End",
    "kind": "endEvent",
-   "name": "\uc7a5\uba74 1 \uc778\uacc4 \uc644\ub8cc",
+   "name": "장면 1 인계 완료",
    "role": null
   }
  ],
@@ -143,7 +149,7 @@
    "id": "Flow_dq_ok",
    "source": "Gw_DQ",
    "target": "Confirm_Calc",
-   "condition": "\ud655\uc778\uacb0\uacfc == '\ud655\uc778\uc644\ub8cc' and \uac80\uc99d\ud1b5\uacfc",
+   "condition": "확인결과 == '확인완료' and 검증통과",
    "default": false
   },
   {
@@ -170,6 +176,13 @@
   {
    "id": "Flow_calced",
    "source": "Task_Calc",
+   "target": "Task_AgentRequest",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent",
+   "source": "Task_AgentRequest",
    "target": "Approve_Sales",
    "condition": null,
    "default": false
@@ -192,7 +205,7 @@
    "id": "Flow_review",
    "source": "Gw_Route",
    "target": "Approve_Review",
-   "condition": "\uc704\ud5d8\uc218\uc900 == 'CRITICAL' or \uacbd\uc601\uac80\ud1a0\uc694\uccad",
+   "condition": "위험수준 == 'CRITICAL' or 경영검토요청",
    "default": false
   },
   {

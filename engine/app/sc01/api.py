@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
-from app.sc01 import demo
+from app.sc01 import demo, domain
 from app.sc01.domain import USERS, DomainError
 from app.sc01.process import Sc01Process
 from app.sc01.view import dashboard, topology, view
@@ -40,6 +40,11 @@ class ReceiveBody(BaseModel):
 
 class ActBody(BaseModel):
     answer: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResetBody(BaseModel):
+    case_id: str | None = Field(default=None, alias="caseId")
+    model_config = {"populate_by_name": True}
 
 
 class ClockBody(BaseModel):
@@ -67,6 +72,13 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     @r.get("/users")
     def users() -> list[dict[str, str]]:
         return [{"userId": k, **v} for k, v in USERS.items()]
+
+    @r.get("/cases")
+    def cases() -> list[dict[str, str]]:
+        return [
+            {"caseId": "BASE", "label": "기본 시연"},
+            {"caseId": "EX08", "label": "EX08 Agent 응답 실패"},
+        ]
 
     @r.get("/script")
     def script() -> list[dict[str, Any]]:
@@ -136,14 +148,25 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
         doc = process.store.at(demo_run_id, seq)
         if doc is None:
             raise HTTPException(status_code=404, detail=f"없는 시점: {seq}")
-        return view(doc, historical=True)
+        return view(domain.upgrade(doc), historical=True)
 
+    # 쓰기 요청의 `Idempotency-Key` — 타임아웃 뒤 같은 키로 다시 보내면 다시 실행하지 않고 지금
+    # 상태를 돌려준다. 같은 키에 다른 본문이면 409다(API-01·03).
     @r.post("/demo-runs/{demo_run_id}/sources/receive")
     def receive(
-        demo_run_id: str, body: ReceiveBody, x_demo_actor: str | None = Header(default=None)
+        demo_run_id: str,
+        body: ReceiveBody,
+        x_demo_actor: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None),
     ):
         return view(
-            guard(process.receive, demo_run_id, body.fixture_id, actor=actor_of(x_demo_actor))
+            guard(
+                process.receive,
+                demo_run_id,
+                body.fixture_id,
+                actor=actor_of(x_demo_actor),
+                idempotency_key=idempotency_key,
+            )
         )
 
     @r.post("/demo-runs/{demo_run_id}/actions/{node_id}")
@@ -152,10 +175,32 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
         node_id: str,
         body: ActBody,
         x_demo_actor: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None),
     ) -> dict[str, Any]:
         return view(
-            guard(process.act, demo_run_id, node_id, body.answer, actor=actor_of(x_demo_actor))
+            guard(
+                process.act,
+                demo_run_id,
+                node_id,
+                body.answer,
+                actor=actor_of(x_demo_actor),
+                idempotency_key=idempotency_key,
+            )
         )
+
+    @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
+    def regenerate(
+        demo_run_id: str, run_id: str, x_demo_actor: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        """Agent 초안 재생성(AG-01). 이전 초안은 보존된다."""
+        return view(guard(process.regenerate, demo_run_id, run_id, actor=actor_of(x_demo_actor)))
+
+    @r.post("/demo-runs/{demo_run_id}/agent-outputs/{output_id}/adopt")
+    def adopt(
+        demo_run_id: str, output_id: str, x_demo_actor: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        """초안 채택 기록(AG-03)."""
+        return view(guard(process.adopt, demo_run_id, output_id, actor=actor_of(x_demo_actor)))
 
     @r.post("/demo-runs/{demo_run_id}/clock")
     def clock(demo_run_id: str, body: ClockBody, x_demo_actor: str | None = Header(default=None)):
@@ -167,8 +212,14 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
         return view(guard(demo.run_step, process, demo_run_id, index))
 
     @r.post("/demo-runs/{demo_run_id}/reset")
-    def reset(demo_run_id: str, x_demo_actor: str | None = Header(default=None)) -> dict[str, Any]:
-        return view(guard(process.reset, demo_run_id, actor=actor_of(x_demo_actor)))
+    def reset(
+        demo_run_id: str,
+        body: ResetBody | None = None,
+        x_demo_actor: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """S0로 되돌린다. `caseId`를 주면 그 시연 사례로 다시 시작한다(BASE · EX08)."""
+        case = body.case_id if body else None
+        return view(guard(process.reset, demo_run_id, actor=actor_of(x_demo_actor), case_id=case))
 
     @r.get("/demo-runs/{demo_run_id}/events")
     async def events(request: Request, demo_run_id: str) -> StreamingResponse:

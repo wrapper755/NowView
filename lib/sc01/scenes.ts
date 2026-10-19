@@ -120,6 +120,21 @@ export const SC01_SCENES: Sc01Scene[] = [
 ];
 
 /**
+ * 가상시계를 다음 영업일 18:30으로 — 기한(다음 영업일 18시)을 막 넘긴 시각이다(EX07 시연).
+ * 데모 달력은 월~금, 공휴일 없음(WF-04). 시각 문자열은 KST(+09:00) 그대로 다룬다.
+ */
+export function nextBusinessEvening(clock: string, days = 1): string {
+  const d = new Date(`${clock.slice(0, 10)}T00:00:00Z`);
+  let left = days;
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) left--;
+  }
+  return `${d.toISOString().slice(0, 10)}T18:30:00+09:00`;
+}
+
+/**
  * 장면이 가리키는 시점의 이력 seq — 그 지점에 **처음 도달한** 기록이다.
  *
  * 마지막 기록을 쓰면 안 된다: 다음 단계를 실행하기 전에 가상시계를 먼저 옮기는데, 그 기록은

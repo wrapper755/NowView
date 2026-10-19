@@ -69,12 +69,18 @@ export const useSc01 = create<Sc01State>()(
       setDemoRunId: (demoRunId) => set({ demoRunId, live: null, past: null }),
       setActor: (actor) => set({ actor }),
       setLive: (view) =>
-        set((s) =>
+        set((s) => {
           // 다른 데모 실행의 늦은 응답이 섞여 들어오지 않게 한다.
-          s.demoRunId && view.demoRunId !== s.demoRunId
-            ? s
-            : { live: view, revision: s.revision + 1, error: null },
-        ),
+          if (s.demoRunId && view.demoRunId !== s.demoRunId) return s;
+          // **더 오래된 문서로 덮지 않는다.** 조작 응답(HTTP)과 변경 알림(SSE)이 따로 오는데, 배경
+          // 작업(Agent 초안)이 끝났다는 SSE가 그 작업을 시작한 조작의 응답보다 먼저 도착하면
+          // 응답이 "생성 중"으로 되돌렸다 — 실제로 초안이 계속 생성 중으로 보였다. 감사 이력은
+          // 변경마다 늘기만 하므로(초기화도 지우지 않는다) 그 길이가 문서의 순서다.
+          if (s.live && s.live.demoRunId === view.demoRunId && view.audit.length < s.live.audit.length) {
+            return s;
+          }
+          return { live: view, revision: s.revision + 1, error: null };
+        }),
       setPast: (past) => set((s) => ({ past, revision: s.revision + 1 })),
       setConnection: (connection) => set({ connection }),
       setError: (error) => set({ error }),

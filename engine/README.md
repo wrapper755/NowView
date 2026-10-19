@@ -6,11 +6,12 @@
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 106개 (SQLite만)
+uv run pytest                                      # 133개 (SQLite만, LLM 제외)
+OLLAMA_URL=http://localhost:11434 uv run pytest -m llm   # Agent 실호출 계약 (약 100초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때 — 루트에서 npm run stack:start db)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 128개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 155개
 ```
 
 `--reload` 없이 띄우면 코드를 고쳐도 반영되지 않는다.
@@ -23,6 +24,7 @@ seed/SYN-SC01-v0.2.xlsx 통합 가상 데이터 설계. 원천 시트 = 시드, 
 app/sc01/
   seed.py      원천 시트 적재 (행 번호가 아니라 영문 헤더로 읽는다)
   calc.py      지표·위험 판정·손익 집계 — 규칙 계산. Agent·BPM은 숫자를 만들지 않는다
+  agent.py     Agent 검토 초안 — 입력 구성, 계약 검증(숫자·근거 대조), mock·ollama·fail 러너
   domain.py    원천 검증·이슈·업무·기한·인계 (문서 하나 = 데모 실행 하나)
   process.py   Chaeksas 엔진 래퍼 + 서비스 태스크 어댑터(nowview.sc01)
   store.py     문서·이력 저장 (row_version 낙관적 잠금)
@@ -77,4 +79,6 @@ SQLite로 조용히 되돌리지 않는다.** `/health`의 `storage`가 어느 �
 |---|---|---|
 | `DATABASE_URL` | (없음 → SQLite) | Postgres 백엔드 |
 | `NOWVIEW_ENGINE_DB` | `engine-state.sqlite` | SQLite 파일 경로 |
+| `NOWVIEW_AGENT_MODE` | `mock` | Agent 초안 — `mock` / `llm` (시연 사례 EX08은 항상 실패) |
+| `OLLAMA_URL` · `OLLAMA_MODEL` | `http://localhost:11434` · `kimi-k3:cloud` | `llm` 모드 |
 | `LOG_LEVEL` | `INFO` | |

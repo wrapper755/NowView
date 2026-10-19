@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlarmClock } from "lucide-react";
+import { AlarmClock, BellRing } from "lucide-react";
 
 import { ActionForm } from "@/components/sc01/action-form";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
@@ -38,6 +38,8 @@ export function TasksScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <ScreenHeader id="UI05" title="검토·승인 업무" question="내가 무엇을 검토·작성·승인해야 하는가?" />
+
+      <AlertsCard />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[3fr_2fr]">
         <Card>
@@ -83,6 +85,7 @@ export function TasksScreen() {
                         <td className="py-2">
                           <span className="inline-flex items-center gap-1.5">
                             {TASK_STATUS_LABEL[t.status]}
+                            {t.reconfirm ? <Reconfirm /> : null}
                             {t.overdue ? <Overdue /> : null}
                           </span>
                         </td>
@@ -98,6 +101,48 @@ export function TasksScreen() {
         {task ? <TaskDetail task={task} /> : null}
       </div>
     </main>
+  );
+}
+
+function Reconfirm() {
+  return <span className="rounded border px-1 text-[10px] font-medium">재확인 요청</span>;
+}
+
+/**
+ * 화면 내 알림(UI05-03·EX07). 가상시계가 기한을 넘기면 담당자와 기능별 검토자에게 간다 —
+ * 이메일·메신저는 범위 밖이다. 같은 업무·기한에는 한 번만 생긴다.
+ */
+function AlertsCard() {
+  const view = useSc01(selectView);
+  const actor = useSc01((s) => s.actor);
+  const [all, setAll] = useState(false);
+  const alerts = (view?.alerts ?? []).filter((a) => all || a.to.includes(actor));
+  if ((view?.alerts ?? []).length === 0) return null;
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-1.5">
+          <BellRing aria-hidden className="size-4" style={{ color: "var(--viz-status-critical)" }} />
+          알림 {alerts.length}건
+        </CardTitle>
+        <CardDescription>기한을 넘긴 업무 — 담당자와 기능별 검토자에게 간다.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <label className="inline-flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} />
+          다른 사람 알림도 보기
+        </label>
+        <ul className="space-y-1 text-sm">
+          {alerts.map((a) => (
+            <li key={a.alert_id} className="flex flex-wrap gap-x-2">
+              <span className="tabular-nums text-muted-foreground">{formatClock(a.at)}</span>
+              <span>{a.message}</span>
+            </li>
+          ))}
+          {alerts.length === 0 ? <li className="text-muted-foreground">내게 온 알림은 없다.</li> : null}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -122,6 +167,7 @@ function TaskDetail({ task }: { task: Task }) {
         <CardDescription>
           <span className="font-mono">{task.task_id}</span> · 근거 계산 {task.run_id ?? "—"} · 원천 {task.source_id ?? "—"}
           {task.issue_id ? ` · ${task.issue_id}` : ""}
+          {task.reopens ? ` · ${task.reopens}의 재검토 업무` : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -134,7 +180,12 @@ function TaskDetail({ task }: { task: Task }) {
         {waiting ? (
           <div className="space-y-2 border-t pt-3">
             <p className="text-xs font-medium">
-              {isAccept ? "인수 — 담당자 본인만" : "처리"} · {waiting.title}
+              {task.reconfirm
+                ? `재확인 — 새 근거 ${task.run_id}`
+                : isAccept
+                  ? "인수 — 담당자 본인만"
+                  : "처리"}{" "}
+              · {waiting.title}
             </p>
             {Object.entries(waiting.review).length > 0 ? (
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
@@ -146,7 +197,10 @@ function TaskDetail({ task }: { task: Task }) {
                 ))}
               </dl>
             ) : null}
-            <ActionForm waiting={waiting} submitLabel={isAccept ? "인수" : "완료"} />
+            <ActionForm
+              waiting={waiting}
+              submitLabel={task.reconfirm ? "재확인" : isAccept ? "인수" : "완료"}
+            />
           </div>
         ) : null}
 
@@ -154,6 +208,22 @@ function TaskDetail({ task }: { task: Task }) {
           <p className="text-xs text-muted-foreground">
             장면 1에서는 인수까지다 — 통합 손익분석 보고는 다음 장면의 업무로 진행 중이다.
           </p>
+        ) : null}
+
+        {task.acks.length > 0 ? (
+          <div className="space-y-1 border-t pt-3">
+            <p className="text-xs font-medium">계산별 확인 — 정정 전 확인도 남는다</p>
+            <ul className="space-y-0.5 text-xs">
+              {task.acks.map((a) => (
+                <li key={a.run_id + a.at} className="flex gap-2">
+                  <span className="font-mono">{a.run_id}</span>
+                  <span className="text-muted-foreground">
+                    {formatClock(a.at)} · {nameOf(a.by)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ) : null}
 
         <div className="space-y-1 border-t pt-3">

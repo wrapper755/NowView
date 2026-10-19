@@ -9,7 +9,8 @@
 # 두지 않는다 (CLAUDE.md "Commands" 참조).
 #
 # 빌드에 환경 변수나 비밀값이 필요 없다 — 화면 데이터는 클라이언트가 엔진에서 받고,
-# 엔진의 시드는 리포의 엑셀(engine/seed/)이다. 아직 LLM을 부르는 노드가 없다(CLAUDE.md 5.5).
+# 엔진의 시드는 리포의 엑셀(engine/seed/)이다. Agent 초안은 기본 mock이고 ollama 실호출 테스트는
+# `-m llm`으로만 돈다(pyproject addopts가 뺀다) — CI에는 넣지 않는다.
 
 name: CI
 

@@ -9,7 +9,7 @@ SC01 응답 모양 — 문서를 화면이 읽을 모양으로 바꾼다.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
 from chaeksas.contracts.bpmn_ext import BpmnProcess
@@ -55,6 +55,11 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
     return {
         "demoRunId": doc["demo_run_id"],
         "caseId": doc["case_id"],
+        "agentMode": doc.get("agent_mode", "mock"),
+        "agentOutputs": [_agent_view(o) for o in doc.get("agent_outputs", {}).values()],
+        "alerts": doc.get("alerts", []),
+        "bpmHistory": doc.get("bpm_history", []),
+        "handoffHistory": doc.get("handoff_history", []),
         "clock": doc["clock"],
         "step": doc["step"],
         "scriptIndex": doc.get("script_index", -1),
@@ -85,6 +90,26 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             else None
         ),
         "audit": doc["audit"],
+    }
+
+
+#: 초안이 이 시간(실시간)을 넘겨도 안 오면 "지연"이다(AG-02). 가상시계가 아니라 실제 시간이다 —
+#: 모델 호출은 가상시계와 무관하게 걸린다.
+AGENT_DELAY_S = 30
+
+
+def _agent_view(o: dict) -> dict[str, Any]:
+    """
+    입력 원문과 **검증에 실패한 응답은 내보내지 않는다** — 실패한 초안이 화면에 설명으로 나가면
+    안 된다(AG-01). 오류 사유와 입력 해시는 보인다(재현·감사용).
+    """
+    delayed = False
+    if o["status"] == "RUNNING" and o.get("requested_real"):
+        started = datetime.fromisoformat(o["requested_real"])
+        delayed = (datetime.now(UTC) - started).total_seconds() > AGENT_DELAY_S
+    return {
+        **{k: v for k, v in o.items() if k not in ("input", "rejected")},
+        "delayed": delayed,
     }
 
 

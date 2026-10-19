@@ -161,7 +161,13 @@ def issue_id_for(model_id: str, period: date) -> str:
     return f"ISSUE-{model_id[-1].upper()}{period.month:02d}"
 
 
-def new_demo_run(seed: Seed, demo_run_id: str, *, case_id: str, created_at: datetime) -> dict:
+#: 시연 사례 → Agent 모드. EX08은 Agent 응답 실패를 재현한다(나머지 업무는 그대로 진행된다).
+CASES = {"BASE": None, "EX08": "fail"}
+
+
+def new_demo_run(
+    seed: Seed, demo_run_id: str, *, case_id: str, created_at: datetime, agent_mode: str = "mock"
+) -> dict:
     """
     S0 — 기준 적재(2027-06-15 18:00). 승인 전망 F01과 기존 관심 이슈 A07·B07만 있다.
     CP02·F02는 아직 없다(AT01). 8·9월 관심 평가는 평가 결과일 뿐 이슈로 만들지 않는다(UI01-04).
@@ -221,6 +227,9 @@ def new_demo_run(seed: Seed, demo_run_id: str, *, case_id: str, created_at: date
         "handoff": None,
         "audit": [],
         "bpm": None,
+        "agent_mode": CASES.get(case_id) or agent_mode,
+        "agent_outputs": {},
+        "alerts": [],
     }
 
 
@@ -455,25 +464,46 @@ NODE_ROLES: dict[str, dict[str, Any]] = {
 DEFAULT_ASSIGNEE = {"영업담당": "u-sales", "영업팀장": "u-sales-lead"}
 
 
+def tasks_of(doc: dict, task_type: str) -> list[dict]:
+    return [t for t in doc["tasks"].values() if t["type"] == task_type]
+
+
+def active_task(doc: dict, task_type: str) -> dict | None:
+    """그 종류의 **활성** 업무(완료 전). 같은 대상에 활성 업무는 하나뿐이다(WF-02)."""
+    return next((t for t in reversed(tasks_of(doc, task_type)) if t["status"] != "COMPLETED"), None)
+
+
+def latest_task(doc: dict, task_type: str) -> dict | None:
+    found = tasks_of(doc, task_type)
+    return found[-1] if found else None
+
+
 def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[str, Any]) -> None:
     """
     BPM의 사람 대기를 업무 기록으로 옮긴다. 대기가 생긴 시각이 배정 시각이다.
 
-    같은 종류의 활성 업무가 이미 있으면 새로 만들지 않고 이어 쓴다(WF-02). 보완 뒤 다시
-    배정돼도 최초 배정 시각과 원래 기한은 보존한다(설계서 1.9).
+    * 같은 종류의 **활성** 업무가 있으면 새로 만들지 않고 이어 쓴다(WF-02). 보완 뒤 다시 배정돼도
+      최초 배정 시각과 원래 기한은 보존한다(설계서 1.9).
+    * 정정으로 새 계산이 생겼는데 이미 인수한 업무면 **새 근거를 붙이고 재확인을 요청한다** — 이전
+      인수 이력은 지우지 않는다. 새 run에 대한 인수가 끝나야 최신 인계가 성립한다(WF-02).
+    * **완료된 업무는 다시 쓰지 않는다.** 같은 종류의 대기가 또 오면 연결된 재검토 업무를 새로
+      만든다(WF-03) — TASK-DQ가 끝났으면 TASK-DQ-2.
     """
+    run_id = variables.get("계산ID") or None
     for request_id, p in pendings.items():
         spec = NODE_ROLES.get(p["node_id"])
         if spec is None or spec["task"] is None:
             continue
-        task_id = f"TASK-{spec['task']}"
-        task = doc["tasks"].get(task_id)
+        task = active_task(doc, spec["task"])
         if task is not None and task["request_id"] == request_id:
             continue
         assignee = variables.get(spec.get("assignee_var", ""), "") or DEFAULT_ASSIGNEE.get(
             spec["role"]
         )
         if task is None:
+            previous = latest_task(doc, spec["task"])
+            count = len(tasks_of(doc, spec["task"]))
+            task_id = f"TASK-{spec['task']}" + (f"-{count + 1}" if count else "")
             assigned = parse_at(doc["clock"])
             doc["tasks"][task_id] = {
                 "task_id": task_id,
@@ -488,29 +518,46 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[s
                 "accepted_by": None,
                 "accepted_at": None,
                 "completed_at": None,
-                "run_id": variables.get("계산ID") or None,
+                "run_id": run_id,
+                "runs": [run_id] if run_id else [],
+                "acks": [],
+                "reconfirm": False,
+                "reopens": previous["task_id"] if previous else None,
                 "issue_id": variables.get("이슈ID") or None,
                 "source_id": variables.get("원천ID"),
-                "history": [{"at": doc["clock"], "status": "ASSIGNED", "by": "system"}],
+                "history": [
+                    {
+                        "at": doc["clock"],
+                        "status": "ASSIGNED",
+                        "by": "system",
+                        "note": f"{previous['task_id']}의 재검토" if previous else None,
+                    }
+                ],
             }
             audit(
                 doc, actor="system", action="task_assigned", task_id=task_id, assigned_to=assignee
             )
-        else:
-            task.update(
-                request_id=request_id,
-                status="ASSIGNED",
-                run_id=variables.get("계산ID") or task["run_id"],
-                source_id=variables.get("원천ID"),
-            )
-            task["history"].append(
-                {"at": doc["clock"], "status": "ASSIGNED", "by": "system", "note": "보완 후 재배정"}
-            )
+            continue
+
+        task.update(request_id=request_id, node_id=p["node_id"], source_id=variables.get("원천ID"))
+        note = "보완 후 재배정"
+        if run_id and run_id != task["run_id"]:
+            task["run_id"] = run_id
+            task["runs"].append(run_id)
+            note = f"새 근거 {run_id}"
+            if task["status"] == "IN_PROGRESS":
+                task["reconfirm"] = True
+                note += " — 재확인 요청"
+        if task["status"] == "NEEDS_INFO":
+            task["status"] = "ASSIGNED"
+        task["history"].append(
+            {"at": doc["clock"], "status": task["status"], "by": "system", "note": note}
+        )
 
 
 def task_for_node(doc: dict, node_id: str) -> dict | None:
     spec = NODE_ROLES.get(node_id)
-    return doc["tasks"].get(f"TASK-{spec['task']}") if spec and spec["task"] else None
+    return active_task(doc, spec["task"]) if spec and spec["task"] else None
 
 
 def check_actor(doc: dict, node_id: str, actor: str) -> None:
@@ -533,8 +580,15 @@ def mark_task(
     if task is None:
         return
     at = doc["clock"]
-    if outcome == "accepted":
+    ack = {"run_id": task["run_id"], "by": actor, "at": at}
+    if outcome == "accepted" and task["reconfirm"]:
+        # 재확인 — 상태는 그대로 진행 중이고 새 근거에 대한 확인만 남긴다.
+        task["reconfirm"] = False
+        task["acks"].append(ack)
+        outcome, note = "reconfirmed", note or f"{task['run_id']} 재확인"
+    elif outcome == "accepted":
         task.update(status="IN_PROGRESS", accepted_by=actor, accepted_at=at)
+        task["acks"].append(ack)
     elif outcome == "completed":
         task.update(
             status="COMPLETED",
@@ -542,10 +596,52 @@ def mark_task(
             accepted_by=task["accepted_by"] or actor,
             accepted_at=task["accepted_at"] or at,
         )
+        task["acks"].append(ack)
     elif outcome == "needs_info":
         task.update(status="NEEDS_INFO")
     task["history"].append({"at": at, "status": task["status"], "by": actor, "note": note})
     audit(doc, actor=actor, action=f"task_{outcome}", task_id=task["task_id"])
+
+
+#: 기한 초과 알림을 받는 기능별 검토자(UI05-03). 생산·자재는 공장장, 원천 확인과 손익분석 요청은
+#: 요청한 영업팀장이다. 영업 검토 자체의 상위 검토자는 권한표가 미정이다(설계서 1.8)
+#: — 담당자만 받는다.
+REVIEWER = {
+    "DQ": "u-sales-lead",
+    "SALES": None,
+    "PROD": "u-plant",
+    "MAT": "u-plant",
+    "FIN": "u-sales-lead",
+}
+
+
+def raise_overdue_alerts(doc: dict) -> list[dict]:
+    """
+    가상시계가 기한을 넘기면 담당자와 기능별 검토자에게 화면 내 알림을 만든다(UI05-03·EX07).
+    같은 업무·기한에는 한 번만 만든다. 이메일·메신저는 범위 밖이다.
+    """
+    alerts = doc.setdefault("alerts", [])
+    seen = {(a["task_id"], a["due_at"]) for a in alerts}
+    created = []
+    for task in doc["tasks"].values():
+        if not overdue(task, doc["clock"]) or (task["task_id"], task["due_at"]) in seen:
+            continue
+        unaccepted = task["status"] == "ASSIGNED"
+        alert = {
+            "alert_id": f"ALERT-{len(alerts) + 1:03d}",
+            "kind": "OVERDUE",
+            "task_id": task["task_id"],
+            "due_at": task["due_at"],
+            "at": doc["clock"],
+            "to": [u for u in (task["assigned_to"], REVIEWER.get(task["type"])) if u],
+            "unaccepted": unaccepted,
+            "message": f"{task['task_id']} 기한({task['due_at'][5:16].replace('T', ' ')}) 초과"
+            + (" — 미인수" if unaccepted else " — 미완료"),
+        }
+        alerts.append(alert)
+        created.append(alert)
+        audit(doc, actor="system", action="overdue_alert", task_id=task["task_id"], to=alert["to"])
+    return created
 
 
 def overdue(task: dict, clock: str) -> bool:
@@ -564,9 +660,10 @@ def handoff_conditions(doc: dict, run_id: str) -> dict[str, Any]:
     required = ["PROD", "MAT"]
     if run and (_top_risk(run) == Risk.CRITICAL.value or (review or {}).get("manual_review")):
         required.append("FIN")
-    tasks = {t: doc["tasks"].get(f"TASK-{t}") for t in required}
+    # 최신 run에 대한 인수 확인이 있어야 한다 — 정정 전의 인수만으로는 최신 인계가 아니다(WF-02).
+    tasks = {t: latest_task(doc, t) for t in required}
     accepted = {
-        t: bool(x and x["assigned_to"] and x["accepted_by"] and x["accepted_at"])
+        t: bool(x and x["assigned_to"] and any(a["run_id"] == run_id for a in x["acks"]))
         for t, x in tasks.items()
     }
     blocked = any(
@@ -582,7 +679,12 @@ def handoff_conditions(doc: dict, run_id: str) -> dict[str, Any]:
         "follow_ups_accepted": all(accepted.values()),
         "not_blocked": not blocked,
     }
-    reasons = [f"TASK-{t} 미인수" for t, ok in accepted.items() if not ok]
+    reasons = [
+        f"{(tasks[t] or {}).get('task_id', 'TASK-' + t)} "
+        + ("재확인 대기" if tasks[t] and tasks[t]["acks"] else "미인수")
+        for t, ok in accepted.items()
+        if not ok
+    ]
     if not conditions["valid_evidence"]:
         reasons.append("확인된 원천·성공한 계산이 연결되지 않았다")
     if not conditions["sales_reviewed"]:
@@ -617,3 +719,171 @@ def hand_off(doc: dict, run_id: str) -> bool:
     doc["scene"] = "HANDED_OFF"
     audit(doc, actor="system", action="SCENE_HANDED_OFF", run_id=run_id)
     return True
+
+
+# ─────────────────────────── 정정 (EX03·WF-03) ───────────────────────────
+
+
+def supersede_bpm(doc: dict, *, source_id: str, final_state: str) -> None:
+    """
+    진행 중이거나 끝난 BPM 실행을 새 원천의 실행으로 대체한다. **이전 실행·인계는 지우지 않는다** —
+    이력으로 옮긴다. 끝난 장면의 인계 기록은 역사로 남고 최신 run의 장면은 다시 ACTIVE다(WF-03).
+    """
+    old = doc["bpm"]
+    doc.setdefault("bpm_history", []).append(
+        {
+            "run_id": old["run_id"],
+            "state": final_state,
+            "visited": old.get("visited", []),
+            "superseded_at": doc["clock"],
+            "by_source": source_id,
+        }
+    )
+    # 이전 실행에서 기다리던 업무는 새 계산이 그 지점에 닿을 때 새 근거로 이어진다 — 표시만 남긴다.
+    waiting = {p["request_id"] for p in old["snapshot"]["pendings"].values()}
+    for task in doc["tasks"].values():
+        if task["request_id"] in waiting and task["status"] != "COMPLETED":
+            task["history"].append(
+                {
+                    "at": doc["clock"],
+                    "status": task["status"],
+                    "by": "system",
+                    "note": f"정정본 {source_id} 수신 — 새 계산 대기",
+                }
+            )
+    if doc.get("handoff"):
+        doc.setdefault("handoff_history", []).append(doc["handoff"])
+        doc["handoff"] = None
+    doc["bpm"] = None
+    audit(doc, actor="system", action="bpm_superseded", old_run=old["run_id"], source_id=source_id)
+
+
+# ─────────────────────────── Agent 초안 (AG-01~03) ───────────────────────────
+
+
+def request_agent(
+    doc: dict,
+    run_id: str,
+    *,
+    payload: dict,
+    payload_hash: str,
+    mode: str,
+    actor: str,
+    manual: bool,
+    now_real: str,
+) -> str:
+    """
+    초안 요청을 기록하고 작업 대기열(저장하지 않는 `_agent_queue`)에 올린다.
+
+    자동 요청(계산 직후)은 같은 입력 해시의 성공한 초안이 있으면 재사용한다(AG-02). 담당자의
+    재생성 요청은 항상 새로 만든다 — 이전 초안은 보존한다.
+    """
+    outputs = doc.setdefault("agent_outputs", {})
+    if not manual:
+        for out in outputs.values():
+            if out["input_hash"] == payload_hash and out["status"] == "SUCCEEDED":
+                return out["output_id"]
+    output_id = f"AGT-{len(outputs) + 1:03d}"
+    outputs[output_id] = {
+        "output_id": output_id,
+        "run_id": run_id,
+        "status": "RUNNING",
+        "mode": mode,
+        "prompt_version": None,
+        "input_hash": payload_hash,
+        "input": payload,
+        "requested_by": actor,
+        "requested_at": doc["clock"],
+        "requested_real": now_real,
+        "finished_real": None,
+        "attempts": 0,
+        "provenance": None,
+        "model": None,
+        "latency_ms": None,
+        "draft": None,
+        "errors": [],
+        "adopted_by": None,
+        "adopted_at": None,
+    }
+    doc.setdefault("_agent_queue", []).append(output_id)
+    audit(
+        doc,
+        actor=actor,
+        action="agent_requested",
+        output_id=output_id,
+        run_id=run_id,
+        manual=manual,
+    )
+    return output_id
+
+
+def finish_agent(doc: dict, output_id: str, *, result: dict) -> bool:
+    """작업 결과를 기록한다. 이미 끝난 기록(다른 워커·초기화)이면 덮지 않는다."""
+    out = doc.get("agent_outputs", {}).get(output_id)
+    if out is None or out["status"] != "RUNNING":
+        return False
+    out.update(result)
+    audit(
+        doc,
+        actor="system",
+        action=f"agent_{out['status'].lower()}",
+        output_id=output_id,
+        attempts=out["attempts"],
+    )
+    return True
+
+
+def adopt_agent(doc: dict, output_id: str, *, actor: str) -> None:
+    """초안 채택 기록(AG-03). 원본 초안은 그대로 두고 누가 언제 가져다 썼는지만 남긴다."""
+    out = doc.get("agent_outputs", {}).get(output_id)
+    if out is None:
+        raise DomainError(f"없는 초안: {output_id}", 404)
+    if out["status"] != "SUCCEEDED":
+        raise DomainError("검증을 통과한 초안만 채택할 수 있다", 409)
+    out.update(adopted_by=actor, adopted_at=doc["clock"])
+    audit(doc, actor=actor, action="agent_adopted", output_id=output_id)
+
+
+# ─────────────────────────── 멱등키 (API-01·AT13) ───────────────────────────
+
+
+def check_idempotency(doc: dict, key: str | None, body: Any) -> bool:
+    """
+    같은 키 + 같은 본문이면 True(이미 처리됨 — 다시 실행하지 않는다), 같은 키 + 다른 본문이면 409.
+    타임아웃 뒤 재요청이 두 번 실행되지 않게 한다(API-03).
+    """
+    if not key:
+        return False
+    raw = json.dumps(body, sort_keys=True, ensure_ascii=False)
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    seen = doc.setdefault("idempotency", {})
+    if key in seen:
+        if seen[key] != digest:
+            raise DomainError("같은 멱등키로 다른 요청을 보냈다", 409)
+        return True
+    seen[key] = digest
+    return False
+
+
+# ─────────────────────────── 문서 형식 ───────────────────────────
+
+
+def upgrade(doc: dict) -> dict:
+    """
+    이전 형식의 문서(Agent·정정·알림 이전)를 읽을 수 있게 채운다. 저장된 데모 실행을 버리지 않는다 —
+    로컬·운영 DB에 남은 실행으로 조작하면 KeyError로 500이 났다.
+    """
+    doc.setdefault("agent_mode", "mock")
+    doc.setdefault("agent_outputs", {})
+    doc.setdefault("alerts", [])
+    for task in doc.get("tasks", {}).values():
+        task.setdefault("runs", [task["run_id"]] if task.get("run_id") else [])
+        task.setdefault(
+            "acks",
+            [{"run_id": task.get("run_id"), "by": task["accepted_by"], "at": task["accepted_at"]}]
+            if task.get("accepted_at")
+            else [],
+        )
+        task.setdefault("reconfirm", False)
+        task.setdefault("reopens", None)
+    return doc

@@ -118,3 +118,30 @@ describe("표기", () => {
     expect(riskLabel("NORMAL")).toBe("기준 이내");
   });
 });
+
+describe("가상시계 이동", () => {
+  it("다음 영업일 18:30 — 주말을 건너뛴다(데모 달력 WF-04)", async () => {
+    const { nextBusinessEvening } = await import("@/lib/sc01/scenes");
+    expect(nextBusinessEvening("2027-06-16T11:45:00+09:00")).toBe("2027-06-17T18:30:00+09:00");
+    expect(nextBusinessEvening("2027-06-18T10:00:00+09:00")).toBe("2027-06-21T18:30:00+09:00");
+  });
+});
+
+describe("문서 순서", () => {
+  it("늦게 도착한 오래된 응답이 최신 문서를 덮지 않는다", async () => {
+    const { useSc01 } = await import("@/lib/store/sc01");
+    const doc = (n: number, status: string) =>
+      ({
+        demoRunId: "demo-x",
+        audit: Array.from({ length: n }, (_, i) => ({ seq: i + 1 })),
+        agentOutputs: [{ status }],
+      }) as unknown as import("@/lib/sc01/types").DemoRunView;
+    const s = useSc01.getState();
+    s.setDemoRunId("demo-x");
+    s.setLive(doc(12, "SUCCEEDED")); // SSE가 먼저 — 배경 작업 완료
+    s.setLive(doc(11, "RUNNING")); // 그 작업을 시작한 조작의 응답이 늦게
+    expect(useSc01.getState().live?.agentOutputs[0].status).toBe("SUCCEEDED");
+    s.setLive(doc(13, "SUCCEEDED"));
+    expect(useSc01.getState().live?.audit).toHaveLength(13);
+  });
+});

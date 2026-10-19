@@ -27,6 +27,7 @@ def client(tmp_path):
     process = Sc01Process(
         SqliteSc01Store(sqlite3.connect(backend.sqlite_path, check_same_thread=False)),
         publish=main.notifier.publish,
+        inline_agent=True,
     )
     app = main.FastAPI()
     app.include_router(build_router(process, main.hub))
@@ -163,7 +164,8 @@ def test_concurrent_reads_during_writes_do_not_break(tmp_path) -> None:
     import threading
 
     process = Sc01Process(
-        SqliteSc01Store(sqlite3.connect(str(tmp_path / "c.sqlite"), check_same_thread=False))
+        SqliteSc01Store(sqlite3.connect(str(tmp_path / "c.sqlite"), check_same_thread=False)),
+        inline_agent=True,
     )
     rid = process.create()["demo_run_id"]
     errors: list[BaseException] = []

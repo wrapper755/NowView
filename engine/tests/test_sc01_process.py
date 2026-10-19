@@ -30,7 +30,7 @@ def proc(request) -> Iterator[Sc01Process]:
         _truncate_sc01(backend)
     else:
         store = SqliteSc01Store(sqlite3.connect(":memory:", check_same_thread=False))
-    p = Sc01Process(store, publish=published.append)
+    p = Sc01Process(store, publish=published.append, inline_agent=True)
     p.published = published  # type: ignore[attr-defined]
     try:
         yield p

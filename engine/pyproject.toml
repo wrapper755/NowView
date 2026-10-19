@@ -40,3 +40,6 @@ testpaths = ["tests"]
 pythonpath = ["."]
 # 비동기 테스트(허브·SSE)에 필요하다. strict가 기본이라 마커를 붙인 것만 돈다.
 asyncio_mode = "strict"
+# LLM 실호출은 기본 실행에서 뺀다 — 비결정적이고 모델 자격증명이 필요하다. `pytest -m llm`.
+markers = ["llm: ollama 실호출이 필요한 테스트"]
+addopts = "-m 'not llm'"

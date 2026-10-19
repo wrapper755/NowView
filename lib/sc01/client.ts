@@ -19,8 +19,11 @@ export const SC01_BASE = "/api/engine/sc01";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
-async function call<T>(path: string, init?: RequestInit & { actor?: string }): Promise<Result<T>> {
-  const { actor, ...rest } = init ?? {};
+async function call<T>(
+  path: string,
+  init?: RequestInit & { actor?: string; idempotencyKey?: string },
+): Promise<Result<T>> {
+  const { actor, idempotencyKey, ...rest } = init ?? {};
   try {
     const response = await fetch(`${SC01_BASE}${path}`, {
       ...rest,
@@ -28,6 +31,8 @@ async function call<T>(path: string, init?: RequestInit & { actor?: string }): P
       headers: {
         "content-type": "application/json",
         ...(actor ? { "x-demo-actor": actor } : {}),
+        // 같은 키로 다시 보내면 엔진이 다시 실행하지 않는다 — 타임아웃 뒤 재시도가 두 번 실행되지 않게(AT13).
+        ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
         ...(rest.headers ?? {}),
       },
     });
@@ -46,8 +51,8 @@ async function call<T>(path: string, init?: RequestInit & { actor?: string }): P
   }
 }
 
-const post = <T>(path: string, body: unknown, actor?: string) =>
-  call<T>(path, { method: "POST", body: JSON.stringify(body ?? {}), actor });
+const post = <T>(path: string, body: unknown, actor?: string, idempotencyKey?: string) =>
+  call<T>(path, { method: "POST", body: JSON.stringify(body ?? {}), actor, idempotencyKey });
 
 export const sc01Api = {
   process: () => call<ProcessTopology>("/process"),
@@ -64,11 +69,17 @@ export const sc01Api = {
     if (q.seq != null) params.set("seq", String(q.seq));
     return call<Dashboard>(`/demo-runs/${id}/dashboard?${params}`);
   },
-  receive: (id: string, fixtureId: string, actor: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/sources/receive`, { fixtureId }, actor),
-  act: (id: string, nodeId: string, answer: Record<string, unknown>, actor: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/actions/${nodeId}`, { answer }, actor),
+  receive: (id: string, fixtureId: string, actor: string, key?: string) =>
+    post<DemoRunView>(`/demo-runs/${id}/sources/receive`, { fixtureId }, actor, key),
+  act: (id: string, nodeId: string, answer: Record<string, unknown>, actor: string, key?: string) =>
+    post<DemoRunView>(`/demo-runs/${id}/actions/${nodeId}`, { answer }, actor, key),
+  regenerate: (id: string, runId: string, actor: string) =>
+    post<DemoRunView>(`/demo-runs/${id}/agent/${runId}/regenerate`, {}, actor),
+  adopt: (id: string, outputId: string, actor: string) =>
+    post<DemoRunView>(`/demo-runs/${id}/agent-outputs/${outputId}/adopt`, {}, actor),
+  clock: (id: string, at: string) => post<DemoRunView>(`/demo-runs/${id}/clock`, { at }, "u-demo"),
   step: (id: string, index: number) => post<DemoRunView>(`/demo-runs/${id}/script/${index}`, {}),
-  reset: (id: string) => post<DemoRunView>(`/demo-runs/${id}/reset`, {}, "u-demo"),
+  reset: (id: string, caseId?: string) =>
+    post<DemoRunView>(`/demo-runs/${id}/reset`, caseId ? { caseId } : {}, "u-demo"),
   eventsUrl: (id: string) => `${SC01_BASE}/demo-runs/${id}/events`,
 };

@@ -59,7 +59,7 @@ umask 077
   echo "ENGINE_PORT=${ENGINE_PORT}"
   # 웹(Next의 BFF)이 엔진을 부르는 주소. 엔진은 localhost에만 바인딩한다.
   echo "ENGINE_URL=http://127.0.0.1:${ENGINE_PORT}"
-  # ollama는 이 서버에 이미 돌고 있다. 지금 엔진은 읽지 않는다 — Agent 단계(CLAUDE.md 5.5)가 쓴다.
+  # ollama는 이 서버에 이미 돌고 있다. NOWVIEW_AGENT_MODE=llm일 때만 쓴다(기본 mock, CLAUDE.md 4.5).
   echo "OLLAMA_URL=http://127.0.0.1:11434"
   echo "OLLAMA_MODEL=kimi-k3:cloud"
 } > "$ENV_FILE"

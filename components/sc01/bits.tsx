@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import {
   AlertTriangle,
+  BellRing,
   CheckCircle2,
   CircleAlert,
   CircleDashed,
@@ -94,9 +96,27 @@ export function ScreenHeader({ id, title, question }: { id: string; title: strin
         <span>가상시각 {view ? formatClock(view.clock) : "—"} KST</span>
         <span>장면 1 {view ? SCENE_LABEL[view.scene] : "—"}</span>
         <span className="rounded border px-1.5 py-0.5 text-[10px]">가상 회사 · 시연 데이터</span>
+        <MyAlerts />
       </div>
       <StatusBanner />
     </header>
+  );
+}
+
+/** 지금 역할에게 온 기한 초과 알림 수 — 누르면 업무 화면으로 간다. */
+function MyAlerts() {
+  const view = useSc01(selectView);
+  const actor = useSc01((s) => s.actor);
+  const count = (view?.alerts ?? []).filter((a) => a.to.includes(actor)).length;
+  if (count === 0) return null;
+  return (
+    <Link
+      href="/tasks"
+      className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium text-foreground"
+    >
+      <BellRing aria-hidden className="size-3" style={{ color: "var(--viz-status-critical)" }} />
+      내 알림 {count}건
+    </Link>
   );
 }
 

@@ -96,7 +96,56 @@ export interface Task {
   issue_id: string | null;
   source_id: string | null;
   overdue: boolean;
+  /** 이 업무가 근거로 삼은 계산들. 정정으로 새 계산이 오면 늘어난다. */
+  runs: string[];
+  /** 계산별 인수·확인 기록 — 정정 전 인수도 지우지 않는다(WF-02). */
+  acks: { run_id: string; by: string; at: string }[];
+  /** 새 근거에 대한 재확인이 필요하다. */
+  reconfirm: boolean;
+  /** 완료된 업무를 다시 쓰지 않고 만든 재검토 업무면 원래 업무(WF-03). */
+  reopens: string | null;
   history: { at: string; status: string; by: string; note?: string | null }[];
+}
+
+export interface AgentDraft {
+  summary: string;
+  findings: string[];
+  evidence_refs: string[];
+  questions: string[];
+  suggested_tasks: { type: string; reason: string }[];
+  limitations: string[];
+}
+
+/** Agent 초안 기록(AG-01~03). 검증에 실패한 응답은 엔진이 내보내지 않는다. */
+export interface AgentOutput {
+  output_id: string;
+  run_id: string;
+  status: "RUNNING" | "SUCCEEDED" | "FAILED";
+  mode: string;
+  delayed: boolean;
+  attempts: number;
+  provenance: string | null;
+  model: string | null;
+  prompt_version: string | null;
+  input_hash: string;
+  latency_ms: number | null;
+  requested_by: string;
+  requested_at: string;
+  draft: AgentDraft | null;
+  errors: string[];
+  adopted_by: string | null;
+  adopted_at: string | null;
+}
+
+export interface Alert {
+  alert_id: string;
+  kind: "OVERDUE";
+  task_id: string;
+  due_at: string;
+  at: string;
+  to: string[];
+  unaccepted: boolean;
+  message: string;
 }
 
 export interface FormField {
@@ -125,6 +174,7 @@ export interface Review {
   opinion: string;
   evidence: string;
   manual_review: boolean;
+  agent_output: string | null;
 }
 
 export interface AuditEntry {
@@ -150,6 +200,13 @@ export interface HandoffCheck {
 export interface DemoRunView {
   demoRunId: string;
   caseId: string;
+  agentMode: string;
+  agentOutputs: AgentOutput[];
+  alerts: Alert[];
+  /** 정정으로 대체된 이전 BPM 실행들(EX03). */
+  bpmHistory: { run_id: string; state: string; superseded_at: string; by_source: string }[];
+  /** 정정 전에 성립했던 인계들 — 역사로 남는다(WF-03). */
+  handoffHistory: { run_id: string; at: string }[];
   clock: string;
   step: string;
   scriptIndex: number;
