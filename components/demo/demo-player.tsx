@@ -200,7 +200,12 @@ export function DemoPlayer() {
       className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur"
     >
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SceneScrubber scenes={demoScenario} sceneIndex={sceneIndex} onJump={jump} />
+        {/* **좁은 화면에서는 스크러버를 감춘다.** 장면 8개를 가로로 나눈 칸이라 손가락으로
+            짚기에는 너무 얇고, 대신 세로를 28px 먹는다 — 360×640에서 헤더와 이 바가
+            화면의 35%를 차지하던 몫의 일부다. 이동은 아래 이전/다음으로 할 수 있다. */}
+        <div className="hidden sm:block">
+          <SceneScrubber scenes={demoScenario} sceneIndex={sceneIndex} onJump={jump} />
+        </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2.5">
           <div className="min-w-0 flex-1 basis-80">
@@ -213,8 +218,9 @@ export function DemoPlayer() {
               </span>
               <span className="text-sm font-semibold text-foreground">{scene.title}</span>
             </div>
-            {/* 두 줄로 제한한다 — 바 높이가 흔들리면 본문에 비워 둔 자리와 어긋난다. */}
-            <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {/* 두 줄로 제한한다 — 바 높이가 흔들리면 본문에 비워 둔 자리와 어긋난다.
+                좁은 화면에서는 한 줄이다: 세로가 귀해서 내레이션보다 본문이 먼저다. */}
+            <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:line-clamp-2">
               {scene.narration}
             </p>
             {/* 엔진 모드에서는 장면 이동이 서버 왕복이다. 진행·실패를 숨기면
@@ -233,7 +239,9 @@ export function DemoPlayer() {
             ) : null}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          {/* `shrink-0`을 좁은 화면에서는 풀어 준다 — 360px 화면에서 이 묶음이 478px로
+              잘려 나가 시나리오 탭과 컨트롤 일부가 보이지 않았다. */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap">
             {/* 시나리오 전환. 각 시나리오는 자기 진행·결정을 따로 들고 있어 오가도 유지된다. */}
             <div
               role="tablist"

@@ -37,6 +37,23 @@ class Instance:
     graph: Any
     warnings: list[str]
     agent_mode: str
+    #: 배경 진행이 Agent 계약 위반으로 멈춘 이유.
+    #:
+    #: **응답으로 알릴 수 없는 실패를 담는 자리다.** 생성은 즉시 돌려주고 진행은 배경에서
+    #: 하므로(`main.py`의 `_advance_later`), 502를 받을 요청이 이미 끝나 있다. 여기에
+    #: 남기지 않으면 인스턴스가 `running`에 멈춘 채 화면이 영원히 기다린다 —
+    #: "지어낸 값으로 메우지 않는다"와 같은 이유로 **조용히 넘기면 안 된다.**
+    #:
+    #: 캐시된 그래프와 마찬가지로 메모리에만 있다. 엔진을 재시작하면 사라지고 인스턴스는
+    #: 마지막 체크포인트에서 다시 진행시킬 수 있는 상태로 남는다.
+    failure: str | None = None
+    #: 지금 진행 중인가 — `_advance`가 도는 동안만 true다.
+    #:
+    #: **노드 사이에서는 `next`가 비어 있을 수 있다.** 그 순간의 스냅샷을 그냥 파생하면
+    #: `done`이 나오는데, 노드마다 알림을 보내므로 그 거짓이 화면까지 간다 — 실제로
+    #: 운영에서 SSE가 중간에 `status=done`을 한 번 보냈고 그래프는 계속 돌고 있었다.
+    #: 도는 중이면 `running`이다.
+    advancing: bool = False
 
 
 class InstanceStore:
@@ -200,6 +217,10 @@ def snapshot_of(instance: Instance, state: Any, *, historical: bool = False) -> 
         status = "waiting"
     elif frontier:
         status = "running"
+    elif instance.advancing and not historical:
+        # 노드 사이라 frontier가 비어 있을 뿐 그래프는 돌고 있다. `done`으로 보고하면
+        # 화면이 "종료"로 읽는다 — 과거 시점(historical)에는 해당하지 않는다.
+        status = "running"
     else:
         status = "done" if visited else "created"
 
@@ -222,6 +243,9 @@ def snapshot_of(instance: Instance, state: Any, *, historical: bool = False) -> 
         "decision": values.get("decision"),
         "acknowledged": values.get("acknowledged") or [],
         "pendingApproval": pending,
+        # 배경 진행이 실패했으면 그 사실을 싣는다 — 이것이 없으면 화면은 `running`에
+        # 멈춘 인스턴스를 "아직 돌고 있다"로 읽고 영원히 기다린다.
+        "failure": instance.failure,
         "specWarnings": instance.warnings,
         # **과거 시점을 보고 있는가.** true면 화면이 "지금"이 아니라 되감아 본 상태다 —
         # 구분하지 않으면 사람이 승인할 수 있는 지점이라고 착각한다.

@@ -64,7 +64,9 @@ export function useEngineInstance(instanceId: string | null) {
     async (scenarioId: string, agentMode: AgentMode): Promise<EngineSnapshot | null> => {
       setState({ pending: true, error: null });
       try {
-        // LLM 모드에서는 Agent 노드마다 10초 이상이라 이 요청이 길게 걸린다.
+        // **즉시 돌아온다.** 엔진이 id만 주고 진행은 배경에서 하므로(LLM 모드는 Agent
+        // 3개에 120초가 넘고 프록시가 100초에 끊는다 — CLAUDE.md 5.4) 여기서 기다리지
+        // 않는다. 돌아온 스냅샷의 status는 `created`이고, 진행은 SSE로 따라온다.
         const snapshot = await callApi<EngineSnapshot>("/api/engine/instances", {
           method: "POST",
           body: JSON.stringify({ scenarioId, agentMode }),

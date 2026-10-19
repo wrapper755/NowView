@@ -1,0 +1,25 @@
+[Unit]
+Description=NowView Web (Next.js)
+# 웹은 켜지자마자 /api/engine으로 엔진 도달 여부를 확인한다. 순서를 안 주면
+# 첫 화면에 "엔진에 연결할 수 없다" 배너가 잠깐 뜬다.
+After=network-online.target nowview-engine.service
+Wants=network-online.target nowview-engine.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/Workspace/NowView
+# npm은 /usr/bin에 있고 systemd는 로그인 셸을 거치지 않아 PATH가 비어 있다.
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=NODE_ENV=production
+# WEB_PORT·ENGINE_URL이 여기 있다. 엔진과 같은 파일을 읽어 두 포트가 갈라지지 않게 한다.
+EnvironmentFile=/etc/nowview.env
+# `npm run build`를 미리 돌려야 한다. 빌드 없이 start하면 즉시 죽는다.
+# **127.0.0.1에만 바인딩한다.** 외부 접근은 cloudflared 터널(https://www.nowview.work)이
+# 맡는다 — 서버에 방화벽이 없어서 0.0.0.0에 열면 IP:포트로도 그대로 들어올 수 있고,
+# 그 경로는 HTTPS가 아니다. 터널이 같은 호스트에서 돌므로 localhost로 충분하다.
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port ${WEB_PORT}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

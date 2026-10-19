@@ -71,7 +71,11 @@ export function EnginePanel({
           {engaged ? "엔진 모드" : "Mock 모드"}
         </span>
 
-        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+        {/* **좁은 화면에서는 한 줄을 통째로 쓴다.** `flex-1`은 basis가 0이라 줄바꿈을
+            유발하지 못한다 — 형제 버튼들이 자리를 다 가져가고 이 문단만 눌려서, 375px에서
+            폭 22px에 높이 512px로 한 글자씩 세로로 쌓였다. `basis-full`이면 자기 줄을
+            차지하고 버튼이 아래로 내려간다. */}
+        <p className="min-w-0 basis-full text-xs text-muted-foreground sm:flex-1 sm:basis-0">
           {engaged ? (
             <>
               LangGraph 인스턴스가 상태를 소유한다. 진행 지점은 실행의 결과이고, 지난
@@ -117,6 +121,8 @@ export function EnginePanel({
         ) : (
           <>
             <span className="text-xs tabular-nums text-muted-foreground">
+              {/* `실행 중`이 배경 진행까지 덮는다 — 엔진이 진행 중에는 노드 사이에서도
+                  `running`을 돌려주므로(`Instance.advancing`) 덧말이 필요 없다. */}
               {STATUS_LABEL[snapshot.status]}
               <span className="mx-1.5 text-muted-foreground/50">·</span>
               {MODE_LABEL[snapshot.agentMode]}
@@ -135,6 +141,24 @@ export function EnginePanel({
         )}
       </div>
 
+      {snapshot?.failure ? (
+        // 배경 진행이 실패했으면 반드시 말한다. 이것이 없으면 `running`에 멈춘
+        // 인스턴스가 "아직 돌고 있다"로 읽혀 사람이 영원히 기다린다.
+        <div
+          className="flex flex-wrap items-center gap-2 border-t px-3 py-2"
+          style={{ borderTopColor: "var(--viz-status-serious)" }}
+        >
+          <AlertTriangle
+            aria-hidden
+            className="size-3.5 shrink-0"
+            style={{ color: "var(--viz-status-serious)" }}
+          />
+          <p className="min-w-0 flex-1 text-xs text-foreground">
+            진행이 멈췄다 — {snapshot.failure}
+          </p>
+        </div>
+      ) : null}
+
       {historical ? (
         // 과거 시점인데 그 사실을 표시하지 않으면 지금 승인할 수 있다고 착각한다.
         <div
@@ -146,7 +170,9 @@ export function EnginePanel({
             className="size-3.5 shrink-0"
             style={{ color: "var(--viz-status-warning)" }}
           />
-          <p className="min-w-0 flex-1 text-xs text-foreground">
+          {/* 최소 폭을 준다 — `flex-1`만 두면 형제 버튼에 밀려 한 글자씩 세로로 쌓인다.
+              들어갈 자리가 없으면 버튼이 아래 줄로 내려간다(위 문단과 같은 이유). */}
+          <p className="min-w-[12rem] flex-1 text-xs text-foreground">
             지난 시점을 되짚어 보는 중이다 — 인스턴스의 실제 진행은 이보다 앞서 있고,
             여기서는 승인할 수 없다.
           </p>

@@ -79,6 +79,12 @@ export interface EngineSnapshot {
     /** 직전 입력이 반려된 이유. 있으면 같은 지점에 다시 멈춘 것이다. */
     error?: string;
   } | null;
+  /**
+   * 배경 진행이 멈춘 이유 — 생성은 즉시 돌아오고 진행은 배경에서 하므로(엔진의
+   * `_advance_later`) 502를 받을 요청이 이미 끝나 있다. 이것이 없으면 화면이
+   * `running`에 멈춘 인스턴스를 "아직 돌고 있다"로 읽고 영원히 기다린다.
+   */
+  failure?: string | null;
   /** 명세 자체의 문제. 조용히 삼키지 않고 그대로 올린다. */
   specWarnings: string[];
   /**

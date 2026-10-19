@@ -15,9 +15,10 @@ import asyncio
 import json as jsonlib
 import logging
 import os
+import threading
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -58,7 +59,8 @@ class CreateRequest(BaseModel):
     spec: ProcessSpec
     #: `mock`이 기본이다 — 데모가 결정론적이어야 하고, LLM 호출은 비용·지연이 있다.
     agent_mode: str = Field(default="mock", alias="agentMode")
-    #: true면 첫 사람 대기 지점 또는 종료까지 바로 진행한다.
+    #: true면 첫 사람 대기 지점 또는 종료까지 진행한다 — **배경에서** 한다.
+    #: 응답은 기다리지 않으므로 `status`는 `created`로 돌아온다.
     advance: bool = True
 
     model_config = {"populate_by_name": True}
@@ -112,7 +114,18 @@ def list_instances() -> dict[str, Any]:
 
 
 @app.post("/instances", status_code=201)
-def create_instance(body: CreateRequest) -> dict[str, Any]:
+def create_instance(body: CreateRequest, background: BackgroundTasks) -> dict[str, Any]:
+    """
+    인스턴스를 만들고 **즉시** 돌려준다. 진행은 배경에서 한다(`_advance_later`).
+
+    **요청 안에서 첫 대기까지 밀어붙이지 않는다.** LLM 모드는 Agent 3개를 연달아 돌려
+    120초를 넘고 Cloudflare가 약 100초에 끊어 524가 됐다 — 게다가 엔진은 끝까지 돌아
+    인스턴스를 남기므로 클라이언트가 id를 못 받은 **고아**가 생겼다(CLAUDE.md 5.4).
+    id를 먼저 주면 화면이 붙어 놓고 SSE로 진행을 받는다.
+
+    그래서 응답의 `status`는 `created`다 — 첫 대기 지점은 조금 뒤에 온다. Mock 모드도
+    같은 경로로 돈다. 모드마다 다르게 하면 "LLM에서만 나는 버그"가 생긴다.
+    """
     try:
         instance = store.create(body.spec, agent_mode=body.agent_mode)
     except ValueError as exc:
@@ -120,7 +133,7 @@ def create_instance(body: CreateRequest) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if body.advance:
-        _run(instance, None)
+        background.add_task(_advance_later, instance)
     notifier.publish(instance.id)
     return snapshot(instance)
 
@@ -169,12 +182,15 @@ class SeekRequest(BaseModel):
 def seek_instance(instance_id: str, body: SeekRequest) -> dict[str, Any]:
     instance = _lookup(instance_id)
     try:
-        result = seek(
-            instance,
-            target_node_id=body.target_node_id,
-            decision=body.decision,
-            acknowledged_by=body.acknowledged_by,
-        )
+        # 생성의 배경 진행과 겹칠 수 있다 — 같은 `thread_id`에 두 진행이 동시에 돌면
+        # 체크포인트가 엉킨다. 데모 플레이어가 생성 직후 장면을 찍으면 실제로 겹친다.
+        with _lock_for(instance_id):
+            result = seek(
+                instance,
+                target_node_id=body.target_node_id,
+                decision=body.decision,
+                acknowledged_by=body.acknowledged_by,
+            )
         # 되감기는 인스턴스를 바꾸지 않지만, 앞으로 갈 때는 바뀐다. 구분하지 않고
         # 알린다 — 구독자가 다시 읽어도 같은 값이면 화면은 그대로다.
         notifier.publish(instance_id)
@@ -290,18 +306,71 @@ def _lookup(instance_id: str):
         raise HTTPException(status_code=404, detail=f"없는 인스턴스: {instance_id}") from exc
 
 
-def _run(instance, command: Any) -> None:
+#: 인스턴스별 진행 잠금. 같은 `thread_id`에 두 진행이 겹치면 체크포인트가 엉킨다 —
+#: 생성의 배경 진행이 도는 동안 사람이 되감기를 누를 수 있으므로 실제로 겹칠 수 있다.
+_locks: dict[str, threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+
+def _lock_for(instance_id: str) -> threading.Lock:
+    with _locks_guard:
+        return _locks.setdefault(instance_id, threading.Lock())
+
+
+def _advance(instance, command: Any) -> None:
     """
     그래프를 다음 사람 대기 지점 또는 종료까지 돌린다.
 
-    `interrupt`는 예외가 아니라 정상 종료다 — LangGraph가 체크포인트를 남기고
-    invoke가 반환된다. 그래서 여기서 잡을 것은 Agent 계약 위반뿐이다.
+    `interrupt`는 예외가 아니라 정상 종료다 — LangGraph가 체크포인트를 남기고 스트림이
+    끝난다. 그래서 여기서 나갈 예외는 Agent 계약 위반뿐이고, **그것을 HTTP로 번역하지
+    않는다** — 이 함수는 배경에서도 불리고 그때는 받을 응답이 없다. 번역은 호출자가 한다.
+
+    **`invoke`가 아니라 `stream`이다.** 노드가 끝날 때마다 알리면 화면이 진행을 점진적으로
+    받는다(SSE는 4.19). `invoke`는 전부 끝나야 돌아오므로, LLM 모드에서 2분 동안 아무
+    변화가 없다가 한꺼번에 바뀐다 — 그러면 배경 진행이 고장난 것과 구분되지 않는다.
     """
+    # 노드 사이에서는 `next`가 비어 있어 스냅샷이 `done`으로 파생된다 — 도는 중임을
+    # 표시해 두지 않으면 그 거짓이 알림을 타고 화면까지 간다(`instances.Instance.advancing`).
+    instance.advancing = True
     try:
-        instance.graph.invoke(
+        for _ in instance.graph.stream(
             command if command is not None else {"scenario_id": instance.spec.scenario_id},
             config_for(instance.id),
-        )
-    except AgentContractError as exc:
-        # 지어낸 산출물로 메우지 않는다. 어느 Agent가 왜 실패했는지 그대로 알린다.
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        ):
+            notifier.publish(instance.id)
+    finally:
+        instance.advancing = False
+
+
+def _run(instance, command: Any) -> None:
+    """요청 안에서 진행한다 — 계약 위반을 502로 번역한다."""
+    with _lock_for(instance.id):
+        try:
+            _advance(instance, command)
+        except AgentContractError as exc:
+            # 지어낸 산출물로 메우지 않는다. 어느 Agent가 왜 실패했는지 그대로 알린다.
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+def _advance_later(instance) -> None:
+    """
+    배경에서 첫 사람 대기 지점까지 진행한다 — `POST /instances`가 쓴다.
+
+    **요청 안에서 돌리면 프록시가 끊는다.** LLM 모드의 생성은 Agent를 3개 연달아 돌려
+    120초를 넘는데, Cloudflare의 원본 응답 타임아웃은 약 100초다(CLAUDE.md 5.4). 그래서
+    생성은 id만 즉시 돌려주고 진행은 여기서 한다 — 화면은 SSE로 변화를 받는다.
+
+    실패를 인스턴스에 남기고 알린다. 받을 응답이 없으니 502를 던질 곳이 없는데, 조용히
+    넘기면 화면이 `running`에 멈춘 인스턴스를 영원히 기다린다.
+    """
+    with _lock_for(instance.id):
+        try:
+            _advance(instance, None)
+        except AgentContractError as exc:
+            instance.failure = str(exc)
+            log.error("배경 진행이 실패했다 (%s): %s", instance.id, exc)
+        except Exception as exc:  # noqa: BLE001 — 배경에서는 무엇이든 삼켜지면 안 된다
+            instance.failure = f"진행 중 예기치 못한 오류: {exc}"
+            log.exception("배경 진행이 실패했다 (%s)", instance.id)
+        finally:
+            notifier.publish(instance.id)

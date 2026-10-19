@@ -1,0 +1,33 @@
+[Unit]
+# 설치: scripts/deploy.sh가 이 파일을 /etc/systemd/system/에 복사하고 daemon-reload 한다.
+Description=NowView BPM Engine (FastAPI/LangGraph)
+After=network-online.target postgresql.service
+# Postgres가 없으면 엔진은 기동에 실패한다 — DATABASE_URL이 있는데 못 붙으면
+# SQLite로 조용히 되돌리지 않는 것이 설계다(CLAUDE.md 4.16). Requires로 묶어
+# DB가 죽으면 엔진도 함께 내려가게 한다.
+Requires=postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/Workspace/NowView/engine
+# uv는 ~/.local/bin에 있고 systemd는 로그인 셸을 거치지 않아 PATH가 비어 있다.
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+# DATABASE_URL·포트·ollama 설정이 여기 있다. 유닛에 박아두면 비밀이 리포에 들어간다.
+EnvironmentFile=/etc/nowview.env
+# --reload를 붙이지 않는다(운영). 엔진은 localhost에만 바인딩한다 —
+# 브라우저는 Next의 /api/engine/*를 거치고 엔진을 직접 부르지 않는다(4.17).
+#
+# **--timeout-graceful-shutdown이 없으면 SSE 때문에 종료가 걸린다.** uvicorn은 열린
+# 연결이 닫히기를 기다리는데 SSE 스트림은 끝나지 않는다 — 실측으로 화면 하나가 구독
+# 중일 때 종료가 91초를 끌다 systemd에 SIGKILL로 죽었다(연결이 없으면 즉시 멈춘다).
+# 배포마다 엔진이 90초간 내려가는 셈이라 시연 중에 특히 나쁘다.
+ExecStart=/root/.local/bin/uv run uvicorn app.main:app --host 127.0.0.1 --port ${ENGINE_PORT} --timeout-graceful-shutdown 10
+Restart=always
+RestartSec=5
+# uvicorn이 위 값으로 스스로 빠지므로 여기까지 오지 않는다 — 그래도 기본값(90초)에
+# 맡기지 않는다. 종료가 오래 걸리는 것은 실패로 다루는 편이 낫다.
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

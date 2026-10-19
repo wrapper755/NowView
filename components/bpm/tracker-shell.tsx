@@ -140,8 +140,10 @@ export function BpmTrackerShell() {
           {/* 엔진 모드에서는 단계 버튼을 감춘다. 진행은 실행의 결과이므로 임의로
               앞당길 수 없고, 되짚어 보기는 데모 플레이어가 장면 단위로 한다. */}
           {engine.view ? null : <StepControls process={process} />}
-          {/* React Flow는 부모에 명시적 높이가 있어야 렌더된다 (100% 높이를 상속받지 못한다). */}
-          <div className="viz-root h-[360px] w-full overflow-hidden rounded-lg border">
+          {/* React Flow는 부모에 명시적 높이가 있어야 렌더된다 (100% 높이를 상속받지 못한다).
+              좁은 화면에서는 낮춘다 — 360×640에서 헤더와 데모 바를 뺀 본문이 433px라
+              360px짜리 캔버스가 화면을 통째로 먹어 그 아래가 없는 것처럼 보였다. */}
+          <div className="viz-root h-[240px] w-full overflow-hidden rounded-lg border sm:h-[360px]">
             <ProcessCanvas
               process={process}
               statuses={statuses}
