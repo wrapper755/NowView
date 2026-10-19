@@ -6,12 +6,12 @@
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 133개 (SQLite만, LLM 제외)
+uv run pytest                                      # 147개 (SQLite만, LLM 제외)
 OLLAMA_URL=http://localhost:11434 uv run pytest -m llm   # Agent 실호출 계약 (약 100초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때 — 루트에서 npm run stack:start db)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 155개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 180개
 ```
 
 `--reload` 없이 띄우면 코드를 고쳐도 반영되지 않는다.

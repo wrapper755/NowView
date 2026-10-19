@@ -28,6 +28,11 @@ def _pnl(p: Pnl) -> dict[str, str]:
     }
 
 
+def _node_rank(node_id: str) -> int:
+    nodes = list(domain.NODE_ROLES)
+    return nodes.index(node_id) if node_id in nodes else len(nodes)
+
+
 def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
     pendings = (doc["bpm"] or {}).get("snapshot", {}).get("pendings", {})
     waiting = [
@@ -39,7 +44,8 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             "fields": (p["form"] or {}).get("fields", []),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
         }
-        for p in pendings.values()
+        # BPMN 노드 순서로 — 스냅샷의 키 순서는 저장소(Postgres JSONB)가 바꾼다(CLAUDE.md 4.5).
+        for p in sorted(pendings.values(), key=lambda p: _node_rank(p["node_id"]))
     ]
     tasks = [
         {

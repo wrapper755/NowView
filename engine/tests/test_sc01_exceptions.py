@@ -303,3 +303,18 @@ def test_old_documents_get_their_order_back() -> None:
     ]  # 같은 시각(11:00)의 생산·자재는 id 순으로 — 원래 순서는 알 수 없다
     assert shown["latestRunId"] == "RUN-F03-001"
     assert [s["source_id"] for s in shown["sources"]] == ["SRC02", "SRC03"]
+
+
+def test_waiting_list_follows_the_bpmn_order(proc) -> None:
+    """사람 대기 목록도 저장 순서가 아니라 BPMN 노드 순서다 — 현업 배정이 Review 요청보다 먼저."""
+    doc = play(proc, until=3)
+    assert [w["nodeId"] for w in view(doc)["bpm"]["waiting"]] == [
+        "Approve_Dispatch",
+        "Approve_Review",
+    ]
+    doc = demo.run_step(proc, doc["demo_run_id"], 4)
+    assert [w["nodeId"] for w in view(doc)["bpm"]["waiting"]] == [
+        "Approve_Review",
+        "Accept_PROD",
+        "Accept_MAT",
+    ]
