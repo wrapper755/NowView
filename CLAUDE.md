@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 133개 (SQLite만, LLM 제외)
+uv run pytest                                      # 145개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (155개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (177개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -416,6 +416,17 @@ ISSUE-B07은 열린 중요다.
   409다. 화면의 폼은 같은 입력의 재시도에 같은 키를 쓰고 입력을 고치면 새 키를 쓴다.
 * **이전 형식 문서는 읽을 때 채운다**(`domain.upgrade`). 저장된 데모 실행을 버리지 않는다.
 
+**순서는 저장 순서에 기대지 않는다 — Postgres JSONB가 객체 키를 (길이, 바이트) 순으로 다시 놓는다.**
+운영계 배포 뒤에 드러났다: 업무 목록이 DQ·FIN·MAT·PROD·SALES로 나왔다(SQLite는 넣은 순서라 로컬과
+CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보지 않았다). "마지막이 최신"을 쓰는 곳
+(최신 계산·최신 원천·활성 업무·재검토 업무)이 우연히 맞고 있었을 뿐이다. 그래서:
+
+* 원천·전망·계산·업무·Agent 초안은 만들 때 **`seq`**를 받고, 순서가 필요한 곳은 전부
+  `domain.ordered()`로 읽는다. 한 번에 생기는 업무(생산·자재)는 BPMN 노드 순서로 만든다.
+* 테스트의 `JsonbLikeStore`가 읽을 때 키를 JSONB처럼 섞는다 — Postgres 없이도 순서 의존을 잡는다.
+  넣자마자 기한 초과 알림 순서가 같은 이유로 틀린 것을 하나 더 잡았다.
+* `seq` 이전에 저장된 문서는 `upgrade`가 id의 숫자·배정 시각으로 순서를 되살린다.
+
 ### 4.6 SC01 화면
 
 | 경로 | 화면 | 핵심 |
@@ -478,7 +489,7 @@ ISSUE-B07은 열린 중요다.
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(133개 / 155개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(145개 / 177개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc01-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가

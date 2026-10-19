@@ -88,7 +88,7 @@ remote "systemctl restart nowview-engine"
 remote "systemctl restart nowview-web"
 
 say "확인"
-# 기동에 시간이 걸린다 — 엔진은 Postgres 스키마 setup()을, 웹은 Next 부팅을 한다.
+# 기동에 시간이 걸린다 — 엔진은 테이블 생성(CREATE TABLE IF NOT EXISTS)을, 웹은 Next 부팅을 한다.
 remote 'for _ in $(seq 1 30); do
   curl -sf http://127.0.0.1:8077/health >/dev/null && break
   sleep 1
@@ -98,7 +98,11 @@ for _ in $(seq 1 30); do
   curl -sf -o /dev/null http://127.0.0.1:3100/ && break
   sleep 1
 done
-echo "web /api/engine:"; curl -s http://127.0.0.1:3100/api/engine; echo'
+# 웹 → BFF → 엔진을 한 번에 지나는 경로로 본다. 예전 `/api/engine`은 LangGraph와 함께 지웠다 —
+# 남겨 두었더니 배포가 성공해도 마지막 줄이 404 페이지 HTML을 찍었다.
+echo "web → engine (/api/engine/sc01/process):"
+curl -s http://127.0.0.1:3100/api/engine/sc01/process | head -c 120; echo
+curl -s -o /dev/null -w "web / → %{http_code}\n" http://127.0.0.1:3100/'
 
 # 외부 주소는 cloudflared 터널이 정한다(Cloudflare 대시보드의 라우트).
 # 웹은 127.0.0.1에만 바인딩하므로 IP:포트로는 들어갈 수 없다.

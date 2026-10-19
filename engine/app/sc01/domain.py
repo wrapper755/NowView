@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import asdict, replace
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -157,6 +158,15 @@ def _assessment_json(a: Assessment) -> dict[str, Any]:
     }
 
 
+def ordered(records: dict[str, dict]) -> list[dict]:
+    """
+    기록을 **만든 순서**로 돌려준다(`seq`). 딕셔너리의 키 순서에 기대면 안 된다 — Postgres JSONB는
+    키를 길이·바이트 순으로 다시 정렬해 저장한다. 운영계에서 업무 목록이 DQ·FIN·MAT·PROD·SALES로
+    나왔다(SQLite는 넣은 순서라 로컬에서는 안 보였다).
+    """
+    return sorted(records.values(), key=lambda r: r.get("seq", 0))
+
+
 def issue_id_for(model_id: str, period: date) -> str:
     return f"ISSUE-{model_id[-1].upper()}{period.month:02d}"
 
@@ -207,6 +217,7 @@ def new_demo_run(
         "calc_runs": {
             "RUN-F01-001": {
                 "run_id": "RUN-F01-001",
+                "seq": 0,  # 기준 적재 — 비교 결과가 아니다
                 "status": "SUCCEEDED",
                 "versions": {
                     "target": "T01",
@@ -263,11 +274,13 @@ def receive_source(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tup
         if s["hash"] == digest:
             return sid, False
     sid = f"SRC{len(doc['sources']) + 2:02d}"  # SRC01은 시드(CP01)다
+    earlier = ordered(doc["sources"])
     corrects = next(
-        (x for x, s in doc["sources"].items() if s["customer_plan_id"] == plan_id), None
-    ) or next(iter(doc["sources"]), None)
+        (s["source_id"] for s in earlier if s["customer_plan_id"] == plan_id), None
+    ) or (earlier[0]["source_id"] if earlier else None)
     doc["sources"][sid] = {
         "source_id": sid,
+        "seq": len(doc["sources"]) + 1,
         "fixture_id": fixture_id,
         "customer_plan_id": plan_id,
         "received_at": doc["clock"],
@@ -366,6 +379,7 @@ def compare(doc: dict, seed: Seed, source_id: str) -> dict[str, Any]:
     run_id = f"RUN-{version}-001"
     doc["forecasts"][version] = {
         "version_id": version,
+        "seq": len(doc["forecasts"]) + 1,
         "source_id": source_id,
         "approval": "UNDER_REVIEW",  # 공식 승인 API는 SC01 범위 밖이다
         "created_at": doc["clock"],
@@ -375,6 +389,7 @@ def compare(doc: dict, seed: Seed, source_id: str) -> dict[str, Any]:
     results = assess_all(keys, seed.plans["T01"], seed.plans["F01"], latest, seed)
     doc["calc_runs"][run_id] = {
         "run_id": run_id,
+        "seq": len(doc["calc_runs"]),
         "status": "SUCCEEDED",
         "versions": {
             "target": "T01",
@@ -465,7 +480,8 @@ DEFAULT_ASSIGNEE = {"영업담당": "u-sales", "영업팀장": "u-sales-lead"}
 
 
 def tasks_of(doc: dict, task_type: str) -> list[dict]:
-    return [t for t in doc["tasks"].values() if t["type"] == task_type]
+    """그 종류의 업무를 만든 순서로 — 마지막이 가장 최근의 재검토 업무다."""
+    return [t for t in ordered(doc["tasks"]) if t["type"] == task_type]
 
 
 def active_task(doc: dict, task_type: str) -> dict | None:
@@ -490,7 +506,13 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[s
       만든다(WF-03) — TASK-DQ가 끝났으면 TASK-DQ-2.
     """
     run_id = variables.get("계산ID") or None
-    for request_id, p in pendings.items():
+    # 한 번에 여러 업무가 생기면(생산·자재) BPMN 노드 순서로 만든다 — 스냅샷 키 순서가 아니다.
+    nodes = list(NODE_ROLES)
+    by_node = sorted(
+        pendings.items(),
+        key=lambda kv: nodes.index(kv[1]["node_id"]) if kv[1]["node_id"] in nodes else len(nodes),
+    )
+    for request_id, p in by_node:
         spec = NODE_ROLES.get(p["node_id"])
         if spec is None or spec["task"] is None:
             continue
@@ -507,6 +529,7 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[s
             assigned = parse_at(doc["clock"])
             doc["tasks"][task_id] = {
                 "task_id": task_id,
+                "seq": len(doc["tasks"]) + 1,
                 "type": spec["task"],
                 "node_id": p["node_id"],
                 "request_id": request_id,
@@ -623,7 +646,7 @@ def raise_overdue_alerts(doc: dict) -> list[dict]:
     alerts = doc.setdefault("alerts", [])
     seen = {(a["task_id"], a["due_at"]) for a in alerts}
     created = []
-    for task in doc["tasks"].values():
+    for task in ordered(doc["tasks"]):
         if not overdue(task, doc["clock"]) or (task["task_id"], task["due_at"]) in seen:
             continue
         unaccepted = task["status"] == "ASSIGNED"
@@ -780,12 +803,13 @@ def request_agent(
     """
     outputs = doc.setdefault("agent_outputs", {})
     if not manual:
-        for out in outputs.values():
+        for out in ordered(outputs):
             if out["input_hash"] == payload_hash and out["status"] == "SUCCEEDED":
                 return out["output_id"]
     output_id = f"AGT-{len(outputs) + 1:03d}"
     outputs[output_id] = {
         "output_id": output_id,
+        "seq": len(outputs) + 1,
         "run_id": run_id,
         "status": "RUNNING",
         "mode": mode,
@@ -868,6 +892,11 @@ def check_idempotency(doc: dict, key: str | None, body: Any) -> bool:
 # ─────────────────────────── 문서 형식 ───────────────────────────
 
 
+def _digits(text: str) -> int:
+    found = re.findall(r"\d+", text)
+    return int(found[-1]) if found else 0
+
+
 def upgrade(doc: dict) -> dict:
     """
     이전 형식의 문서(Agent·정정·알림 이전)를 읽을 수 있게 채운다. 저장된 데모 실행을 버리지 않는다 —
@@ -876,6 +905,20 @@ def upgrade(doc: dict) -> dict:
     doc.setdefault("agent_mode", "mock")
     doc.setdefault("agent_outputs", {})
     doc.setdefault("alerts", [])
+    # 순번(`seq`) 이전에 저장된 문서 — id의 숫자와 배정 시각으로 만든 순서를 되살린다.
+    for name, key in (
+        ("sources", lambda r: _digits(r["source_id"])),
+        ("forecasts", lambda r: _digits(r["version_id"])),
+        ("calc_runs", lambda r: _digits(r["run_id"].split("-")[1])),
+        ("agent_outputs", lambda r: _digits(r["output_id"])),
+        ("tasks", lambda r: (r["assigned_at"], _digits(r["task_id"]) or 1, r["task_id"])),
+    ):
+        records = doc.get(name, {})
+        if any("seq" not in r for r in records.values()):
+            for i, r in enumerate(sorted(records.values(), key=key)):
+                r["seq"] = i + 1
+    if "RUN-F01-001" in doc.get("calc_runs", {}):
+        doc["calc_runs"]["RUN-F01-001"]["seq"] = 0
     for task in doc.get("tasks", {}).values():
         task.setdefault("runs", [task["run_id"]] if task.get("run_id") else [])
         task.setdefault(
