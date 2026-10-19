@@ -1,4 +1,4 @@
-# NowView BPM 엔진 (FastAPI + Chaeksas BPM · LangGraph는 SC01 화면 전환 후 걷어낸다)
+# NowView BPM 엔진 (FastAPI + Chaeksas BPM)
 #
 # 빌드 컨텍스트는 `engine/`이다 (docker-compose.yml의 context 참조).
 

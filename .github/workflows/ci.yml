@@ -8,10 +8,8 @@
 # build(가장 느림). build가 TypeScript 검사를 겸하므로 별도 typecheck 단계를
 # 두지 않는다 (CLAUDE.md "Commands" 참조).
 #
-# 데이터가 전부 Mock 코드라 빌드에 환경 변수나 비밀값이 필요 없다. Agent 노드도
-# 기본이 Mock이므로 **LLM 자격증명 없이 전부 검증된다** — ollama 실호출 테스트만
-# 제외되고(`-m llm`), 계약 검증은 네트워크 없이 돌아 CI가 잡는다.
-# 실제 백엔드에 Postgres가 붙으면 그때 서비스 컨테이너를 추가한다.
+# 빌드에 환경 변수나 비밀값이 필요 없다 — 화면 데이터는 클라이언트가 엔진에서 받고,
+# 엔진의 시드는 리포의 엑셀(engine/seed/)이다. 아직 LLM을 부르는 노드가 없다(CLAUDE.md 5.5).
 
 name: CI
 
@@ -67,7 +65,7 @@ jobs:
       - name: Build
         run: npm run build
 
-  # Python BPM 엔진 (engine/) — LangGraph StateGraph
+  # Python BPM 엔진 (engine/) — Chaeksas BPM(chaeksas-core, git 의존성)
   engine:
     runs-on: ubuntu-latest
 
@@ -126,8 +124,6 @@ jobs:
         run: uv run ruff check .
 
       - name: Test (pytest)
-        # `-m 'not llm'`이 pyproject의 addopts에 있어 ollama 실호출은 자동으로 빠진다.
-        # 비결정적이고 모델 자격증명이 필요하므로 CI에 넣지 않는다.
         run: uv run pytest
 
   # 컨테이너 이미지 — 푸시하지 않고 빌드만 한다.

@@ -94,11 +94,36 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     def get(demo_run_id: str) -> dict[str, Any]:
         return view(guard(process.get, demo_run_id))
 
+    @r.get("/rules")
+    def rules() -> dict[str, str]:
+        """R01-v1 임계값. 화면이 기준을 따로 적지 않게 한다 — 시드가 바뀌면 함께 바뀐다."""
+        return {k: str(v) for k, v in process.seed.rules.items()}
+
+    @r.get("/customer-plans/{plan_id}")
+    def customer_plan(plan_id: str) -> list[dict[str, Any]]:
+        """시드의 고객계획 원천(CP01 등). UI02 변경 비교의 "직전 원천"이다."""
+        rows = process.seed.customer_plans.get(plan_id)
+        if rows is None:
+            raise HTTPException(status_code=404, detail=f"없는 고객계획: {plan_id}")
+        return [
+            {"modelId": r.model_id, "period": r.period.isoformat(), "quantity": r.quantity}
+            for r in rows
+        ]
+
     @r.get("/demo-runs/{demo_run_id}/dashboard")
-    def get_dashboard(demo_run_id: str, period: str = "연간", month: int = Query(7, ge=1, le=12)):
-        return guard(
-            dashboard, guard(process.get, demo_run_id), process.seed, period=period, month=month
-        )
+    def get_dashboard(
+        demo_run_id: str,
+        period: str = "연간",
+        month: int = Query(7, ge=1, le=12),
+        seq: int | None = Query(None, description="지난 시점(이력 seq)의 대시보드"),
+    ):
+        if seq is None:
+            doc = guard(process.get, demo_run_id)
+        else:
+            doc = process.store.at(demo_run_id, seq)
+            if doc is None:
+                raise HTTPException(status_code=404, detail=f"없는 시점: {seq}")
+        return guard(dashboard, doc, process.seed, period=period, month=month)
 
     @r.get("/demo-runs/{demo_run_id}/history")
     def history(demo_run_id: str) -> list[dict[str, Any]]:
@@ -107,7 +132,7 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
 
     @r.get("/demo-runs/{demo_run_id}/history/{seq}")
     def at(demo_run_id: str, seq: int) -> dict[str, Any]:
-        """지난 시점 — **읽기만** 한다. 실행을 되돌리지 않는다(4.18과 같은 원칙)."""
+        """지난 시점 — **읽기만** 한다. 실행을 되돌리지 않는다(4.6과 같은 원칙)."""
         doc = process.store.at(demo_run_id, seq)
         if doc is None:
             raise HTTPException(status_code=404, detail=f"없는 시점: {seq}")

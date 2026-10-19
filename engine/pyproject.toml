@@ -1,16 +1,12 @@
 [project]
 name = "nowview-engine"
 version = "0.1.0"
-description = "NowView BPM 엔진 — LangGraph StateGraph + Agent 오케스트레이션"
+description = "NowView BPM 엔진 — Chaeksas BPM(BPMN 2.0) 위의 SC01"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
-    "langgraph>=1.2",
-    "langgraph-checkpoint-sqlite>=2.0",
-    "httpx>=0.27",
     "pydantic>=2.9",
-    "langgraph-checkpoint-postgres>=3.1",
     "psycopg[binary,pool]>=3.2",
     "chaeksas-core",
     "openpyxl>=3.1",
@@ -24,6 +20,7 @@ chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "6088b75
 
 [dependency-groups]
 dev = [
+    "httpx>=0.27",  # fastapi TestClient
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.8",
@@ -41,9 +38,5 @@ testpaths = ["tests"]
 # `app` 패키지를 설치하지 않고 임포트한다. tests/에 __init__.py를 두지 않는 이유도
 # 같다 — conftest를 모듈로 직접 임포트해 고정물을 공유한다.
 pythonpath = ["."]
-# 실제 LLM을 부르는 테스트는 기본 실행에서 뺀다 — 네트워크·비결정성 때문이다.
-# 돌리려면 `pytest -m llm`.
-markers = ["llm: ollama 실호출이 필요한 테스트"]
 # 비동기 테스트(허브·SSE)에 필요하다. strict가 기본이라 마커를 붙인 것만 돈다.
 asyncio_mode = "strict"
-addopts = "-m 'not llm'"

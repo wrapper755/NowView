@@ -101,10 +101,18 @@ class Sc01Process:
 
     def _commit(self, doc: dict, version: int, run: Any | None, event: str) -> dict:
         if run is not None:
+            # 지나온 노드를 누적한다 — 기록(RunLog)은 조작마다 새로 열리고 스냅샷은 현재
+            # 위치만 들고 있어, 쌓아 두지 않으면 캔버스가 "어디를 지나왔나"를 그릴 수 없다.
+            visited = list((doc.get("bpm") or {}).get("visited", []))
+            for logged in run.log.events:
+                if logged.kind == "node_state" and logged.data.get("state") == "completed":
+                    if logged.node_id and logged.node_id not in visited:
+                        visited.append(logged.node_id)
             doc["bpm"] = {
                 "run_id": run.run_id,
                 "state": run.state.value,
                 "snapshot": dump(run),
+                "visited": visited,
                 "error": doc["bpm"]["error"] if doc.get("bpm") else None,
             }
             domain.sync_tasks(

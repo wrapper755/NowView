@@ -67,6 +67,7 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             "state": doc["bpm"]["state"],
             "waiting": waiting,
             "position": sorted({t["node_id"] for t in doc["bpm"]["snapshot"]["tokens"]}),
+            "visited": doc["bpm"].get("visited", []),
         },
         "sources": list(doc["sources"].values()),
         "forecasts": [

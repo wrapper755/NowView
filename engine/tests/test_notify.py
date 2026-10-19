@@ -25,7 +25,7 @@ from app.notify import CHANNEL, LocalNotifier, PostgresNotifier, build_notifier
 class _FakeBackend:
     def __init__(self, kind: str, pool: object | None = None) -> None:
         self.kind = kind
-        self.specs = type("_S", (), {"pool": pool})()
+        self.pool = pool
 
 
 class TestLocalNotifier:

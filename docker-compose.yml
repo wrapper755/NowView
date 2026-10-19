@@ -34,9 +34,8 @@ services:
       # 이 값이 있으면 엔진이 Postgres 백엔드로 뜬다. 없으면 SQLite인데,
       # 여러 인스턴스로 띄우면 상태가 갈라지므로 운영에는 부적합하다.
       DATABASE_URL: postgresql://nowview:nowview@postgres:5432/nowview
-      # LLM 모드는 **호스트의 ollama**를 쓴다 — cloud 모델 자격증명이 거기 있고,
-      # 모델을 컨테이너에 다시 받는 것은 낭비다. Agent 기본값은 mock이라
-      # ollama가 없어도 스택은 정상 동작한다.
+      # Agent 단계(CLAUDE.md 5.5)가 **호스트의 ollama**를 쓴다 — cloud 모델 자격증명이
+      # 거기 있다. 지금 엔진은 이 값을 읽지 않으므로 ollama가 없어도 스택은 정상 동작한다.
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k3:cloud}
       LOG_LEVEL: INFO

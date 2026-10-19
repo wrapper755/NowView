@@ -26,7 +26,7 @@ def proc(request) -> Iterator[Sc01Process]:
     backend = None
     if request.param == "postgres":
         backend = build_postgres_backend(require_postgres())
-        store = PostgresSc01Store(backend.specs.pool)
+        store = PostgresSc01Store(backend.pool)
         _truncate_sc01(backend)
     else:
         store = SqliteSc01Store(sqlite3.connect(":memory:", check_same_thread=False))
@@ -41,7 +41,7 @@ def proc(request) -> Iterator[Sc01Process]:
 
 
 def _truncate_sc01(backend) -> None:
-    with backend.specs.pool.connection() as conn:
+    with backend.pool.connection() as conn:
         conn.execute("TRUNCATE sc01_demo_run, sc01_history")
 
 

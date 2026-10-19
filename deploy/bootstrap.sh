@@ -47,7 +47,7 @@ if [[ -z $(su - postgres -c "psql -tAc \"select 1 from pg_database where datname
   echo "DB 생성: ${DB_NAME}"
 fi
 
-# LangGraph의 PostgresSaver가 기동 시 스스로 테이블을 만든다(store.py의 setup()).
+# 엔진이 기동 시 스스로 테이블을 만든다(app/sc01/store.py의 CREATE TABLE IF NOT EXISTS).
 # 그래서 스키마 마이그레이션 단계가 따로 없고, public에 만들 권한만 있으면 된다.
 su - postgres -c "psql -q -d ${DB_NAME} -c \"grant all on schema public to ${DB_USER}\""
 
@@ -59,7 +59,7 @@ umask 077
   echo "ENGINE_PORT=${ENGINE_PORT}"
   # 웹(Next의 BFF)이 엔진을 부르는 주소. 엔진은 localhost에만 바인딩한다.
   echo "ENGINE_URL=http://127.0.0.1:${ENGINE_PORT}"
-  # ollama는 이 서버에 이미 돌고 있다. 모델을 바꾸려면 이 값을 고친다.
+  # ollama는 이 서버에 이미 돌고 있다. 지금 엔진은 읽지 않는다 — Agent 단계(CLAUDE.md 5.5)가 쓴다.
   echo "OLLAMA_URL=http://127.0.0.1:11434"
   echo "OLLAMA_MODEL=kimi-k3:cloud"
 } > "$ENV_FILE"

@@ -49,6 +49,11 @@ _POSTGRES = [
 ]
 
 
+def _index(value: Any) -> int:
+    """각본 진행 지점. 아직 각본을 타지 않은 문서(S0·수동 조작)는 -1이다."""
+    return -1 if value is None else int(value)
+
+
 class SqliteSc01Store:
     """
     **연결 하나를 잠금으로 줄 세운다.** FastAPI 동기 엔드포인트는 스레드풀에서 돌고 SSE도
@@ -106,10 +111,13 @@ class SqliteSc01Store:
     def history(self, demo_run_id: str) -> list[dict[str, Any]]:
         with self._lock:
             rows = self.conn.execute(
-                "SELECT seq, event, clock FROM sc01_history WHERE demo_run_id = ? ORDER BY seq",
+                "SELECT seq, event, clock, json_extract(doc, '$.script_index') "
+                "FROM sc01_history WHERE demo_run_id = ? ORDER BY seq",
                 (demo_run_id,),
             ).fetchall()
-        return [{"seq": r[0], "event": r[1], "clock": r[2]} for r in rows]
+        return [
+            {"seq": r[0], "event": r[1], "clock": r[2], "scriptIndex": _index(r[3])} for r in rows
+        ]
 
     def at(self, demo_run_id: str, seq: int) -> dict | None:
         with self._lock:
@@ -176,10 +184,19 @@ class PostgresSc01Store:
     def history(self, demo_run_id: str) -> list[dict[str, Any]]:
         with self.pool.connection() as conn:
             rows = conn.execute(
-                "SELECT seq, event, clock FROM sc01_history WHERE demo_run_id = %s ORDER BY seq",
+                "SELECT seq, event, clock, doc->>'script_index' AS script_index "
+                "FROM sc01_history WHERE demo_run_id = %s ORDER BY seq",
                 (demo_run_id,),
             ).fetchall()
-        return [{"seq": r["seq"], "event": r["event"], "clock": r["clock"]} for r in rows]
+        return [
+            {
+                "seq": r["seq"],
+                "event": r["event"],
+                "clock": r["clock"],
+                "scriptIndex": _index(r["script_index"]),
+            }
+            for r in rows
+        ]
 
     def at(self, demo_run_id: str, seq: int) -> dict | None:
         with self.pool.connection() as conn:
@@ -208,6 +225,6 @@ class PostgresSc01Store:
 def build_sc01_store(backend: Any) -> Sc01Store:
     """엔진 백엔드와 같은 DB를 쓴다 — 파일·DB가 둘로 갈리면 한쪽만 지워지는 상태가 생긴다."""
     if backend.kind == "postgres":
-        return PostgresSc01Store(backend.specs.pool)
+        return PostgresSc01Store(backend.pool)
     # 같은 파일, **다른 연결**이다 — 연결을 나누면 체크포인터의 잠금과 우리 잠금이 서로를 모른다.
     return SqliteSc01Store(sqlite3.connect(backend.sqlite_path, check_same_thread=False))

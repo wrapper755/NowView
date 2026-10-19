@@ -8,6 +8,8 @@ DomainError가 정해진 상태 코드로 나가는지, 행위자 헤더가 없�
 
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -22,7 +24,10 @@ from app.store import build_sqlite_backend
 @pytest.fixture
 def client(tmp_path):
     backend = build_sqlite_backend(str(tmp_path / "sc01.sqlite"))
-    process = Sc01Process(SqliteSc01Store(backend.specs.conn), publish=main.notifier.publish)
+    process = Sc01Process(
+        SqliteSc01Store(sqlite3.connect(backend.sqlite_path, check_same_thread=False)),
+        publish=main.notifier.publish,
+    )
     app = main.FastAPI()
     app.include_router(build_router(process, main.hub))
     try:
@@ -185,3 +190,64 @@ def test_concurrent_reads_during_writes_do_not_break(tmp_path) -> None:
             t.join()
     assert errors == []
     assert process.get(rid)["scene"] == "HANDED_OFF"
+
+
+def test_visited_nodes_accumulate_for_the_canvas(client) -> None:
+    """캔버스가 지나온 경로를 그린다 — 조작마다 기록이 새로 열려도 누적된다."""
+    rid = _run(client)
+    for i in range(3):
+        client.post(f"/sc01/demo-runs/{rid}/script/{i}")
+    visited = client.get(f"/sc01/demo-runs/{rid}").json()["bpm"]["visited"]
+    assert visited[:2] == ["Start", "Task_Validate"]
+    assert {"Approve_DQ", "Gw_DQ", "Confirm_Calc", "Task_Calc"} <= set(visited)
+    assert "Approve_Sales" not in visited  # 지금 기다리는 곳은 지나온 곳이 아니다
+
+
+def test_history_carries_the_script_index_for_rewinding(client) -> None:
+    """데모 플레이어가 장면 → 이력 seq를 찾는다. 시각 이동도 이력에 남지만 지점은 그대로다."""
+    rid = _run(client)
+    for i in range(3):
+        client.post(f"/sc01/demo-runs/{rid}/script/{i}")
+    history = client.get(f"/sc01/demo-runs/{rid}/history").json()
+    assert history[0]["scriptIndex"] == -1
+    assert [h["scriptIndex"] for h in history if h["event"] != "EV01"][-1] == 2
+    last_for = {h["scriptIndex"]: h["seq"] for h in history}
+    assert sorted(last_for) == [-1, 0, 1, 2]
+
+
+def test_past_dashboard_hides_what_did_not_exist_yet(client) -> None:
+    """지난 시점의 대시보드는 그때의 문서로 계산한다 — S0에는 F02가 없다."""
+    rid = _run(client)
+    for i in range(3):
+        client.post(f"/sc01/demo-runs/{rid}/script/{i}")
+    past = client.get(f"/sc01/demo-runs/{rid}/dashboard", params={"seq": 1}).json()
+    assert past["review"] is None
+    assert client.get(f"/sc01/demo-runs/{rid}/dashboard", params={"seq": 999}).status_code == 404
+
+
+def test_customer_plan_seed(client) -> None:
+    rows = client.get("/sc01/customer-plans/CP01").json()
+    assert len(rows) == 15
+    b7 = next(r for r in rows if r["modelId"] == "A-b" and r["period"] == "2027-07-01")
+    assert b7["quantity"] == 9500
+    assert client.get("/sc01/customer-plans/CP99").status_code == 404
+
+
+def test_rules_come_from_the_seed(client) -> None:
+    rules = client.get("/sc01/rules").json()
+    assert rules["감소율_중요"] == "0.05" and rules["감소액_관심"] == "5000000"
+
+
+def test_ts_fixture_matches_the_bpmn(client) -> None:
+    """
+    TS 테스트(`tests/sc01.test.ts`)가 쓰는 토폴로지 사본이 BPMN과 같은지 본다.
+
+    BPMN을 고치면 여기서 실패한다 — 저장소 루트에서 사본을 다시 만든다:
+    `curl -s localhost:8077/sc01/process | python3 -m json.tool --indent 1`
+    `> tests/fixtures/sc01-process.json`
+    """
+    import json
+    from pathlib import Path
+
+    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc01-process.json"
+    assert json.loads(fixture.read_text(encoding="utf-8")) == client.get("/sc01/process").json()
