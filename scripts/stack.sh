@@ -138,9 +138,12 @@ start_web() {
 start_engine() {
   # `--reload` 없이 띄우면 코드를 고쳐도 반영되지 않는다 — 두 번 헤맸다.
   # DATABASE_URL이 있으면 엔진이 Postgres + LISTEN/NOTIFY로 뜬다(engine/README.md).
+  # `--timeout-graceful-shutdown`: 브라우저가 SSE로 붙어 있으면 uvicorn이 그 연결이 닫히기를
+  # 기다리며 **reload가 끝나지 않는다** — 엔진이 응답 없이 멈춘 것처럼 보였고 TERM에도 안 죽었다.
+  # 운영 유닛과 같은 이유다(CLAUDE.md 5.4).
   start_proc engine "$ENGINE_PORT" health_ok \
     env -C "$ROOT/engine" uv run uvicorn app.main:app \
-      --port "$ENGINE_PORT" --reload --log-level warning
+      --port "$ENGINE_PORT" --reload --timeout-graceful-shutdown 3 --log-level warning
 }
 
 start_db() {

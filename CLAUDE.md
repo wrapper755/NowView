@@ -16,8 +16,8 @@ npm run start      # 빌드 산출물 실행
 **단일 테스트 실행**
 
 ```bash
-npx vitest run tests/framework.test.ts                        # 파일 하나
-npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름으로 하나만
+npx vitest run tests/sc01.test.ts                   # 파일 하나
+npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나만
 ```
 
 **BPM 엔진 (Python · `engine/`)**
@@ -26,8 +26,8 @@ npx vitest run tests/framework.test.ts -t "예방 통제가 없는"   # 이름�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 68개 (SQLite만, LLM 제외)
-uv run pytest -m llm                               # ollama 실호출 (약 40초)
+uv run pytest                                      # 133개 (SQLite만, LLM 제외)
+uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
 
@@ -53,6 +53,9 @@ npm run stack:logs engine 80
   따로 있어 부모만 죽이면 자식이 포트를 쥐고 남는다).
 * **우리가 띄우지 않은 프로세스는 건드리지 않는다.** IDE 프리뷰가 3000을 쓰고 있을 수
   있다 — `--force`가 있어야 내린다.
+* **`start engine`은 `--timeout-graceful-shutdown 3`을 준다.** 브라우저가 SSE로 붙어 있으면 uvicorn이
+  그 연결을 기다리며 **reload가 끝나지 않았다** — 엔진이 응답 없이 멈춘 것처럼 보였고 TERM에도 안 죽어
+  KILL됐다. 운영 유닛(5.4)과 같은 이유다. `.claude/launch.json`도 같다.
 * `start engine`은 **기본이 `--reload`다.** 없이 띄워 두고 코드를 고쳐 "왜 반영이 안 되나"를
   두 번 헤맸다.
 
@@ -71,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (104개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (155개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -98,12 +101,12 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   기본 노드 2개짜리 최소 예제도 동일하게 실패하므로 앱 버그로 오진하지 말 것. 반면 Recharts는 마운트 시
   컨테이너 폭을 동기로 읽어 정상 렌더되므로, "차트는 되는데 플로우만 안 된다"는 정상 증상이다.
   **같은 상태에서 스크롤·resize 이벤트도 배달되지 않고 `behavior: "smooth"` 스크롤도 움직이지
-  않는다** — 검증 방법은 4.21에, ResizeObserver에 기대면 안 되는 이유는 4.23에 적어 두었다.
+  않는다** — 검증 방법은 4.10에, ResizeObserver에 기대면 안 되는 이유는 4.12에 적어 두었다.
 * **React Flow / Recharts는 클라이언트 컴포넌트다.** 둘 다 브라우저 전용 API에 의존하므로 사용하는 파일 최상단에 `'use client'`가 필요하다. App Router 기본값은 서버 컴포넌트다.
 * **Recharts 커스텀 `shape` + entrance 애니메이션은 같이 쓰면 안 된다.** `<Bar shape={<Custom/>}>`에
   애니메이션이 켜져 있으면 막대가 `height: 0`에 멈춘 채 렌더된다 — 에러도 콘솔 경고도 없고 SVG 골격만
   그려지므로 원인 파악이 오래 걸린다. 커스텀 shape를 쓸 때는 `isAnimationActive={false}`를 함께 준다.
-  (실제로 `components/cockpit/op-bridge-chart.tsx`에서 겪었다.)
+  (이전 Cockpit의 브릿지 차트에서 실제로 겪었다.)
 * **`<Cell radius>`는 배열을 받지 못한다** (타입이 `string | number`). 모서리별 반경이 필요하면
   `<Bar shape>`로 `<Rectangle radius={[…]}/>`를 직접 그린다.
 * **커스텀 `tick` 엘리먼트를 주면 Recharts 기본 클래스가 붙지 않는다.** `.recharts-cartesian-axis-tick-value`
@@ -118,57 +121,71 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 
 ## 1. Project Overview
 * **Project Name**: NowView (INNONOW Management Reference Model Pilot Web Platform)
-* **Description**: 매출 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 멀티 AI Agent가 유기적으로 협업하는 차세대 경영 운영 플랫폼 프로토타입/SaaS.
+* **Description**: 매출 약 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 AI Agent가 협업하는 경영 운영 플랫폼 프로토타입.
+* **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5).
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
-  * **Human-in-the-Loop**: AI Agent는 데이터 수집, 이상 징후 감지, 다차원 원인 분석, 대안 시뮬레이션을 수행하고, 최종 판단과 승인은 사람이 책임진다.
-  * **Deterministic BPM + Probabilistic AI**: 워크플로우 통제는 결정론적 BPM(LangGraph StateGraph)으로 통제하고, 데이터 해석 및 분석은 LLM 에이전트가 담당한다.
+  * **Human-in-the-Loop**: AI Agent는 데이터 수집, 이상 징후 감지, 원인 분석, 대안 초안을 지원하고, 최종 판단과 승인은 사람이 책임진다.
+  * **Deterministic BPM + Rule Calculation + Probabilistic AI**: 업무 흐름은 결정론적 BPM(Chaeksas)이, 지표·위험 판정은 규칙 계산이, 해석·설명은 Agent가 맡는다. **숫자는 규칙 계산만 만든다**(구현명세 AG-01).
 
 ---
 
 ## 2. Business Context & Virtual Company Spec
 
-### 2.1 가상 고객사: (주)넥스트오토모티브 (Next Automotive Corp.)
-* **기업 규모**: 연간 매출 1조 200억 원 / 목표 영업이익 428억 원 (영업이익률 4.2%)
-* **주요 고객**: 현대자동차, 기아 (1차 협력사, SJG세종 및 인팩 모델 벤치마킹)
-* **사업부 구조**:
-  1. **파워트레인/샤시 사업부 (기존 사업, 매출 비중 75%)**:
-     * 주요 품목: 배기 시스템, 컨트롤 암 등 내연/하이브리드 부품
-     * 핵심 고민: 전동화 전환에 따른 가동률 하락, 고정비 흡수율 방어, 완성차 단가 인하 압박
-  2. **친환경/전장 사업부 (신사업, 매출 비중 25%)**:
-     * 주요 품목: 배터리 관리 시스템(BMS), 전동식 조향 제어기(ECU)
-     * 핵심 고민: 신차 양산 시점 불확실성, 초기 수율 안정화, 차량용 반도체/핵심 소자 공급망 리스크
+기준 문서(리포 밖, 사용자 Downloads/INNONOW): 기획안 v0.5 · SC01 설계서 v0.5 · SC01 구현명세 v0.2 ·
+통합 가상 데이터 설계 v0.2(→ `engine/seed/`) · 설계 Template v0.5. 기획안 v0.1은 v0.5의 1~4장과 같다.
+**문서의 요구사항 ID(UI01-xx, CALC-xx, WF-xx, AT-xx, EX-xx, D-xx)를 코드 주석·테스트 이름에 그대로 쓴다.**
 
-### 2.2 경영 작동모델 6단계 루프 (Management Loop)
-1. **Risk Sensing & Monitoring**: 현재 실적 편차(수율/가동률) 및 선행 리스크(구매가 인상/물량 축소) 감지.
-2. **Operation Control**: 현업 단위의 사전 예방·통제 수행, 부서 간 조정이 필요한 건은 Management Review로 에스컬레이션.
-3. **Management Review (Human-in-the-Loop)**: AI 보고서 검토, 3가지 대응 대안 시뮬레이션, 경영진 의사결정.
-4. **Management Action**: 결정 사항을 담당자/기한/목표 회수액이 명시된 실행 과제로 변환 및 배포.
-5. **Rolling Plan Update**: 과제 실행 효과를 반영하여 향후 손익 Forecast 즉각 갱신, 잔여 Gap 명시.
-6. **Management Evolution**: 프레임워크 지표 정의 보완, KRI 감지 임계치 강화, 에이전트 룰 개선.
+### 2.1 가상 고객사와 범위
+
+* 매출 약 1조원의 가상 자동차 부품사. 현대·기아차가 주요 고객. 전사 1조원은 **배경**이고 상세 데이터와
+  억지로 맞추지 않는다(D02).
+* **기존사업 A제품**(배기 시스템 특성 참고) · **울산공장(ULS)** — 1차 상세 범위. a~e 5개 모델.
+  a = 고급차종(고단가·소량), b = 소형차종(저단가·다량·외주 비중 높음). 모델별 수익성 우열을 미리 정하지 않는다.
+* **신사업 B제품**(안테나·액추에이터 참고) · **평택공장** — 배경에만 있고 상세는 확장 단계.
+* 가상 고객군 `CUS-HK`(현대·기아 합산). 고객계획은 **이미 당사 배정·월 전체 물량**이다 — 공급 점유율
+  40%를 모델·공장 물량에 다시 곱하지 않는다(G10).
+* 가상 시점 2027년. 실적 컷오프 6/15, 사건은 6/16 09:00 수신한 CP02의 **7월 b모델 9,500 → 8,800대분**.
+* 고객 시연용 회사·인물은 전부 가상이다. 벤치마킹한 실제 회사명은 **앱 코드에 넣지 않는다**(5.4).
+
+### 2.2 경영 작동모델 6단계 루프 (기획안 3.1)
+
+1. **목표 대비 성과·전망 모니터링 · Risk 감지** — 현재 성과 변동과 선행 Risk 시그널, 관측과 가정을 구분.
+2. **Operation Control** — 권한 안의 현업 통제. 부서 간 조정·경영 선택이 필요하면 Review로.
+3. **Management Review (Human-in-the-Loop)** — 원인·영향 분석, 대안 비교, 의사결정.
+4. **Management Action** — 책임자·기한·기대 효과가 있는 실행과제.
+5. **Rolling Plan Update** — 승인 시 예상 효과, 실행 후 실현 효과로 전망·계획 갱신. 잔여 차이 유지.
+6. **Management Evolution** — Framework · Process · Agent 개선.
+
+**SC01은 1·2단계와 3단계 "연결"까지다.** 장면 2~7(단가 인상 · 통합 손익 · 대안 결정 · 실행·Rolling ·
+효과 검증 · Evolution)은 기획안 6장에 이야기만 있고 설계표·데이터가 없다 — 화면은 수치를 지어내지
+않고 "다음 장면"으로만 보인다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
+(공장관리손익 목표 34.77억)과 다르다(D18).
 
 ---
 
 ## 3. Tech Stack
 
 * **Frontend**: Next.js 16.3.6 (App Router, Turbopack), React 19.2, TypeScript 5, Tailwind CSS v4, Shadcn/UI (`radix-nova` 프리셋 / Radix 기반 / Lucide 아이콘)
-* **Process Visualization**: `@xyflow/react` 12.12 (React Flow)
-* **Data Visualization**: **Recharts** 3.10 (단일 차트 라이브러리), Lucide React
-* **State Management**: Zustand 5.0 (시나리오 데모 플레이어 상태 관리용)
-* **Backend / API**: Next.js Server Actions & Route Handlers (FastAPI/Python LangGraph 연동 지원)
-* **Workflow / Agent Engine**: **LangGraph StateGraph** (BPM 상태 머신 + Multi-Agent 오케스트레이션 공용)
-* **Database & Mock**: PostgreSQL, DuckDB, JSON Mock Datasets
+* **Process Visualization**: `@xyflow/react` 12.12 (React Flow) — BPMN 토폴로지를 엔진에서 받아 그린다
+* **Data Visualization**: **Recharts** 3.10 (단일 차트 라이브러리)
+* **State Management**: Zustand 5.0 (데모 실행 사본 · 행위자 · 플레이어)
+* **Backend / API**: Next Route Handler 하나가 엔진을 프록시한다(BFF, 4.3)
+* **BPM**: **Chaeksas BPM** (`chaeksas-core`, BPMN 2.0 해석기 — git 커밋 고정 의존성으로 임베드)
+* **Engine**: Python 3.12 · FastAPI · uv
+* **Database**: PostgreSQL(운영·compose·CI) / SQLite(로컬 기본). 시드는 엑셀(`engine/seed/`)
 
 ### 3.1 확정된 기술 선택 (Decided — 재검토 불필요)
 
 | 영역 | 선택 | 배제한 대안 | 사유 |
 |---|---|---|---|
-| BPM 상태 머신 | LangGraph StateGraph | Camunda 8 (BPMN 2.0) | Camunda는 Zeebe 브로커 운영이 필요해 프로토타입에 과중하다. LangGraph는 BPM 상태 전이와 에이전트 오케스트레이션을 하나의 그래프 런타임으로 처리한다. |
+| BPM | **Chaeksas BPM** (`chaeksas-core` 라이브러리 임베드) | LangGraph StateGraph(이전 선택), Camunda 8, Chaeksas Center 연동 | 2026-10-19 사용자 결정. BPMN 2.0을 그대로 해석하므로 업무 흐름이 **BPMN 파일 하나**에 있고 Chaeksas Studio로 열 수 있다. Camunda는 Zeebe 브로커 운영이 과중했다. Center·서버 실행기 경유는 정의마다 서명·배포가 필요하고 결재 응답이 관리자 토큰 전용이며 작업 결과 값을 돌려주지 않아 배제했다(4.5). |
 | 차트 | Recharts | Apache ECharts | Shadcn/UI·Tailwind와의 컴포지션이 자연스럽다. 차트 라이브러리는 하나만 쓴다 — 두 개를 섞으면 테마·툴팁·반응형 동작이 갈라진다. |
 | Shadcn 프리미티브 | Radix (`-b radix`) | Base UI, React Aria | 기존 shadcn/ui 문서·스니펫이 Radix 기반이라 이식 비용이 가장 낮다. |
 | 테마 전환 | next-themes (`attribute="class"`) | 직접 구현 | 초기 렌더에 잘못된 테마가 번쩍이는(FOUC) 문제를 직접 처리하지 않아도 된다. `.dark` 클래스 방식이 Tailwind v4 `@custom-variant dark`와 `globals.css`의 `.dark .viz-root`를 동시에 만족시켜, UI 토큰과 차트 색이 항상 함께 전환된다. |
 
-BPMN 2.0 다이어그램 표현이 필요한 경우에도 엔진을 Camunda로 바꾸지 않는다. 시각화는 `@xyflow/react` 커스텀 노드로 처리하고, 상태의 원천은 LangGraph 그래프로 유지한다.
+**토폴로지의 원천은 BPMN 파일**(`engine/processes/*.bpmn`)이다. 화면은 `GET /sc01/process`로 받아
+React Flow로 그린다(배치는 화면이 계산한다 — BPMN에 DI가 없다).
 
 ---
 
@@ -184,150 +201,105 @@ NowView/
 ├── .claude/launch.json           # preview 서버 설정 (nowview-dev, nowview-engine)
 ├── scripts/
 │   ├── stack.sh                  # 로컬 프로세스 제어 (start/stop/restart/status/logs)
+│   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
+├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
 ├── app/
-│   ├── layout.tsx                # 전사 레이아웃, GNB, 테마 공급자
+│   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
-│   ├── page.tsx                  # ① Executive Cockpit
-│   ├── bpm-tracker/page.tsx      # ② Live BPM & Agent Process Tracker
-│   ├── workspace/page.tsx        # ③ Human-Agent Collaboration Station
-│   ├── rolling-plan/page.tsx     # ④ Rolling Plan & Action Tracker
-│   ├── evolution/page.tsx        # ⑤ Management Evolution Lab
-│   └── api/
-│       ├── mock/route.ts         # 데이터셋 목록
-│       ├── mock/datasets.ts      # 데이터셋 레지스트리 (라우트 아님)
-│       ├── mock/[dataset]/       # 데이터셋 조회
-│       ├── bpm/                  # state · transition · decision (무상태 계산기)
-│       └── engine/               # Python 엔진 프록시(BFF) — instances 생명주기
+│   ├── page.tsx                  # UI01 A제품 경영 현황
+│   ├── plans/page.tsx            # UI02·UI03 고객 생산계획 수신 · 원천 확인
+│   ├── risk/page.tsx             # UI04 공급전망 변동 · 위험 검토
+│   ├── tasks/page.tsx            # UI05 검토·승인 업무
+│   ├── handoff/page.tsx          # UI06 경영이슈 · 인계 현황
+│   ├── process/page.tsx          # BPM 흐름 (BPMN 캔버스)
+│   └── api/engine/sc01/[...path]/route.ts   # 엔진 프록시(BFF) — 유일한 라우트
 ├── components/
-│   ├── ui/                       # Shadcn 원시 컴포넌트 8종
-│   ├── shared/                   # 두 화면 이상이 쓰는 조각: stat-tile, severity,
-│   │                             #   data-source, section-nav(섹션 탭), commentary(해설)
-│   ├── cockpit/                  # ① division-card, op-bridge-chart, risk-signal-list
-│   ├── flow/                     # React Flow 전용: bpmn-node, process-canvas
-│   ├── bpm/                      # ② tracker-shell, step-controls, node-detail-panel,
-│   │                             #   agent-activity-panel
-│   ├── workspace/                # ③ workspace-shell, agent-report-viewer,
-│   │                             #   alternative-comparison, simulator-panel, decision-panel
-│   ├── rolling/                  # ④ rolling-shell, gap-panel, forecast-trend-chart,
-│   │                             #   action-tracker, revision-history
-│   ├── evolution/                # ⑤ evolution-shell, kri-tuning-panel, backtest-chart,
-│   │                             #   proposal-list
-│   ├── demo/                    # demo-player, store-hydrator (전 화면 공통)
+│   ├── ui/                       # Shadcn 원시 컴포넌트
+│   ├── shared/                   # section-nav(섹션 탭), commentary(해설)
+│   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
+│   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart)
+│   ├── flow/sc01-canvas.tsx      # React Flow 전용
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
-│   ├── format.ts                 # 억원·퍼센트 표기
 │   ├── utils.ts                  # cn()
-│   ├── demo-scenario.ts          # 데모 각본 (연출 설정이라 mock-data가 아니다)
-│   ├── api/response.ts           # Route Handler 공통 응답·본문 파싱
-│   ├── store/demo-controller.ts  # Zustand: 진행 지점 + 승인 결정
-│   ├── store/ui-prefs.ts         # Zustand: 해설 표시 여부
-│   ├── types/                    # cockpit, bpm, workspace, rolling, evolution
-│   └── mock-data/                # next-automotive, bpm-process, review-case,
-│                                 #   rolling-plan, evolution-lab
-├── services/
-│   ├── bpm-engine.ts             # 워크플로우 상태 파생, 승인 지점 계산
-│   ├── agent-orchestrator.ts     # Agent 활동 + 대안 시뮬레이션
-│   ├── rolling-plan.ts           # Gap 집계, 결정→과제 변환
-│   ├── evolution-lab.ts          # 임계치 백테스트 조회
-│   ├── engine-spec.ts            # 시나리오 → 엔진 명세 (토폴로지 유일 원천)
-│   └── engine-client.ts          # Python 엔진 HTTP 클라이언트 (서버 전용)
+│   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
+│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), ui-prefs(해설)
+├── tests/                        # Vitest — sc01.test.ts, fixtures/sc01-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
-    ├── pyproject.toml            # uv
-    ├── README.md
+    ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
+    ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
+    ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── app/
-    │   ├── main.py               # FastAPI — instances 생명주기
-    │   ├── spec.py               # 받는 명세 (Pydantic, camelCase 별칭)
-    │   ├── state.py              # 인스턴스 상태
-    │   ├── graph.py              # 명세 → LangGraph StateGraph 조립
-    │   ├── agents.py             # MockRunner · OllamaRunner + 계약 검증
-    │   └── instances.py          # 생명주기 · checkpointer · 스냅샷 파생
-    └── tests/                    # pytest 33개
+    │   ├── main.py               # FastAPI — health + /sc01 라우터
+    │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
+    │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
+    │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api
+    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions,
+                                  #   test_events · _notify
 ```
 
 **디렉토리 규칙**
-* `components/<화면>/` — 그 화면 전용 패널. 화면을 추가하면 디렉토리도 함께 만든다.
-* `components/flow/` — React Flow 노드·엣지·캔버스 **전용**. 트래커의 나머지 패널은 `components/bpm/`이다.
-* `components/shared/` — 두 화면 이상이 쓰게 된 조각만 올린다. 한 화면만 쓰면 그 화면 디렉토리에 둔다.
-* `services/` — 화면이 실제로 호출하는 파생·계산 로직. 인터페이스만 있는 스텁은 두지 않는다.
-
-**아직 없는 것** — `lib/store` 영속화(전체 새로고침 시 진행 상태 초기화).
+* `components/sc01/` — SC01 화면 전용. 장면 2 이후를 만들면 같은 원칙으로 디렉토리를 나눈다.
+* `components/flow/` — React Flow 노드·엣지·캔버스 **전용**.
+* `components/shared/` — 두 화면 이상이 쓰는 조각 중 SC01에 묶이지 않은 것만 둔다.
+* `engine/app/sc01/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
 
 ### 4.1 데모 플레이어
 
-`components/demo/demo-player.tsx`가 레이아웃에 상주하며 다섯 화면을 6단계 루프 순서로 잇는다.
-각본은 `lib/demo-scenario.ts`다.
+`components/sc01/demo-player.tsx`가 하단 고정 바로 상주한다. 장면은 `lib/sc01/scenes.ts`(SC01 설계서
+2.10 기본 시연 순서, 11장면), 각본(누가·언제·무엇을)은 엔진 `app/sc01/demo.py`(EV01~EV07)다.
 
-* **각 장면은 목표 상태를 전부 선언한다** — 화면 경로, BPM 지점, 승인 여부. 이전 장면 대비
-  증분이 아니라 절대 상태이므로 스크러버로 아무 장면이나 찍어도 앞뒤가 맞는다.
-  역방향으로 점프하면 승인이 지워지고, 다시 앞으로 가면 같은 상태가 재현된다.
-* **엔진 모드에서도 동작한다**(4.18). 장면이 선언한 지점으로 인스턴스를 옮긴다.
-* **장면 이동은 한 핸들러에서 상태 적용과 라우팅을 함께 한다.** 상태를 감시하는 effect로
-  라우팅하면 사용자가 GNB로 직접 이동했을 때 플레이어가 되돌려 버리는 싸움이 난다.
-* `DEMO_DECISION.decidedAt`은 **고정 문자열**이다. 스토어가 모듈 로드 시점에 만들어지므로
-  `new Date()`를 쓰면 서버와 클라이언트 값이 달라져 하이드레이션이 깨진다.
-  금액은 `simulateAlternative`로 계산해 화면·API와 같은 값이 되게 한다(하드코딩 금지).
-* 자동 재생의 `setState`는 타이머 콜백 안에서만 일어난다 — effect 본문에서 상태를 바꾸면
-  `react-hooks/set-state-in-effect`에 걸린다.
-* **자동 재생은 고정 간격이 아니다**(4.18). 장면이 반영된 뒤에 머무름을 시작한다.
-* 플레이어는 하단 고정 바이며 본문은 그 높이만큼 아래를 비운다 — 값은 재서 넣는다(4.23).
-* **시나리오가 조작해야 하는 값은 화면 로컬 상태로 두지 않는다.** ⑤의 KRI 임계치가
-  `useState`에 있어서 "87%로 올리면"을 말로만 하고 슬라이더는 85%에 머물렀다.
-  스토어로 올려 장면이 값을 지정하게 했다(`DemoScene.kri`).
+* **앞으로는 실행, 뒤로는 읽기.** 장면이 엔진의 각본 지점보다 앞이면 그 단계까지 `POST …/script/{i}`로
+  **실제로 실행**한다 — 역할 검사·업무 규칙을 그대로 탄다(지름길 없음). 이미 지나간 장면이면 그 시점의
+  이력을 읽어 보여 주기만 한다(`past`). "초기화"만 데모 실행을 S0로 되돌린다.
+* **장면 → 이력 seq는 그 지점에 처음 도달한 기록이다**(`historySeqFor`). 마지막 기록을 쓰면 다음 단계
+  직전의 가상시계 이동이 섞여 "이 장면의 상태 + 다음 장면의 시각"이 보인다.
+* 장면 이동은 한 핸들러에서 상태 적용과 라우팅을 함께 한다 — 상태를 감시하는 effect로 라우팅하면
+  GNB로 직접 이동할 때 플레이어가 되돌려 버린다.
+* **자동 재생은 자기 예약 루프다.** 장면이 반영된 뒤 7초 머문다. 자동 재생 effect는 `jump`에 의존하지
+  않고 ref로 쓴다 — 의존하면 화면이 바뀔 때마다 타이머가 다시 걸린다. 요청에 일련번호를 붙여 최신
+  응답만 반영한다.
+* **각본과 수동 조작을 섞으면 각본이 멈춘다.** 화면에서 직접 수신·확인한 뒤 "다음 장면"을 누르면 엔진이
+  "지금 기다리는 업무가 아니다"(409)로 거절하고 플레이어가 사유를 보인다. 초기화 후 다시 한다.
 
 ### 4.2 상태 영속화
 
-스토어는 `persist` 미들웨어로 localStorage(`nowview-demo`)에 저장된다. 시연 중 새로고침해도
-진행 상태가 남는다.
+`lib/store/sc01.ts`는 `persist`로 localStorage(`nowview-sc01`)에 **데모 실행 id · 행위자 · 장면 · 펼침**만
+저장한다. 문서는 저장하지 않는다 — 새로고침하면 엔진에서 다시 받는다(낡은 값이 먼저 보이지 않게).
 
-* **`skipHydration: true`가 핵심이다.** 화면들이 정적 프리렌더라 서버 HTML은 항상 기본
-  상태인데, persist가 모듈 로드 시점에 자동 복원하면 첫 클라이언트 렌더가 서버와 달라져
-  하이드레이션이 깨진다. 자동 복원을 끄고 `components/demo/store-hydrator.tsx`가 mount
-  이후 명시적으로 복원한다. 첫 페인트가 아주 짧게 기본 상태로 나갔다가 바뀐다.
-* **`isPlaying`은 저장하지 않는다.** 새로고침하자마자 화면이 저절로 넘어가면 곤란하다.
-* 저장 형태를 바꾸면 `version`을 올린다. 올리지 않으면 예전 구조가 그대로 복원돼 터진다.
-* 초기 상태로 되돌리려면 플레이어의 "처음으로"를 누르거나 localStorage의 `nowview-demo`를
-  지운다.
+* **`skipHydration: true`가 핵심이다.** 화면이 정적 프리렌더라 서버 HTML은 항상 기본 상태인데, 모듈 로드
+  시점에 복원하면 첫 클라이언트 렌더가 달라져 하이드레이션이 깨진다. `Sc01SessionSync`가 mount 이후 복원한다.
+* 저장 형태를 바꾸면 `version`을 올린다.
+* **저장된 데모 실행이 엔진에 없으면(DB 초기화 등) 새로 만든다.** 개발 모드의 StrictMode가 effect를 두 번
+  돌려 실행이 둘 생겼다 — 진행 중인 생성 요청을 공유한다(`pendingCreate`).
 
 ### 4.3 API 계층
 
 ```
-GET  /api/mock                  사용 가능한 데이터셋 목록
-GET  /api/mock/[dataset]        company · rolling-plan · framework · evolution-lab · scenarios
-                                process-<시나리오id> · review-<시나리오id> (레지스트리에서 생성)
-GET  /api/bpm/state?step=N      해당 지점의 노드 상태·Agent 활동·현재 단계
-POST /api/bpm/transition        {step, action: next|prev|reset|goto, target?} → 다음 지점
-POST /api/bpm/decision          {alternativeId, leverValue, rationale} → 결정·과제·Gap 변화
+브라우저 ──/api/engine/sc01/*──▶ Next Route Handler(BFF, 그대로 중계) ──/sc01/*──▶ 엔진(127.0.0.1:8077)
 
-GET  /api/engine                엔진 도달 여부·모델·엔드포인트 목록
-POST /api/engine/instances      {scenarioId, agentMode: mock|llm} → 인스턴스 생성 후 첫 대기까지
-GET  /api/engine/instances      인스턴스 목록
-GET  /api/engine/instances/{id} 스냅샷 (노드 상태·Agent 산출물·대기 지점)
-POST /api/engine/instances/{id}/resume   승인 입력 → 재개
-DELETE /api/engine/instances/{id}
+GET  /sc01/process · /users · /rules · /script · /customer-plans/{id}
+POST /sc01/demo-runs                       → 새 데모 실행(S0)
+GET  /sc01/demo-runs/{id}                  → 문서 뷰 (BPM 대기·업무·이슈·인계 조건)
+GET  /sc01/demo-runs/{id}/dashboard?period=&month=&seq=   → UI01 집계 (seq = 지난 시점)
+GET  /sc01/demo-runs/{id}/history · /history/{seq}         → 지난 시점(읽기 전용)
+POST /sc01/demo-runs/{id}/sources/receive  {fixtureId}     → 시연 원천 수신
+POST /sc01/demo-runs/{id}/actions/{nodeId} {answer}        → BPM 사람 대기에 응답
+POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset
+GET  /sc01/demo-runs/{id}/events           → SSE
 ```
 
-**`/api/bpm/*`와 `/api/engine/*`는 성격이 다르다.** 앞의 것은 진행 지점을 받아 계산해
-돌려주는 무상태 계산기이고, 뒤의 것은 서버에 사는 인스턴스를 다룬다(4.16). 둘을 함께
-두는 이유는 데모가 계속 계산기 쪽으로 동작해야 하기 때문이다.
-
-**상태를 서버에 저장하지 않는다.** 진행 지점은 요청이 들고 오고 서버는 파생 상태를 계산해
-돌려줄 뿐이다 — 서버리스에서 인메모리 상태는 인스턴스마다 갈라지고, 이 프로젝트는 이미
-클라이언트(Zustand)가 진행 지점을 소유한다. 실제 백엔드(FastAPI/LangGraph)가 붙으면
-여기가 그 접합면이다.
-
-* **API는 로직을 다시 구현하지 않고 `services/`를 그대로 호출한다.** 화면과 API가 같은
-  함수를 쓰므로 결과가 어긋날 수 없다. 덕분에 "미완료 Agent의 산출물은 감춘다"나
-  "이중 계상 금지" 같은 규칙이 API에서도 저절로 지켜진다.
-* **사유 10자 검사는 UI와 API 양쪽에 있다.** 버튼 비활성은 편의일 뿐 강제가 아니며 API를
-  직접 부르면 우회된다. 두 곳이 갈라지지 않도록 `DECISION_RATIONALE_MIN_LENGTH` 상수를 공유한다.
-* 범위를 벗어난 전이는 400이 아니라 잘라내고 `clamped: true`로 알린다 — 마지막 단계에서
-  next를 누르는 것은 오류가 아니라 정상적인 UI 동작이다.
-* **화면들은 `/api/bpm/*`를 쓰지 않는다.** Mock 경로는 `lib/mock-data/*`를 직접 import하고,
-  엔진 경로는 `/api/engine/*`를 **클라이언트에서** 부른다(4.17). 그래서 다섯 화면 모두
-  정적 프리렌더(`○`)를 유지한다. `/api/bpm/*`는 외부 소비자(별도 클라이언트, Python
-  서비스)를 위한 경계로 남아 있다.
+* **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
+  입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
+  `X-Demo-Actor` 하나뿐이다.
+* **화면은 규칙을 다시 구현하지 않는다.** 금액·비율은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다
+  (`lib/sc01/format.ts`). 판정 임계값도 `/rules`로 받아 표시한다.
+* **페이지는 정적 프리렌더(`○`)다.** 데이터는 클라이언트에서 받는다 — 서버에서 엔진을 부르면 전부 `ƒ`가
+  되고, 엔진이 꺼져 있으면 페이지가 깨진다.
+* **엔진이 꺼져 있는 것은 고장이 아니라 상태다.** 클라이언트는 throw하지 않고 `{ ok: false }`를 돌려
+  화면이 배너로 말한다.
 
 ### 4.4 데이터 시각화 규칙
 
@@ -347,555 +319,204 @@ DELETE /api/engine/instances/{id}
   검사 항목은 lightness band · chroma floor · CVD 분리(protan/deutan) · 정상시야 분리 ·
   서피스 대비이며, 하나라도 FAIL이면 종료코드 1이다.
 * **단위가 다른 두 계열을 한 차트에 겹치지 않는다.** 축이 둘이면 없는 상관관계를 만들어낸다.
-  Evolution Lab의 감지/오탐은 같은 단위(건)라 한 축에 두고, 조기 감지일(일)은 지표 타일로 뺐다.
-* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `OpBridgeChart`의 "표로 보기"가 그 예다.
+  SC01의 손익 추이는 모두 원 단위라 한 축이고, 물량(대분)은 표로 둔다.
+* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `ProfitTrendChart`의 "표로 보기"가 그 예다.
 
-### 4.5 BPM 상태 모델
-
-**노드 상태는 저장하지 않고 파생한다.** 실행 순서(`BpmProcessInstance.sequence`)와 현재 진행 지점이
-유일한 진실이고, 노드별 상태·Agent 실행 상태는 전부 `services/`에서 계산한다
-(`deriveNodeStatuses`, `agentActivities`). 노드마다 status 필드를 두면 순서와 상태가 곧 어긋난다.
-
-* `sequence`에 없는 노드는 선택되지 않은 분기이므로 자동으로 `skipped`가 된다.
-* 현재 지점의 노드가 `user-task`면 `active`가 아니라 **`waiting`**(승인 대기)이다 —
-  경영진이 "지금 내 결재가 걸려 있는지"를 구분해야 한다.
-* **게이트웨이는 산출물 은닉 대상이 아니다.** 분기 판정은 오래 걸리는 산출 작업이 아니라
-  즉시 평가이고, 캔버스가 이미 어느 경로를 탔는지 점선으로 보여 준다. 상세 패널만
-  "산출물 확정 전"이라고 하면 같은 화면이 서로 다른 말을 한다.
-* **아직 완료되지 않은 Agent의 산출물은 어느 패널에서도 보여주지 않는다.** 미래 결과를 미리 노출하면
-  분석이 이미 끝난 것처럼 읽힌다. **경로가 둘이라 두 번 다 막아야 한다** — 실제로 두 번 새어 나왔다:
-  1. `AgentRun.output` — `run`을 넘기기 전 상태가 `done`인지 확인한다.
-  2. `BpmNodeSpec.outcome` — 완료된 결과를 서술한 문장이므로(`…산출 완료` 같은) `done`과
-     `waiting`에서만 보여 준다. `active`에는 "수행 중 — 산출물 확정 전"을 대신 띄운다.
-     `waiting`은 사람의 판단을 기다리는 상태라 outcome이 결과가 아니라 대기 사유다.
-* **단계별 문구를 하드코딩하지 말 것.** 사람 대기 배너는 `user-task`면 모두 뜨는데, Review 전용 문구를
-  넣어 두었다가 Management Action 단계에서 "대안 선택과 승인"을 말하는 버그가 있었다.
-
-### 4.6 화면 간 수치·상태 연동
-
-다섯 화면은 **같은 사건 하나**(파워트레인 가동률 임계치 이탈)를 각각 다른 관점으로 본다 —
-감지(①) → 프로세스(②) → 판단(③) → 반영(④) → 시스템 개선(⑤).
-숫자가 어긋나면 데모 전체의 신뢰가 무너지므로 아래 항등식을 깨지 말 것:
-
-* `review-case.ts`의 각 대안 `lever.base × profitPerUnit` = `bpm-process.ts`의 Simulation Agent
-  산출물 문구에 적힌 금액 (1안 2×9=18억, 2안 20×0.6=12억, 3안 3×3=9억).
-* `review-case.profitGap`(-69억) = `next-automotive.ts`의 전사 영업이익 Gap.
-* `rolling-plan.ts`의 `target`(428) / `forecast`(359) = `next-automotive.ts`의 전사 영업이익.
-  분기 합도 각각 같아야 하며 `assertQuartersBalance`가 이를 검증한다.
-* `reflectedInForecast: true`인 과제의 목표 회수액 합(20억)
-  = `next-automotive.committedActionRecovery` = Cockpit 브릿지의 "확정 Action 회수 효과 +20억".
-* `riskId`·`processId`로 네 화면이 같은 건을 가리킨다.
-
-**과제 효과의 이중 계상 금지.** Rolling Plan에서 가장 틀리기 쉬운 지점이다. 이미 Forecast에
-반영된 과제를 또 더하면 Gap이 실제보다 메워진 것처럼 보인다. `ActionItem.reflectedInForecast`로
-갈라서 합산하고(`summarizeGap`), 승인 직후 과제는 **현재 Forecast를 바꾸지 않고** "다음 Rolling
-반영 예정"으로만 잡는다 — 전망치(`projectedForecast`)는 따로 표시한다.
-
-**상태 연동:** 협업 스테이션에서 승인하면 Zustand 스토어의 `decision`이 기록되고
-① BPM 진행 지점이 Management Action 단계로 이동하며
-② Rolling Plan의 과제 목록에 미반영 과제로 추가된다(`decisionToAction`).
-스토어는 메모리에만 있으므로 **전체 새로고침하면 초기화된다** — 연동을 확인하려면 GNB나
-화면 내 링크로 클라이언트 라우팅 이동해야 한다.
-
-⑤ Evolution Lab은 예외로 **전역 상태를 바꾸지 않는다.** 채택·보류는 화면 로컬 상태다 —
-프레임워크 변경은 배포 절차를 타야 하고, 이 단계의 결정은 다음 루프부터 효력이 생긴다.
-
-### 4.7 Mock 데이터를 지어낼 때의 규칙
-
-화면이 주장하는 바를 데이터가 배반하지 않아야 한다. 지금까지 지킨 것들:
-
-* **트레이드오프를 숨기지 않는다.** KRI 임계치를 조이면 감지가 늘지만 오탐도 반드시 는다.
-  기대 효과만 있고 부작용이 없는 제안은 검토가 아니라 홍보다(`EvolutionProposal.tradeoff`는 필수).
-* **백테스트는 공식이 아니라 표다.** 임계치별 결과를 값으로 들고 있고 보간하지 않는다.
-  Mock 단계에서 그럴듯한 수식을 만들면 없는 정밀도를 주장하게 된다. 시뮬레이터의 선형 응답
-  모델도 같은 이유로 의도적으로 단순하다.
-* **개선 제안은 앞 화면에서 실제로 드러난 공백에서만 뽑는다.** 임의로 지어낸 항목을 섞으면
-  "루프가 학습한다"는 주장 자체가 무너진다.
-
-
-### 4.8 Management Framework 모델 (KPI–KRI–Control)
-
-기획안 1.1의 "무엇을 보고 어떻게 판단할지에 대한 공통 기준"을 구조로 옮긴 것이다.
+### 4.5 BPM — Chaeksas 위의 SC01 (엔진)
 
 ```
-Value Driver (성과 동인)
-  └ KPI  결과 지표 — 이미 일어난 일을 잰다 (후행). 임계치를 두지 않는다.
-      └ KRI  위험 지표 — 아직 결과에 다 나타나지 않은 위험 (선행). 임계치가 여기 붙는다.
-          └ Control  예방 · 탐지 · 시정
+engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pendings·answer·deliver)
+                                              │ chk:serviceCall nowview.sc01
+                                              ▼
+                          app/sc01/process.py _InProcessCalls → domain.py / calc.py
+                                              │ 문서 1개 + BPM 스냅샷을 한 번에 저장
+                                              ▼
+                          sc01_demo_run(row_version) · sc01_history → notifier → SSE
 ```
 
-* **KPI와 KRI를 같은 것으로 취급하지 않는다.** 가동률 82.1%는 결과(KPI)이면서 임계치를 건
-  감지 신호(KRI)로도 쓰이지만, 전자는 "얼마나 나빠졌나"를, 후자는 "언제 손을 대야 하나"를
-  답한다. 그래서 `Kpi`에는 `target`만, `Kri`에는 `threshold`가 있다.
-* **통제는 예방·탐지·시정 셋으로 나눈다.** 나누지 않으면 "탐지만 있고 막을 방법이 없는"
-  상태가 보이지 않는다. 현재 6개 KRI 중 3개에 예방 통제가 없고, 화면이 이를 표시한다.
-* KRI와 `RiskSignal`은 **같은 사건을 다른 관점으로 본 것**이며 `riskId`로 묶인다.
-  한쪽 수치를 고치면 다른 쪽도 고쳐야 한다.
-* `services/framework.ts`의 `buildChains`는 끊어진 참조(없는 KPI·통제)와 통제가 0개인 KRI를
-  **조용히 넘기지 않고 throw한다** — Framework의 구멍이지 표시상의 문제가 아니다.
+**경계**
 
-### 4.9 경영 수행 성과
+* **BPM이 쥐는 것: 순서·사람 대기·분기·인계. 숫자는 모른다.** 계산·원천 검증·이슈 갱신은 서비스
+  태스크가 부르는 `nowview.sc01` 앱이 한다 — 네트워크가 아니라 같은 프로세스의 어댑터다.
+* **Chaeksas는 라이브러리로만 쓴다**(`chaeksas-core`, git 커밋 고정 — `rev`를 바꾸고 `uv lock`해야
+  올라간다). Center·서버 실행기는 쓰지 않는다 — 정의 변경마다 서명·배포, 결재 응답은 관리자 토큰
+  전용, 작업 결과 값 미반환이라 화면이 결과를 읽을 길이 없다. 대신 **우리가 붙인 것**: SSE(기존
+  허브·notifier), 지난 시점(Chaeksas 스냅샷은 현재 하나뿐이라 `sc01_history`에 매번 문서 전체),
+  폼이 못 거는 업무 규칙(의견·근거 필수, 담당자만 인수 — `_before_answer`).
+* **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
+  저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
+  보지 않는다(DATA-05).
+* **엑셀이 기준 시드이자 기대값이다.** `seed.py`는 원천 시트만 읽고(행 번호가 아니라 영문 헤더로),
+  테스트가 파생 시트(월분기연간·SC01검증)를 따로 읽어 대조한다 — 숫자를 테스트에 옮겨 적지 않는다.
+  엑셀을 고치면 `engine/seed/`의 파일을 바꾸고 `pytest`를 돌린다.
+* **역할 배정은 코드에 있다**(`domain.NODE_ROLES`). `chk:approval`에 역할 칸이 없다. BPMN에 사람
+  노드를 더하고 표를 빠뜨리면 `test_every_user_task_has_a_role`이 잡는다.
+* **행위자는 `X-Demo-Actor` 헤더다 — 신뢰 경계가 아니다.** 구현명세는 세션에서 꺼내라고 하지만 인증이
+  없다(5.4). 서버는 "그 사용자가 그 역할·담당인가"까지 검사하고(403), 인증이 붙으면 헤더만 세션으로
+  바꾸면 된다.
+* **저장 백엔드는 `DATABASE_URL` 유무로 갈린다** — 있으면 Postgres, 없으면 파일 SQLite. **연결 실패를
+  SQLite로 조용히 되돌리지 않는다** — 운영에서 DB가 안 붙었다면 즉시 드러나야 한다. `/health`의
+  `storage`가 어느 쪽인지 알려 준다.
 
-기획안 2.3은 성과를 **두 관점**으로 나눈다 — 사업 성과(손익·품질·재고)와 경영 수행 성과
-(속도·정확성·실행력). 둘을 섞으면 "손익은 나빠졌지만 대응은 빨라졌다"를 말할 수 없다.
+**흐름(BPMN)** — S01·S02 자동 검증 → `Approve_DQ`(영업담당, 보완이면 정정본 메시지 대기) →
+`Confirm_Calc` → 전망 생성·지표 계산 → `Approve_Sales`(영업팀장) → **포함 게이트웨이**: 현업 배정(항상)
+∥ Review 요청(`위험수준 == 'CRITICAL' or 경영검토요청`) → PROD·MAT(병렬)·FIN 인수 → 인계 기록.
+장면 완료는 **후속 업무 인수**이지 위험 해소·전망 승인이 아니다 — 끝나도 F02는 `UNDER_REVIEW`,
+ISSUE-B07은 열린 중요다.
 
-* **일곱 지표 중 넷은 실제 데이터에서 계산한다**(`services/execution-performance.ts`).
-  Agent 실행 기록·실행 과제·백테스트가 이미 시스템 안에 있으므로 값을 다시 적지 않는다 —
-  적으면 원본이 바뀔 때 조용히 어긋난다. `lib/mock-data/execution-performance.ts`의
-  `current`는 `provenance: "system"`인 지표에서는 **쓰이지 않는 자리표시자**다.
-* **값마다 출처를 표시한다**(`Provenance`). 기획안 2.3의 "시나리오에서 설정한 결과와
-  시스템 실행으로 확인한 결과를 구분한다"를 UI로 옮긴 것이다. 구분이 없으면 데모의
-  주장을 검증할 수 없다.
-* `previous`(직전 주기)는 전부 시나리오 설정값이다 — 시스템에 이전 주기 기록이 없다.
-  경영 수행 성과는 절대 수준보다 개선 여부가 핵심이라 비교 대상 자체는 있어야 한다.
-* 개선 표기는 **화살표가 값의 증감을, 색이 좋고 나쁨을** 가리킨다. 처음에는 화살표에
-  "개선 여부"를 실었는데 소요시간 단축이 `↑ -2일`로 나와 화살표와 부호가 반대로 읽혔다.
-  값의 방향과 평가를 한 기호에 겹쳐 실으면 둘 다 흐려진다.
-* `parseDurationMinutes`는 형식을 못 읽으면 0이 아니라 throw한다 — 조용히 0이 되면
-  소요시간이 실제보다 짧게 보인다.
+**노드 상태는 저장하지 않고 파생한다**(`lib/sc01/process-layout.ts`). 엔진이 주는 것은 지나온 노드
+(`visited` — 조작마다 RunLog가 새로 열리므로 문서에 누적한다), 사람 대기(`waiting`), 토큰 위치다.
+**실행 중에는 안 간 분기를 미실행으로 칠하지 않는다** — 게이트웨이가 돌기 전에는 갈 수도 있다.
+실행이 끝났을 때만 안 간 노드가 미실행이다. 종료 이벤트는 완료 기록을 남기지 않으므로 끝났으면 완료로 본다.
 
-### 4.10 실행계획 (Plan)
+**만들며 드러난 것**
 
-기획안 3.4는 **Target · Forecast · Plan** 셋을 정의한다. 셋의 운영 원칙이 서로 다르다:
+* **폼 없는 `manualTask`는 `decision`(승인/반려)을 요구한다.** "비교 계산 실행"에 승인을 넣는 꼴이라
+  선택 칸(메모)을 하나 뒀다.
+* **`chk:serviceCall`은 키 참조가 없으면 검사(B7)에서 막힌다.** 같은 프로세스 어댑터라 키가 필요
+  없지만 `service_keys`에 이름만 둔다.
+* **SQLite 연결을 잠금 없이 나눠 쓰자 SSE가 죽었다.** 쓰는 도중의 읽기가 빈 행을 받아
+  `json.loads(None)`. SC01 저장소는 같은 파일에 **자기 연결**을 열고 잠금으로 줄 세운다. 잠금을 끄면
+  회귀 테스트가 3회 중 3회 실패하는 것을 확인했다.
+* **`python:3.12-slim`에 git이 없다** — git 의존성이 깔리지 않는다. 엔진 Dockerfile에 git과
+  `processes/`·`seed/` 복사를 넣었다. 운영 서버에는 git이 있다.
+* **변수 이름 가림**: `_commit(…, event)` 안에서 루프 변수를 `event`로 써 이력 테이블에 RunEvent가
+  들어갈 뻔했다(SQLite 바인딩 오류로 드러났다).
+* **S0에서 8·9월 관심 평가를 이슈로 만들지 않는다**(UI01-04). 이슈는 7월 a·b 둘뿐이고, 계산은 같은
+  키의 열린 이슈에 run을 잇는다(B07: 관심→중요, 새 이슈 없음).
 
-| 구분 | 원칙 | 구현 |
+**Agent 검토 지원**(`app/sc01/agent.py`, AG-01~03)
+
+* BPMN의 `Task_AgentRequest`는 **요청만 남기고 기다리지 않는다** — 곧바로 영업 검토로 간다. 초안은
+  저장이 끝난 뒤 **잠금 밖의 스레드 풀**에서 만들고, 결과는 다시 잠금을 잡아 기록한다(StaleWrite면
+  다시 읽어 얹는다). LLM을 노드 안에서 기다리면 같은 실행의 조작이 모두 멈추고 프록시가 100초에 끊는다.
+* **검증이 핵심이다.** 형식, 근거 ID가 `evidence_catalog`에 있는지, **본문의 숫자가 규칙 결과(입력)에
+  있는 값인지**를 본다. 하나라도 어긋나면 한 번 자동 재시도하고, 그래도 안 되면 실패로 남긴다.
+  실패한 응답은 `rejected`에만 두고 화면에는 사유만 보낸다. 31 이하 정수는 날짜·월로 보고 허용한다.
+* 러너: `mock`(결정론, 기본) · `llm`(ollama — `NOWVIEW_AGENT_MODE=llm`, `OLLAMA_URL`, `OLLAMA_MODEL`) ·
+  `fail`(EX08 시연 사례). mock도 같은 검증을 통과해야 한다.
+* 30초(실제 시간)를 넘기면 "지연"으로 보인다. 자동 요청은 같은 입력 해시의 성공한 초안을 재사용하고,
+  담당자의 재생성은 항상 새로 만든다(이전 초안 보존). 채택은 원본을 건드리지 않고 기록만 남긴다.
+* **실제 모델(kimi-k3:cloud)로 돌려 본 것**: 첫 응답을 검증이 10건 거절했다 — 전부 입력의 비율값을
+  그대로 인용한 것(0.07368421, 임계값 0.05)이었다. 같은 값이므로 허용하도록 고쳤고(테스트로 잠갔다),
+  "M01 700"처럼 코드로 말해서 지표 이름·표기 규칙을 입력·프롬프트에 넣었다(`sc01-review-v2`). 그 뒤
+  검증을 통과했고 응답에 **약 100초**가 걸렸다 — 배경 실행이 아니면 프록시가 끊었을 길이다.
+
+**정정(EX03) · 기한(EX07) · 멱등(AT13)**
+
+* **정정본이 계산 뒤·인계 뒤에 오면 이전 BPM 실행을 이력으로 옮기고(`bpm_history`) 새 실행을 시작한다.**
+  진행 중이면 취소한다 — Chaeksas의 취소는 상태가 FAILED라 이력에는 `cancelled`로 적는다. 끝난 인계는
+  `handoff_history`로 가고 장면은 다시 ACTIVE다(WF-03). 보완 대기 중의 정정본은 같은 실행에 메시지로 간다.
+* **업무는 지우지도 다시 쓰지도 않는다.** 완료된 업무에 같은 종류의 대기가 또 오면 연결된 재검토 업무
+  (`TASK-DQ-2`, `reopens`)를 만든다. 인수한 업무에는 새 근거를 붙이고 `reconfirm`을 켠다 — 인계 판정은
+  **최신 run에 대한 확인(`acks`)**을 본다. 이전 확인도 남는다(WF-02).
+* 가상시계가 기한을 넘기면 담당자와 기능별 검토자(`REVIEWER`)에게 화면 내 알림을 만든다. 같은 업무·
+  기한에는 한 번만. 진행 중이어도 미완료면 알린다(UI05-03 — 지연은 상태와 독립).
+* `Idempotency-Key` 헤더: 같은 키 + 같은 본문이면 다시 실행하지 않고 지금 상태를 돌려주고, 다른 본문이면
+  409다. 화면의 폼은 같은 입력의 재시도에 같은 키를 쓰고 입력을 고치면 새 키를 쓴다.
+* **이전 형식 문서는 읽을 때 채운다**(`domain.upgrade`). 저장된 데모 실행을 버리지 않는다.
+
+### 4.6 SC01 화면
+
+| 경로 | 화면 | 핵심 |
 |---|---|---|
-| Target | 자동 변경하지 않는다 | `ForecastRevision`에 target 필드 자체를 두지 않는다 |
-| Forecast | 새 정보·실행 결과를 반영해 **갱신**한다 | Rolling 회차마다 값이 움직인다 |
-| Plan | 승인된 대응안과 운영 여건 변화를 반영해 **조정**한다 | `PlanItem`, `planView()` |
+| `/` | UI01 경영 현황 | T01·F01·(계산 후) F02 손익, 목표 차이 vs 사건 영향, 모델별 표, 이슈·업무 요약 |
+| `/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산 |
+| `/risk` | UI04 위험 검토 | 계산 선택(정정 시 이전 결과·정정 이력), 상태 칩, 지표 타일(임계값은 `/rules`), 15행 비교, 이슈 이력, **AI 초안 ↔ 담당자 검토 의견**, 배정·Review 요청 |
+| `/tasks` | UI05 업무 | 알림, 업무 목록(기한 초과·재확인 요청), 상세·계산별 확인·이력, 인수·재확인 |
+| `/handoff` | UI06 인계 | 이슈 근거, 장면 완료 조건, 후속 업무, 정정 이력, 감사 이력, 다음 장면(이야기만) |
+| `/process` | BPM 흐름 | BPMN 캔버스, 지금 기다리는 사람 업무, 노드 상세(분기 조건) |
 
-* Plan은 **활동·물량·일정·자원** 네 축으로 나눈다(기획안 3.4의 정의 그대로). 승인 하나가
-  네 축에 각각 다르게 파급되는데, 뭉뚱그리면 "무엇을 언제 누가 얼마로"가 사라진다.
-* 값이 숫자가 아니라 문자열이다 — 일정과 활동은 수치화되지 않는다. 계산은 Forecast의
-  몫이고 Plan은 서술한다.
-* **승인 전에는 조정 후 값을 유효한 계획으로 보여주지 않는다**(`drivenByDecision`).
-  결정되지 않은 계획을 확정된 것처럼 표시하는 것은, 실행 중인 Agent의 산출물을 미리
-  노출하는 것과 같은 종류의 거짓말이다. 대신 "승인 시 조정 예정"으로 남긴다.
-* 전환 투자비 22억과 `review-case.ts`의 연간 회수 18억은 회수 기간 약 1.2년으로 맞물린다.
-  한쪽을 바꾸면 다른 쪽도 함께 본다.
+* **변경을 받는 곳은 `Sc01SessionSync` 하나다**(레이아웃 상주). 화면·패널마다 받으면 같은 화면의 두
+  패널이 서로 다른 순간을 보고 요청이 패널 수만큼 는다(이전 구현에서 겪었다). SSE가 기본, 서 있지
+  않은 동안만 폴링(15초)이다. 조작 응답은 스토어에 **즉시** 반영한다 — SSE를 기다리면 누른 뒤 잠깐
+  옛 상태가 보인다.
+* **폼 칸은 BPMN의 `chk:approval.fields`에서 온다**(`ActionForm`). 화면이 폼을 따로 정의하면 BPMN과
+  갈라진다. `…담당자` 칸은 사용자 마스터에서 고른다 — 이름을 손으로 치면 배정이 거절된다.
+* **거절은 상태로 보인다.** 엔진이 403/409/422로 거절하면 사유를 그대로 띄우고 입력은 지우지 않는다.
+  버튼 비활성(역할 불일치·필수 칸)은 편의일 뿐 강제가 아니다.
+* **지난 시점에서는 조작할 수 없다.** 배너와 "현재로" 버튼을 둔다 — 표시하지 않으면 지금 처리할 수
+  있다고 착각한다. 대시보드도 그 시점의 문서로 계산한다(`?seq=`) — 그래야 S0 장면에 F02가 안 보인다.
+* **상태를 칩 하나로 뭉치지 않는다**(설계서 1.9) — 자료 확인 · 계산 · 위험 · 업무 · 전망 승인 · 장면.
+  "장면 1 인계 완료" · "전망 승인" · "위험 해소"는 서로 다른 말이다(UI06-02).
+* **고객 원천 비교(UI02)와 전망 비교(UI04)를 섞지 않는다.** 전자는 CP01 → CP02, 후자는 승인 전망
+  F01 → 검토 전망 F02다(UI02-02).
+* 화면 머리에 범위·가상시각·장면 상태·"가상 회사·시연 데이터"를 같은 모양으로 둔다(설계서 2.3).
+  사용자 id는 화면에 내지 않고 "역할 이름"으로 바꿔 보인다(`useUserName`).
+* **AI 초안과 담당자 의견은 다른 카드다**(AG-03). "의견에 가져오기"는 폼을 초안으로 다시 열 뿐이고
+  제출은 사람이 한다 — 가져왔다는 사실과 검토 시점의 초안 id가 기록된다.
+* **더 오래된 문서로 덮지 않는다**(`setLive`). 배경 초안 완료 SSE가 그 초안을 시작한 조작의 HTTP 응답보다
+  먼저 오자 응답이 "생성 중"으로 되돌렸다 — 감사 이력 길이(늘기만 한다)로 순서를 가린다.
+* 플레이어에 **시연 사례 선택**(기본 · EX08)과 **가상시계 "다음 영업일 18:30"**(EX07)이 있다.
 
-### 4.11 대안 비교의 3요소 · 신호의 출처 · 개선 대상 3축
+### 4.7 숫자와 가상 데이터의 규칙
 
-기획안의 세 요구를 각각 구조로 옮긴 것이다.
+* **화면이 보여 주는 숫자는 전부 엔진의 규칙 계산이다.** 연간 공장관리손익 T01 34.77억 · F01 33.23억 ·
+  F02 33.09억, b모델 7월 700대분 · 7.37% · 1,400만원 · 12% · 중요가 엑셀(SC01검증·월분기연간 시트)과
+  같아야 한다 — 엔진 테스트가 잠근다.
+* **목표 부족액과 사건 영향을 구분한다**(AT07). 연간 T01 − F02 = 1억 6,794만원, 이 중 이번 사건분
+  F02 − F01 = −1,400만원. 하나만 보이면 사건이 목표 차이 전부를 만든 것처럼 읽힌다.
+* **누락은 0이 아니고, 판정 보류는 정상이 아니다**(G13·CALC-03). 화면도 "누락"·"판정 보류"·"미산출"로
+  따로 쓴다.
+* **비율은 소수 8자리로 반올림한 뒤 판정한다**(CALC-02) — 엑셀과 경계에서 같은 결과를 낸다. 화면은
+  소수 둘째 자리, 원 단위 값은 `title`·표에서 다시 볼 수 있다.
+* **공장관리손익은 전사 영업이익이 아니다.** 상시 표기한다. 고정비는 공장·월에 한 번만 차감하고 모델별
+  배부 손익은 만들지 않는다(D11).
+* **후속 장면의 숫자를 지어내지 않는다.** 단가 인상·대안 효과·Rolling 결과는 설계표·데이터가 나온 뒤
+  만든다. 지어내면 화면이 주장하는 것을 데이터가 배반한다(4.15의 교훈).
+* 시연 원천 변형(EX01·02·04·05, CP03)은 `domain.FIXTURES`에 있고 기본 데이터에 섞지 않는다(ERR-01).
 
-**대응 대안은 효과·비용·위험·실행 조건을 함께 제시한다** (기획안 2.1)
-* 비용은 `lever.costPerUnit`으로 **레버에 비례**한다. 비용이 고정이면 레버를 끝까지 올리는
-  것이 항상 정답이 되어 트레이드오프가 사라진다.
-* 비용(일회성)과 효과(연간)는 **시간 단위가 다르므로 차감하지 않는다.** 단순히 빼면
-  첫해 기준 손해처럼 보이는 잘못된 그림이 된다. 대신 회수 기간(`paybackYears`)으로 본다.
-  비용·효과가 모두 선형이라 회수 기간은 레버와 무관하게 일정한데, 이는 의도한 단순 모델의
-  귀결이다(4.7 "백테스트는 공식이 아니라 표다"와 같은 태도).
-* `prerequisites`(실행 조건)가 없는 대안은 만들지 않는다 — 조건 없이 효과만 적힌 대안은
-  비교가 아니라 홍보다.
-* 1안 전환 투자비 22억은 `rolling-plan.ts`의 Plan 항목과 같은 값이다. 한쪽을 바꾸면 함께 본다.
+### 4.8 테스트
 
-**관측된 사실과 예측·가정을 구분한다** (기획안 3.2)
-* `RiskSignal.origin` — `observed`(현재 실적의 편차) / `leading`(선행 위험).
-* `leading`에는 `assumption`을 반드시 적고 화면에 함께 띄운다. 그 가정이 틀리면 위험 자체가
-  성립하지 않는다. `observed`에는 가정을 두지 않는다 — 사실에 가정을 붙이면 사실이 흐려진다.
-
-**개선 대상은 Framework · Process · Agent 셋이다** (기획안 3.5)
-* `ProposalKind`를 `targetOf()`로 이 세 축에 매핑하고 화면에 축별 건수를 표시한다.
-  한 축이 0건이면 눈에 띈다 — 실제로 Process가 0건이어서 이 갭을 발견했다.
-
-### 4.12 데이터 불완전성과 판단 불확실성
-
-기획안 2.1("데이터의 불완전성")과 3.6("정보 부족이나 판단 불확실성이 있을 때의 처리
-방식")을 구조로 옮긴 것이다. **Agent가 늘 확신에 찬 결론만 내면 사람이 검증할 지점이
-없어진다.**
-
-* `DataSource`는 이름만이 아니라 **품질**을 들고 있다 — `complete` / `partial`(결손) /
-  `stale`(최신성) / `estimated`(추정). `complete`가 아니면 `caveat`에 무엇이 어떻게
-  불완전한지 반드시 적는다. 라벨만으로는 결론을 얼마나 믿어야 할지 알 수 없다.
-* caveat는 **툴팁에만 넣지 않는다.** 데이터가 어떻게 불완전한지는 결론을 읽을 때 같이
-  보여야 하는 정보이지 마우스를 올려야 알 수 있는 부가 정보가 아니다.
-* `AgentRun.confidence`로 산출물 신뢰도를 밝히고, `high`가 아니면 이유를 적는다.
-* **정보가 부족하면 Agent는 추측하지 않고 묻는다**(`AgentEscalation`). 질문·못 답하는
-  이유·답할 사람과 함께, 답을 받지 못한 채 진행할 때 어떤 가정 위에 서는지
-  (`ifUnanswered`)를 남긴다 — 나중에 결론이 틀렸을 때 어디서 갈렸는지 되짚기 위해서다.
-* 미답 질문은 협업 스테이션에서 **보고서보다 먼저** 보여 준다. 결정의 전제이므로
-  "무엇을 모른 채 결정하는지"를 알고 승인해야 한다.
-* 이 필드들도 "미완료 Agent의 산출물은 감춘다" 규칙(4.5)을 그대로 따른다 — 실행 중인
-  Agent의 신뢰도·질문은 노출되지 않는다.
-
-### 4.13 시나리오 구조 (기획안 4.2)
-
-시나리오는 `lib/mock-data/scenarios.ts` 레지스트리에 등록한다. **세 번째를 붙일 때도 이
-파일에 한 항목을 더하는 것으로 끝나야 한다** — 화면이나 스토어를 고쳐야 한다면 구조가
-시나리오에 묶여 있다는 뜻이다.
-
-**시나리오 소유 vs 전사 공유**
-
-| 시나리오 소유 | BPM 프로세스 인스턴스, Review 안건, 데모 장면, 진행 지점, 결정 |
-| 전사 공유 | Framework(KPI·KRI·Control), Rolling Plan, Evolution Lab, 리스크 신호 |
-
-전사 자산을 시나리오마다 복제하면 재사용이 아니라 복사다. Rolling Plan은 **모든 시나리오의
-승인 과제를 함께** 받고(`decisionByScenario`를 순회), Framework는 두 안건의 KRI를 같은
-표에 놓는다. 전사 Gap은 하나이고 여러 안건이 그것을 나눠 메우므로 합산이 한곳에서 맞아야 한다.
-
-* 스토어는 진행 지점·결정·장면을 **시나리오별 맵**으로 들고 있다. 하나만 들고 있으면 시나리오를
-  오갈 때 앞 시나리오의 상태가 딸려 가거나 초기화된다. 읽을 때는 `selectStepIndex` 등
-  선택자를 쓴다(원시값만 돌려주므로 리렌더가 새지 않는다).
-* 승인 후 이동 지점은 노드 id를 고정하지 않고 **user-task의 다음 지점**으로 계산한다
-  (`approvalStepIndex`) — 시나리오마다 승인 단계 이름이 다르다.
-* 두 시나리오는 기획안 3.3의 **두 경로를 나눠 맡는다**: 시나리오 1은 부서 간 조정이 필요해
-  Management Review로 에스컬레이션되고, 시나리오 2는 구매·생산 권한 안이라 현업 통제로
-  처리된다. 결정 주체도 경영진 vs 구매본부로 다르지만 화면과 규칙은 그대로 재사용한다.
-
-**시나리오를 붙이며 드러난 것** — 매번 하나씩 나왔고, 그때마다 구조를 고쳤다:
-* **시나리오 2**: 대안의 부수 효과가 `utilizationPerUnit`(가동률)으로 타입에 박혀 있었다.
-  납기 안건에는 맞지 않아 `secondaryLabel`/`secondaryUnit`/`secondaryPerUnit`으로 일반화했다.
-* **시나리오 3**: `app/api/mock/datasets.ts`가 시나리오별 데이터셋을 하드코딩하고 있어
-  시나리오마다 두 항목씩 손으로 더해야 했다. 레지스트리에서 생성하도록 바꿨고,
-  같은 데이터를 가리키던 옛 이름(`bpm-process`·`review-case`)은 중복이라 제거했다.
-
-**시나리오 3에서 화면·스토어·서비스는 한 줄도 고치지 않았다.** 새 데이터 파일 2개,
-장면 배열 1개, 레지스트리 1항목, 그리고 전사 자산(리스크 신호·Framework)에 축 하나를
-더한 것이 전부다. 장면별 설계표도 손대지 않았는데 시나리오 3을 자동으로 잡는다.
-
-**결정의 성격이 셋 다 다르다** — 이것이 기획안 4.2의 "추가로 보여줄 경영 가치"다:
-1번은 조치(에스컬레이션·경영진), 2번은 조치(현업 권한 내), 3번은 **배분**이다.
-배분은 어느 대안을 골라도 반대편이 줄어 비용이 0인 안이 없고, 회수가 빠른 안이 곧
-좋은 안도 아니다(2안은 0.5년이지만 신사업 시점 경쟁력을 포기한다).
-
-### 4.14 장면별 설계표 (기획안 4.2)
-
-`docs/scene-design.md`는 **손으로 쓰지 않고 구현에서 생성한다**(`services/scene-design.ts`).
-
-```bash
-curl -s http://localhost:3000/api/docs/scene-design > docs/scene-design.md
-```
-
-* 설계표는 기획안 4.2가 "Business 설계를 BPM과 Agent 구현으로 연결하는 공통 명세"로
-  규정한 문서다. 손으로 쓰면 구현이 바뀔 때 문서만 낡아 명세로서 쓸모가 없어진다.
-  **데이터를 고친 뒤 다시 생성할 것.**
-* 코드에 근거가 없는 항목은 지어내지 않고 `미정의 — 경영 판단 기준 작성 필요`로 남긴다.
-  현재 140행 중 9칸이며, Mock에 `outcome`이 없는 후반 노드들이다. 기획안은 경영 내용을
-  임근석 박사가 주도한다고 했으므로 이 칸은 사람이 채울 자리다.
-* **사람·시스템 노드의 입력은 선행 Agent 산출물이다.** 경영진은 원천 데이터가 아니라
-  Agent 보고서를 보고 판단한다. 처음엔 해당 노드의 실행 기록만 봐서 Management Review의
-  입력이 "미정의"로 나왔다 — 생성기를 쓸 때 이 경로를 빠뜨리기 쉽다.
-
-### 4.15 테스트
-
-`tests/`에 Vitest로 **순수 로직만** 검증한다(139개). 엔진 테스트는 `engine/tests/`에
-pytest로 따로 있다(68개) — 4.16 참조. 렌더링 테스트는 두지 않았다 —
-jsdom과 React 플러그인 없이 node 환경에서 1초대에 끝나고, 레이아웃·가독성처럼 계산으로
-못 잡는 것은 어차피 브라우저에서 눈으로 봐야 한다.
-
-| 파일 | 무엇을 잠그는가 |
+| 위치 | 무엇을 잠그는가 |
 |---|---|
-| `invariants.test.ts` | 화면 간 수치 연동 항등식 (4.6) — 합산, 브릿지, 분기 합, 시나리오 간 연결 |
-| `bpm-engine.test.ts` | 상태 파생 규칙 (4.5) — skipped/waiting 판정, **미완료 Agent 산출물 은닉**, 승인 지점 |
-| `engine-spec.test.ts` | 엔진 명세 생성 (4.16) — 게이트웨이 분기 규칙, **Mock 플래그가 선언된 경로와 일치하는지**, 시나리오 전환 시 대안 선택 |
-| `engine-view.test.ts` | 엔진 스냅샷 → 뷰모델 (4.17) — **미완료 산출물 은닉**, 모르는 상태 값 처리, 결정·단계·소요시간·Evolution 산출물 파생 |
+| `engine/tests/test_sc01_calc.py` | **엑셀 파생 시트와 대조** — SC01검증 15행 전부, 월분기연간 17행 전부, 경계값(AT06), EX01~06, 목표 부족액 ≠ 사건 감소액 |
+| `engine/tests/test_sc01_process.py` | Chaeksas 위의 기본 시연 EV01~EV07(AT01~AT09), 권한 403, 멱등, stale write 409, 시계, 초기화, 보완 경로 — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc01_agent.py` | Agent 계약 검증(틀린 금액·비율·물량, 없는 근거, 빠진 항목), EX08, 실패 응답 비노출, 재생성·채택·지연, **잠금 밖 실행**, `-m llm` 실호출 |
+| `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
+| `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
+| `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
+| `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-엔진 쪽은 `engine/tests/`에 pytest로 있다 — **SQLite와 Postgres 두 백엔드를 모두 돌린다**
-(41개 / 61개). 자리표시자·행 접근·날짜 타입이 전부 달라 한쪽만 돌리면 나머지가 배포
-시점에 터진다.
-| `rolling-plan.test.ts` | **이중 계상 금지** (4.6·4.17), 승인→과제 변환, Plan 조정, Mock↔엔진 승인 병합 |
-| `framework.test.ts` | KPI–KRI–Control 연결 무결성 (4.8), 이탈 판정 방향 |
-| `simulation.test.ts` | 선형 관계·회수 기간·등급 단조성, 시나리오 레지스트리 무결성 |
-| `metrics.test.ts` | 표기 유틸, 경영 수행 성과가 **실제 데이터에서 계산되는지** (4.9), 엔진 실측값 반영 (4.17) |
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(133개 / 155개). 자리표시자·행 접근·JSON
+  타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
+  실패로 바꾼다.
+* `tests/fixtures/sc01-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
+  실패하며 다시 만드는 명령을 알려 준다.
+* 렌더링 테스트는 두지 않는다 — 레이아웃·가독성은 브라우저에서 본다(4.10~4.14의 실측들).
 
-* 검증 대상은 **이미 한 번 이상 실제로 틀렸던 것들**을 우선했다. 미완료 산출물 은닉은
-  두 경로로 새어 나갔고, 이중 계상과 자리표시자 노출은 숫자가 그럴듯해 눈으로 안 잡힌다.
-* 테스트를 넣으면서 실제 불일치를 하나 잡았다 — BMS 라인 수율의 감지 임계치가 리스크
-  신호에만 `95.0%`(목표값)로 적혀 있었다. Framework·Evolution Lab·백테스트는 모두 `90`이다.
-* 엔진을 붙이면서 또 하나 잡았다 — 승인 후 진행 지점이 0으로 돌아가는 버그(4.16).
-  **두 번 다 "화면 간 연동"을 주장하는 지점에서 나왔다.** 데모 플레이어가 상태를 절대값으로
-  덮어쓰기 때문에 데모로는 드러나지 않는 종류다.
-* `vitest.config.mts`가 `.mts`인 이유와 `resolve.tsconfigPaths`는 그 파일 주석에 적어 두었다.
-* `@types/node`는 `^20`에서 `^22`로 올렸다. 런타임이 Node 22인데 스캐폴딩 값이 20이라
-  Vitest peer dependency와 충돌했다 — 우회가 아니라 실제와 맞춘 것이다.
+### 4.9 실시간 전파 (SSE · Postgres LISTEN/NOTIFY)
 
-### 4.16 BPM 엔진 (Python · LangGraph)
-
-`engine/`이 실제 상태 머신이다. 자세한 것은 `engine/README.md`이고, 여기에는 TS 쪽에서
-알아야 할 것만 적는다.
-
-**지금까지 "상태 머신"은 배열 인덱스였다.** `sequence`가 미리 선언된 한 경로이고 노드
-상태를 거기서 파생했을 뿐, 분기도 사람 승인도 실제로는 일어나지 않았다(4.5). 엔진에서는
-그래프가 진짜로 멈추고(`interrupt`) 재개된다(`Command(resume=...)`), 그리고 **경로가
-실행의 결과로 나온다.**
-
-* **엔진은 토폴로지를 모른다.** 노드·엣지·Agent 정의는 `lib/mock-data/`가 유일한
-  원천이고 `services/engine-spec.ts`가 명세로 만들어 보낸다. 엔진이 같은 것을 따로
-  들고 있으면 시나리오를 추가할 때 양쪽을 손대야 한다 — **세 시나리오가 엔진 코드
-  수정 없이 돈다.**
-* **경영 규칙도 실어 보낸다** — 사유 최소 길이(`DECISION_RATIONALE_MIN_LENGTH`), 승인
-  노드, 선택지. 엔진이 숫자를 다시 적으면 UI·API·엔진 세 곳이 갈라진다.
-* **규칙 소유권**: Python은 "무슨 일이 일어났는가", TS는 "그것이 숫자에 어떻게
-  반영되는가". 결정→과제 변환(`decisionToAction`)은 TS에 남긴다 — 이중 계상 금지
-  규칙이 거기 있고 이미 테스트가 잠그고 있다.
-* **분기는 결정론적, 판정은 확률적.** 게이트웨이는 상태의 플래그 하나를 읽고, 그
-  플래그는 선행 Agent가 만든다. 기획안의 "Deterministic BPM + Probabilistic AI"가
-  여기서 갈린다. 플래그가 없으면 `whenFalse`다 — 판정되지 않은 것을 "조정 필요"로
-  보면 에스컬레이션이 기본값이 되어 현업 통제 경로가 죽는다.
-* **`sourceHandle`로 분기를 판정하면 안 된다.** `main`/`branch`는 캔버스 레이아웃
-  관심사이고 의미가 고정되지 않았다 — 실제로 납기 시나리오는 `main`이 "아니오"다.
-  라벨 문자열("예"/"아니오")을 읽는 것도 표기를 바꾸면 깨진다. 규칙은
-  `BpmNodeSpec.decision`에 명시한다.
-* **미실행 판정이 TS보다 정확하다.** TS는 `sequence`에 없는 노드를 처음부터 `skipped`로
-  봤지만, 실제로는 게이트웨이가 돌기 전까지 그 분기는 `pending`이다.
-* **미완료 Agent 산출물 은닉이 규칙에서 구조로 바뀐다.** 노드가 돌기 전에는 기록 자체가
-  없다 — TS에서 두 경로로 새어 나갔던 종류의 실수가 성립하지 않는다.
-* **Agent가 계약을 못 맞추면 지어내지 않고 502로 실패한다.** `kimi-k3:cloud`는 ollama의
-  `format` 스키마를 무시하므로(마크다운 산문이 온다) 스키마를 프롬프트에 넣고 검증·
-  재시도한다. 조용히 그럴듯한 값으로 메우면 Agent가 고장난 것을 아무도 모른다.
-* 산출물마다 `provenance`(`mock` · `mock-missing` · `llm:<model>`)가 붙는다. 인스턴스는
-  **생성 시 모드로 재개된다** — 섞이면 어느 것이 실제 호출인지 알 수 없다.
-* **엔진이 꺼져 있는 것은 고장이 아니다.** 앱은 Mock만으로 전부 동작하므로
-  `engine-client.ts`는 연결 실패를 throw하지 않고 `{ ok: false }`로 돌려준다.
-* **저장 백엔드는 `DATABASE_URL` 유무로 갈린다** — 있으면 Postgres, 없으면 파일 SQLite.
-  로컬에서 DB를 띄우라고 요구하면 위의 "엔진 없이도 동작한다"가 깨지므로 기본값을
-  마찰 없는 쪽에 둔다. 다만 **SQLite로는 운영할 수 없고**(워커마다 파일이 갈라진다),
-  연결 실패를 SQLite로 조용히 되돌리지 않는다 — 운영에서 DB가 안 붙었다면 즉시
-  드러나야 한다. `/health`의 `storage`가 어느 쪽인지 알려 준다.
-* **`PostgresSaver`는 `autocommit=True`와 `row_factory=dict_row`를 요구한다.** 문서에만
-  있고 타입으로는 드러나지 않아 빠뜨리기 쉽다.
-
-**엔진을 붙이며 드러난 것** — 둘 다 TS만 볼 때는 보이지 않았다:
-
-1. **`op-control`에 나가는 엣지가 없다**(시나리오 1·3). `sequence`에 없어 `skipped`로
-   조용히 넘어가므로 아무도 눈치채지 못했다. 엔진은 END로 잇고 `specWarnings`로 알린다.
-   현업 통제로 끝났을 때 루프가 어디로 가는지는 경영 판단이라 **지어내지 않았다** —
-   4.14의 "미정의" 칸과 같은 성격으로 사람이 채울 자리다.
-2. **승인 후 진행 지점이 0으로 돌아갔다.** `approvalStepIndex`가 `nodes` 배열 순서로
-   첫 `user-task`를 찾아 선택되지 않은 분기의 `op-control`을 집었고, 그 노드가
-   `sequence`에 없어 `indexOf`가 -1이 됐다. 시나리오 1·3에서 깨져 있었고(2는 우연히
-   맞았다) 데모 플레이어가 장면마다 `step`을 절대값으로 덮어써서 가려져 있었다.
-   `services/bpm-engine.ts`의 `approvalNodeId`로 올리고 테스트로 잠갔다.
-
-### 4.17 화면 ↔ 엔진 (모드 공존)
-
-②·③은 엔진 모드로 옮겨 타고, ④는 엔진 승인을 과제로 받고, **①⑤는 엔진이 소유하는
-조각만** 받는다.
-
-**화면 전체를 옮기지 않는다.** ①의 전사 스냅샷(매출·영업이익·브릿지·사업부)과 Framework,
-⑤의 백테스트·개선 제안은 엔진이 소유하지 않으므로 옮기면 정적 렌더만 잃는다
-(4.16 규칙 소유권). 옮기는 것은 "무슨 일이 일어났는가"에 해당하는 조각뿐이다:
-
-| 화면 | 엔진이 소유하는 조각 |
-|---|---|
-| ① | Agent 분석 소요시간(실측), 안건이 **실제로** 도달한 단계 |
-| ⑤ | Evolution Agent가 실행한 산출물 |
-
-* **`Provenance`에 `measured`를 더했다.** `system`(Mock에서 계산)과 근거가 다르다 —
-  소요시간은 ollama가 돌려준 실제 경과 시간이다. 둘을 같은 배지로 묶으면 "시스템
-  산출값"이 실측인지 Mock 계산인지 알 수 없어 기획안 2.3의 구분이 이름만 남는다.
-  세 배지가 한 화면에 공존하는 것을 확인했다.
-* **빈 실행 기록은 무시한다.** 엔진을 켰지만 아직 Agent가 안 돌았을 때 0시간으로 덮으면
-  "분석이 즉시 끝났다"가 된다.
-* **`RiskSignal.stage`는 엔진 인스턴스가 있으면 실제 진행 지점으로 바꾼다.** 감지 화면이
-  "지금 어디까지 왔나"를 틀리게 말하면 그 화면을 보는 이유가 없어진다. `riskId`로 묶는다.
-* **⑤의 Agent 산출물을 정식 개선 제안(`EvolutionProposal`)으로 바꾸지 않는다.** 그 타입은
-  before/after·기대효과·**트레이드오프**·담당자를 요구하는데 산출물에는 없다. 지어내면
-  "부작용 없는 제안은 검토가 아니라 홍보다"(4.7)를 스스로 어긴다. 산출물은 산출물로
-  보여 주고 승격은 사람의 몫으로 남긴다.
-* ⑤가 전역 상태를 바꾸지 않는다는 규칙(4.6)은 그대로다 — 여기서는 읽기만 한다.
-
-**LLM 모드에서 실제로 확인한 것** — 시나리오 1을 끝까지 돌렸다(전체 185초, Agent 4회 호출):
-Evolution Agent가 "단일 임계치 85% → 3단계 구간 + 2개월 연속 이탈 조건 + 데이터 품질
-게이팅"을 제안하고, **제시한 수치가 과거 분포 데이터 없이는 잠정안임을 스스로 밝혔다.**
-미답 질문 4건도 함께 남겼다. 계약 검증(신뢰도가 high가 아니면 이유를 요구)이 강제한 결과다.
-
-**드러난 공백** — `evolution` 노드에는 Mock 산출물도 참조 데이터 정의도 없다(세 시나리오
-모두). 그래서 Mock 모드에서는 `mock-missing`으로, LLM 모드에서는 근거가 빈 채로 나온다.
-**지어내지 않고 화면이 그 사실을 말하게 했다** — 빈 자리를 그냥 두면 "근거 없이 결론을
-냈다"로 읽힌다. 4.14의 "미정의 — 경영 판단 기준 작성 필요"와 같은 자리다.
-
-* **정적 프리렌더를 잃지 않았다.** 다섯 화면 모두 여전히 `○`다. 서버에서 엔진을 부르면
-  전부 `ƒ`가 되는데, **페이지 껍데기는 정적으로 두고 엔진 데이터만 클라이언트에서**
-  채우면 둘 다 얻는다. 엔진을 쓰지 않는 사람은 이전과 같은 속도로 화면을 받는다.
-* **화면은 출처를 모른다.** `services/engine-view.ts`가 스냅샷을 Mock 경로와 같은 모양의
-  뷰모델로 바꾸고, 컴포넌트 트리는 그대로다. 화면마다 `if (engineMode)`가 흩어지면 두
-  경로가 조금씩 달라져 "엔진 모드에서만 나는 버그"가 생긴다.
-* **②와 ③이 같은 인스턴스를 본다**(`use-engine-process.ts`). 따로 만들면 ②에서 실행한
-  프로세스를 ③에서 승인할 수 없어, "한 사건을 여러 관점으로 본다"는 전제가 엔진
-  모드에서만 깨진다.
-* **스냅샷을 받는 곳은 `SnapshotSync` 하나뿐이다**(레이아웃 상주). 화면·훅이 각자
-  가져오면 두 가지가 깨진다: (1) **같은 화면의 두 패널이 서로 다른 순간을 본다** — ①은
-  경영 수행 성과와 리스크 신호가 각각 같은 훅을 불러 실제로 두 번 가져오고 있었다.
-  (2) 폴링을 붙이면 요청이 패널 수만큼 배로 늘어난다. 화면들은 스토어를 읽고
-  (`lib/store/engine-snapshots.ts`), 변경(생성·재개)은 응답을 스토어에 **즉시 반영**한 뒤
-  다시 읽게 한다 — 폴링 주기를 기다리면 승인했는데 한동안 옛 상태가 보인다.
-* **SSE가 기본이고 폴링이 폴백이다**(4.19). 변화가 다른 탭·다른 사람에게서 올 수 있어
-  가만히 있으면 안 된다 — 협업 스테이션에서 승인하면 Rolling Plan의 과제가 달라진다.
-* **엔진 모드에서는 단계 이동 컨트롤을 감춘다.** 진행은 실행의 결과이므로 임의로 앞당길
-  수 없다. 지난 시점을 되짚어 보는 것은 데모 플레이어가 장면 단위로 한다(4.18).
-* **승인 반려는 오류가 아니라 상태다.** 사유가 짧으면 400이 아니라 같은 지점에 다시 멈춘
-  스냅샷이 오므로, 입력한 내용을 지우지 않고 반려 사유만 덧붙인다.
-* **금액은 화면이 계산한다.** 엔진은 "무엇을 골랐는가"(대안·레버)만 돌려주고
-  `simulateAlternative`가 손익을 낸다. 엔진이 금액도 계산하면 화면·API와 갈라진다.
-  반대로 **결정 시각은 엔진이 찍는다** — "무슨 일이 일어났는가"의 일부이고, 화면이
-  찍으면 새로고침할 때마다 값이 달라진다.
-* **엔진이 꺼져 있는 것은 고장이 아니다.** 연결 실패는 배너로 알리고 화면은 Mock으로
-  계속 동작한다.
-
-**④ Rolling Plan은 성격이 다르다.** ②·③은 지금 보는 한 시나리오의 인스턴스를 다루지만,
-④는 전사 자산이라 **모든 시나리오의 승인 과제를 함께** 받는다(4.13). 인스턴스가 여럿이면
-여럿을 다 읽어야 합산이 맞는다.
-
-* **이중 계상을 `mergeDecisions`가 막는다.** 한 시나리오에 엔진 인스턴스가 붙어 있으면
-  그 시나리오의 권위는 엔진에 있다 — Mock 결정과 함께 더하면 같은 승인이 두 번 잡히고
-  **금액이 그럴듯해서 눈으로는 잡히지 않는다.** 실측으로 확인했다: 같은 시나리오에 Mock
-  9억과 엔진 4.8억을 함께 두었을 때 합계가 37억이 아니라 28억으로 남았다.
-* **엔진이 소유했지만 아직 승인 전이면 Mock 결정을 되살리지 않는다.** 실행 중인 그래프가
-  승인 지점에 닿지도 않았는데 과제가 잡히면, 결정되지 않은 계획을 확정된 것처럼
-  표시하는 셈이다(4.10과 같은 이유).
-* **엔진 조회가 실패해도 Mock으로 조용히 되돌아가지 않는다.** 되돌아가면 승인이 두 번
-  잡힌다. 대신 오류 배너와 함께 **몇 건이 목록에서 빠졌는지** 밝힌다 — 조용히 넘기면
-  Gap이 실제보다 덜 메워진 것으로 보이는데 그것도 눈으로 안 잡힌다.
-* **결정 변환은 ③과 ④가 같은 함수를 쓴다**(`engineDecisionToReview`). 각자 변환하면
-  협업 스테이션이 보여주는 금액과 과제 목표액이 갈라질 수 있다.
-
-**여기서 드러난 것** — 둘 다 데모가 가려 놓고 있었다:
-
-1. **루트 `app/loading.tsx`가 화면을 두 벌로 만들었다.** 앱 전체에 Suspense 경계가
-   생기면서 스트리밍 교체가 끝나지 않아 서버 HTML(기본 시나리오)과 클라이언트 렌더가
-   **둘 다 DOM에 남았다**(`<main>`이 2개). 손대지 않은 화면에서도 재현됐다. 다섯 화면이
-   정적이라 덮을 서버 대기 자체가 없어 이득도 없으므로 제거했다 — 로딩 표시는 엔진
-   패널 안의 것으로 충분하다. `app/error.tsx`는 Suspense가 아니라서 무관하며 유지한다.
-2. **시나리오를 바꾸면 다른 시나리오의 대안이 승인됐다.** `selectedId`·`leverValue`가
-   `useState`로 첫 렌더 값만 잡는데, 화면이 정적 프리렌더라 첫 렌더는 항상 기본
-   시나리오다. 스토어 복원으로 시나리오가 바뀌어도 id가 남아 새 목록에 없으니
-   `alternatives[0]`으로 떨어진다 — 시나리오 3에서 권고안(3안)이 아니라 1안이,
-   레버도 시나리오 1의 값(2)이 기록됐다. 렌더 중 조정 패턴으로 고쳤다
-   (effect로 고치면 `react-hooks/set-state-in-effect`에 걸린다).
-
-### 4.18 데모 플레이어 × 엔진 (되감기)
-
-**"실행 중인 그래프는 시간을 되감을 수 없다"고 여러 번 적어 두었는데 틀렸다.** LangGraph는
-노드마다 체크포인트를 남기므로 지난 시점을 되짚어 볼 수 있다. 그래서 데모 플레이어가 엔진
-모드에서도 동작한다 — 장면이 선언한 지점(`DemoScene.step` → `sequence[step]` 노드)으로
-인스턴스를 옮긴다(`engine/app/seek.py`, `use-engine-playback.ts`).
-
-**두 방향의 성격이 완전히 다르다.**
-
-| | 동작 | 인스턴스 |
-|---|---|---|
-| 뒤로 | 그 시점 체크포인트를 **읽기만** 한다 | 그대로 |
-| 앞으로 | 사람 대기마다 장면이 선언한 입력을 넣어 **실행**한다 | 진행한다 |
-
-* **뒤로 가기를 실행으로 구현하면 안 된다.** 과거 체크포인트의 config로 `invoke`하면 위치만
-  옮기는 게 아니라 **거기서부터 다시 실행된다** — Agent 노드는 멈추지 않으므로 다음 사람
-  대기까지 가 버리고, 그 과정에서 (1) **LLM을 다시 호출하고** (2) 이미 내려진 승인이
-  사라진다. 실제로 그렇게 만들었다가 테스트에서 드러났다. 스크러버를 15회 움직인 뒤에도
-  인스턴스가 온전한 것을 확인했다(종료 상태·결정·산출물 4건 보존, LLM 재호출 0회).
-* **읽기 전용이라도 화면이 보는 것은 같다.** 승인 이전 시점의 스냅샷에는 `decision`이 없으니
-  "역방향으로 점프하면 승인이 지워진다"(4.1)가 표시 수준에서 그대로 성립한다. 차이는
-  인스턴스의 실제 진행이 파괴되지 않는다는 것뿐이고, 그 편이 맞다.
-* **멈출 수 있는 곳은 사람 대기 지점뿐이다.** 목표가 Agent·시스템 노드면 지나쳐 다음
-  대기까지 간다 — 그 상태를 그대로 주면 장면이 가리킨 지점이 아니라 그보다 앞선 화면이
-  보이므로, 지나쳤으면 그 지점을 되짚어 돌려준다.
-* **엔진이 임의로 승인하지 않는다.** 목표가 승인 노드보다 뒤면 호출자가 결정을 함께 줘야
-  하고, 장면이 "아직 승인 전"이라고 선언했으면 결정을 보내지 않는다. 승인 이전 장면을
-  통과시켜 버리면 각본과 화면이 어긋나고, 무엇보다 Human-in-the-Loop이 무너진다.
-* **과거 시점에서는 승인할 수 없다**(`historical`). 표시하지 않으면 지금 결재할 수 있다고
-  착각한다. 패널에 "현재로" 버튼을 둬 라이브로 돌아온다.
-* **표시용 스냅샷은 스토어에 둔다**(`viewByScenario`). 되감기가 읽기 전용이라 다시 조회하면
-  "지금"이 와 버린다. 서버가 돌려준 과거 스냅샷을 들고 있는 것이므로 지어낸 값이 아니고,
-  저장하지 않는다(새로고침하면 라이브로 돌아간다).
-* **`revision` 카운터로 화면들을 함께 갱신한다.** 플레이어가 seek하면 ②③④⑤가 모두 같은
-  변화를 봐야 하는데, 훅마다 상태를 따로 들고 있으면 한 화면만 바뀐다.
-* 장면 이동은 **스토어 상태를 먼저 적용하고** 엔진 왕복을 비동기로 던진다 — LLM 모드에서
-  수십 초를 기다리는 동안 화면이 멈춰 있으면 플레이어가 고장난 것처럼 보인다.
-
-**자동 재생은 `setInterval`이 아니라 자기 예약 루프다.** 7초마다 넘기면 Mock 모드에서는
-맞지만 LLM 모드에서 깨진다 — 앞 장면의 왕복이 수십 초인데 타이머는 그것을 모르고 다음
-장면을 발사하므로 요청이 겹치고, 화면은 아직 반영되지 않은 장면의 내레이션을 읽는다.
-**장면이 반영된 뒤에 머무름을 시작한다**: 한 장면의 체류 = 엔진 왕복 + `DEMO_SCENE_INTERVAL_MS`.
-
-* **`jump`을 effect 의존성에서 빼는 것이 핵심이다.** `jump`은 `pathname`에 의존하는데,
-  장면이 화면을 바꾸면 effect가 재실행되고 머무름 타이머가 처음부터 다시 걸린다 — 왕복이
-  40초여도 7초 뒤에 다음 장면이 발사되어 **고치려던 문제가 그대로 남는다.** ref에 최신
-  `jump`을 담아 쓰고, ref는 렌더 중이 아니라 effect에서 갱신한다(`react-hooks/refs`).
-* **요청에 일련번호를 붙인다.** 왕복이 긴 동안 사람이 다른 장면을 누르면 두 요청이 겹치고,
-  먼저 보낸 것이 나중에 도착하면 화면이 뒤로 튄다. 최신 요청의 응답만 반영한다.
-* **엔진이 실패하면 자동 재생을 멈춘다.** 계속 넘어가면 화면과 인스턴스가 어긋난 채로
-  데모가 진행된다. `skipped`(엔진 없음)는 실패가 아니므로 구분한다.
-* **실측으로 확인했다.** `seek` 응답을 12초 늦춘 상태에서 장면 간격이 **21초**(= 12 + 7 +
-  오버헤드)로 나왔고, 옛 동작이면 7초 고정이었다. 장면 8개를 완주하며 `seek` 호출이 정확히
-  **7회**(전환 수와 동일)로, 겹침도 누락도 없었다. 엔진 없는 Mock 모드는 기존과 같은 8초다.
-
-### 4.19 실시간 전파 (SSE)
-
-**폴링이 아니라 push다.** 이 엔진에서 상태가 바뀌는 계기는 전부 우리 코드를 지나간다 —
-인스턴스 생성, 승인 재개, 장면 이동. LangGraph가 몰래 진행하는 일은 없다(Agent 노드도
-그 호출 안에서 돈다). 그래서 그 지점에서 알리면 폴링 없이 즉시 전파된다.
+**폴링이 아니라 push다.** 상태가 바뀌는 계기가 전부 우리 코드를 지나간다(수신·응답·시계·초기화).
+Chaeksas가 몰래 진행하는 일은 없다 — 서비스 태스크도 그 호출 안에서 돈다.
 
 ```
-엔진 GET /events?instances=a,b,c   (SSE)
-  → BFF  GET /api/engine/events    (스트림 중계)
-    → 브라우저 EventSource → 공유 스토어 → 다섯 화면
+조작(워커 A) → notifier.publish("sc01:{id}")
+   SQLite  → hub.fanout                        (같은 프로세스)
+   Postgres→ SELECT pg_notify('nowview_instance', id) → LISTEN 중인 모든 워커 → hub.fanout
+엔진 GET /sc01/demo-runs/{id}/events → BFF 중계 → EventSource → Sc01SessionSync → 스토어
 ```
 
-* **여러 인스턴스를 한 스트림으로 합친다.** 인스턴스마다 연결을 열면 브라우저의 동시
-  연결 한도(HTTP/1.1에서 도메인당 6개)를 SSE가 잡아먹어 다른 요청이 굶는다.
-* **`event: ready`가 초기 버스트의 끝을 알린다.** 스냅샷이 하나씩 오므로 "전부 받았는지"를
-  알 방법이 따로 필요하다. 클라이언트는 버스트를 모아 두고 `ready`에서 한 번에 넣는다 —
-  하나씩 넣으면 그 사이 "일부만 받은" 상태가 화면에 보인다.
-* **폴링을 지우지 않았다.** SSE는 프록시·네트워크 환경에 따라 막힌다. 연결이 서 있지 않은
-  동안에는 폴링(15초)이 대신 돈다. `EventSource`는 스스로 다시 붙으므로 `onerror`는
-  "영구 실패"가 아니라 "지금은 서 있지 않다"는 뜻이고, 그 동안만 폴백이 돈다.
-* **알림은 부수 효과다.** `publish`는 루프가 없거나 구독자가 없으면 조용히 넘긴다 —
-  여기서 터지면 승인이 실패하는 셈이 된다.
-* **프로세스 경계를 넘는다** — Postgres 백엔드면 `LISTEN`/`NOTIFY`로 전파한다(4.20).
-  SQLite면 애초에 여러 워커로 운영할 수 없으므로 로컬 전달만 한다.
-* **안전망 재조회(20초)는 그대로 뒀다.** `LISTEN` 연결이 끊겼다 붙는 사이의 알림은
-  사라진다 — 그것까지 되살리려 하면 Postgres의 알림 큐를 우리가 다시 구현하는 셈이다.
-* 프록시가 조용한 연결을 끊지 않게 15초마다 주석(`: keepalive`)을 보내고, 버퍼링을 막는
-  헤더(`X-Accel-Buffering: no`, `no-transform`)를 엔진과 BFF 양쪽에 둔다 — 한쪽만
-  두면 중간 프록시가 모아서 늦게 도착한다.
-* BFF는 클라이언트 연결이 끊기면 `request.signal`로 상류도 끊는다. 안 하면 엔진에
-  구독자가 쌓인다.
+* **`event: ready`가 초기 전송의 끝을 알린다.** 클라이언트는 이것을 받으면 폴백 폴링을 멈춘다.
+* **폴링을 지우지 않았다.** SSE는 프록시·네트워크 환경에 따라 막힌다. `EventSource`의 `onerror`는
+  "영구 실패"가 아니라 "지금은 서 있지 않다"이고, 그 동안만 15초 폴링이 돈다.
+* **알림은 부수 효과다.** 루프가 없거나 구독자가 없으면 조용히 넘기고, 전송 실패도 변경을 실패시키지
+  않는다 — 여기서 터지면 조작이 실패하는 셈이다. 놓친 알림은 안전망 재조회(20초)가 덮는다.
+* **`NOTIFY`가 아니라 `pg_notify`를 쓴다** — `NOTIFY`는 바인드 파라미터를 받지 못한다.
+* **보낸 프로세스도 자기 알림을 되받는다** — 그래서 Postgres 경로에서는 로컬 전달을 따로 하지 않는다.
+* 15초마다 `: keepalive`를 보내고, 버퍼링을 막는 헤더(`X-Accel-Buffering: no`, `no-transform`)를 엔진과
+  BFF 양쪽에 둔다. BFF는 클라이언트가 끊으면 `request.signal`로 상류도 끊는다.
+* **구독 해제는 `async with hub.subscribe(...)`로 확정한다.** async generator로 두면 `break`로 빠져나갈
+  때 `finally`가 미뤄져 구독자가 누적됐다(테스트가 잡았다).
+* `/health`의 `notify.kind`·`listening`이 전파 방식을 드러낸다 — "여러 워커인데 알림이 로컬"인 상태를
+  눈치챌 수 있어야 한다.
 
-**테스트가 실제 버그를 잡았다.** 구독을 async generator로 만들었더니 `async for`를
-`break`로 빠져나갈 때 `finally`가 즉시 돌지 않아(닫히거나 GC될 때까지 미룬다) **구독자가
-누적됐다.** SSE 엔드포인트는 연결이 끊기면 `break`하므로, 연결이 끊길 때마다 남았다.
-컨텍스트 매니저(`async with hub.subscribe(...)`)로 바꿔 해제 시점을 확정했다 —
-스트림을 5회 열고 닫아도 구독자가 0으로 돌아오는 것을 확인했다.
+**실측**(SC01): 실제 엔진에서 각본 9단계를 HTTP로 돌리는 동안 SSE가 변경 16건을 모두 실어 BPM 대기
+지점이 `Approve_DQ → … → Accept_FIN → []`로 바뀌는 것을 받았다. (이전 구현에서 두 프로세스·같은
+Postgres로 잰 워커 간 전파는 0.026초였다.)
+### 4.10 섹션 탭 (앵커 네비게이션)
 
-**실측**: 승인 후 화면 반영까지 **약 0.9초**(엔진 쪽 push는 0.06초), 22초간 폴링 조회
-**0건**. SSE를 막으면 16초 주기로 폴백이 돈다.
-
-### 4.20 프로세스 경계를 넘는 전파 (Postgres LISTEN/NOTIFY)
-
-허브(`events.py`)는 **자기 프로세스의** SSE 구독자에게만 전달한다. 워커를 여럿 띄우면
-A에서 승인한 것이 B에 연결된 브라우저에 가지 않고, 그 브라우저는 안전망 재조회(20초)를
-기다린다 — 그 상태를 "실시간"이라고 부를 수 없다.
-
-```
-승인(워커 A) → SELECT pg_notify('nowview_instance', id)
-                 → Postgres → LISTEN 중인 모든 워커 → 각자 hub.fanout(id) → SSE
-```
-
-* **역할을 나눴다.** `events.py`는 구독 관리와 로컬 전달(`fanout`), `notify.py`는 프로세스
-  경계를 넘는 전파(`publish`). 화면에서 `hub.publish`를 부르던 곳은 모두 `notifier.publish`다.
-* **`NOTIFY`가 아니라 `pg_notify`를 쓴다.** `NOTIFY`는 유틸리티 문이라 바인드 파라미터를
-  받지 못한다 — id를 문자열로 붙이면 따옴표 처리를 직접 해야 하고 그건 틀리기 쉽다.
-* **전송은 동기, 수신은 비동기다.** 변경은 `def` 엔드포인트(스레드풀)에서 일어나므로 전송은
-  기존 커넥션 풀로 그냥 보낸다. 수신은 `LISTEN` 전용 연결을 붙들어야 해서 별도 async
-  태스크로 돈다(끊기면 2초 뒤 다시 붙는다).
-* **보낸 프로세스도 자기 알림을 되받는다** — `LISTEN`이 별도 연결이고 Postgres는 채널을
-  듣는 모든 연결에 보낸다. 그래서 Postgres 경로에서는 로컬 전달을 따로 하지 않는다.
-  하면 같은 변경이 두 번 전달된다(값이 틀리지는 않지만 쓸모없는 왕복이다).
-* **전송 실패가 변경을 실패시키지 않는다.** 알림은 부수 효과다 — 여기서 터지면 승인이
-  실패하는 셈이고, 그건 알림을 놓치는 것보다 훨씬 나쁘다. 놓친 알림은 안전망이 덮는다.
-* **`/health`가 전파 방식을 알려 준다**(`notify.kind`·`listening`). 드러내지 않으면
-  "여러 워커인데 알림이 로컬"인 상태를 눈치챌 방법이 없다 — `storage`를 노출한 것과 같은 이유다.
-* 종료 시 `LISTEN` 연결을 정리한다. 안 하면 재시작 때 Postgres에 유령 세션이 남는다.
-
-**테스트가 "다른 워커에도 간다"를 직접 잠근다.** 허브를 **둘** 만들어 서로 다른 프로세스처럼
-쓰고, 한쪽에서 알린 것이 다른 쪽에 도착하는지 본다 — 같은 프로세스 안이지만 연결이 다르므로
-Postgres를 실제로 거친다.
-
-**실측**: 엔진을 **두 프로세스**(:8077, :8078)로 같은 Postgres에 띄우고, A에 만든 인스턴스를
-B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했다. 폴링도 안전망도 아닌 순수
-전파다. 두 프로세스 모두 `/health`에 `notify=postgres listening=true`가 떴다.
-
-### 4.21 섹션 탭 (앵커 네비게이션)
+> 4.10~4.14의 실측값은 이전 화면(Cockpit 등 다섯 화면) 기준이다. 규칙은 SC01 화면에도 그대로 쓰인다.
 
 다섯 화면 모두 스크롤이 길어(Cockpit 기준 약 4,000px) 원하는 섹션을 찾기 어렵다.
 `components/shared/section-nav.tsx`가 **GNB 바로 아래 한 줄**로 섹션 탭을 놓는다.
@@ -914,7 +535,7 @@ B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했�
 
 * **항목은 선언하지 않고 지금 그려진 DOM에서 파생한다.** 화면별 섹션 목록을 손으로 적어
   두면 조건부 섹션(미답 질문, 엔진 패널, 승인 후 나타나는 것들)과 데이터가 들어간 제목
-  ("실행 과제 3건")이 곧 어긋난다 — 4.14에서 설계표를 손으로 쓰지 않는 것과 같은 이유다.
+  ("실행 과제 3건")이 곧 어긋난다 — 설계표를 손으로 쓰지 않는 것과 같은 이유다(4.15).
   수집 대상은 `main` 안의 `h1` · `h2` · `[data-slot="card-title"]`이고, 스크롤 목표는
   그 제목을 감싼 카드·섹션이다. 빼려면 `data-index-skip`을 단다.
 * **탭 라벨은 제목의 앞머리만 쓴다**(`—` 뒤 부연과 건수를 뗀다). 부연은 카드에 가면 바로
@@ -936,7 +557,7 @@ B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했�
 (1497px에서 `scrollWidth == clientWidth`). 앵커 이동 후 섹션 상단이 헤더 아래 12px에
 놓인다. 정적 프리렌더(`○`)는 다섯 화면 모두 그대로다.
 
-### 4.22 해설 모드
+### 4.11 해설 모드
 
 이 화면들은 **방법론을 설명하는 자료**와 **경영자가 쓰는 화면**을 겸한다. 카드 설명
 20개 중 8개가 "왜 이렇게 보는가"를 말하는 문장이었고, 그것이 상시로 박혀 있으니 정작
@@ -959,7 +580,7 @@ B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했�
 **실측**: Cockpit 기준 문서 높이가 켬 4,139px → 끔 4,017px이다. 줄어드는 양보다
 **한 화면에 문장 덩어리가 4개에서 0개로 주는 것**이 목적이다.
 
-### 4.23 데모 플레이어는 자리를 차지한다
+### 4.12 데모 플레이어는 자리를 차지한다
 
 떠 있는 카드였을 때 **스크롤 도중 본문 위를 덮었다.** 하단 여백(`pb-48`)은 문서 끝에만
 자리를 비우므로 중간을 보고 있을 때는 소용이 없다. 화면 폭 전체를 쓰는 **하단 고정 바**로
@@ -973,7 +594,7 @@ B의 SSE로 구독한 뒤 **A에서 승인** → B에 **0.026초**에 도착했�
   채로 남는 것을 실제로 봤다 — `resize`도 함께 듣고, CSS에는 폴백(7rem)을 둔다.
 * 내레이션은 두 줄로 제한한다. 바 높이가 들쭉날쭉하면 본문에 비워 둔 자리와 어긋난다.
 
-### 4.24 UI 토큰과 서드파티 스타일
+### 4.13 UI 토큰과 서드파티 스타일
 
 **라이트 모드에서 페이지와 카드가 둘 다 `oklch(1 0 0)`이었다.** 박스를 가르는 것이
 `ring` 하나뿐이어서 "제목줄·내용·박스가 분간되지 않는다"는 지적이 정확했다.
@@ -1014,14 +635,93 @@ import되므로 `globals.css`보다 나중에 온다 — 같은 특이도로 덮
 | 라이트에서 warning·serious는 대비 3:1 미만 | `#fab219` **1.83:1** · `#ec835a` **2.64:1** → WARN |
 
 현재 팔레트는 계열색·diverging 모두 **라이트/다크 양쪽에서 전 항목 PASS**다.
-4.24의 토큰 변경은 서피스 두 값을 바꾸지 않았으므로 이 결과가 그대로 유효하다.
+4.13의 토큰 변경은 서피스 두 값을 바꾸지 않았으므로 이 결과가 그대로 유효하다.
+
+
+### 4.14 좁은 화면 (모바일)
+
+데모를 폰으로 보다 세 가지가 드러났다. 셋 다 **좁을 때만** 나고 데스크톱에서는 보이지 않는다.
+
+**`flex-1`은 `flex-wrap`에서 줄바꿈을 유발하지 못한다.** `flex: 1 1 0%`라 기여 폭이 0이고,
+형제가 자리를 다 가져가도 "안 들어간다"가 성립하지 않아 혼자 눌린다. 엔진 패널의 설명
+문단이 375px에서 **폭 22px · 높이 512px**로 한 글자씩 세로로 쌓였다 — 카드가 1,175px로
+부풀어 그 아래 내용이 사실상 닿지 않았다.
+
+* 버튼과 한 줄을 나눠 쓰는 문단은 **`basis-full sm:flex-1 sm:basis-0`**로 좁을 때 한 줄을
+  통째로 쓰게 한다. 아이콘+문단+버튼처럼 아이콘을 떼면 어색한 줄은 대신 **`min-w-[12rem]`**을
+  줘서 버튼이 아래로 내려가게 한다.
+* **`min-w-0`과 같이 쓸 수 없다** — 최소 폭을 주려면 그것을 빼야 한다.
+* 이 형태를 찾는 법: `main` 안에서 **폭 60px 미만인데 높이 120px 넘고 자식이 없는** 요소를
+  훑으면 나온다. 눈으로 찾지 말 것.
+
+**고정 UI가 화면의 3분의 1을 먹었다.** 360×640에서 sticky 헤더 84px + 데모 바 137px =
+**35%**다. 본문에 남는 434px보다 React Flow 캔버스(360px)가 커서 "캔버스 하나 = 한 화면"이
+됐다. 줄인 것:
+
+| | 전 | 후 |
+|---|---|---|
+| 데모 바 | 137px | 123px (스크러버 감춤 · 내레이션 1줄) |
+| 캔버스 | 360px | 240px (`sm:h-[360px]`) |
+| 첫 카드 (트래커) | 1,175px | 641px |
+
+* **스크러버는 좁을 때 감춘다.** 장면 8개를 가로로 나눈 칸이라 손가락으로 짚기 어렵고
+  세로를 28px 먹는다. 이동은 이전/다음으로 한다.
+* **`shrink-0`이 잘라 먹는다.** 플레이어 컨트롤 묶음이 360px 화면에서 **478px**로 삐져나가
+  시나리오 탭과 버튼 일부가 보이지 않았다. 페이지 가로 스크롤은 안 생기므로(`scrollWidth`가
+  같다) **넘침 검사로는 안 잡힌다** — 자식 폭을 직접 재야 한다.
+* **`line-clamp`는 반응형으로 건다**(`line-clamp-1 sm:line-clamp-2`). 바 높이는 본문이
+  비워 둔 자리(`--demo-player-h`)와 맞물리므로 값 자체는 여전히 재서 넣는다(4.12).
+
+**부차적 컨트롤은 좁을 때 라벨을 버린다.** 해설 토글이 GNB에서 고정 폭을 차지해 정작
+화면 이동에 쓰는 메뉴를 좁은 스크롤 영역으로 밀어냈다. 아이콘만 남기고(59px → 30px)
+헤더 간격도 좁혔더니(`gap-6` → `gap-3 sm:gap-6`) GNB가 134px → **170px**가 됐다.
+**`sr-only` 라벨을 함께 둔다** — `title`만으로는 접근성 이름이 약하다.
+
+**검증은 숨겨진 패널에서 하기 어렵다.** 뷰포트를 바꿔도 `resize`가 배달되지 않아
+`--demo-player-h` 같은 실측값이 낡은 채 남는다(4.10·4.12와 같은 원인) — 실제로 78.5px로
+남아 있어 버그로 오진할 뻔했다. `dispatchEvent(new Event("resize"))`로 깨운 뒤 재야 하고,
+"native size"로 되돌리면 0×0이 되므로 **폭·높이를 명시**한다.
+
+**데스크톱은 건드리지 않았다.** 전부 `sm:` 분기이고, 1280×800에서 해설 라벨·스크러버·
+플레이어 79px·캔버스 360px·문단 752px가 이전과 같은 것을 확인했다.
+
+### 4.15 이전 구현(가동률 시나리오 · LangGraph)에서 남긴 교훈
+
+2026-10-19까지 이 리포는 기획안 v0.1 기준의 다른 사건(파워트레인 가동률 85% 이탈, 영업이익 428억)을
+Mock 데이터와 LangGraph 엔진으로 보여 줬다. SC01로 바꾸며 코드는 지웠다(git 이력에 있다 — 브랜치
+`feat/sc01-chaeksas` 이전 커밋). **장면 2~7을 만들 때 다시 꺼낼 원칙**만 남긴다:
+
+* **미완료 Agent의 산출물은 어느 패널에서도 보여 주지 않는다.** 경로가 둘이면 두 번 다 막아야 한다 —
+  실제로 두 번 새어 나왔다(실행 기록과 노드 설명 문장).
+* **과제 효과의 이중 계상 금지.** 이미 Forecast에 반영된 과제를 또 더하면 Gap이 실제보다 메워져 보이고,
+  금액이 그럴듯해서 눈으로 안 잡힌다. 승인 직후 과제는 현재 Forecast를 바꾸지 않고 "다음 Rolling 반영
+  예정"으로만 잡는다(기획안 6.8의 "이미 실적에 반영 / 승인되었으나 실현 전 / 검토 중" 구분과 같다).
+* **대안은 효과·비용·위험·실행 조건을 함께 낸다.** 비용(일회성)과 효과(연간)는 시간 단위가 달라 빼지
+  않고 회수 기간으로 본다. 조건 없이 효과만 적힌 대안은 비교가 아니라 홍보다.
+* **트레이드오프를 숨기지 않는다.** 임계치를 조이면 감지가 늘지만 오탐도 는다 — 부작용 없는 개선
+  제안은 검토가 아니라 홍보다. 백테스트는 공식이 아니라 표다(없는 정밀도를 주장하지 않는다).
+* **Agent가 늘 확신에 찬 결론만 내면 사람이 검증할 지점이 없다.** 신뢰도·불완전한 근거(caveat)·
+  못 답한 질문(무엇을 모른 채 결정하는가)을 결론과 함께 보인다. 정보가 부족하면 추측하지 않고 묻는다.
+* **Agent가 계약을 못 맞추면 지어내지 않고 실패한다.** `kimi-k3:cloud`는 ollama `format` 스키마를 무시했다
+  — 스키마를 프롬프트에 넣고 검증·재시도해야 했다. temperature 0이어도 같은 질문에 14.2와 14.5가 나왔다:
+  LLM 경로는 값이 아니라 **계약**을 검증한다.
+* **설계표·문서는 구현에서 생성한다.** 손으로 쓰면 구현이 바뀔 때 문서만 낡는다. 근거가 없는 칸은
+  지어내지 않고 "미정의 — 경영 판단 기준 작성 필요"로 남긴다.
+* **값마다 출처를 밝힌다**(기획안 2.3) — 시나리오 설정값 / 시스템 계산 / 실측. 구분이 없으면 데모의
+  주장을 검증할 수 없다. 화살표는 값의 증감을, 색은 좋고 나쁨을 가리킨다(한 기호에 둘을 싣지 않는다).
+* **승인 후 진행 지점·결정이 데모 플레이어에 가려졌다.** 플레이어가 상태를 장면마다 절대값으로 덮어쓰면
+  "화면 간 연동"의 버그가 데모로는 안 드러난다 — 실제 조작 경로로도 돌려 봐야 한다(SC01 플레이어는
+  그래서 엔진 각본을 실제로 실행한다).
+* **LLM을 요청 안에서 여러 번 부르면 프록시가 끊는다.** Cloudflare 원본 응답 타임아웃은 약 100초다 —
+  Agent 3개를 연달아 돌린 생성이 524로 끊기고 인스턴스는 고아가 됐다. 긴 진행은 배경으로 보내고
+  SSE로 알리며, 배경 실패는 상태에 남긴다. 노드 사이 스냅샷이 "끝남"으로 새지 않게 진행 중 표시를 둔다.
 
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-셋 다 끝났다 — CI(5.1), LangGraph 엔진과 Postgres·Docker(5.2), ②·③의 엔진 전환(5.3).
-각 절에 **남은 것**을 따로 적어 두었다.
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5)는 끝났다. 운영계(5.4)는 아직
+이전 구현이 떠 있다.
 
 ### 5.1 CI — 완료
 
@@ -1042,8 +742,7 @@ docker          docker compose build                    (푸시하지 않는다)
 * `node-version`은 22로 고정했다. `@types/node`도 `^22`다 — 어긋나면 타입 정의와 실제
   런타임이 다른 상태로 검증하게 된다. **이것은 액션 자체의 실행 런타임과는 다른 값이다**(아래).
 * `.next/cache`만 캐시한다. 빌드가 가장 느린 단계이기 때문이다.
-* 데이터가 전부 Mock 코드고 **Agent 노드도 기본이 Mock이라 LLM 자격증명 없이 전부
-  검증된다.** 시크릿도 서비스 컨테이너도 아직 필요 없다.
+* 빌드에 시크릿이 필요 없다 — 화면 데이터는 클라이언트가 엔진에서 받고 엔진 시드는 리포의 엑셀이다.
 
 **engine 잡에서 알아둘 것:**
 
@@ -1052,9 +751,7 @@ docker          docker compose build                    (푸시하지 않는다)
   `uv`가 없는 인터프리터를 직접 내려받으므로 `setup-python`이 필요 없다.
 * `uv sync --locked`가 `npm ci`의 몫을 한다 — `uv.lock`이 `pyproject.toml`과 어긋나면
   바로 실패한다. 실제로 의존성을 하나 더해 확인했다.
-* **ollama 실호출 테스트(`-m llm`)는 CI에 넣지 않는다.** 비결정적이고 모델 자격증명이
-  필요하다. `pyproject.toml`의 `addopts`가 기본으로 제외하므로 워크플로에 플래그가 없다.
-  계약 검증(`_validate`)은 네트워크 없이 돌아 CI가 잡는다.
+* 엔진이 Chaeksas를 git으로 받는다 — 러너에 git이 있어 추가 설정이 없다(Docker 이미지는 4.5).
 * 캐시 키를 `engine/uv.lock`으로 좁혔다 — 앱 쪽 변경으로 엔진 캐시가 날아가지 않게 한다.
 * **Postgres 서비스 컨테이너를 붙여 두 백엔드를 모두 돌린다.** `TEST_DATABASE_URL`이
   없으면 Postgres 테스트가 전부 skip되는데, 초록색 체크만 보고는 "검증했다"와
@@ -1088,60 +785,163 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 실명이 들어 있다. 공개로 바꾸는 것은 언제든 가능하지만 되돌리는 것은 사실상 불가능하다
 (캐시·포크·검색 색인).
 
-### 5.2 LangGraph 엔진 — 골격 완료
+### 5.2 BPM 엔진 — Chaeksas로 교체 완료
 
-`engine/`에 FastAPI + LangGraph StateGraph가 있고, Next의 `/api/engine/*`가 프록시한다.
-설계와 함정은 4.16과 `engine/README.md`에 있다. **런타임은 Python으로 정했다** — JS
-포트로도 되지만(Postgres checkpointer까지 있다) 분석 에이전트 생태계·룰을 손댈 사람·
-레퍼런스 구현이라는 이유다.
+`engine/`은 FastAPI + Chaeksas BPM이다. LangGraph(StateGraph·체크포인터·`seek`·Agent 러너)는 2026-10-19에
+걷어냈다(4.15). 설계와 함정은 4.5, 엔진 README.
 
-확인한 것:
+* `chaeksas-core`는 **git 커밋 고정 의존성**이다. Chaeksas 리포(`wrapper755/Chaeksas`, public)가 바뀌어도
+  `rev`를 올리기 전에는 NowView가 따라가지 않는다. 올린 뒤에는 엔진 테스트를 양쪽 백엔드로 돌린다.
+* Chaeksas 패키지는 `requires-python <3.13`이다 — 엔진도 그 범위로 묶었다(`>=3.12,<3.13`).
 
-* 세 시나리오 모두 인스턴스 생성 → Agent 실행 → 승인 대기 → 재개 → 종료까지 돈다.
-  **엔진이 실제로 간 경로가 TS `sequence`와 일치한다.**
-* 승인 사유 10자 미만은 엔진이 반려하고 같은 지점에 다시 멈춘다(400이 아니라 상태다).
-* `kimi-k3:cloud` 실호출이 산출물 계약을 지킨다(`pytest -m llm`, 약 40초).
-* 재시작해도 인스턴스가 복구된다(명세를 checkpointer와 함께 저장한다).
-* **Postgres 백엔드와 `docker compose` 스택이 돈다.** 엔진 컨테이너를 재시작해도 승인
-  대기 중이던 인스턴스가 같은 지점에서 이어진다 — Postgres를 쓰는 이유가 그것이다.
+### 5.3 화면 → SC01 전환 — 완료
 
-**남은 것:**
+UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연 11장면을 데모 플레이어 자동 재생으로
+끝까지 돌려 인계 완료까지 가는 것을 브라우저에서 확인했다. 수동 경로(역할 전환 → 수신 → 확인)와
+거절(검증 오류가 있는 원천의 확인 완료 → 409, 입력 보존), 되감기(지난 시점 읽기 전용), 375px 폭을
+확인했다.
 
-* **LLM 비용·레이트·타임아웃 관리** — 지금은 Agent 노드마다 10초 이상이고 재시도가
-  붙는다. 노드가 많은 프로세스에서는 전체 지연이 누적된다.
-* **화면이 엔진을 쓰게 하는 일** — 5.3.
+**확인하며 잡은 것**
 
-**테스트 전략이 예고대로 갈렸다.** 실측으로 확인했다 — temperature 0인데도 같은 질문에
-`14.2`와 `14.5`가 나왔다.
+* **표 안의 `sr-only`가 좁은 화면의 문서 폭을 늘렸다**(375px → 555px). `position:absolute`라 스크롤
+  상자(`overflow-x-auto`)를 벗어난다 — 표 머리·caption의 이름은 `aria-label`로 준다.
+* **역할 선택이 GNB를 0px로 눌렀다**(375px). 좁을 때 폭을 묶고 아이콘을 뺐다.
+* **표의 행 머리(`th scope="row"`)는 기본이 가운데 정렬이다** — `text-left`를 준다.
+* **BPMN 15층을 한 줄로 펴면 캔버스에서 글자가 안 읽힌다** — 5열마다 줄을 접는다.
+* **dev의 StrictMode가 데모 실행을 둘 만들었다** — 생성 요청을 공유한다(4.2).
 
-| 지금 | 실 엔진에서 |
+### 5.4 운영계 배포 — 완료 (이전 구현 기준)
+
+> **운영계(`www.nowview.work`)는 아직 이전 구현(가동률 시나리오 · LangGraph)이다.** SC01 브랜치를 main에
+> 합친 뒤 `scripts/deploy.sh`로 올린다. 서버에 git이 있어 `uv sync --locked`가 Chaeksas를 받는다.
+> 엔진 테이블은 기동 시 만들어진다. 이전 LangGraph 테이블(`checkpoint*`, `instance_spec`)은 남지만
+> 쓰이지 않는다 — 지울지는 배포 때 정한다.
+
+
+**https://www.nowview.work** — `hetzner-server`(46.62.215.120)에 systemd 서비스 2개로
+상주하고, cloudflared 터널이 외부에 내보낸다. **Chaeksa가 같은 서버에서 3000·8000을 쓰고
+있어 포트를 비켜 잡았다** — 웹 3100, 엔진 8077, **둘 다 127.0.0.1에만** 바인딩한다.
+
+```bash
+scripts/deploy.sh --bootstrap   # 최초 1회 (Postgres 역할·DB·/etc/nowview.env까지)
+scripts/deploy.sh               # 이후 배포 (rsync → uv sync → npm ci·build → 재시작)
+scripts/deploy.sh --status
+scripts/deploy.sh --logs engine 80
+```
+
+* **서버에 docker가 없다.** `docker compose`는 로컬 검증용으로 남고, 운영은 systemd로
+  돈다 — Chaeksa가 이미 그 방식이라 서버에 새 런타임을 들이지 않았다.
+* **`--delete`로 rsync한다.** 없으면 삭제한 화면·데이터 파일이 서버에 남아 라우트로
+  계속 잡힌다. `.git`은 올리지 않는다 — 배포본은 체크아웃이 아니라 산출물이다.
+* **빌드는 서버에서 한다.** 로컬 `.next`를 올리면 절대경로·플랫폼 의존 바이너리가 섞여
+  "로컬에서는 되는데 서버에서 죽는" 종류가 된다. `npm ci`·`uv sync --locked`가 CI와 같은
+  몫을 한다(락파일 불일치를 여기서 잡는다).
+* **비밀은 `/etc/nowview.env`(0600, root)에만 있다.** `deploy/bootstrap.sh`가 서버에서
+  DB 비밀번호를 생성하므로 리포에도, 이 문서에도 값이 없다. 두 유닛이 **같은 파일**을
+  읽는다 — 따로 두면 `WEB_PORT`와 `ENGINE_URL`의 포트가 갈라진다.
+* **bootstrap은 멱등이다.** 파일이 이미 있으면 덮어쓰지 않는다 — 덮어쓰면 비밀번호가
+  바뀌어 엔진이 붙지 못한다. 포트가 이미 쓰이고 있으면 거기서 멈춘다(겹치면 서비스가
+  조용히 재시작 루프에 빠진다).
+* **웹·엔진 모두 127.0.0.1에만 바인딩한다.** 엔진은 원래부터 그랬다 — 브라우저는 Next의
+  `/api/engine/*`을 거치고 엔진을 직접 부르지 않는다(4.3). 웹도 터널이 붙으면서 내렸다:
+  **서버에 방화벽이 없어 0.0.0.0에 열면 IP:포트로도 그대로 들어오고 그 경로는 HTTPS가
+  아니다.** 터널이 같은 호스트에서 돌므로 localhost로 충분하다. 바꾼 뒤 IP:3100이 연결
+  거부로 바뀌고 도메인은 그대로 200인 것을 확인했다.
+* **외부 주소는 Cloudflare 대시보드가 정한다.** 터널이 토큰 방식이라 라우트가 서버 파일에
+  없다 — `deploy.sh`가 URL을 알아낼 방법이 없으므로 완료 메시지에 상수로 적어 두었다
+  (`NOWVIEW_PUBLIC_URL`로 덮을 수 있다). 도메인을 바꾸면 그 값과 이 절을 함께 본다.
+* 엔진 유닛은 `Requires=postgresql.service`다. `DATABASE_URL`이 있는데 못 붙으면 SQLite로
+  되돌리지 않고 실패하는 것이 설계이므로(4.5), 기동 순서를 systemd에 맡긴다.
+* `uv`는 `/root/.local/bin`에 있고 systemd는 로그인 셸을 거치지 않아 PATH가 비어 있다 —
+  두 유닛 모두 `Environment=PATH=…`가 필요하다.
+* **엔진에 `--timeout-graceful-shutdown`이 없으면 SSE가 종료를 붙잡는다.** uvicorn은 열린
+  연결이 닫히기를 기다리는데 SSE 스트림은 끝나지 않는다. 화면 하나가 구독 중일 때
+  종료가 **91초**를 끌다 systemd에 SIGKILL로 죽었다(구독자가 없으면 즉시 멈춘다) —
+  배포마다 엔진이 그만큼 내려가는 셈이고 시연 중이면 더 나쁘다. `10`으로 두고
+  `TimeoutStopSec=20`을 백스톱으로 뒀더니 재시작이 **15초**(종료 10 + 기동 2)가 됐고
+  SIGKILL이 사라졌다 — 종료 핸들러(`notifier.stop()`)가 실제로 돌게 됐다는 뜻이다.
+  **유령 LISTEN 세션은 원래도 남지 않았다** — 프로세스가 죽으면 OS가 소켓을 닫아
+  Postgres가 정리한다. 4.9의 그 걱정은 graceful 경로에서 정리를 빠뜨렸을 때의 것이다.
+* **`next start`와 `output: standalone`은 조합이 어긋나 있다.** Next 16이 기동 때
+  경고한다(`Use "node .next/standalone/server.js" instead`). `output: standalone`은
+  Dockerfile을 위한 것인데(`CMD ["node", "server.js"]`) systemd는 `npm run start`를
+  쓴다 — **동작은 한다**(다섯 화면 200, `/_next/static/*` 전부 200으로 실측했다).
+  즉 standalone 산출물을 만들고 쓰지 않는 상태다. 유닛을 standalone 진입점으로
+  바꾸려면 `.next/static`과 `public`을 그 옆에 복사하는 단계가 붙는다 — 조용히 낡을
+  수 있는 복사가 늘어나므로, 경고가 실제 고장이 되기 전까지는 그대로 두었다.
+
+**운영계에서 실제로 확인한 것** — 이전 구현 기준 (Postgres 18.6 · `notify.kind=postgres listening=true`):
+
+| 확인 | 결과 |
 |---|---|
-| 전사 합산·브릿지 균형·분기 합 | **그대로 유효** — 데이터 출처와 무관한 불변식이다 |
-| "Simulation Agent 산출물 문구에 `+18억`이 있다" | **성립하지 않음** — Mock 모드에서만 유효하다 |
-| 파생 규칙(skipped/waiting, 산출물 은닉) | **더 중요해졌다** — 실행 중 상태가 진짜로 생긴다 |
+| 다섯 화면 외부 접근 | 전부 200 (1.3~1.6초) |
+| 시나리오 1 (에스컬레이션 경로) | 승인 → 확인 → 종료까지 완주, `op-control` skipped |
+| 시나리오 2 (현업 통제 경로) | `simulate` skipped · `op-control` done으로 완주 |
+| 사유 10자 미만 | 400이 아니라 같은 지점 + `pendingApproval.error` |
+| **엔진 재시작** | 대기 중이던 두 인스턴스가 **같은 지점에서** 이어졌다 (Postgres를 쓰는 이유) |
+| SSE (`/api/engine/events`) | `event: snapshot` → `event: ready` 정상 전달 |
+| 되감기 (`seek`) | 과거 뷰는 `historical: true`, **라이브 인스턴스는 온전** |
+| LLM 모드 | Agent 3회 128초, `provenance: llm:kimi-k3:cloud` — 서버 ollama 그대로 |
+| Chaeksa | 3000·8000 영향 없음 |
 
-그래서 LLM 경로는 값이 아니라 **계약**을 검증한다(스키마, 열거값 범위, 근거 소스가
-비어 있지 않은가, 신뢰도가 high가 아니면 이유가 있는가). `engine/tests/test_agents.py`가
-그 예다.
+**터널을 붙인 뒤 다시 확인한 것** (직접 IP는 연결 거부, 도메인은 200):
 
-**데모 플레이어는 두 모드 모두에서 동작한다**(4.18). "실행 중인 그래프는 시간을 되감을
-수 없다"고 적어 두었던 것은 **틀렸다** — LangGraph는 노드마다 체크포인트를 남기므로 지난
-시점을 되짚어 볼 수 있다.
-
-### 5.3 화면 → 엔진 전환 — 완료 (다섯 화면)
-
-②·③이 엔진 모드로 옮겨 타고, ④가 엔진 승인을 과제로 받고, ①⑤가 엔진이 소유하는 조각을
-받는다. 설계와 함정은 4.17에 있다. **다섯 화면 모두 정적
-프리렌더(`○`)를 유지했다** — 클라이언트에서만 엔진을 부르기 때문이다.
-
-**화면 전체를 옮긴 것은 하나도 없다.** 각 화면에서 엔진이 실제로 소유하는 조각만 클라이언트
-컴포넌트로 감쌌다 — 전사 수치·Framework·백테스트는 그대로 Mock이다(4.16 규칙 소유권).
+| 확인 | 결과 |
+|---|---|
+| 다섯 화면 (HTTPS) | 전부 200 |
+| SSE | 통과한다 — 25초에 이벤트 3개 + `: keepalive` 1개. **버퍼링되지 않았다** |
+| Server Actions 전제 | 이 앱에는 `"use server"`가 없다 — `serverActions.allowedOrigins` 설정이 필요 없다 |
+| LLM 승인 재개 | 1.5초 (다음 사람 대기까지) |
+| LLM 마지막 확인 (`evolution` Agent 1회) | 20.6초 |
+| **LLM 인스턴스 생성** | 처음엔 **524 (126초)** — 배경 진행으로 고쳤다(4.15) |
 
 **남은 것:**
 
-* **React Flow 캔버스가 갱신마다 다시 그려지지 않는지는 확인하지 않았다.** 지금은 사람
-  대기에서 대부분 멈춰 있어 갱신이 드물지만, Agent가 여러 개 도는 프로세스에서는 확인이
-  필요하다.
-* **여러 사람이 같은 인스턴스를 볼 때의 충돌** — 지금은 마지막 요청이 이긴다.
-  다만 폴링이 15초 안에 서버 상태를 따라잡으므로 오래 어긋나 있지는 않다.
-* **데모 플레이어와 엔진 모드는 여전히 분리되어 있다.** 의도한 것이다(4.17).
+* **인증이 없다 — 당장 붙이지 않기로 했다.** 지금 목적이 사용자에게 데모를 보여주는
+  것이어서, 볼 사람을 미리 등록해야 하는 방식은 그 목적과 맞지 않는다. 아래 사실만
+  알고 두는 것이다.
+
+  실제로 열려 있는 것은 읽기만이 아니다(SC01 기준). **`X-Demo-Actor` 헤더로 아무 역할이나 될 수
+  있고**, 데모 실행을 횟수 제한 없이 만들 수 있으며(행이 쌓인다), id를 알면 남의 실행을 초기화할 수
+  있다(id는 무작위 8자리 hex). Agent를 `llm` 모드로 켜면 비용 위험이 다시 생긴다 — 계산마다 모델을 한 번
+  (실패 시 두 번) 부르고, 영업담당·팀장 역할이면 "다시 생성"으로 횟수 제한 없이 부를 수 있다. 운영 기본은 `mock`이다.
+
+  **막을 자리를 짚을 때 층을 틀리기 쉽다.** 엔진(8077)은 **이미 127.0.0.1 전용이고**
+  외부에서 연결 거부다 — 그래서 *엔진에* API key를 걸어도 BFF↔엔진 사이만 인증되고
+  공격 경로는 그대로다. 공격자는 엔진을 직접 부르지 않는다. **방화벽도 안 된다**:
+  요청이 전부 터널에서 오므로 남의 브라우저와 볼 사람의 브라우저가 출처로 구별되지
+  않는다. 막을 자리는 **BFF 앞**(Cloudflare Access · WAF 레이트 리밋)이거나 **BFF 안**
+  (라우트 핸들러 검사)이다.
+
+  비용·남용만 겨냥하려면 링크 공유를 잃지 않는 쪽이 싸다 — `POST /api/engine/sc01/demo-runs`에
+  WAF 레이트 리밋(무료 플랜 규칙 1개).
+  검색 색인은 별개다: `robots.txt`에 `Disallow`가 없다(Cloudflare가 넣는 것은
+  content-signal 주석뿐이다).
+
+  **화면 데이터가 새는 것은 근거가 아니다.** 5.1이 리포를 private으로 둔 이유로 든
+  실제 회사명(SJG세종·인팩)과 실명은 **이 문서에만 있고 앱 코드에는 없다.** 화면의
+  회사·인물(이도윤·박서진·김태오·최유나·정하윤·한준호)은 가상이다. 공개되는
+  것은 방법론 이름(`INNONOW Management Reference Model`, `app/layout.tsx`의 설명)이다.
+* **서버에 방화벽이 아예 없다**(`ufw inactive`, iptables 정책 ACCEPT). 지금은 웹·엔진이
+  둘 다 127.0.0.1이라 닫혀 있지만, 앞으로 무엇이든 0.0.0.0에 바인딩하면 **그 순간
+  공개된다** — 실제로 웹이 그 상태였다. 인증과 무관하게 인바운드를 22번만 열어 두는
+  편이 안전하다.
+* 로그 회전은 journald 기본값에 맡겼다. Agent 호출이 늘면 따로 본다.
+
+`www`와 apex(`nowview.work`) 모두 200이다.
+
+### 5.5 Agent와 예외 경로 — 완료
+
+구현명세 3단계. 설계와 드러난 것은 4.5·4.6. 브라우저에서 기본 시연 · 초안 채택 · EX08 · EX03(인계 뒤
+정정 → 재검토 업무·재확인) · EX07(시계 이동 → 알림)을 확인했다.
+
+**남은 것**
+
+* **운영에서 LLM을 켤지.** 지금 기본은 `mock`이다. 켜면 초안에 100초 안팎이 걸리고(배경이라 업무는 안
+  막힌다) 비용이 생긴다(5.4).
+* **reload·종료가 실행 중인 LLM 작업을 기다린다.** 스레드 풀은 데몬이 아니라 진행 중인 초안이 끝나야
+  프로세스가 내려간다 — `mock`에서는 순간이라 문제가 없다.
+* EX01·04·05는 엔진 테스트로 잠갔고 화면에서는 고객계획 화면의 시연 원천으로 돌릴 수 있다. 화면 검수는
+  기본·EX03·EX07·EX08만 했다.
+* **장면 2 이후**는 Business 설계(설계표·데이터)가 나와야 시작한다 — 지어내지 않는다(4.7).
+* 운영 배포 전 확인: 인증이 없는 상태에서 `X-Demo-Actor`로 아무 역할이나 될 수 있다(5.4).

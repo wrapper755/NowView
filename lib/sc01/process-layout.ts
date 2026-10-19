@@ -1,0 +1,132 @@
+/**
+ * BPMN 토폴로지 → 캔버스 배치와 노드 상태.
+ *
+ * **BPMN 파일에는 다이어그램(DI)이 없다**(`engine/processes/sc01.bpmn`). 그래서 배치는 화면이
+ * 계산한다 — 시작에서부터의 층(최장 경로)으로 열을 정하고, 되돌아가는 흐름(보완 → 재검증)은
+ * 층 계산에서 뺀다. 좌표를 손으로 적어 두면 BPMN이 바뀔 때 조용히 어긋난다(4.15와 같은 이유).
+ */
+
+import type { DemoRunView, ProcessTopology } from "@/lib/sc01/types";
+
+export type NodeState = "done" | "waiting" | "active" | "pending" | "skipped";
+
+export const NODE_STATE_LABEL: Record<NodeState, string> = {
+  done: "완료",
+  waiting: "사람 대기",
+  active: "진행 중",
+  pending: "대기 전",
+  skipped: "미실행 분기",
+};
+
+export interface PlacedNode {
+  id: string;
+  kind: string;
+  name: string;
+  role: string | null;
+  rank: number;
+  x: number;
+  y: number;
+}
+
+const COLUMN = 185;
+const ROW = 105;
+/** 한 줄에 놓는 층 수의 상한. 넘으면 아래 줄로 접는다 — 한 줄로 펴면 캔버스 폭에 맞추느라 글자가 읽히지 않는다. */
+const MAX_COLUMNS = 5;
+
+/** 되돌아가는 흐름을 찾는다(DFS에서 회색 노드로 돌아가는 간선). */
+function backEdges(topology: ProcessTopology, start: string): Set<string> {
+  const out = new Map<string, { id: string; target: string }[]>();
+  for (const f of topology.flows) {
+    out.set(f.source, [...(out.get(f.source) ?? []), { id: f.id, target: f.target }]);
+  }
+  const color = new Map<string, "gray" | "black">();
+  const back = new Set<string>();
+  const visit = (node: string) => {
+    color.set(node, "gray");
+    for (const edge of out.get(node) ?? []) {
+      const c = color.get(edge.target);
+      if (c === "gray") back.add(edge.id);
+      else if (c === undefined) visit(edge.target);
+    }
+    color.set(node, "black");
+  };
+  visit(start);
+  return back;
+}
+
+export function layoutProcess(topology: ProcessTopology): PlacedNode[] {
+  const start =
+    topology.nodes.find((n) => n.kind === "startEvent")?.id ?? topology.nodes[0]?.id;
+  if (!start) return [];
+  const back = backEdges(topology, start);
+  const forward = topology.flows.filter((f) => !back.has(f.id));
+
+  // 최장 경로 층. 간선 수만큼 반복하면 DAG에서 수렴한다.
+  const rank = new Map<string, number>([[start, 0]]);
+  for (let i = 0; i < topology.nodes.length; i++) {
+    let changed = false;
+    for (const f of forward) {
+      const from = rank.get(f.source);
+      if (from === undefined) continue;
+      if ((rank.get(f.target) ?? -1) < from + 1) {
+        rank.set(f.target, from + 1);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+
+  // 같은 층 안에서는 BPMN에 적힌 순서를 따른다 — 생산·자재처럼 짝인 노드가 나란히 선다.
+  const byRank = new Map<number, string[]>();
+  for (const n of topology.nodes) {
+    const r = rank.get(n.id) ?? 0;
+    byRank.set(r, [...(byRank.get(r) ?? []), n.id]);
+  }
+  // 층을 줄(band)로 접는다. 줄 높이는 가장 붐비는 층에 맞춘다.
+  const ranks = Math.max(...rank.values()) + 1;
+  const bands = Math.ceil(ranks / MAX_COLUMNS);
+  const perBand = Math.ceil(ranks / bands);
+  const widest = Math.max(...[...byRank.values()].map((c) => c.length));
+  const bandHeight = (widest + 0.6) * ROW;
+
+  return topology.nodes.map((n) => {
+    const r = rank.get(n.id) ?? 0;
+    const column = byRank.get(r) ?? [n.id];
+    const i = column.indexOf(n.id);
+    return {
+      id: n.id,
+      kind: n.kind,
+      name: n.name ?? n.id,
+      role: n.role,
+      rank: r,
+      x: (r % perBand) * COLUMN,
+      y: Math.floor(r / perBand) * bandHeight + (i - (column.length - 1) / 2) * ROW,
+    };
+  });
+}
+
+/**
+ * 노드 상태 — 엔진이 준 "지나온 곳 · 기다리는 곳 · 토큰 위치"에서 파생한다.
+ *
+ * 실행 중에는 아직 안 간 분기를 `skipped`로 보지 않는다 — 게이트웨이가 돌기 전에는 갈 수도
+ * 있다(4.5 "미실행 판정"). 실행이 끝났을 때만 안 간 노드가 미실행 분기다.
+ */
+export function nodeStates(
+  topology: ProcessTopology,
+  bpm: DemoRunView["bpm"],
+): Record<string, NodeState> {
+  const states: Record<string, NodeState> = {};
+  const visited = new Set(bpm?.visited ?? []);
+  const waiting = new Set((bpm?.waiting ?? []).map((w) => w.nodeId));
+  const position = new Set(bpm?.position ?? []);
+  const finished = bpm?.state === "done";
+  for (const n of topology.nodes) {
+    if (waiting.has(n.id)) states[n.id] = "waiting";
+    else if (position.has(n.id)) states[n.id] = "active";
+    else if (visited.has(n.id)) states[n.id] = "done";
+    // 종료 이벤트는 완료 기록을 남기지 않는다 — 실행이 끝났으면 도달한 것이다.
+    else if (finished && n.kind === "endEvent") states[n.id] = "done";
+    else states[n.id] = finished ? "skipped" : "pending";
+  }
+  return states;
+}

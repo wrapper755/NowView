@@ -1,0 +1,282 @@
+{
+ "processId": "nowview.sc01",
+ "name": "SC01 고객계획 변경 대응",
+ "nodes": [
+  {
+   "id": "Start",
+   "kind": "startEvent",
+   "name": "고객계획 수신",
+   "role": null
+  },
+  {
+   "id": "Task_Validate",
+   "kind": "serviceTask",
+   "name": "원천 자동 검증",
+   "role": null
+  },
+  {
+   "id": "Approve_DQ",
+   "kind": "userTask",
+   "name": "원천 확인",
+   "role": "영업담당"
+  },
+  {
+   "id": "Gw_DQ",
+   "kind": "exclusiveGateway",
+   "name": "원천 확인 결과",
+   "role": null
+  },
+  {
+   "id": "Wait_Correction",
+   "kind": "receiveTask",
+   "name": "정정본 대기",
+   "role": null
+  },
+  {
+   "id": "Confirm_Calc",
+   "kind": "manualTask",
+   "name": "비교 계산 실행",
+   "role": "영업담당"
+  },
+  {
+   "id": "Task_Calc",
+   "kind": "serviceTask",
+   "name": "전망 생성 · 지표 계산",
+   "role": null
+  },
+  {
+   "id": "Task_AgentRequest",
+   "kind": "serviceTask",
+   "name": "Agent 검토 초안 요청",
+   "role": null
+  },
+  {
+   "id": "Approve_Sales",
+   "kind": "userTask",
+   "name": "영업 검토",
+   "role": "영업팀장"
+  },
+  {
+   "id": "Gw_Route",
+   "kind": "inclusiveGateway",
+   "name": "후속 처리 경로",
+   "role": null
+  },
+  {
+   "id": "Approve_Dispatch",
+   "kind": "userTask",
+   "name": "현업 검토 배정",
+   "role": "영업팀장"
+  },
+  {
+   "id": "Gw_Ops_Split",
+   "kind": "parallelGateway",
+   "name": "생산 ∥ 자재",
+   "role": null
+  },
+  {
+   "id": "Accept_PROD",
+   "kind": "userTask",
+   "name": "생산 영향 검토 인수",
+   "role": "생산담당"
+  },
+  {
+   "id": "Accept_MAT",
+   "kind": "userTask",
+   "name": "자재 영향 검토 인수",
+   "role": "자재담당"
+  },
+  {
+   "id": "Gw_Ops_Join",
+   "kind": "parallelGateway",
+   "name": "현업 인수 모으기",
+   "role": null
+  },
+  {
+   "id": "Approve_Review",
+   "kind": "userTask",
+   "name": "Management Review 요청",
+   "role": "영업팀장"
+  },
+  {
+   "id": "Accept_FIN",
+   "kind": "userTask",
+   "name": "손익분석 보고 인수",
+   "role": "경영관리담당"
+  },
+  {
+   "id": "Gw_Join",
+   "kind": "inclusiveGateway",
+   "name": "후속 인수 모으기",
+   "role": null
+  },
+  {
+   "id": "Task_Handoff",
+   "kind": "serviceTask",
+   "name": "장면 인계 기록",
+   "role": null
+  },
+  {
+   "id": "End",
+   "kind": "endEvent",
+   "name": "장면 1 인계 완료",
+   "role": null
+  }
+ ],
+ "flows": [
+  {
+   "id": "Flow_start",
+   "source": "Start",
+   "target": "Task_Validate",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_validated",
+   "source": "Task_Validate",
+   "target": "Approve_DQ",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_dq",
+   "source": "Approve_DQ",
+   "target": "Gw_DQ",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_dq_ok",
+   "source": "Gw_DQ",
+   "target": "Confirm_Calc",
+   "condition": "확인결과 == '확인완료' and 검증통과",
+   "default": false
+  },
+  {
+   "id": "Flow_dq_fix",
+   "source": "Gw_DQ",
+   "target": "Wait_Correction",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_corrected",
+   "source": "Wait_Correction",
+   "target": "Task_Validate",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_calc",
+   "source": "Confirm_Calc",
+   "target": "Task_Calc",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_calced",
+   "source": "Task_Calc",
+   "target": "Task_AgentRequest",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent",
+   "source": "Task_AgentRequest",
+   "target": "Approve_Sales",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_sales",
+   "source": "Approve_Sales",
+   "target": "Gw_Route",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_ops",
+   "source": "Gw_Route",
+   "target": "Approve_Dispatch",
+   "condition": "true",
+   "default": false
+  },
+  {
+   "id": "Flow_review",
+   "source": "Gw_Route",
+   "target": "Approve_Review",
+   "condition": "위험수준 == 'CRITICAL' or 경영검토요청",
+   "default": false
+  },
+  {
+   "id": "Flow_dispatched",
+   "source": "Approve_Dispatch",
+   "target": "Gw_Ops_Split",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_prod",
+   "source": "Gw_Ops_Split",
+   "target": "Accept_PROD",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_mat",
+   "source": "Gw_Ops_Split",
+   "target": "Accept_MAT",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_prod_done",
+   "source": "Accept_PROD",
+   "target": "Gw_Ops_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_mat_done",
+   "source": "Accept_MAT",
+   "target": "Gw_Ops_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_ops_done",
+   "source": "Gw_Ops_Join",
+   "target": "Gw_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_requested",
+   "source": "Approve_Review",
+   "target": "Accept_FIN",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_fin_done",
+   "source": "Accept_FIN",
+   "target": "Gw_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_join",
+   "source": "Gw_Join",
+   "target": "Task_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_end",
+   "source": "Task_Handoff",
+   "target": "End",
+   "condition": null,
+   "default": false
+  }
+ ]
+}

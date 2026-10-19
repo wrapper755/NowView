@@ -171,5 +171,5 @@ def build_notifier(hub: Hub, backend: Any, url: str | None) -> Notifier:
     쪽 브라우저에 20초 늦게 도착한다 — 그 상태를 "실시간"이라고 부를 수 없다.
     """
     if backend.kind == "postgres" and url:
-        return PostgresNotifier(hub, url, pool=backend.specs.pool)
+        return PostgresNotifier(hub, url, pool=backend.pool)
     return LocalNotifier(hub)

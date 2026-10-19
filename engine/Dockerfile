@@ -1,4 +1,4 @@
-# NowView BPM 엔진 (FastAPI + LangGraph)
+# NowView BPM 엔진 (FastAPI + Chaeksas BPM)
 #
 # 빌드 컨텍스트는 `engine/`이다 (docker-compose.yml의 context 참조).
 
@@ -18,10 +18,16 @@ ENV UV_COMPILE_BYTECODE=1 \
 # 의존성을 먼저 깔아 레이어 캐시를 살린다 — 앱 코드만 바뀌면 재설치하지 않는다.
 # --frozen: uv.lock을 그대로 쓰고 갱신하지 않는다. 어긋나면 실패한다.
 # --no-dev: ruff·pytest는 이미지에 넣지 않는다.
+# git: chaeksas-core가 git 의존성이다(커밋 고정, pyproject.toml). slim에는 git이 없다.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 COPY app ./app
+# SC01 — BPMN(업무 흐름의 원천)과 엑셀 시드. 둘 다 런타임에 읽는다.
+COPY processes ./processes
+COPY seed ./seed
 
 # root로 돌리지 않는다.
 RUN useradd --create-home --uid 1001 engine && chown -R engine:engine /app

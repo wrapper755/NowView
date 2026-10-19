@@ -18,7 +18,9 @@
         "app.main:app",
         "--port",
         "8077",
-        "--reload"
+        "--reload",
+        "--timeout-graceful-shutdown",
+        "3"
       ],
       "port": 8077,
       "url": "http://localhost:8077"
