@@ -5,6 +5,8 @@ import { AlarmClock, BellRing } from "lucide-react";
 
 import { ActionForm } from "@/components/sc01/action-form";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
+import { Commentary } from "@/components/shared/commentary";
+import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, TASK_STATUS_LABEL, TASK_TYPE_LABEL } from "@/lib/sc01/format";
 import type { Task } from "@/lib/sc01/types";
@@ -25,7 +27,7 @@ export function TasksScreen() {
 
   if (!view) {
     return (
-      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
         <ScreenHeader id="UI05" title="검토·승인 업무" question="내가 무엇을 검토·작성·승인해야 하는가?" />
         <Loading />
       </main>
@@ -36,7 +38,7 @@ export function TasksScreen() {
   const task = view.tasks.find((t) => t.task_id === selected) ?? tasks.find((t) => t.status === "ASSIGNED") ?? tasks[0];
 
   return (
-    <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <ScreenHeader id="UI05" title="검토·승인 업무" question="내가 무엇을 검토·작성·승인해야 하는가?" />
 
       <AlertsCard />
@@ -45,15 +47,16 @@ export function TasksScreen() {
         <Card>
           <CardHeader>
             <CardTitle>업무 목록 {tasks.length}건</CardTitle>
-            <CardDescription>
-              일반 업무는 배정 다음 영업일 18시, 손익분석 보고는 두 번째 영업일 18시가 기한이다(데모 달력: 평일
-              09~18시).
-            </CardDescription>
+            <Commentary block>
+              <CardDescription>
+                일반 업무는 배정 다음 영업일 18시, 손익분석 보고는 두 번째 영업일 18시가 기한이다(데모 달력: 평일
+                09~18시).
+              </CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent className="space-y-3">
             <label className="inline-flex items-center gap-2 text-xs">
-              <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} />
-              내 업무만
+              <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} />내 업무만
             </label>
             {tasks.length === 0 ? (
               <p className="text-sm text-muted-foreground">업무가 없다.</p>
@@ -62,11 +65,21 @@ export function TasksScreen() {
                 <table className="w-full min-w-[40rem] text-sm">
                   <thead>
                     <tr className="border-b text-left text-xs text-muted-foreground">
-                      <th scope="col" className="py-2 pr-3 font-medium">업무</th>
-                      <th scope="col" className="py-2 pr-3 font-medium">담당</th>
-                      <th scope="col" className="py-2 pr-3 font-medium">배정</th>
-                      <th scope="col" className="py-2 pr-3 font-medium">기한</th>
-                      <th scope="col" className="py-2 font-medium">상태</th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        업무
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        담당
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        배정
+                      </th>
+                      <th scope="col" className="py-2 pr-3 font-medium">
+                        기한
+                      </th>
+                      <th scope="col" className="py-2 font-medium">
+                        상태
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -74,12 +87,19 @@ export function TasksScreen() {
                       <tr
                         key={t.task_id}
                         onClick={() => setSelected(t.task_id)}
-                        className={t.task_id === task?.task_id ? "cursor-pointer border-b bg-muted/60" : "cursor-pointer border-b hover:bg-muted/40"}
+                        className={
+                          t.task_id === task?.task_id
+                            ? "cursor-pointer border-b bg-muted/60"
+                            : "cursor-pointer border-b hover:bg-muted/40"
+                        }
                       >
                         <th scope="row" className="text-left py-2 pr-3 font-normal">
                           <span className="font-mono text-xs">{t.task_id}</span> {TASK_TYPE_LABEL[t.type]}
                         </th>
-                        <td className="py-2 pr-3">{t.assignedName ?? "배정 필요"} <span className="text-xs text-muted-foreground">{t.owner_role}</span></td>
+                        <td className="py-2 pr-3">
+                          {t.assignedName ?? "배정 필요"}{" "}
+                          <span className="text-xs text-muted-foreground">{t.owner_role}</span>
+                        </td>
                         <td className="py-2 pr-3 tabular-nums">{formatClock(t.assigned_at)}</td>
                         <td className="py-2 pr-3 tabular-nums">{formatClock(t.due_at)}</td>
                         <td className="py-2">
@@ -125,7 +145,9 @@ function AlertsCard() {
           <BellRing aria-hidden className="size-4" style={{ color: "var(--viz-status-critical)" }} />
           알림 {alerts.length}건
         </CardTitle>
-        <CardDescription>기한을 넘긴 업무 — 담당자와 기능별 검토자에게 간다.</CardDescription>
+        <Commentary block>
+          <CardDescription>기한을 넘긴 업무 — 담당자와 기능별 검토자에게 간다.</CardDescription>
+        </Commentary>
       </CardHeader>
       <CardContent className="space-y-2">
         <label className="inline-flex items-center gap-2 text-xs">
@@ -148,7 +170,10 @@ function AlertsCard() {
 
 function Overdue() {
   return (
-    <span className="inline-flex items-center gap-0.5 text-xs font-medium" style={{ color: "var(--viz-status-critical)" }}>
+    <span
+      className="inline-flex items-center gap-0.5 text-xs font-medium"
+      style={{ color: "var(--viz-status-critical)" }}
+    >
       <AlarmClock aria-hidden className="size-3" /> 기한 초과
     </span>
   );
@@ -165,27 +190,38 @@ function TaskDetail({ task }: { task: Task }) {
       <CardHeader>
         <CardTitle>{TASK_TYPE_LABEL[task.type]}</CardTitle>
         <CardDescription>
-          <span className="font-mono">{task.task_id}</span> · 근거 계산 {task.run_id ?? "—"} · 원천 {task.source_id ?? "—"}
-          {task.issue_id ? ` · ${task.issue_id}` : ""}
+          <span className="font-mono">{task.task_id}</span>
           {task.reopens ? ` · ${task.reopens}의 재검토 업무` : ""}
         </CardDescription>
+        <Commentary block>
+          <p className="text-xs text-muted-foreground">
+            근거 계산 {task.run_id ?? "—"} · 원천 {task.source_id ?? "—"}
+            {task.issue_id ? ` · ${task.issue_id}` : ""}
+          </p>
+        </Commentary>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-1.5">
-          <StatePill label="상태" value={TASK_STATUS_LABEL[task.status]} tone={task.status === "COMPLETED" ? "good" : "neutral"} />
+          <StatePill
+            label="상태"
+            value={TASK_STATUS_LABEL[task.status]}
+            tone={task.status === "COMPLETED" ? "good" : "neutral"}
+          />
           <StatePill label="기한" value={formatClock(task.due_at)} tone={task.overdue ? "warn" : "neutral"} />
-          {task.accepted_at ? <StatePill label="인수" value={`${formatClock(task.accepted_at)} · ${nameOf(task.accepted_by)}`} tone="good" /> : null}
+          {task.accepted_at ? (
+            <StatePill
+              label="인수"
+              value={`${formatClock(task.accepted_at)} · ${nameOf(task.accepted_by)}`}
+              tone="good"
+            />
+          ) : null}
         </div>
 
         {waiting ? (
           <div className="space-y-2 border-t pt-3">
             <p className="text-xs font-medium">
-              {task.reconfirm
-                ? `재확인 — 새 근거 ${task.run_id}`
-                : isAccept
-                  ? "인수 — 담당자 본인만"
-                  : "처리"}{" "}
-              · {waiting.title}
+              {task.reconfirm ? `재확인 — 새 근거 ${task.run_id}` : isAccept ? "인수 — 담당자 본인만" : "처리"} ·{" "}
+              {waiting.title}
             </p>
             {Object.entries(waiting.review).length > 0 ? (
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
@@ -197,10 +233,7 @@ function TaskDetail({ task }: { task: Task }) {
                 ))}
               </dl>
             ) : null}
-            <ActionForm
-              waiting={waiting}
-              submitLabel={task.reconfirm ? "재확인" : isAccept ? "인수" : "완료"}
-            />
+            <ActionForm waiting={waiting} submitLabel={task.reconfirm ? "재확인" : isAccept ? "인수" : "완료"} />
           </div>
         ) : null}
 
@@ -210,34 +243,41 @@ function TaskDetail({ task }: { task: Task }) {
           </p>
         ) : null}
 
-        {task.acks.length > 0 ? (
-          <div className="space-y-1 border-t pt-3">
-            <p className="text-xs font-medium">계산별 확인 — 정정 전 확인도 남는다</p>
-            <ul className="space-y-0.5 text-xs">
-              {task.acks.map((a) => (
-                <li key={a.run_id + a.at} className="flex gap-2">
-                  <span className="font-mono">{a.run_id}</span>
+        <Disclosure
+          summary={`이력 ${task.history.length}건${task.acks.length > 0 ? ` · 계산별 확인 ${task.acks.length}건` : ""}`}
+          className="border-t pt-3"
+        >
+          {task.acks.length > 0 ? (
+            <div className="space-y-1 pb-3">
+              <p className="text-xs font-medium">계산별 확인 — 정정 전 확인도 남는다</p>
+              <ul className="space-y-0.5 text-xs">
+                {task.acks.map((a) => (
+                  <li key={a.run_id + a.at} className="flex gap-2">
+                    <span className="font-mono">{a.run_id}</span>
+                    <span className="text-muted-foreground">
+                      {formatClock(a.at)} · {nameOf(a.by)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="space-y-1">
+            <ol className="space-y-0.5 text-xs">
+              {task.history.map((h, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="tabular-nums text-muted-foreground">{formatClock(h.at)}</span>
+                  <span>{TASK_STATUS_LABEL[h.status as Task["status"]] ?? h.status}</span>
                   <span className="text-muted-foreground">
-                    {formatClock(a.at)} · {nameOf(a.by)}
+                    {nameOf(h.by)}
+                    {h.note ? ` · ${h.note}` : ""}
                   </span>
                 </li>
               ))}
-            </ul>
+            </ol>
           </div>
-        ) : null}
-
-        <div className="space-y-1 border-t pt-3">
-          <p className="text-xs font-medium">이력</p>
-          <ol className="space-y-0.5 text-xs">
-            {task.history.map((h, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="tabular-nums text-muted-foreground">{formatClock(h.at)}</span>
-                <span>{TASK_STATUS_LABEL[h.status as Task["status"]] ?? h.status}</span>
-                <span className="text-muted-foreground">{nameOf(h.by)}{h.note ? ` · ${h.note}` : ""}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
+        </Disclosure>
       </CardContent>
     </Card>
   );

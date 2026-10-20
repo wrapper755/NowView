@@ -4,6 +4,7 @@ import { CheckCircle2, CircleDashed } from "lucide-react";
 
 import { Loading, RiskTag, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
+import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, modelLabel, SCENE_LABEL, TASK_STATUS_LABEL, TASK_TYPE_LABEL } from "@/lib/sc01/format";
 import type { AuditEntry, DemoRunView } from "@/lib/sc01/types";
@@ -62,8 +63,12 @@ const NEXT_SCENES = [
 export function HandoffScreen() {
   const view = useSc01(selectView);
   return (
-    <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <ScreenHeader id="UI06" title="경영이슈 · 인계 현황" question="어떤 판단이 이루어졌고 누가 후속 업무를 인수했는가?" />
+    <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <ScreenHeader
+        id="UI06"
+        title="경영이슈 · 인계 현황"
+        question="어떤 판단이 이루어졌고 누가 후속 업무를 인수했는가?"
+      />
       {!view ? <Loading /> : <Body view={view} />}
     </main>
   );
@@ -82,37 +87,65 @@ function Body({ view }: { view: DemoRunView }) {
       <Card>
         <CardHeader>
           <CardTitle>
-            {issue ? `${issue.issue_id} · ${modelLabel(issue.model_id)} ${Number(issue.period.slice(5, 7))}월 고객 물량` : "이슈"}
+            {issue
+              ? `${issue.issue_id} · ${modelLabel(issue.model_id)} ${Number(issue.period.slice(5, 7))}월 고객 물량`
+              : "이슈"}
           </CardTitle>
-          <CardDescription>원인 유형 CUSTOMER_VOLUME · 소유 {issue?.owner_role ?? "—"}</CardDescription>
+          <CardDescription>소유 {issue?.owner_role ?? "—"}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
-            <StatePill label="장면" value={SCENE_LABEL[view.scene]} tone={view.scene === "HANDED_OFF" ? "good" : "neutral"} />
-            <StatePill label="위험" value={issue?.risk ? ({ NORMAL: "기준 이내", ATTENTION: "관심", CRITICAL: "중요" } as const)[issue.risk] : "—"} tone={issue?.risk === "CRITICAL" ? "warn" : "neutral"} />
+            <StatePill
+              label="장면"
+              value={SCENE_LABEL[view.scene]}
+              tone={view.scene === "HANDED_OFF" ? "good" : "neutral"}
+            />
+            <StatePill
+              label="위험"
+              value={
+                issue?.risk ? ({ NORMAL: "기준 이내", ATTENTION: "관심", CRITICAL: "중요" } as const)[issue.risk] : "—"
+              }
+              tone={issue?.risk === "CRITICAL" ? "warn" : "neutral"}
+            />
             <StatePill label="이슈" value={issue?.status === "OPEN" ? "미해결" : "해결"} />
             <StatePill label="전망" value={forecast ? `${forecast.version_id} 검토 중(미승인)` : "F01 승인"} />
           </div>
           {view.scene === "HANDED_OFF" ? (
             <p className="text-sm font-medium">장면 1 인계 완료 — 현업 검토와 손익분석 진행 중</p>
           ) : null}
-          <dl className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
-            <Row label="원천" value={run ? `${run.source_id}` : "—"} />
-            <Row label="계산" value={run ? `${run.run_id} (${formatClock(run.at)})` : "—"} />
-            <Row label="비교 버전" value={run ? `${run.versions.target} · ${run.versions.prior} → ${run.versions.latest} · ${run.versions.cost} · ${run.versions.rule}` : "—"} />
-            <Row label="영업 판단" value={review ? `${review.opinion} (${nameOf(review.by)}, ${formatClock(review.at)})` : "검토 전"} />
-          </dl>
-          {issue ? (
-            <p className="flex flex-wrap items-center gap-1.5 text-xs">
-              위험 이력:
-              {issue.history.map((h, n) => (
-                <span key={h.run_id} className="inline-flex items-center gap-1">
-                  {n > 0 ? "→" : null}
-                  <RiskTag risk={h.risk} />
-                </span>
-              ))}
+          {review ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">영업 판단 </span>
+              {review.opinion}
             </p>
           ) : null}
+          <Disclosure summary="근거·위험 이력">
+            <dl className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+              <Row label="원천" value={run ? `${run.source_id}` : "—"} />
+              <Row label="계산" value={run ? `${run.run_id} (${formatClock(run.at)})` : "—"} />
+              <Row
+                label="비교 버전"
+                value={
+                  run
+                    ? `${run.versions.target} · ${run.versions.prior} → ${run.versions.latest} · ${run.versions.cost} · ${run.versions.rule}`
+                    : "—"
+                }
+              />
+              <Row label="원인 유형" value="CUSTOMER_VOLUME" />
+              <Row label="영업 검토" value={review ? `${nameOf(review.by)}, ${formatClock(review.at)}` : "검토 전"} />
+            </dl>
+            {issue ? (
+              <p className="flex flex-wrap items-center gap-1.5 text-xs">
+                위험 이력:
+                {issue.history.map((h, n) => (
+                  <span key={h.run_id} className="inline-flex items-center gap-1">
+                    {n > 0 ? "→" : null}
+                    <RiskTag risk={h.risk} />
+                  </span>
+                ))}
+              </p>
+            ) : null}
+          </Disclosure>
         </CardContent>
       </Card>
 
@@ -120,7 +153,9 @@ function Body({ view }: { view: DemoRunView }) {
         <Card>
           <CardHeader>
             <CardTitle>장면 완료 조건</CardTitle>
-            <CardDescription>조건을 다시 확인한 뒤 인계 기록(SCENE_HANDED_OFF)을 한 번만 남긴다.</CardDescription>
+            <Commentary block>
+              <CardDescription>조건을 다시 확인한 뒤 인계 기록(SCENE_HANDED_OFF)을 한 번만 남긴다.</CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             {check ? (
@@ -128,7 +163,11 @@ function Body({ view }: { view: DemoRunView }) {
                 {Object.entries(check.conditions).map(([k, ok]) => (
                   <li key={k} className="flex items-start gap-2">
                     {ok ? (
-                      <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0" style={{ color: "var(--viz-status-good)" }} />
+                      <CheckCircle2
+                        aria-hidden
+                        className="mt-0.5 size-4 shrink-0"
+                        style={{ color: "var(--viz-status-good)" }}
+                      />
                     ) : (
                       <CircleDashed aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                     )}
@@ -151,7 +190,9 @@ function Body({ view }: { view: DemoRunView }) {
         <Card>
           <CardHeader>
             <CardTitle>후속 업무</CardTitle>
-            <CardDescription>인수는 장면 종료 조건이다. 인수 후에도 업무는 계속 진행된다.</CardDescription>
+            <Commentary block>
+              <CardDescription>인수는 장면 종료 조건이다. 인수 후에도 업무는 계속 진행된다.</CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">
@@ -160,7 +201,8 @@ function Body({ view }: { view: DemoRunView }) {
                 .map((t) => (
                   <li key={t.task_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                     <span>
-                      <span className="font-mono text-xs">{t.task_id}</span> {TASK_TYPE_LABEL[t.type]} · {t.assignedName}
+                      <span className="font-mono text-xs">{t.task_id}</span> {TASK_TYPE_LABEL[t.type]} ·{" "}
+                      {t.assignedName}
                       {t.reconfirm ? <span className="ml-1 text-xs">(재확인 요청)</span> : null}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -182,28 +224,35 @@ function Body({ view }: { view: DemoRunView }) {
           <CardHeader>
             <CardTitle>정정 이력</CardTitle>
             <CardDescription>
-              정정본이 오면 이전 실행과 인계를 지우지 않고 이력으로 옮긴다. 최신 계산에 대한 인수 확인이 끝나야 다시
-              인계된다.
+              대체된 실행 {view.bpmHistory.length}건 · 이전 인계 {view.handoffHistory.length}건
             </CardDescription>
+            <Commentary block>
+              <p className="text-[13px] text-muted-foreground">
+                정정본이 오면 이전 실행과 인계를 지우지 않고 이력으로 옮긴다. 최신 계산에 대한 인수 확인이 끝나야 다시
+                인계된다.
+              </p>
+            </Commentary>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1 text-sm">
-              {view.bpmHistory.map((b) => (
-                <li key={b.run_id} className="flex flex-wrap gap-x-2">
-                  <span className="tabular-nums text-muted-foreground">{formatClock(b.superseded_at)}</span>
-                  <span>
-                    BPM 실행 {b.run_id.slice(-6)} ({b.state === "cancelled" ? "진행 중 취소" : "완료 후 대체"}) →{" "}
-                    {b.by_source} 수신으로 새 실행
-                  </span>
-                </li>
-              ))}
-              {view.handoffHistory.map((h) => (
-                <li key={h.run_id + h.at} className="flex flex-wrap gap-x-2">
-                  <span className="tabular-nums text-muted-foreground">{formatClock(h.at)}</span>
-                  <span>이전 인계 ({h.run_id}) — 역사로 보존</span>
-                </li>
-              ))}
-            </ul>
+            <Disclosure summary="정정 이력 보기">
+              <ul className="space-y-1 text-sm">
+                {view.bpmHistory.map((b) => (
+                  <li key={b.run_id} className="flex flex-wrap gap-x-2">
+                    <span className="tabular-nums text-muted-foreground">{formatClock(b.superseded_at)}</span>
+                    <span>
+                      BPM 실행 {b.run_id.slice(-6)} ({b.state === "cancelled" ? "진행 중 취소" : "완료 후 대체"}) →{" "}
+                      {b.by_source} 수신으로 새 실행
+                    </span>
+                  </li>
+                ))}
+                {view.handoffHistory.map((h) => (
+                  <li key={h.run_id + h.at} className="flex flex-wrap gap-x-2">
+                    <span className="tabular-nums text-muted-foreground">{formatClock(h.at)}</span>
+                    <span>이전 인계 ({h.run_id}) — 역사로 보존</span>
+                  </li>
+                ))}
+              </ul>
+            </Disclosure>
           </CardContent>
         </Card>
       ) : null}
@@ -211,7 +260,11 @@ function Body({ view }: { view: DemoRunView }) {
       <Card>
         <CardHeader>
           <CardTitle>이력</CardTitle>
-          <CardDescription>수신 → 확인 → 계산 → 영업 검토 → 배정·인수 → 인계. 모든 변경에 행위자·시각이 있다.</CardDescription>
+          <Commentary block>
+            <CardDescription>
+              수신 → 확인 → 계산 → 영업 검토 → 배정·인수 → 인계. 모든 변경에 행위자·시각이 있다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent>
           <Timeline entries={view.audit} />
@@ -221,22 +274,27 @@ function Body({ view }: { view: DemoRunView }) {
       <Card>
         <CardHeader>
           <CardTitle>다음 장면</CardTitle>
-          <CardDescription>
-            기획안 v0.5의 경영 이야기에는 있지만 아직 장면별 설계표와 데이터가 없다. 수치를 만들지 않고 무엇이 이어지는지만
-            보인다.
-            <Commentary> 연간 100억 → 85억 → 97억은 설명용 예시이고, 이 데이터의 손익(34.77억 목표)과 다르다(데이터 설계 D18).</Commentary>
-          </CardDescription>
+          <CardDescription>장면 2~7 — 설계표·데이터 준비 전</CardDescription>
+          <Commentary block>
+            <p className="text-[13px] text-muted-foreground">
+              기획안 v0.5의 경영 이야기에는 있지만 아직 장면별 설계표와 데이터가 없다. 수치를 만들지 않고 무엇이
+              이어지는지만 보인다. 연간 100억 → 85억 → 97억은 설명용 예시이고, 이 데이터의 손익(34.77억 목표)과
+              다르다(데이터 설계 D18).
+            </p>
+          </Commentary>
         </CardHeader>
         <CardContent>
-          <ol className="space-y-1.5 text-sm">
-            {NEXT_SCENES.map((s) => (
-              <li key={s.id} className="flex flex-wrap gap-x-2">
-                <span className="w-14 shrink-0 text-xs text-muted-foreground">{s.id}</span>
-                <span>{s.title}</span>
-                <span className="text-xs text-muted-foreground">← {s.input}</span>
-              </li>
-            ))}
-          </ol>
+          <Disclosure summary="이어질 장면 보기">
+            <ol className="space-y-1.5 text-sm">
+              {NEXT_SCENES.map((s) => (
+                <li key={s.id} className="flex flex-wrap gap-x-2">
+                  <span className="w-14 shrink-0 text-xs text-muted-foreground">{s.id}</span>
+                  <span>{s.title}</span>
+                  <span className="text-xs text-muted-foreground">← {s.input}</span>
+                </li>
+              ))}
+            </ol>
+          </Disclosure>
         </CardContent>
       </Card>
     </>
@@ -252,17 +310,34 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** 최근 몇 건만 먼저 보인다 — 감사 이력 전체(수십 줄)를 펼쳐 두면 화면이 기록으로 덮인다. */
+const RECENT = 5;
+
 function Timeline({ entries }: { entries: AuditEntry[] }) {
   const shown = entries.filter((e) => e.action !== "clock_moved");
+  const recent = shown.slice(-RECENT).reverse();
+  return (
+    <div className="space-y-3">
+      <TimelineList entries={recent} detail={false} />
+      {shown.length > RECENT ? (
+        <Disclosure summary={`전체 ${shown.length}건 (세부 값 포함)`}>
+          <TimelineList entries={shown} detail />
+        </Disclosure>
+      ) : null}
+    </div>
+  );
+}
+
+function TimelineList({ entries, detail }: { entries: AuditEntry[]; detail: boolean }) {
   return (
     <ol className="space-y-1 text-xs">
-      {shown.map((e) => (
+      {entries.map((e) => (
         <li key={e.seq} className="grid grid-cols-[4.5rem_1fr] gap-2 sm:grid-cols-[4.5rem_10rem_1fr]">
           <span className="tabular-nums text-muted-foreground">{formatClock(e.at)}</span>
           <span className="font-medium">{ACTION_LABEL[e.action] ?? e.action}</span>
           <span className="col-span-2 text-muted-foreground sm:col-span-1">
             {e.actor_role === "system" ? "시스템" : `${e.actor_role} ${e.actor_name}`}
-            {Object.keys(e.detail).length > 0
+            {detail && Object.keys(e.detail).length > 0
               ? ` · ${Object.entries(e.detail)
                   .map(([k, v]) => `${k}=${String(v)}`)
                   .join(", ")}`

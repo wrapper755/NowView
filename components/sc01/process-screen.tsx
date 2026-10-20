@@ -27,16 +27,19 @@ export function ProcessScreen() {
   const flows = topology?.flows.filter((f) => f.source === selected) ?? [];
 
   return (
-    <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <ScreenHeader id="BPM" title="SC01 업무 흐름" question="지금 어디까지 왔고 누가 무엇을 기다리는가?" />
 
       <Card>
         <CardHeader>
           <CardTitle>{topology?.name ?? "프로세스"}</CardTitle>
-          <CardDescription>
-            Chaeksas BPM이 BPMN 파일을 그대로 해석한다. 숫자는 BPM이 아니라 계산 서비스가 낸다.
-            <Commentary> 현업 검토(항상)와 Management Review(중요 또는 수동 요청)는 포함 게이트웨이로 함께 열리고, 생산·자재는 병렬 별도 업무다.</Commentary>
-          </CardDescription>
+          <CardDescription>노드를 누르면 아래에 상세가 나온다.</CardDescription>
+          <Commentary block>
+            <p className="text-[13px] text-muted-foreground">
+              Chaeksas BPM이 BPMN 파일을 그대로 해석한다. 숫자는 BPM이 아니라 계산 서비스가 낸다. 현업 검토(항상)와
+              Management Review(중요 또는 수동 요청)는 포함 게이트웨이로 함께 열리고, 생산·자재는 병렬 별도 업무다.
+            </p>
+          </Commentary>
         </CardHeader>
         <CardContent>
           {!topology ? (
@@ -59,7 +62,11 @@ export function ProcessScreen() {
         <Card>
           <CardHeader>
             <CardTitle>지금 기다리는 사람 업무 {waiting.length}건</CardTitle>
-            <CardDescription>BPM 실행 {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태 {view?.bpm?.state ?? "—"}</CardDescription>
+            <Commentary block>
+              <CardDescription>
+                BPM 실행 {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태 {view?.bpm?.state ?? "—"}
+              </CardDescription>
+            </Commentary>
           </CardHeader>
           <CardContent>
             {waiting.length === 0 ? (
@@ -83,7 +90,7 @@ export function ProcessScreen() {
           <CardHeader>
             <CardTitle>{node ? (node.name ?? node.id) : "노드를 고른다"}</CardTitle>
             <CardDescription>
-              {node ? `${node.kind} · ${node.id}${node.role ? ` · 담당 역할 ${node.role}` : ""}` : "캔버스에서 노드를 누르면 상세가 나온다."}
+              {node ? `${node.role ? `담당 역할 ${node.role}` : node.kind}` : "캔버스에서 노드를 누르면 상세가 나온다."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
