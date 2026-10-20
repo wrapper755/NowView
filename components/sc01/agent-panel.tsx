@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Bot, Clock, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
+import { Commentary } from "@/components/shared/commentary";
+import { Disclosure } from "@/components/shared/disclosure";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sc01Api } from "@/lib/sc01/client";
@@ -61,9 +63,12 @@ export function AgentPanel({
         <CardTitle className="flex items-center gap-1.5">
           <Bot aria-hidden className="size-4" /> Agent 검토 지원 — AI 초안
         </CardTitle>
-        <CardDescription>
-          규칙 계산값을 인용한 초안이다. 숫자·근거가 계산 결과와 다르면 엔진이 거절한다. 판단과 승인은 사람이 한다.
-        </CardDescription>
+        <CardDescription>판단과 승인은 사람이 한다.</CardDescription>
+        <Commentary block>
+          <p className="text-[13px] text-muted-foreground">
+            규칙 계산값을 인용한 초안이다. 숫자·근거가 계산 결과와 다르면 엔진이 거절한다.
+          </p>
+        </Commentary>
       </CardHeader>
       <CardContent className="space-y-3">
         {!latest ? (
@@ -71,9 +76,7 @@ export function AgentPanel({
         ) : (
           <>
             <Status output={latest} />
-            {latest.status === "SUCCEEDED" && latest.draft ? (
-              <DraftView draft={latest.draft} />
-            ) : null}
+            {latest.status === "SUCCEEDED" && latest.draft ? <DraftView draft={latest.draft} /> : null}
             {latest.status === "FAILED" ? (
               <div className="space-y-1 rounded-md border p-2 text-xs">
                 <p className="flex items-center gap-1 font-medium">
@@ -129,9 +132,16 @@ export function AgentPanel({
           </p>
         ) : null}
         {mine.length > 1 ? (
-          <p className="text-[11px] text-muted-foreground">
-            이전 초안 {mine.length - 1}건은 보존되어 있다 ({mine.slice(0, -1).map((o) => o.output_id).join(", ")}).
-          </p>
+          <Commentary block>
+            <p className="text-[11px] text-muted-foreground">
+              이전 초안 {mine.length - 1}건은 보존되어 있다 (
+              {mine
+                .slice(0, -1)
+                .map((o) => o.output_id)
+                .join(", ")}
+              ).
+            </p>
+          </Commentary>
         ) : null}
       </CardContent>
     </Card>
@@ -153,36 +163,43 @@ function Status({ output }: { output: AgentOutput }) {
         {output.status === "RUNNING" ? <Clock aria-hidden className="size-3.5" /> : null}
         {output.output_id} · {label}
       </span>
-      <span className="text-muted-foreground">
-        {output.provenance ?? output.mode}
-        {output.latency_ms !== null ? ` · ${(output.latency_ms / 1000).toFixed(1)}초` : ""}
-        {output.attempts > 1 ? ` · ${output.attempts}회 시도` : ""}
-        {output.prompt_version ? ` · ${output.prompt_version}` : ""}
-      </span>
+      <Commentary>
+        <span className="text-muted-foreground">
+          {output.provenance ?? output.mode}
+          {output.latency_ms !== null ? ` · ${(output.latency_ms / 1000).toFixed(1)}초` : ""}
+          {output.attempts > 1 ? ` · ${output.attempts}회 시도` : ""}
+          {output.prompt_version ? ` · ${output.prompt_version}` : ""}
+        </span>
+      </Commentary>
     </p>
   );
 }
 
 function DraftView({ draft }: { draft: AgentDraft }) {
+  // 요약 한 문단만 먼저 — 사실·질문·제안·한계·근거를 다 펼치면 담당자 의견 폼보다 길어진다.
   return (
-    <div className="space-y-2 rounded-md border border-dashed p-3 text-sm">
+    <div className="space-y-3 rounded-md border border-dashed p-3 text-sm">
       <p>{draft.summary}</p>
-      <Section title="확인된 사실" items={draft.findings} />
-      <Section title="확인 질문" items={draft.questions} />
-      {draft.suggested_tasks.length > 0 ? (
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">검토 제안 (배정은 사람이 한다)</p>
-          <ul className="list-disc pl-4 text-xs">
-            {draft.suggested_tasks.map((t) => (
-              <li key={t.type + t.reason}>
-                {TASK_TYPE_LABEL[t.type] ?? t.type} — {t.reason}
-              </li>
-            ))}
-          </ul>
+      <Disclosure summary="사실·질문·근거 보기">
+        <div className="space-y-2">
+          <Section title="확인된 사실" items={draft.findings} />
+          <Section title="확인 질문" items={draft.questions} />
+          {draft.suggested_tasks.length > 0 ? (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">검토 제안 (배정은 사람이 한다)</p>
+              <ul className="list-disc pl-4 text-xs">
+                {draft.suggested_tasks.map((t) => (
+                  <li key={t.type + t.reason}>
+                    {TASK_TYPE_LABEL[t.type] ?? t.type} — {t.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <Section title="한계" items={draft.limitations} />
+          <p className="text-[11px] text-muted-foreground">근거: {draft.evidence_refs.join(" · ")}</p>
         </div>
-      ) : null}
-      <Section title="한계" items={draft.limitations} />
-      <p className="text-[11px] text-muted-foreground">근거: {draft.evidence_refs.join(" · ")}</p>
+      </Disclosure>
     </div>
   );
 }

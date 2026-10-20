@@ -6,6 +6,7 @@ import { CheckCircle2, Inbox, XCircle } from "lucide-react";
 import { ActionForm } from "@/components/sc01/action-form";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
+import { Disclosure } from "@/components/shared/disclosure";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { sc01Api } from "@/lib/sc01/client";
@@ -43,7 +44,7 @@ export function PlansScreen() {
 
   if (!view) {
     return (
-      <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
         <ScreenHeader id="UI02·03" title="고객 생산계획" question="어떤 계획이 들어왔고 무엇을 처리해야 하는가?" />
         <Loading />
       </main>
@@ -54,7 +55,7 @@ export function PlansScreen() {
   const source = view.sources.find((s) => s.source_id === selected) ?? latest;
 
   return (
-    <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <ScreenHeader id="UI02·03" title="고객 생산계획" question="어떤 계획이 들어왔고 무엇을 처리해야 하는가?" />
 
       <ReceiveCard sources={view.sources} selected={source?.source_id ?? null} onSelect={setSelected} />
@@ -106,10 +107,12 @@ function ReceiveCard({
     <Card>
       <CardHeader>
         <CardTitle>수신 현황</CardTitle>
-        <CardDescription>
-          고객이 월 2회 공유하는 생산계획. 수신 자료는 당사 배정·월 전체 물량이다.
-          <Commentary> 같은 내용을 다시 받으면 기존 접수를 돌려주고, 정정본은 이전 자료를 지우지 않고 잇는다.</Commentary>
-        </CardDescription>
+        <Commentary block>
+          <CardDescription>
+            고객이 월 2회 공유하는 생산계획. 수신 자료는 당사 배정·월 전체 물량이다. 같은 내용을 다시 받으면
+            기존 접수를 돌려주고, 정정본은 이전 자료를 지우지 않고 잇는다.
+          </CardDescription>
+        </Commentary>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="overflow-x-auto">
@@ -157,7 +160,7 @@ function ReceiveCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed p-2">
-          <span className="text-xs text-muted-foreground">시연 실행 기능 —</span>
+          <span className="text-xs text-muted-foreground">시연</span>
           <select
             value={fixture}
             onChange={(e) => setFixture(e.target.value)}
@@ -185,51 +188,79 @@ function ReceiveCard({
 
 function CompareCard({ source, baseline }: { source: Source; baseline: CustomerPlanRow[] | null }) {
   const before = new Map((baseline ?? []).map((r) => [`${r.modelId}|${r.period}`, r.quantity]));
-  const changed = source.rows.filter((r) => before.get(`${r.model_id}|${r.period}`) !== r.quantity);
+  const prevOf = (r: Source["rows"][number]) => before.get(`${r.model_id}|${r.period}`) ?? null;
+  const changed = source.rows.filter((r) => prevOf(r) !== r.quantity);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>변경 비교 — CP01 → {source.customer_plan_id}</CardTitle>
-        <CardDescription>
-          고객 원천끼리의 비교다. 15행 중 {changed.length}행이 바뀌었다. 직전 승인 전망과의 비교는 위험 검토 화면이다.
-        </CardDescription>
+        <CardDescription>15행 중 {changed.length}행이 바뀌었다.</CardDescription>
+        <Commentary block>
+          <p className="text-[13px] text-muted-foreground">
+            고객 원천끼리의 비교다. 직전 승인 전망과의 비교는 위험 검토 화면이다(UI02-02).
+          </p>
+        </Commentary>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[26rem] text-sm">
-          <thead>
-            <tr className="border-b text-left text-xs text-muted-foreground">
-              <th scope="col" className="py-2 pr-3 font-medium">모델</th>
-              <th scope="col" className="py-2 pr-3 font-medium">월</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">CP01</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">{source.customer_plan_id}</th>
-              <th scope="col" className="py-2 text-right font-medium">변화</th>
-            </tr>
-          </thead>
-          <tbody>
-            {source.rows.map((r) => {
-              const prev = before.get(`${r.model_id}|${r.period}`) ?? null;
-              const isChanged = prev !== r.quantity;
-              return (
-                <tr key={`${r.model_id}${r.period}`} className={isChanged ? "border-b bg-muted/60 font-medium" : "border-b"}>
-                  <th scope="row" className="text-left py-1.5 pr-3 font-normal">{modelLabel(r.model_id)}</th>
-                  <td className="py-1.5 pr-3">{Number(r.period.slice(5, 7))}월</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatQty(prev)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatQty(r.quantity)}</td>
-                  <td className="py-1.5 text-right tabular-nums">
-                    {!isChanged
-                      ? <span className="text-xs text-muted-foreground">변경 없음</span>
-                      : r.quantity === null || prev === null
-                        ? "확인 필요"
-                        : formatQty(r.quantity - prev)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <CardContent className="space-y-4">
+        {/* 바뀐 행만 먼저 — 변경 없는 14행을 늘어놓으면 정작 바뀐 한 행이 묻힌다. */}
+        {changed.length > 0 ? <CompareTable rows={changed} prevOf={prevOf} planId={source.customer_plan_id} /> : (
+          <p className="text-sm text-muted-foreground">바뀐 행이 없다.</p>
+        )}
+        <Disclosure summary="15행 전체 보기">
+          <CompareTable rows={source.rows} prevOf={prevOf} planId={source.customer_plan_id} />
+        </Disclosure>
       </CardContent>
     </Card>
+  );
+}
+
+function CompareTable({
+  rows,
+  prevOf,
+  planId,
+}: {
+  rows: Source["rows"];
+  prevOf: (r: Source["rows"][number]) => number | null;
+  planId: string;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[24rem] text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs text-muted-foreground">
+            <th scope="col" className="py-2 pr-3 font-medium">모델·월</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">CP01</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">{planId}</th>
+            <th scope="col" className="py-2 text-right font-medium">변화</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const prev = prevOf(r);
+            const isChanged = prev !== r.quantity;
+            return (
+              <tr key={`${r.model_id}${r.period}`} className="border-b last:border-0">
+                <th scope="row" className="py-2 pr-3 text-left font-normal">
+                  {modelLabel(r.model_id)} {Number(r.period.slice(5, 7))}월
+                </th>
+                <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{formatQty(prev)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatQty(r.quantity)}</td>
+                <td className="py-2 text-right tabular-nums">
+                  {!isChanged ? (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  ) : r.quantity === null || prev === null ? (
+                    "확인 필요"
+                  ) : (
+                    <span className="font-semibold">{formatQty(r.quantity - prev)}</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -252,8 +283,12 @@ function VerifyCard({ source }: { source: Source }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>원천 확인 (CT01)</CardTitle>
-        <CardDescription>당사 공급전망으로 쓸 수 있는 자료인지 확인한다. 확인은 전망 승인이 아니다.</CardDescription>
+        <CardTitle>원천 확인</CardTitle>
+        <Commentary block>
+          <CardDescription>
+            CT01 — 당사 공급전망으로 쓸 수 있는 자료인지 확인한다. 확인은 전망 승인이 아니다.
+          </CardDescription>
+        </Commentary>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-1.5">
@@ -261,20 +296,27 @@ function VerifyCard({ source }: { source: Source }) {
           <StatePill label="자동 검증" value={passed ? "통과" : `오류 ${source.errors.length}건`} tone={passed ? "good" : "warn"} />
         </div>
 
-        <ul className="space-y-1 text-xs">
-          {passed
-            ? CHECKS.map((c) => (
+        {/* 통과면 한 줄로 접는다. 오류는 접지 않는다 — 고칠 것이므로 바로 보여야 한다. */}
+        {passed ? (
+          <Disclosure summary={`자동 검증 ${CHECKS.length}개 항목`}>
+            <ul className="space-y-1 text-xs">
+              {CHECKS.map((c) => (
                 <li key={c} className="flex items-center gap-1.5">
                   <CheckCircle2 aria-hidden className="size-3.5" style={{ color: "var(--viz-status-good)" }} /> {c}
                 </li>
-              ))
-            : source.errors.map((e) => (
-                <li key={`${e.row}${e.code}`} className="flex items-center gap-1.5">
-                  <XCircle aria-hidden className="size-3.5" style={{ color: "var(--viz-status-critical)" }} />
-                  {e.row} — {e.message}
-                </li>
               ))}
-        </ul>
+            </ul>
+          </Disclosure>
+        ) : (
+          <ul className="space-y-1 text-xs">
+            {source.errors.map((e) => (
+              <li key={`${e.row}${e.code}`} className="flex items-center gap-1.5">
+                <XCircle aria-hidden className="size-3.5" style={{ color: "var(--viz-status-critical)" }} />
+                {e.row} — {e.message}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {source.verified_by ? (
           <div className="rounded-md border p-2 text-xs">
@@ -296,7 +338,10 @@ function VerifyCard({ source }: { source: Source }) {
 
         {isLatest && calc ? (
           <div className="space-y-2 border-t pt-3">
-            <p className="text-xs font-medium">비교 계산 — T01 · F01 · 확인된 원천 · C01 · R01-v1</p>
+            <p className="text-xs font-medium">비교 계산</p>
+            <Commentary block>
+              <p className="text-xs text-muted-foreground">T01 · F01 · 확인된 원천 · 원가 C01 · 규칙 R01-v1</p>
+            </Commentary>
             <ActionForm waiting={calc} submitLabel="비교 계산 실행" />
           </div>
         ) : null}

@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { Commentary } from "@/components/shared/commentary";
 import { cn } from "@/lib/utils";
 import { formatClock, riskLabel, SCENE_LABEL } from "@/lib/sc01/format";
 import type { Risk } from "@/lib/sc01/types";
@@ -83,21 +84,23 @@ export function StatePill({
 export function ScreenHeader({ id, title, question }: { id: string; title: string; question: string }) {
   const view = useSc01(selectView);
   return (
-    <header className="space-y-2">
-      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-          {id}
-        </span>
-        <h1 className="text-xl font-semibold">{title}</h1>
-        <span className="text-sm text-muted-foreground">{question}</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span>A제품 · 울산공장(ULS) · 가상 고객군 CUS-HK · 2027년</span>
-        <span>가상시각 {view ? formatClock(view.clock) : "—"} KST</span>
+    // **한 줄 제목 + 한 줄 상태.** 화면 id·핵심 질문·범위 설명은 해설 모드에서만 보인다 —
+    // 매 화면 머리에 네 줄이 쌓여 본문이 밀려 내려갔다.
+    <header className="space-y-1.5">
+      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+        <span>{view ? formatClock(view.clock) : "—"}</span>
+        <span aria-hidden>·</span>
         <span>장면 1 {view ? SCENE_LABEL[view.scene] : "—"}</span>
-        <span className="rounded border px-1.5 py-0.5 text-[10px]">가상 회사 · 시연 데이터</span>
+        <span className="rounded border px-1.5 py-0.5 text-[10px]">시연 데이터</span>
         <MyAlerts />
       </div>
+      <Commentary block>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-mono">{id}</span> · {question} · A제품 · 울산공장(ULS) · 가상 고객군
+          CUS-HK · 2027년 · 가상시각은 KST
+        </p>
+      </Commentary>
       <StatusBanner />
     </header>
   );

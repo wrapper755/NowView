@@ -6,6 +6,7 @@ import { ActionForm } from "@/components/sc01/action-form";
 import { AgentPanel } from "@/components/sc01/agent-panel";
 import { Loading, RiskTag, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
+import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatClock,
@@ -39,7 +40,10 @@ const THRESHOLD: Record<string, { attention: string; critical: string }> = {
  */
 export function RiskScreen() {
   const view = useSc01(selectView);
-  const [pick, setPick] = useState<{ model: string; period: string }>({ model: "A-b", period: "2027-07-01" });
+  const [pick, setPick] = useState<{ model: string; period: string }>({
+    model: "A-b",
+    period: "2027-07-01",
+  });
   const [chosen, setChosen] = useState<string | null>(null);
 
   // S0의 기준 계산(F01 vs F01)은 비교 결과가 아니다. 정정이 있으면 계산이 여럿이다(EX03).
@@ -48,8 +52,12 @@ export function RiskScreen() {
   const run = runs.find((r) => r.run_id === chosen) ?? latest;
 
   return (
-    <main className="viz-root mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <ScreenHeader id="UI04" title="공급전망 변동 · 위험 검토" question="무엇이 변했고 목표·손익에 어떤 영향을 주는가?" />
+    <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <ScreenHeader
+        id="UI04"
+        title="공급전망 변동 · 위험 검토"
+        question="무엇이 변했고 목표·손익에 어떤 영향을 주는가?"
+      />
       {!view ? (
         <Loading />
       ) : !run ? (
@@ -130,8 +138,8 @@ function RunPicker({
             정정 이력 — {modelLabel(pick.model)} {Number(pick.period.slice(5, 7))}월: {before.versions.latest}{" "}
             {formatQty(prev.latest)} → {current.versions.latest} {formatQty(now.latest)} (
             {(now.latest ?? 0) > (prev.latest ?? 0) ? "+" : ""}
-            {formatQty((now.latest ?? 0) - (prev.latest ?? 0))}). 공식 비교는 직전 승인 전망{" "}
-            {current.versions.prior}이다.
+            {formatQty((now.latest ?? 0) - (prev.latest ?? 0))}). 공식 비교는 직전 승인 전망 {current.versions.prior}
+            이다.
           </p>
         ) : null}
       </CardContent>
@@ -152,15 +160,25 @@ function StateRow({ view, run }: { view: DemoRunView; run: CalcRun }) {
         <div className="flex flex-wrap gap-1.5">
           <StatePill label="원천" value={source ? SOURCE_STATUS_LABEL[source.status] : "—"} tone="good" />
           <StatePill label="계산" value={run.status === "SUCCEEDED" ? "계산 완료" : "실패"} tone="good" />
-          <StatePill label="위험" value={riskLabel(top?.risk ?? "NORMAL")} tone={top?.risk === "CRITICAL" ? "warn" : "neutral"} />
-          <StatePill label="영업 검토" value={review ? `완료 ${formatClock(review.at)}` : "검토 중"} tone={review ? "good" : "neutral"} />
+          <StatePill
+            label="위험"
+            value={riskLabel(top?.risk ?? "NORMAL")}
+            tone={top?.risk === "CRITICAL" ? "warn" : "neutral"}
+          />
+          <StatePill
+            label="영업 검토"
+            value={review ? `완료 ${formatClock(review.at)}` : "검토 중"}
+            tone={review ? "good" : "neutral"}
+          />
           <StatePill label="전망" value={`${forecast?.version_id ?? "—"} 미승인 (검토 중)`} />
         </div>
-        <p className="text-xs text-muted-foreground">
-          비교 기준: Target <b>{run.versions.target}</b> · 직전 승인 <b>{run.versions.prior}</b> · 최신 확인{" "}
-          <b>{run.versions.latest}</b> · 원가 {run.versions.cost} · 규칙 {run.versions.rule} · 계산{" "}
-          <span className="font-mono">{run.run_id}</span> ({formatClock(run.at)})
-        </p>
+        <Disclosure summary="비교 기준">
+          <p className="text-xs text-muted-foreground">
+            Target <b>{run.versions.target}</b> · 직전 승인 <b>{run.versions.prior}</b> · 최신 확인{" "}
+            <b>{run.versions.latest}</b> · 원가 {run.versions.cost} · 규칙 {run.versions.rule} · 계산{" "}
+            <span className="font-mono">{run.run_id}</span> ({formatClock(run.at)})
+          </p>
+        </Disclosure>
       </CardContent>
     </Card>
   );
@@ -179,17 +197,22 @@ function RiskDetail({ run, pick }: { run: CalcRun; pick: { model: string; period
     <Card>
       <CardHeader>
         <CardTitle>
-          {modelLabel(a.model_id)} {Number(a.period.slice(5, 7))}월 — <RiskTag risk={a.risk} className="align-middle text-sm" />
+          {modelLabel(a.model_id)} {Number(a.period.slice(5, 7))}월 —{" "}
+          <RiskTag risk={a.risk} className="align-middle text-sm" />
         </CardTitle>
         <CardDescription>
-          목표 {formatQty(a.target)} · 직전 승인 {formatQty(a.prior)} · 최신 {formatQty(a.latest)}대분 · 기준 단위 공헌이익{" "}
-          {Number(a.unit_cm).toLocaleString("ko-KR")}원
+          목표 {formatQty(a.target)} · 직전 승인 {formatQty(a.prior)} · 최신 {formatQty(a.latest)}대
           {a.partial ? " · 일부 지표 미산출" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 [&>*]:min-w-0 sm:grid-cols-2 lg:grid-cols-4">
-          <Tile label={METRIC_LABEL.KPI01} value={formatMetric("ratio", m.KPI01.value)} note={m.KPI01.reason ?? "최신 ÷ 목표"} />
+          <Tile
+            label={METRIC_LABEL.KPI01}
+            value={formatMetric("ratio", m.KPI01.value)}
+            note={m.KPI01.reason ?? undefined}
+            hint="최신 ÷ 목표"
+          />
           {(["KRI01", "KRI02", "KRI03"] as const).map((id) => {
             const t = THRESHOLD[id];
             const unit = m[id].unit;
@@ -201,10 +224,9 @@ function RiskDetail({ run, pick }: { run: CalcRun; pick: { model: string; period
                 value={formatMetric(unit, m[id].value)}
                 risk={m[id].risk_level}
                 computable={m[id].computable}
-                note={
-                  m[id].reason ??
-                  (rules[t.attention] ? `관심 ≥ ${fmt(t.attention)} · 중요 ≥ ${fmt(t.critical)}` : "")
-                }
+                // 미산출 사유는 늘 보인다. 임계값은 해설이다 — 판정 태그가 이미 결과를 말한다.
+                note={m[id].reason ?? undefined}
+                hint={rules[t.attention] ? `관심 ≥ ${fmt(t.attention)} · 중요 ≥ ${fmt(t.critical)}` : undefined}
               />
             );
           })}
@@ -226,10 +248,14 @@ function RiskDetail({ run, pick }: { run: CalcRun; pick: { model: string; period
             </p>
           </div>
         </div>
+        {/* 오독 방지 문구는 해설이 아니다 — 금액을 영업이익으로 읽는 실수를 막는다. */}
         <p className="text-[11px] text-muted-foreground">
-          감소액은 물량 변화만 반영한 초기 공헌이익 영향이다 — 전체 영업이익 변화로 읽지 않는다. 판정은 지표별
-          임계값 중 가장 높은 수준이다(R01).
-          <Commentary> 비율은 소수 8자리로 반올림한 뒤 판정해 엑셀 기준값과 경계에서 같은 결과를 낸다.</Commentary>
+          감소액은 물량 변화만 반영한 공헌이익 영향이다. 전체 영업이익 변화가 아니다.
+          <Commentary>
+            {" "}
+            판정은 지표별 임계값 중 가장 높은 수준이다(R01). 비율은 소수 8자리로 반올림한 뒤 판정해 엑셀 기준값과
+            경계에서 같은 결과를 낸다.
+          </Commentary>
         </p>
       </CardContent>
     </Card>
@@ -240,12 +266,14 @@ function Tile({
   label,
   value,
   note,
+  hint,
   risk,
   computable = true,
 }: {
   label: string;
   value: string;
   note?: string;
+  hint?: string;
   risk?: Assessment["risk"];
   computable?: boolean;
 }) {
@@ -255,6 +283,11 @@ function Tile({
       <p className="text-2xl leading-none font-semibold">{value}</p>
       {risk !== undefined ? <RiskTag risk={computable ? risk : null} /> : null}
       {note ? <p className="text-[11px] text-muted-foreground">{note}</p> : null}
+      {hint ? (
+        <Commentary block>
+          <p className="text-[11px] text-muted-foreground">{hint}</p>
+        </Commentary>
+      ) : null}
     </div>
   );
 }
@@ -269,55 +302,104 @@ function ModelCompare({
   onPick: (p: { model: string; period: string }) => void;
 }) {
   const totalNet = run.results.reduce((s, r) => s + Number(r.metrics.M03.value ?? 0), 0);
+  // 경보가 걸린 행만 먼저 — 정상 14행을 늘어놓으면 경보 한 행이 묻힌다.
+  const flagged = run.results.filter((r) => r.risk === "ATTENTION" || r.risk === "CRITICAL");
   return (
     <Card>
       <CardHeader>
-        <CardTitle>모델별 비교 — {run.versions.prior} → {run.versions.latest}</CardTitle>
+        <CardTitle>
+          모델별 비교 — {run.versions.prior} → {run.versions.latest}
+        </CardTitle>
         <CardDescription>
-          7~9월 × a~e모델. 행을 누르면 위 상세가 바뀐다. 공장 순영향 합계 {formatKrwSigned(totalNet)}원 — 합계가
-          상쇄돼도 모델 경보는 그대로다.
+          {run.results.length}행 중 경보 {flagged.length}행 · 공장 순영향 {formatKrwSigned(totalNet)}원
         </CardDescription>
+        <Commentary block>
+          <p className="text-[13px] text-muted-foreground">
+            7~9월 × a~e모델. 행을 누르면 위 상세가 바뀐다. 합계가 상쇄돼도 모델 경보는 그대로다.
+          </p>
+        </Commentary>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <table className="w-full min-w-[44rem] text-sm">
-          <thead>
-            <tr className="border-b text-left text-xs text-muted-foreground">
-              <th scope="col" className="py-2 pr-3 font-medium">모델·월</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">목표</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">직전</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">최신</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">감소율</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">감소액</th>
-              <th scope="col" className="py-2 pr-3 text-right font-medium">부족률</th>
-              <th scope="col" className="py-2 font-medium">위험</th>
-            </tr>
-          </thead>
-          <tbody>
-            {run.results.map((r) => {
-              const on = r.model_id === pick.model && r.period === pick.period;
-              return (
-                <tr
-                  key={`${r.model_id}${r.period}`}
-                  className={on ? "cursor-pointer border-b bg-muted/60" : "cursor-pointer border-b hover:bg-muted/40"}
-                  onClick={() => onPick({ model: r.model_id, period: r.period })}
-                >
-                  <th scope="row" className="text-left py-1.5 pr-3 font-normal">
-                    {modelLabel(r.model_id)} {Number(r.period.slice(5, 7))}월
-                  </th>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatQty(r.target)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatQty(r.prior)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatQty(r.latest)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatRatio(r.metrics.KRI01.value)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatKrw(r.metrics.KRI02.value)}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums">{formatRatio(r.metrics.KRI03.value)}</td>
-                  <td className="py-1.5"><RiskTag risk={r.risk} /></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <CardContent className="space-y-4">
+        {flagged.length > 0 ? (
+          <CompareTable rows={flagged} pick={pick} onPick={onPick} />
+        ) : (
+          <p className="text-sm text-muted-foreground">경보가 걸린 행이 없다.</p>
+        )}
+        <Disclosure summary={`${run.results.length}행 전체 보기`}>
+          <CompareTable rows={run.results} pick={pick} onPick={onPick} />
+        </Disclosure>
       </CardContent>
     </Card>
+  );
+}
+
+function CompareTable({
+  rows,
+  pick,
+  onPick,
+}: {
+  rows: Assessment[];
+  pick: { model: string; period: string };
+  onPick: (p: { model: string; period: string }) => void;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[44rem] text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs text-muted-foreground">
+            <th scope="col" className="py-2 pr-3 font-medium">
+              모델·월
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              목표
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              직전
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              최신
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              감소율
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              감소액
+            </th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">
+              부족률
+            </th>
+            <th scope="col" className="py-2 font-medium">
+              위험
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const on = r.model_id === pick.model && r.period === pick.period;
+            return (
+              <tr
+                key={`${r.model_id}${r.period}`}
+                className={on ? "cursor-pointer border-b bg-muted/60" : "cursor-pointer border-b hover:bg-muted/40"}
+                onClick={() => onPick({ model: r.model_id, period: r.period })}
+              >
+                <th scope="row" className="text-left py-2 pr-3 font-normal">
+                  {modelLabel(r.model_id)} {Number(r.period.slice(5, 7))}월
+                </th>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatQty(r.target)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatQty(r.prior)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatQty(r.latest)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatRatio(r.metrics.KRI01.value)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatKrw(r.metrics.KRI02.value)}</td>
+                <td className="py-2 pr-3 text-right tabular-nums">{formatRatio(r.metrics.KRI03.value)}</td>
+                <td className="py-2">
+                  <RiskTag risk={r.risk} />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -328,23 +410,30 @@ function IssueHistory({ view }: { view: DemoRunView }) {
     <Card size="sm">
       <CardHeader>
         <CardTitle>이슈 이력</CardTitle>
-        <CardDescription>같은 고객·공장·모델·월·원인의 열린 이슈에 새 계산을 잇는다 — 새 이슈를 만들지 않는다.</CardDescription>
+        <CardDescription>열린 이슈 {issues.length}건</CardDescription>
+        <Commentary block>
+          <p className="text-[13px] text-muted-foreground">
+            같은 고객·공장·모델·월·원인의 열린 이슈에 새 계산을 잇는다 — 새 이슈를 만들지 않는다.
+          </p>
+        </Commentary>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-1 text-sm">
-          {issues.map((i) => (
-            <li key={i.issue_id} className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs">{i.issue_id}</span>
-              {i.history.map((h, n) => (
-                <span key={h.run_id} className="inline-flex items-center gap-1 text-xs">
-                  {n > 0 ? <span className="text-muted-foreground">→</span> : null}
-                  <RiskTag risk={h.risk} />
-                  <span className="text-muted-foreground">({h.run_id})</span>
-                </span>
-              ))}
-            </li>
-          ))}
-        </ul>
+        <Disclosure summary="판정 흐름 보기">
+          <ul className="space-y-1 text-sm">
+            {issues.map((i) => (
+              <li key={i.issue_id} className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs">{i.issue_id}</span>
+                {i.history.map((h, n) => (
+                  <span key={h.run_id} className="inline-flex items-center gap-1 text-xs">
+                    {n > 0 ? <span className="text-muted-foreground">→</span> : null}
+                    <RiskTag risk={h.risk} />
+                    <span className="text-muted-foreground">({h.run_id})</span>
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
       </CardContent>
     </Card>
   );
@@ -358,7 +447,10 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
   const review = view.reviews.find((r) => r.run_id === run.run_id);
   const nameOf = useUserName();
   // 초안을 "의견에 가져오기"하면 폼을 그 내용으로 다시 연다 — 사람이 고쳐 쓴 뒤 제출한다.
-  const [prefill, setPrefill] = useState<{ n: number; values?: Record<string, unknown> }>({ n: 0 });
+  const [prefill, setPrefill] = useState<{
+    n: number;
+    values?: Record<string, unknown>;
+  }>({ n: 0 });
 
   return (
     <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
@@ -369,25 +461,32 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
         onAdopt={(draft) =>
           setPrefill((p) => ({
             n: p.n + 1,
-            values: { 영업의견: draft.summary, 영업근거: draft.evidence_refs.join(", ") },
+            values: {
+              영업의견: draft.summary,
+              영업근거: draft.evidence_refs.join(", "),
+            },
           }))
         }
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>영업 검토 (CT02) — 담당자 검토 의견</CardTitle>
-          <CardDescription>
-            변경의 의미·지속성·고객 재확인 필요성과 처리 경로. 검토 완료에는 사람의 의견과 근거가 필요하다 —
-            Agent 초안이 없거나 실패해도 검토할 수 있다.
-          </CardDescription>
+          <CardTitle>영업 검토</CardTitle>
+          <Commentary block>
+            <CardDescription>
+              CT02 — 변경의 의미·지속성·고객 재확인 필요성과 처리 경로. 검토 완료에는 사람의 의견과 근거가 필요하다.
+              Agent 초안이 없거나 실패해도 검토할 수 있다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent>
           {sales ? (
             <ActionForm key={prefill.n} waiting={sales} submitLabel="검토 완료" initial={prefill.values} />
           ) : review ? (
             <div className="space-y-1 text-sm">
-              <p className="text-xs text-muted-foreground">{formatClock(review.at)} · {nameOf(review.by)}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatClock(review.at)} · {nameOf(review.by)}
+              </p>
               <p>{review.opinion}</p>
               <p className="text-xs text-muted-foreground">근거: {review.evidence}</p>
               {review.manual_review ? <p className="text-xs">경영 검토 수동 요청</p> : null}
@@ -406,9 +505,11 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>후속 처리</CardTitle>
-          <CardDescription>
-            현업 영향 검토는 경보와 무관하게 항상 간다. 중요이거나 수동 요청이면 Management Review가 함께 열린다.
-          </CardDescription>
+          <Commentary block>
+            <CardDescription>
+              현업 영향 검토는 경보와 무관하게 항상 간다. 중요이거나 수동 요청이면 Management Review가 함께 열린다.
+            </CardDescription>
+          </Commentary>
         </CardHeader>
         <CardContent className="space-y-4">
           {dispatch ? (
