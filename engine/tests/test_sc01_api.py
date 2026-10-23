@@ -253,3 +253,68 @@ def test_ts_fixture_matches_the_bpmn(client) -> None:
 
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc01-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == client.get("/sc01/process").json()
+
+
+# ───────────── 시스템 작업 HTTP — 바깥 BPM(Chaeksas HTTP 어댑터)이 부르는 길 ─────────────
+
+
+def _received(client) -> tuple[str, str]:
+    """데모 실행을 만들고 CP02를 받는다 → (데모 실행 id, 원천 id)."""
+    rid = _run(client)
+    h = {"X-Demo-Actor": "u-sales"}
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
+    assert r.status_code == 200, r.text
+    return rid, r.json()["sources"][-1]["source_id"]
+
+
+def _verify(client, rid: str) -> None:
+    r = client.post(
+        f"/sc01/demo-runs/{rid}/actions/Approve_DQ",
+        json={"answer": demo.BASE[1].answer},
+        headers={"X-Demo-Actor": "u-sales"},
+    )
+    assert r.status_code == 200, r.text
+
+
+def test_operation_validate_returns_the_in_process_output(client) -> None:
+    """출력 모양이 내장 어댑터와 같다 — BPMN `output` 대응(`passed`·`error_count`)이 맞는다."""
+    rid, sid = _received(client)
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation")
+    assert r.status_code == 200, r.text
+    assert r.json() == {"passed": True, "error_count": 0}
+
+
+def test_operation_compare_needs_a_verified_source(client) -> None:
+    rid, sid = _received(client)
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison")
+    assert r.status_code == 409  # 확인 전 계산
+    _verify(client, rid)
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison")
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert set(out) == {"run_id", "risk", "issue_id"} and out["run_id"] == "RUN-F02-001"
+    doc = client.get(f"/sc01/demo-runs/{rid}").json()
+    assert doc["latestRunId"] == "RUN-F02-001"
+
+
+def test_operation_agent_draft_and_handoff(client) -> None:
+    rid, sid = _received(client)
+    _verify(client, rid)
+    run_id = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison").json()["run_id"]
+
+    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/agent-draft")
+    assert r.status_code == 200, r.text
+    output_id = r.json()["output_id"]
+    drafts = client.get(f"/sc01/demo-runs/{rid}").json()["agentOutputs"]
+    assert any(d["output_id"] == output_id for d in drafts)
+
+    # 현업 인수 전 — 인계 조건 미충족
+    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/handoff")
+    assert r.status_code == 409 and "인계 조건 미충족" in r.json()["detail"]
+
+
+def test_operation_unknown_targets_are_404(client) -> None:
+    rid, _ = _received(client)
+    assert client.post("/sc01/demo-runs/nope/sources/SRC-1/validation").status_code == 404
+    assert client.post(f"/sc01/demo-runs/{rid}/sources/SRC-ZZ/validation").status_code == 404
+    assert client.post(f"/sc01/demo-runs/{rid}/calc-runs/RUN-ZZ/agent-draft").status_code == 404

@@ -37,7 +37,8 @@ from app.sc01.seed import Seed, load_seed
 from app.sc01.store import Sc01Store, StaleWrite
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc01.bpmn"
-APP_ID = "nowview.sc01"
+#: 바깥 Chaeksas 외부 확장의 id와 같다 — 확장 id에는 점을 쓸 수 없다(C13 `^[a-z][a-z0-9-]{1,49}$`).
+APP_ID = "nowview-sc01"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
 SAVE_RETRIES = 5
 
@@ -60,6 +61,26 @@ def request_draft(doc: dict, seed: Seed, run_id: str, *, actor: str, manual: boo
     )
 
 
+#: 시스템 작업 — BPMN 서비스 태스크가 부르는 것. 내장 어댑터(`_InProcessCalls`)와 HTTP
+#: (`Sc01Process.operate`, 바깥 Chaeksas의 HTTP 어댑터가 부른다)가 **같은 함수**를 쓴다 —
+#: 두 길의 출력 모양이 갈라지면 BPMN의 `output` 대응이 한쪽에서만 맞는다.
+OPERATIONS = ("validate_source", "compare", "request_agent_draft", "hand_off")
+
+
+def run_operation(doc: dict, seed: Seed, operation: str, args: dict[str, Any]) -> dict[str, Any]:
+    """작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다."""
+    if operation == "validate_source":
+        errors = domain.validate_source(doc, seed, args["source_id"])
+        return {"passed": not errors, "error_count": len(errors)}
+    if operation == "compare":
+        return domain.compare(doc, seed, args["source_id"])
+    if operation == "request_agent_draft":
+        return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}
+    if operation == "hand_off":
+        return {"handed_off": domain.hand_off(doc, args["run_id"])}
+    raise DomainError(f"모르는 작업: {operation} (가능: {', '.join(OPERATIONS)})", 404)
+
+
 class _InProcessCalls:
     """`chk:serviceCall` → 도메인 함수. 업무 규칙 위반은 다시 불러도 같으므로 재시도하지 않는다."""
 
@@ -69,22 +90,10 @@ class _InProcessCalls:
     def call(self, request: OpCall) -> OpOutcome:
         if request.app_id != APP_ID:
             raise ServiceCallError(f"모르는 앱: {request.app_id}", code="operation_not_found")
-        args = dict(request.input)
+        if request.operation not in OPERATIONS:
+            raise ServiceCallError(request.operation, code="operation_not_found")
         try:
-            if request.operation == "validate_source":
-                errors = domain.validate_source(self.doc, self.seed, args["source_id"])
-                out: dict[str, Any] = {"passed": not errors, "error_count": len(errors)}
-            elif request.operation == "compare":
-                out = domain.compare(self.doc, self.seed, args["source_id"])
-            elif request.operation == "request_agent_draft":
-                output_id = request_draft(
-                    self.doc, self.seed, args["run_id"], actor="system", manual=False
-                )
-                out = {"output_id": output_id}
-            elif request.operation == "hand_off":
-                out = {"handed_off": domain.hand_off(self.doc, args["run_id"])}
-            else:
-                raise ServiceCallError(request.operation, code="operation_not_found")
+            out = run_operation(self.doc, self.seed, request.operation, dict(request.input))
         except DomainError as exc:
             raise ServiceCallError(str(exc), code="input_invalid", status=422) from exc
         return OpOutcome(output=out)
@@ -391,6 +400,24 @@ class Sc01Process:
             _mark(doc, event_code, script_index)
             doc = self._commit(doc, version, run, event_code or node_id)
         return self._dispatch(doc)
+
+    def operate(self, demo_run_id: str, operation: str, args: dict[str, Any]) -> dict[str, Any]:
+        """
+        시스템 작업을 HTTP로 — 바깥 BPM(Chaeksas HTTP 어댑터)이 서비스 태스크에서 부른다.
+
+        **내장 BPM 실행을 건드리지 않는다.** 문서에 작업만 적용하고 저장한다 — 내장 BPM을
+        걷어내기 전까지 두 길이 함께 있다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족 409)은
+        내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다(어댑터가 `$.passed` 등으로 꺼낸다).
+        """
+        with self._lock(demo_run_id):
+            doc, version = self._load(demo_run_id)
+            try:
+                out = run_operation(doc, self.seed, operation, args)
+            except KeyError as exc:
+                raise DomainError(f"없는 대상: {exc.args[0]}", 404) from exc
+            doc = self._commit(doc, version, None, operation)
+        self._dispatch(doc)
+        return out
 
     def _before_answer(
         self, doc: dict, node_id: str, answer: dict, *, actor: str, variables: dict

@@ -1,0 +1,105 @@
+{
+  "schema": 2,
+  "id": "nowview-sc01",
+  "version": "0.1.0",
+  "name": "NowView SC01 업무 시스템",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "http://localhost:3000",
+    "adapter": {
+      "allowed_hosts": ["localhost", "www.nowview.work"],
+      "allow_private_network": true,
+      "limits": {"timeout_s": 30, "max_response_kb": 256},
+      "operations": [
+        {
+          "name": "validate_source",
+          "description": "원천 자동 검증 (UI03-01)",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {"passed": {"type": "boolean"}, "error_count": {"type": "integer"}}
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/validation",
+            "body": {}
+          },
+          "response": {"output": {"passed": "$.passed", "error_count": "$.error_count"}}
+        },
+        {
+          "name": "compare",
+          "description": "확인된 원천으로 전망 생성 · 지표 계산. 다시 부르면 새 전망이 생긴다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {"type": "string"},
+              "risk": {"type": "string"},
+              "issue_id": {"type": "string"}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/comparison",
+            "body": {}
+          },
+          "response": {
+            "output": {"run_id": "$.run_id", "risk": "$.risk", "issue_id": "$.issue_id"}
+          }
+        },
+        {
+          "name": "request_agent_draft",
+          "description": "Agent 검토 초안 요청 (AG-01). 기다리지 않는다 — 초안은 NowView가 배경에서 만든다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "run_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "run_id": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"output_id": {"type": "string"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/agent-draft",
+            "body": {}
+          },
+          "response": {"output": {"output_id": "$.output_id"}}
+        },
+        {
+          "name": "hand_off",
+          "description": "장면 인계 기록 (UI06-01). 조건 미충족이면 409",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "run_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "run_id": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"handed_off": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/handoff",
+            "body": {}
+          },
+          "response": {"output": {"handed_off": "$.handed_off"}}
+        }
+      ]
+    }
+  },
+  "requires_keys": [{"purpose": "run"}]
+}

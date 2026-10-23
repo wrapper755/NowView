@@ -204,6 +204,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01, 4.3)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
@@ -289,7 +290,21 @@ POST /sc01/demo-runs/{id}/sources/receive  {fixtureId}     → 시연 원천 수
 POST /sc01/demo-runs/{id}/actions/{nodeId} {answer}        → BPM 사람 대기에 응답
 POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset
 GET  /sc01/demo-runs/{id}/events           → SSE
+     시스템 작업 — 바깥 Chaeksas가 서비스 태스크에서 부른다 (행위자 헤더 없음)
+POST /sc01/demo-runs/{id}/sources/{sourceId}/validation    → {passed, error_count}
+POST /sc01/demo-runs/{id}/sources/{sourceId}/comparison    → {run_id, risk, issue_id}
+POST /sc01/demo-runs/{id}/calc-runs/{runId}/agent-draft    → {output_id}
+POST /sc01/demo-runs/{id}/calc-runs/{runId}/handoff        → {handed_off}
 ```
+
+* **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
+  내장 BPM의 `_InProcessCalls`와 HTTP가 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다 —
+  BPMN의 `output` 대응이 두 길 모두에서 맞는다. 내장 BPM을 걷어내기 전까지 두 길이 함께 있다.
+  * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 서비스 앱 id가 `nowview.sc01` →
+    `nowview-sc01`이 됐다(BPMN `app_id`·`service_keys`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
+  * **어댑터는 `base_url`의 경로를 버린다**(호스트·포트만 쓴다) — 그래서 작업 `path`에 BFF 경로
+    `/api/engine/…`를 통째로 적었다. 로컬도 엔진(8077)이 아니라 웹(3000)으로 부른다 — 운영계와 같은 경로다.
+  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
 
 * **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
