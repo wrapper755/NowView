@@ -20,7 +20,7 @@
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
-        "service_keys": {"nowview.sc01": "nowview-in-process"},
+        "service_keys": {"nowview-sc01": "nowview"},
         "inputs": [
           {"name": "데모실행ID", "type": "string", "required": true},
           {"name": "원천ID", "type": "string", "required": true}
@@ -34,7 +34,7 @@
     <bpmn:serviceTask id="Task_Validate" name="원천 자동 검증">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview.sc01", "operation": "validate_source",
+          "app_id": "nowview-sc01", "operation": "validate_source",
           "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID"},
           "output": {"검증통과": "passed", "검증오류수": "error_count"}
         }</chk:serviceCall>
@@ -83,7 +83,7 @@
     <bpmn:serviceTask id="Task_Calc" name="전망 생성 · 지표 계산">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview.sc01", "operation": "compare",
+          "app_id": "nowview-sc01", "operation": "compare",
           "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID"},
           "output": {"계산ID": "run_id", "위험수준": "risk", "이슈ID": "issue_id"}
         }</chk:serviceCall>
@@ -98,7 +98,7 @@
     <bpmn:serviceTask id="Task_AgentRequest" name="Agent 검토 초안 요청">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview.sc01", "operation": "request_agent_draft",
+          "app_id": "nowview-sc01", "operation": "request_agent_draft",
           "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
           "output": {"초안ID": "output_id"}
         }</chk:serviceCall>
@@ -199,7 +199,7 @@
     <bpmn:serviceTask id="Task_Handoff" name="장면 인계 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview.sc01", "operation": "hand_off",
+          "app_id": "nowview-sc01", "operation": "hand_off",
           "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
           "output": {"인계완료": "handed_off"}
         }</chk:serviceCall>

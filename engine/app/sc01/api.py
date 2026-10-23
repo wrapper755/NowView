@@ -188,6 +188,29 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
             )
         )
 
+    # 시스템 작업 — 바깥 BPM(Chaeksas 외부 확장 `nowview.sc01`, HTTP 어댑터)이 서비스 태스크에서
+    # 부른다. 내장 BPM의 `_InProcessCalls`와 같은 함수·같은 출력이다(`process.run_operation`).
+    # 사람의 업무가 아니라서 행위자 헤더를 받지 않는다 — 감사 이력에는 `system`으로 남는다.
+    @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/validation")
+    def validate_source(demo_run_id: str, source_id: str) -> dict[str, Any]:
+        """원천 자동 검증(UI03-01) → `{passed, error_count}`."""
+        return guard(process.operate, demo_run_id, "validate_source", {"source_id": source_id})
+
+    @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/comparison")
+    def compare(demo_run_id: str, source_id: str) -> dict[str, Any]:
+        """확인된 원천으로 전망 생성·지표 계산 → `{run_id, risk, issue_id}`. 확인 전이면 409."""
+        return guard(process.operate, demo_run_id, "compare", {"source_id": source_id})
+
+    @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/agent-draft")
+    def request_agent_draft(demo_run_id: str, run_id: str) -> dict[str, Any]:
+        """Agent 검토 초안 요청(AG-01) → `{output_id}`. 기다리지 않는다 — 초안은 배경에서 만든다."""
+        return guard(process.operate, demo_run_id, "request_agent_draft", {"run_id": run_id})
+
+    @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/handoff")
+    def hand_off(demo_run_id: str, run_id: str) -> dict[str, Any]:
+        """장면 인계 기록(UI06-01) → `{handed_off}`. 조건 미충족이면 409."""
+        return guard(process.operate, demo_run_id, "hand_off", {"run_id": run_id})
+
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(
         demo_run_id: str, run_id: str, x_demo_actor: str | None = Header(default=None)
