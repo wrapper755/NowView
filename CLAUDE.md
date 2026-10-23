@@ -303,7 +303,10 @@ POST /sc01/demo-runs/{id}/calc-runs/{runId}/handoff        → {handed_off}
   * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 서비스 앱 id가 `nowview.sc01` →
     `nowview-sc01`이 됐다(BPMN `app_id`·`service_keys`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
   * **어댑터는 `base_url`의 경로를 버린다**(호스트·포트만 쓴다) — 그래서 작업 `path`에 BFF 경로
-    `/api/engine/…`를 통째로 적었다. 로컬도 엔진(8077)이 아니라 웹(3000)으로 부른다 — 운영계와 같은 경로다.
+    `/api/engine/…`를 통째로 적었다.
+  * **외부 확장의 주소는 정의의 `base_url`뿐이다** — Center에서 바꿀 길이 없다(주소 바꾸기는 서비스 앱만).
+    그래서 정의는 운영계(`https://www.nowview.work`)만 가리키고 `localhost`·`allow_private_network`를 두지
+    않는다. 로컬에서 부르려면 버전을 달리한 정의를 따로 서명해야 한다.
   * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
 
 * **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
