@@ -8,10 +8,9 @@
   "tier": "external",
   "service": {
     "protocol": "http-adapter",
-    "base_url": "http://localhost:3000",
+    "base_url": "https://www.nowview.work",
     "adapter": {
-      "allowed_hosts": ["localhost", "www.nowview.work"],
-      "allow_private_network": true,
+      "allowed_hosts": ["www.nowview.work"],
       "limits": {"timeout_s": 30, "max_response_kb": 256},
       "operations": [
         {
