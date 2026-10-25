@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CircleAlert,
   CircleDashed,
+  ExternalLink,
   History,
   OctagonAlert,
   WifiOff,
@@ -15,7 +16,7 @@ import {
 
 import { Commentary } from "@/components/shared/commentary";
 import { cn } from "@/lib/utils";
-import { formatClock, riskLabel, SCENE_LABEL } from "@/lib/sc01/format";
+import { EXECUTOR_LABEL, formatClock, riskLabel, SCENE_LABEL } from "@/lib/sc01/format";
 import type { Risk } from "@/lib/sc01/types";
 import { selectView, useSc01 } from "@/lib/store/sc01";
 
@@ -102,6 +103,7 @@ export function ScreenHeader({ id, title, question }: { id: string; title: strin
         </p>
       </Commentary>
       <StatusBanner />
+      <ExecutorBanner />
     </header>
   );
 }
@@ -120,6 +122,41 @@ function MyAlerts() {
       <BellRing aria-hidden className="size-3" style={{ color: "var(--viz-status-critical)" }} />
       내 알림 {count}건
     </Link>
+  );
+}
+
+/**
+ * 바깥 실행(Studio·Center)에 묶인 데모 실행이면 알린다 — 결재를 어디서 답하는지, 그리고 Studio에
+ * 넣을 입력(데모실행ID·원천ID)을 보인다. 표시하지 않으면 화면에서 답할 수 있다고 착각한다(N2).
+ * 원천 수신은 여전히 여기서 한다 — BPM 바깥의 일이다.
+ */
+function ExecutorBanner() {
+  const view = useSc01(selectView);
+  if (!view || view.executor === "embedded") return null;
+  const source = view.sources.at(-1)?.source_id;
+  const answerAt = view.executor === "studio" ? "Studio 시험 대화상자" : "Center 결재함";
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs">
+      <ExternalLink aria-hidden className="size-3.5" />
+      <span>
+        <span className="font-medium">{EXECUTOR_LABEL[view.executor]}</span>이 BPM을 돈다 — 결재는{" "}
+        {answerAt}에서 답하세요. 이 화면은 결재를 받지 않는다.
+      </span>
+      <span className="text-muted-foreground">
+        입력 데모실행ID <span className="font-mono">{view.demoRunId}</span>
+        {source ? (
+          <>
+            {" "}· 원천ID <span className="font-mono">{source}</span>
+          </>
+        ) : null}{" "}
+        · 바깥 실행{" "}
+        {view.bpm?.externalRunId ? (
+          <span className="font-mono">{view.bpm.externalRunId}</span>
+        ) : (
+          "첫 작업 호출 전"
+        )}
+      </span>
+    </p>
   );
 }
 

@@ -355,25 +355,24 @@ class _ExternalCalls:
     def call(self, request):
         from chaeksas.core.services import OpOutcome
 
+        # 확장 정의가 본문에 `{{run_id}}`·`{{node_id}}`를 싣는 것과 같다(N2).
         args = dict(request.input)
-        return OpOutcome(output=self.proc.operate(args.pop("demo_run_id"), request.operation, args))
+        return OpOutcome(
+            output=self.proc.operate(
+                args.pop("demo_run_id"),
+                request.operation,
+                args,
+                external_run_id=request.run_id,
+                node_id=request.node_id,
+            )
+        )
 
 
-def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) -> None:
-    """
-    Studio 시험 실행에서 확인완료 뒤 계산이 409로 막혔다(2026-10-25). 결정 기록 작업이 생긴 뒤에는
-    바깥 실행만으로 인계까지 간다 — 업무는 기록될 때 늦게 열리고, 답한 사람은 담당자로
-    짐작한다(R1 전).
-    """
+def _run_external(proc: Sc01Process, rid: str, sid: str, run_id: str):
     from chaeksas.core.engine import Engine, RunEnv, State
     from chaeksas.core.run_log import RunLog
 
-    doc = proc.create()
-    rid = doc["demo_run_id"]
-    sid = proc.receive(rid, "CP02", actor="u-sales")["sources"]["SRC02"]["source_id"]
-
     engine = Engine()
-    run_id = "run_20270616_090000_e0e0e0"
     run = engine.start(
         proc.process,
         run_id=run_id,
@@ -381,19 +380,72 @@ def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) ->
         env=RunEnv(services=_ExternalCalls(proc)),
         executor="server_runner",
         inputs={"데모실행ID": rid, "원천ID": sid},
-        now=parse_at(doc["clock"]),
+        now=parse_at(proc.get(rid)["clock"]),
     )
     answers = {s.node_id: s.answer for s in demo.BASE if s.node_id}
     while engine.run_until_blocked(run) is State.WAITING:
         for p in list(run.pendings.values()):
             engine.answer(run, p.request_id, answers[p.node_id], answered_by="콘솔")
+    return run
+
+
+def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) -> None:
+    """
+    Studio 시험 실행에서 확인완료 뒤 계산이 409로 막혔다(2026-10-25). 결정 기록 작업이 생긴 뒤에는
+    바깥 실행만으로 인계까지 간다 — 업무는 기록될 때 늦게 열리고, 답한 사람은 담당자로
+    짐작한다(R1 전). 내장 BPM은 그 데모 실행에서 돌지 않는다(N2).
+    """
+    from chaeksas.core.engine import State
+
+    rid = proc.create(executor="studio")["demo_run_id"]
+    sid = proc.receive(rid, "CP02", actor="u-sales")["sources"]["SRC02"]["source_id"]
+    assert proc.get(rid)["bpm"]["snapshot"] is None  # 내장 실행이 시작되지 않았다
+
+    run = _run_external(proc, rid, sid, "run_20270616_090000_e0e0e0")
     assert run.state is State.DONE
 
     after = proc.get(rid)
     assert after["scene"] == "HANDED_OFF"
     assert after["sources"][sid]["status"] == "VERIFIED"
+    bpm = after["bpm"]
+    assert (bpm["executor"], bpm["external_run_id"], bpm["state"], bpm["snapshot"]) == (
+        "studio",
+        "run_20270616_090000_e0e0e0",
+        "done",
+        None,
+    )
+    assert {"Approve_DQ", "Confirm_Calc", "Accept_FIN", "Task_Handoff"} <= set(bpm["visited"])
     late = {t["type"]: t["opened_late"] for t in after["tasks"].values() if t.get("opened_late")}
-    # TASK-DQ는 같은 데모 실행의 내장 실행이 열었다 — 나머지는 기록 시점에 늦게 열렸다.
-    assert set(late) == {"SALES", "PROD", "MAT", "FIN"}
+    # 업무는 전부 기록 시점에 늦게 열렸다 — 대기를 여는 내장 실행이 없다.
+    assert set(late) == {"DQ", "SALES", "PROD", "MAT", "FIN"}
     guessed = [a for a in after["audit"] if a["action"] == "answer_recorded"]
     assert guessed and all(a["detail"]["guessed"] for a in guessed)
+
+
+def test_correction_supersedes_the_external_run_and_links_the_next(proc: Sc01Process) -> None:
+    """
+    EX03 — 인계 뒤 정정본이 오면 바깥 실행을 이력으로 옮긴다. 그 실행의 남은 호출은 409이고, 다음에
+    오는 새 실행이 묶인다. 「같은 데모 실행에 다른 run_id는 409」의 유일한 예외다.
+    """
+    from chaeksas.core.engine import State
+
+    rid = proc.create(executor="studio")["demo_run_id"]
+    proc.receive(rid, "CP02", actor="u-sales")
+    first = "run_20270616_090000_f1f1f1"
+    assert _run_external(proc, rid, "SRC02", first).state is State.DONE
+
+    doc = proc.receive(rid, "CP03", actor="u-sales")
+    assert doc["bpm"]["external_run_id"] is None and doc["scene"] == "ACTIVE"
+    assert [(h["run_id"], h["executor"], h["state"]) for h in doc["bpm_history"]] == [
+        (first, "studio", "superseded")
+    ]
+    with pytest.raises(DomainError) as stale:
+        proc.operate(rid, "validate_source", {"source_id": "SRC03"}, external_run_id=first)
+    assert stale.value.status == 409 and "대체된 실행" in str(stale.value)
+
+    second = "run_20270616_100000_f2f2f2"
+    assert _run_external(proc, rid, "SRC03", second).state is State.DONE
+    after = proc.get(rid)
+    assert after["bpm"]["external_run_id"] == second and after["scene"] == "HANDED_OFF"
+    linked = [a["detail"]["run_id"] for a in after["audit"] if a["action"] == "external_run_linked"]
+    assert linked == [first, second]

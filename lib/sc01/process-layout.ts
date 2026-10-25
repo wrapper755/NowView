@@ -132,6 +132,9 @@ export function layoutProcess(full: ProcessTopology): PlacedNode[] {
  *
  * 실행 중에는 아직 안 간 분기를 `skipped`로 보지 않는다 — 게이트웨이가 돌기 전에는 갈 수도
  * 있다(4.5 "미실행 판정"). 실행이 끝났을 때만 안 간 노드가 미실행 분기다.
+ *
+ * **바깥 실행(N2)은 끝나도 미실행을 칠하지 않는다.** `visited`는 작업 호출이 알려 준 노드뿐이라
+ * 시작·게이트웨이·메시지 대기처럼 호출이 없는 노드는 지나왔어도 빠져 있다 — 모르는 것이다.
  */
 export function nodeStates(
   topology: ProcessTopology,
@@ -142,13 +145,14 @@ export function nodeStates(
   const waiting = new Set((bpm?.waiting ?? []).map((w) => w.nodeId));
   const position = new Set(bpm?.position ?? []);
   const finished = bpm?.state === "done";
+  const known = (bpm?.executor ?? "embedded") === "embedded";
   for (const n of topology.nodes) {
     if (waiting.has(n.id)) states[n.id] = "waiting";
     else if (position.has(n.id)) states[n.id] = "active";
     else if (visited.has(n.id)) states[n.id] = "done";
     // 종료 이벤트는 완료 기록을 남기지 않는다 — 실행이 끝났으면 도달한 것이다.
     else if (finished && n.kind === "endEvent") states[n.id] = "done";
-    else states[n.id] = finished ? "skipped" : "pending";
+    else states[n.id] = finished && known ? "skipped" : "pending";
   }
   return states;
 }

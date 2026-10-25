@@ -212,20 +212,27 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
 
 def _ensure_task(doc: dict, node_id: str, args: dict[str, Any], by: str) -> None:
     """
-    업무가 없으면 지금 만든다. 내장 실행은 사람 대기가 열릴 때 업무를 만들지만(`sync_tasks`), 바깥
-    실행(Studio 시험 실행)에서는 대기가 열리는 순간을 NowView가 모른다 — 결정이 기록될 때 처음 안다.
-    배정 시각이 실제 대기 시작보다 늦으므로 **늦게 열렸다고 표시한다** — 기한 초과 판정이 그만큼
-    느슨하다.
+    바깥 실행의 결재를 업무로 옮긴다. 내장 실행은 사람 대기가 열릴 때 업무를 만들지만(`sync_tasks`),
+    바깥 실행(Studio 시험 실행)에서는 대기가 열리는 순간을 NowView가 모른다 — 결정이 기록될 때 처음
+    안다. 그때 새로 만든 업무는 **늦게 열렸다고 표시한다** — 기한 초과 판정이 그만큼 느슨하다.
+
+    대기 하나의 id는 (바깥 실행, 결재, 원천·계산)이다. 정정(EX03)으로 새 실행이 오면 같은 결재도 새
+    대기다 — 인수한 업무에 재확인이 걸리고, 끝난 업무에는 재검토 업무가 생긴다(내장과 같은 규칙).
     """
     spec = domain.NODE_ROLES[node_id]
-    if spec["task"] is None or domain.task_for_node(doc, node_id) is not None:
+    if spec["task"] is None:
         return
+    if domain.executor_of(doc) == "embedded" and domain.task_for_node(doc, node_id) is not None:
+        return  # 내장은 대기가 열릴 때 이미 만들었다
     variables = {"계산ID": args.get("run_id"), "원천ID": args.get("source_id")}
     if "assignee_var" in spec:
         variables[spec["assignee_var"]] = by
-    domain.sync_tasks(doc, {f"external:{node_id}": {"node_id": node_id}}, variables)
-    task = domain.task_for_node(doc, node_id)
-    if task is not None:
+    ext = (doc["bpm"] or {}).get("run_id")
+    wait_id = f"external:{ext}:{node_id}:{args.get('source_id') or args.get('run_id') or ''}"
+    before = set(doc["tasks"])
+    domain.sync_tasks(doc, {wait_id: {"node_id": node_id}}, variables)
+    for task_id in set(doc["tasks"]) - before:
+        task = doc["tasks"][task_id]
         task["opened_late"] = True
         task["history"][-1]["note"] = "바깥 실행 — 대기가 열린 시각을 모른다(결정 기록 시점에 만듦)"
 
@@ -351,6 +358,8 @@ class Sc01Process:
                     if logged.node_id and logged.node_id not in visited:
                         visited.append(logged.node_id)
             doc["bpm"] = {
+                "executor": "embedded",
+                "external_run_id": None,
                 "run_id": run.run_id,
                 "state": run.state.value,
                 "snapshot": dump(run),
@@ -464,7 +473,10 @@ class Sc01Process:
 
     # ───────────── 조작 ─────────────
 
-    def create(self, *, case_id: str = "BASE", actor: str = "u-demo") -> dict:
+    def create(
+        self, *, case_id: str = "BASE", actor: str = "u-demo", executor: str = "embedded"
+    ) -> dict:
+        """`executor` — BPMN을 누가 도는가(N2). 내장이 아니면 엔진은 이 문서에서 step하지 않는다."""
         if case_id not in domain.CASES:
             raise DomainError(f"모르는 시연 사례: {case_id} (가능: {', '.join(domain.CASES)})", 422)
         demo_run_id = f"demo-{uuid.uuid4().hex[:8]}"
@@ -474,8 +486,16 @@ class Sc01Process:
             case_id=case_id,
             created_at=datetime.now(UTC),
             agent_mode=self.agent_mode,
+            executor=executor,
         )
-        domain.audit(doc, actor=actor, action="demo_run_created", event_code="S0", case_id=case_id)
+        domain.audit(
+            doc,
+            actor=actor,
+            action="demo_run_created",
+            event_code="S0",
+            case_id=case_id,
+            executor=executor,
+        )
         self.store.insert(demo_run_id, doc)
         return doc
 
@@ -520,6 +540,7 @@ class Sc01Process:
         * 보완 대기 중 → 정정본을 메시지로 전달해 같은 실행에서 다시 검증한다.
         * 그 밖(계산 뒤·인계 뒤의 정정, EX03) → **이전 실행을 이력으로 옮기고 새 실행을 시작한다.**
           새 계산은 새 run이고 같은 이슈에 이어진다. 이미 인수한 업무에는 재확인을 요청한다(WF-02).
+        * 바깥 실행에 묶인 데모 실행 → 원천만 등록한다. BPM은 Studio·Center가 시작한다(N2).
         """
         _require(actor, "영업담당")
         with self._lock(demo_run_id):
@@ -529,6 +550,13 @@ class Sc01Process:
             source_id, created = domain.receive_source(doc, self.seed, fixture_id, actor=actor)
             if not created:
                 return doc  # 재수신 — 중복 등록·이슈 생성 없이 기존 접수를 돌려준다
+            if domain.executor_of(doc) != "embedded":
+                # 내장 BPM을 함께 시작하면 한 문서에서 두 실행이 돈다 — 내장 쪽이 Approve_DQ에
+                # 멈춘 채 남았다(2026-10-25 실측).
+                domain.receive_external(doc, source_id)
+                _mark(doc, event_code, script_index)
+                doc = self._commit(doc, version, None, event_code or "receive")
+                return self._dispatch(doc)
             run = self._restore(doc) if doc["bpm"] is not None else None
             if run is not None and self.engine.message_target(run, "원천정정") is not None:
                 self.engine.deliver(run, "원천정정", payload={"원천ID": source_id})
@@ -562,6 +590,9 @@ class Sc01Process:
             doc, version = self._load(demo_run_id)
             if domain.check_idempotency(doc, idempotency_key, ["act", node_id, actor, answer]):
                 return doc  # 같은 요청의 재시도 — 이미 처리했다
+            executor = domain.executor_of(doc)
+            if executor != "embedded":
+                raise DomainError(domain.ANSWER_ELSEWHERE[executor], 409)
             if doc["bpm"] is None:
                 raise DomainError("아직 시작되지 않은 데모 실행이다", 409)
             run = self._restore(doc, actor)
@@ -581,41 +612,80 @@ class Sc01Process:
             doc = self._commit(doc, version, run, event_code or node_id)
         return self._dispatch(doc)
 
-    def operate(self, demo_run_id: str, operation: str, args: dict[str, Any]) -> dict[str, Any]:
+    def operate(
+        self,
+        demo_run_id: str,
+        operation: str,
+        args: dict[str, Any],
+        *,
+        external_run_id: str | None,
+        node_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         시스템 작업을 HTTP로 — 바깥 BPM(Chaeksas HTTP 어댑터)이 서비스 태스크에서 부른다.
 
-        **내장 BPM 실행을 건드리지 않는다.** 문서에 작업만 적용하고 저장한다 — 내장 BPM을
-        걷어내기 전까지 두 길이 함께 있다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족 409)은
-        내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다(어댑터가 `$.passed` 등으로 꺼낸다).
+        **바깥 실행에 묶인 데모 실행에서만 받는다**(N2). 첫 호출의 `external_run_id`(`{{run_id}}`)가
+        데모 실행을 그 실행에 묶고, 다른 실행의 호출은 409다. 내장 BPM이 도는 데모 실행에 오면 409다
+        — 두 실행이 한 문서에 업무를 적게 두지 않는다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족
+        409)은 내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다(어댑터가 `$.passed` 등으로 꺼낸다).
+        `node_id`(`{{node_id}}`)는 진행 표시에만 쓴다.
         """
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
+            domain.link_external_run(doc, external_run_id)
             try:
                 out = run_operation(doc, self.seed, operation, args)
             except KeyError as exc:
                 raise DomainError(f"없는 대상: {exc.args[0]}", 404) from exc
+            domain.note_external_progress(
+                doc,
+                node_id,
+                # 계산 실행 결재(Confirm_Calc)는 기록 작업이 없다 — 계산이 불렸으면 지나왔다.
+                decided=args.get("node_id")
+                if operation in RECORDS
+                else ("Confirm_Calc" if operation == "compare" else None),
+                done=operation == "hand_off" and out["handed_off"],
+            )
             doc = self._commit(doc, version, None, operation)
         self._dispatch(doc)
         return out
 
-    def reset(self, demo_run_id: str, *, actor: str, case_id: str | None = None) -> dict:
-        """현재 데모 실행만 S0로 되돌린다. 이력은 남긴다(DATA-05). 사례를 바꿔 다시 시작한다."""
+    def reset(
+        self,
+        demo_run_id: str,
+        *,
+        actor: str,
+        case_id: str | None = None,
+        executor: str | None = None,
+    ) -> dict:
+        """
+        현재 데모 실행만 S0로 되돌린다. 이력은 남긴다(DATA-05). 사례·실행 위치를 바꿔 다시 시작한다
+        — 주지 않으면 지금 것을 잇는다. 바깥 실행과의 묶음은 풀린다(새 실행이 다시 묶인다).
+        """
         _require(actor, "시연관리자")
         if case_id is not None and case_id not in domain.CASES:
             raise DomainError(f"모르는 시연 사례: {case_id}", 422)
         with self._lock(demo_run_id):
             old, version = self._load(demo_run_id)
             case = case_id or old["case_id"]
+            where = executor or domain.executor_of(old)
             doc = domain.new_demo_run(
                 self.seed,
                 demo_run_id,
                 case_id=case,
                 created_at=datetime.fromisoformat(old["created_at"]),
                 agent_mode=self.agent_mode,
+                executor=where,
             )
             doc["audit"] = old["audit"]
-            domain.audit(doc, actor=actor, action="demo_run_reset", event_code="S0", case_id=case)
+            domain.audit(
+                doc,
+                actor=actor,
+                action="demo_run_reset",
+                event_code="S0",
+                case_id=case,
+                executor=where,
+            )
             doc = self._commit(doc, version, None, "reset")
         return self._dispatch(doc)
 

@@ -7,6 +7,8 @@
 
 export type Risk = "NORMAL" | "ATTENTION" | "CRITICAL";
 export type SceneState = "READY" | "ACTIVE" | "HANDED_OFF";
+/** BPMN을 누가 도는가(docs/chaeksas-integration.md N2). 내장이 아니면 화면은 결재를 받지 않는다. */
+export type Executor = "embedded" | "studio" | "center";
 export type SourceStatus = "RECEIVED" | "NEEDS_INFO" | "VERIFIED";
 export type TaskStatus = "ASSIGNED" | "IN_PROGRESS" | "NEEDS_INFO" | "COMPLETED";
 
@@ -204,7 +206,13 @@ export interface DemoRunView {
   agentOutputs: AgentOutput[];
   alerts: Alert[];
   /** 정정으로 대체된 이전 BPM 실행들(EX03). */
-  bpmHistory: { run_id: string; state: string; superseded_at: string; by_source: string }[];
+  bpmHistory: {
+    run_id: string;
+    executor: Executor;
+    state: string;
+    superseded_at: string;
+    by_source: string;
+  }[];
   /** 정정 전에 성립했던 인계들 — 역사로 남는다(WF-03). */
   handoffHistory: { run_id: string; at: string }[];
   clock: string;
@@ -213,8 +221,13 @@ export interface DemoRunView {
   scene: SceneState;
   /** 지난 시점을 되짚어 본 것인가 — true면 조작할 수 없다. */
   historical: boolean;
+  executor: Executor;
   bpm: null | {
-    runId: string;
+    executor: Executor;
+    /** 바깥 실행의 Chaeksas 실행 id — 첫 작업 호출에서 묶인다. 그 전에는 null이다. */
+    externalRunId: string | null;
+    /** 바깥 실행이면 externalRunId와 같다(첫 호출 전에는 null). */
+    runId: string | null;
     state: string;
     waiting: Waiting[];
     position: string[];

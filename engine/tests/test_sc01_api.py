@@ -258,20 +258,32 @@ def test_ts_fixture_matches_the_bpmn(client) -> None:
 # ───────────── 시스템 작업 HTTP — 바깥 BPM(Chaeksas HTTP 어댑터)이 부르는 길 ─────────────
 
 
+#: 바깥 실행의 작업 본문에 늘 실리는 것(N2) — 확장 정의의 `{{run_id}}`·`{{node_id}}`.
+EXT = {"chaeksas_run_id": "run_20270616_090000_a1a1a1", "chaeksas_node_id": "Task_Validate"}
+
+
 def _received(client) -> tuple[str, str]:
-    """데모 실행을 만들고 CP02를 받는다 → (데모 실행 id, 원천 id)."""
-    rid = _run(client)
+    """Studio 실행용 데모 실행을 만들고 CP02를 받는다 → (데모 실행 id, 원천 id)."""
+    r = client.post("/sc01/demo-runs", json={"executor": "studio"})
+    assert r.status_code == 201, r.text
+    rid = r.json()["demoRunId"]
     h = {"X-Demo-Actor": "u-sales"}
     r = client.post(f"/sc01/demo-runs/{rid}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
     assert r.status_code == 200, r.text
     return rid, r.json()["sources"][-1]["source_id"]
 
 
-def _verify(client, rid: str) -> None:
+def _verify(client, rid: str, sid: str = "SRC02") -> None:
     r = client.post(
-        f"/sc01/demo-runs/{rid}/actions/Approve_DQ",
-        json={"answer": demo.BASE[1].answer},
-        headers={"X-Demo-Actor": "u-sales"},
+        f"/sc01/demo-runs/{rid}/answers/Approve_DQ",
+        json={
+            **EXT,
+            "chaeksas_node_id": "Record_DQ",
+            "source_id": sid,
+            "result": "확인완료",
+            "opinion": "통과",
+            "evidence": sid,
+        },
     )
     assert r.status_code == 200, r.text
 
@@ -279,17 +291,17 @@ def _verify(client, rid: str) -> None:
 def test_operation_validate_returns_the_in_process_output(client) -> None:
     """출력 모양이 내장 어댑터와 같다 — BPMN `output` 대응(`passed`·`error_count`)이 맞는다."""
     rid, sid = _received(client)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation")
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation", json=EXT)
     assert r.status_code == 200, r.text
     assert r.json() == {"passed": True, "error_count": 0}
 
 
 def test_operation_compare_needs_a_verified_source(client) -> None:
     rid, sid = _received(client)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison")
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT)
     assert r.status_code == 409  # 확인 전 계산
     _verify(client, rid)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison")
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT)
     assert r.status_code == 200, r.text
     out = r.json()
     assert set(out) == {"run_id", "risk", "issue_id"} and out["run_id"] == "RUN-F02-001"
@@ -300,24 +312,31 @@ def test_operation_compare_needs_a_verified_source(client) -> None:
 def test_operation_agent_draft_and_handoff(client) -> None:
     rid, sid = _received(client)
     _verify(client, rid)
-    run_id = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison").json()["run_id"]
+    run_id = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT).json()[
+        "run_id"
+    ]
 
-    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/agent-draft")
+    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/agent-draft", json=EXT)
     assert r.status_code == 200, r.text
     output_id = r.json()["output_id"]
     drafts = client.get(f"/sc01/demo-runs/{rid}").json()["agentOutputs"]
     assert any(d["output_id"] == output_id for d in drafts)
 
     # 현업 인수 전 — 인계 조건 미충족
-    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/handoff")
+    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/handoff", json=EXT)
     assert r.status_code == 409 and "인계 조건 미충족" in r.json()["detail"]
 
 
 def test_operation_unknown_targets_are_404(client) -> None:
     rid, _ = _received(client)
     assert client.post("/sc01/demo-runs/nope/sources/SRC-1/validation").status_code == 404
-    assert client.post(f"/sc01/demo-runs/{rid}/sources/SRC-ZZ/validation").status_code == 404
-    assert client.post(f"/sc01/demo-runs/{rid}/calc-runs/RUN-ZZ/agent-draft").status_code == 404
+    assert (
+        client.post(f"/sc01/demo-runs/{rid}/sources/SRC-ZZ/validation", json=EXT).status_code == 404
+    )
+    assert (
+        client.post(f"/sc01/demo-runs/{rid}/calc-runs/RUN-ZZ/agent-draft", json=EXT).status_code
+        == 404
+    )
 
 
 # ─────── 결정 기록(N1)·결재 담당자(N4) — 바깥 Chaeksas에서 돌려도 업무 효과가 난다 ───────
@@ -374,11 +393,12 @@ def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> 
     """
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
-    assert client.post(f"{base}/sources/{sid}/comparison").status_code == 409
+    assert client.post(f"{base}/sources/{sid}/comparison", json=EXT).status_code == 409
 
     r = client.post(
         f"{base}/answers/Approve_DQ",
         json={
+            **EXT,
             "source_id": sid,
             "result": "확인완료",
             "opinion": "자동 검증 통과",
@@ -392,7 +412,7 @@ def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> 
     recorded = next(a for a in doc["audit"] if a["action"] == "answer_recorded")
     assert recorded["actor"] == "u-sales" and recorded["detail"]["guessed"] is True
 
-    assert client.post(f"{base}/sources/{sid}/comparison").status_code == 200
+    assert client.post(f"{base}/sources/{sid}/comparison", json=EXT).status_code == 200
 
 
 def test_record_answer_keeps_the_business_rules(client) -> None:
@@ -400,17 +420,104 @@ def test_record_answer_keeps_the_business_rules(client) -> None:
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
     # 배정한 사람이 그 역할이 아니면 422 (이름으로 와도 id로 와도 같다)
-    r = client.post(f"{base}/answers/Approve_Dispatch", json={"prod": "최유나", "mat": "u-mat"})
+    r = client.post(
+        f"{base}/answers/Approve_Dispatch", json={**EXT, "prod": "최유나", "mat": "u-mat"}
+    )
     assert r.status_code == 422 and "생산 담당" in r.json()["detail"]
-    r = client.post(f"{base}/answers/Approve_Dispatch", json={"prod": "김태오", "mat": "u-mat"})
+    r = client.post(
+        f"{base}/answers/Approve_Dispatch", json={**EXT, "prod": "김태오", "mat": "u-mat"}
+    )
     assert r.status_code == 200 and r.json() == {"prod_name": "김태오", "mat_name": "최유나"}
     # 의견·근거 없는 영업 검토 422, 기록할 결재가 아닌 노드 404
-    r = client.post(f"{base}/answers/Approve_Sales", json={"run_id": "RUN-F01-001", "opinion": " "})
+    r = client.post(
+        f"{base}/answers/Approve_Sales", json={**EXT, "run_id": "RUN-F01-001", "opinion": " "}
+    )
     assert r.status_code == 422
-    assert client.post(f"{base}/answers/Task_Calc", json={}).status_code == 404
+    assert (
+        client.post(
+            f"{base}/answers/Task_Calc",
+            json={
+                **EXT,
+            },
+        ).status_code
+        == 404
+    )
     # 답한 사람을 실어 보내면 그 사람으로 적는다(R1 이후의 길) — 모르는 이름은 422
     r = client.post(
         f"{base}/answers/Approve_DQ",
-        json={"source_id": sid, "result": "확인완료", "answered_by": "홍길동"},
+        json={**EXT, "source_id": sid, "result": "확인완료", "answered_by": "홍길동"},
     )
     assert r.status_code == 422
+
+
+# ───────────── 데모 실행 ↔ 바깥 실행 (N2) ─────────────
+
+
+def test_external_demo_run_does_not_start_the_embedded_bpm(client) -> None:
+    """
+    수신이 내장 BPM을 늘 시작해, 바깥 실행과 내장 실행이 한 문서에서 함께 돌았다 — 내장 쪽이
+    Approve_DQ에 멈춘 채 남았다(2026-10-25 실측). 바깥 실행용 데모 실행은 원천만 등록한다.
+    """
+    rid, sid = _received(client)
+    doc = client.get(f"/sc01/demo-runs/{rid}").json()
+    assert doc["executor"] == "studio"
+    assert doc["bpm"]["state"] == "not_started" and doc["bpm"]["externalRunId"] is None
+    assert doc["bpm"]["waiting"] == [] and doc["tasks"] == []
+    # 화면 조작·각본은 거절한다 — 결재는 Studio에서 답한다.
+    r = client.post(
+        f"/sc01/demo-runs/{rid}/actions/Approve_DQ",
+        json={"answer": demo.BASE[1].answer},
+        headers={"X-Demo-Actor": "u-sales"},
+    )
+    assert r.status_code == 409 and "Studio" in r.json()["detail"]
+    assert client.post(f"/sc01/demo-runs/{rid}/script/0").status_code == 409
+
+
+def test_first_call_links_the_external_run_and_others_are_409(client) -> None:
+    rid, sid = _received(client)
+    base = f"/sc01/demo-runs/{rid}"
+    # 실행 id 없는 호출(0.2.0 정의) — 묶을 수 없다
+    assert client.post(f"{base}/sources/{sid}/validation", json={}).status_code == 422
+    assert client.post(f"{base}/sources/{sid}/validation", json=EXT).status_code == 200
+    doc = client.get(base).json()
+    assert doc["bpm"]["externalRunId"] == EXT["chaeksas_run_id"]
+    assert doc["bpm"]["state"] == "running" and doc["bpm"]["visited"] == ["Task_Validate"]
+    linked = [a for a in doc["audit"] if a["action"] == "external_run_linked"]
+    assert len(linked) == 1 and linked[0]["detail"]["executor"] == "studio"
+    # 같은 실행은 다시 와도 된다, 다른 실행은 409
+    assert client.post(f"{base}/sources/{sid}/validation", json=EXT).status_code == 200
+    other = {**EXT, "chaeksas_run_id": "run_20270616_091500_b2b2b2"}
+    r = client.post(f"{base}/sources/{sid}/validation", json=other)
+    assert r.status_code == 409 and "이미 바깥 실행" in r.json()["detail"]
+
+
+def test_embedded_demo_run_refuses_external_calls(client) -> None:
+    """내장 BPM이 도는 데모 실행에 바깥 작업이 오면 두 실행이 한 문서에 업무를 적는다 — 409."""
+    rid = _run(client)
+    h = {"X-Demo-Actor": "u-sales"}
+    client.post(f"/sc01/demo-runs/{rid}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
+    r = client.post(f"/sc01/demo-runs/{rid}/sources/SRC02/validation", json=EXT)
+    assert r.status_code == 409 and "내장 BPM" in r.json()["detail"]
+
+
+def test_record_marks_the_decision_as_visited(client) -> None:
+    """기록 작업은 그 앞의 결재도 지나왔다는 뜻이다 — 캔버스가 결재를 완료로 칠한다."""
+    rid, sid = _received(client)
+    _verify(client, rid, sid)
+    bpm = client.get(f"/sc01/demo-runs/{rid}").json()["bpm"]
+    assert bpm["visited"] == ["Approve_DQ", "Record_DQ"] and bpm["position"] == []
+
+
+def test_reset_keeps_the_executor_and_unlinks(client) -> None:
+    rid, sid = _received(client)
+    client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation", json=EXT)
+    h = {"X-Demo-Actor": "u-demo"}
+    doc = client.post(f"/sc01/demo-runs/{rid}/reset", json={}, headers=h).json()
+    assert doc["executor"] == "studio" and doc["bpm"]["externalRunId"] is None
+    doc = client.post(
+        f"/sc01/demo-runs/{rid}/reset", json={"executor": "embedded"}, headers=h
+    ).json()
+    assert doc["executor"] == "embedded" and doc["bpm"] is None
+    r = client.post(f"/sc01/demo-runs/{rid}/reset", json={"executor": "cloud"}, headers=h)
+    assert r.status_code == 422
+    assert client.post("/sc01/demo-runs", json={"executor": "cloud"}).status_code == 422

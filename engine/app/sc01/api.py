@@ -30,6 +30,8 @@ from app.sc01.view import dashboard, topology, view
 
 class CreateBody(BaseModel):
     case_id: str = Field(default="BASE", alias="caseId")
+    #: BPMN을 누가 도는가 — embedded | studio | center (N2). 바깥이면 내장 BPM은 돌지 않는다.
+    executor: str = "embedded"
     model_config = {"populate_by_name": True}
 
 
@@ -44,6 +46,7 @@ class ActBody(BaseModel):
 
 class ResetBody(BaseModel):
     case_id: str | None = Field(default=None, alias="caseId")
+    executor: str | None = None
     model_config = {"populate_by_name": True}
 
 
@@ -96,7 +99,14 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
 
     @r.post("/demo-runs", status_code=201)
     def create(body: CreateBody, x_demo_actor: str | None = Header(default=None)) -> dict[str, Any]:
-        return view(process.create(case_id=body.case_id, actor=x_demo_actor or "u-demo"))
+        return view(
+            guard(
+                process.create,
+                case_id=body.case_id,
+                actor=x_demo_actor or "u-demo",
+                executor=body.executor,
+            )
+        )
 
     @r.get("/demo-runs")
     def list_runs() -> list[dict[str, Any]]:
@@ -188,34 +198,52 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
             )
         )
 
-    # 시스템 작업 — 바깥 BPM(Chaeksas 외부 확장 `nowview.sc01`, HTTP 어댑터)이 서비스 태스크에서
+    # 시스템 작업 — 바깥 BPM(Chaeksas 외부 확장 `nowview-sc01`, HTTP 어댑터)이 서비스 태스크에서
     # 부른다. 내장 BPM의 `_InProcessCalls`와 같은 함수·같은 출력이다(`process.run_operation`).
     # 사람의 업무가 아니라서 행위자 헤더를 받지 않는다 — 감사 이력에는 `system`으로 남는다.
+    # 본문에는 언제나 바깥 실행의 `chaeksas_run_id`(`{{run_id}}`)와 `chaeksas_node_id`
+    # (`{{node_id}}`)가 실린다 — 데모 실행을 그 실행에 묶는 열쇠다(N2).
+    def operate(demo_run_id: str, operation: str, body: dict[str, Any], **args: Any):
+        rest = dict(body)
+        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
+        return guard(
+            process.operate,
+            demo_run_id,
+            operation,
+            {**rest, **args},
+            external_run_id=run_id,
+            node_id=node_id,
+        )
+
+    link = Body(default_factory=dict)
+
     @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/validation")
-    def validate_source(demo_run_id: str, source_id: str) -> dict[str, Any]:
+    def validate_source(
+        demo_run_id: str, source_id: str, body: dict[str, Any] = link
+    ) -> dict[str, Any]:
         """원천 자동 검증(UI03-01) → `{passed, error_count}`."""
-        return guard(process.operate, demo_run_id, "validate_source", {"source_id": source_id})
+        return operate(demo_run_id, "validate_source", body, source_id=source_id)
 
     @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/comparison")
-    def compare(demo_run_id: str, source_id: str) -> dict[str, Any]:
+    def compare(demo_run_id: str, source_id: str, body: dict[str, Any] = link) -> dict[str, Any]:
         """확인된 원천으로 전망 생성·지표 계산 → `{run_id, risk, issue_id}`. 확인 전이면 409."""
-        return guard(process.operate, demo_run_id, "compare", {"source_id": source_id})
+        return operate(demo_run_id, "compare", body, source_id=source_id)
 
     @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/agent-draft")
-    def request_agent_draft(demo_run_id: str, run_id: str) -> dict[str, Any]:
+    def request_agent_draft(
+        demo_run_id: str, run_id: str, body: dict[str, Any] = link
+    ) -> dict[str, Any]:
         """Agent 검토 초안 요청(AG-01) → `{output_id}`. 기다리지 않는다 — 초안은 배경에서 만든다."""
-        return guard(process.operate, demo_run_id, "request_agent_draft", {"run_id": run_id})
+        return operate(demo_run_id, "request_agent_draft", body, run_id=run_id)
 
     @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/handoff")
-    def hand_off(demo_run_id: str, run_id: str) -> dict[str, Any]:
+    def hand_off(demo_run_id: str, run_id: str, body: dict[str, Any] = link) -> dict[str, Any]:
         """장면 인계 기록(UI06-01) → `{handed_off}`. 조건 미충족이면 409."""
-        return guard(process.operate, demo_run_id, "hand_off", {"run_id": run_id})
+        return operate(demo_run_id, "hand_off", body, run_id=run_id)
 
     @r.post("/demo-runs/{demo_run_id}/answers/{node_id}")
     def record_answer(
-        demo_run_id: str,
-        node_id: str,
-        body: dict[str, Any] = Body(default_factory=dict),  # noqa: B008 — FastAPI 본문 선언
+        demo_run_id: str, node_id: str, body: dict[str, Any] = link
     ) -> dict[str, Any]:
         """
         사람 결정의 기록(N1) — 결재 뒤의 서비스 태스크가 부른다. 결재가 Studio·Center 어디서
@@ -224,7 +252,7 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
         operation = RECORD_OF_NODE.get(node_id)
         if operation is None:
             raise HTTPException(404, f"기록할 결재가 아니다: {node_id}")
-        return guard(process.operate, demo_run_id, operation, {**body, "node_id": node_id})
+        return operate(demo_run_id, operation, body, node_id=node_id)
 
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(
@@ -257,7 +285,16 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     ) -> dict[str, Any]:
         """S0로 되돌린다. `caseId`를 주면 그 시연 사례로 다시 시작한다(BASE · EX08)."""
         case = body.case_id if body else None
-        return view(guard(process.reset, demo_run_id, actor=actor_of(x_demo_actor), case_id=case))
+        where = body.executor if body else None
+        return view(
+            guard(
+                process.reset,
+                demo_run_id,
+                actor=actor_of(x_demo_actor),
+                case_id=case,
+                executor=where,
+            )
+        )
 
     @r.get("/demo-runs/{demo_run_id}/events")
     async def events(request: Request, demo_run_id: str) -> StreamingResponse:

@@ -6,6 +6,7 @@ import { Sc01Canvas } from "@/components/flow/sc01-canvas";
 import { Loading, ScreenHeader } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EXECUTOR_LABEL } from "@/lib/sc01/format";
 import { nodeStates, NODE_STATE_LABEL } from "@/lib/sc01/process-layout";
 import { selectView, useSc01 } from "@/lib/store/sc01";
 
@@ -64,14 +65,19 @@ export function ProcessScreen() {
             <CardTitle>지금 기다리는 사람 업무 {waiting.length}건</CardTitle>
             <Commentary block>
               <CardDescription>
-                BPM 실행 {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태 {view?.bpm?.state ?? "—"}
+                {EXECUTOR_LABEL[view?.executor ?? "embedded"]} {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태{" "}
+                {view?.bpm?.state ?? "—"}
               </CardDescription>
             </Commentary>
           </CardHeader>
           <CardContent>
             {waiting.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                {view?.bpm?.state === "done" ? "흐름이 끝났다 — 장면 1 인계 완료." : "사람을 기다리는 곳이 없다."}
+                {view?.bpm?.state === "done"
+                  ? "흐름이 끝났다 — 장면 1 인계 완료."
+                  : view && view.executor !== "embedded"
+                    ? "바깥 실행의 사람 대기는 NowView가 모른다 — 작업 호출이 알려 준 곳까지만 칠한다."
+                    : "사람을 기다리는 곳이 없다."}
               </p>
             ) : (
               <ul className="divide-y text-sm">

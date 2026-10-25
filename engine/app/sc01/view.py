@@ -35,7 +35,7 @@ def _node_rank(node_id: str) -> int:
 
 
 def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
-    pendings = (doc["bpm"] or {}).get("snapshot", {}).get("pendings", {})
+    pendings = ((doc["bpm"] or {}).get("snapshot") or {}).get("pendings", {})
     waiting = [
         {
             "nodeId": p["node_id"],
@@ -72,13 +72,22 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
         "scriptIndex": doc.get("script_index", -1),
         "scene": doc["scene"],
         "historical": historical,
+        "executor": domain.executor_of(doc),
         "bpm": None
         if doc["bpm"] is None
         else {
+            "executor": domain.executor_of(doc),
+            # 바깥 실행이면 Chaeksas 실행 id — 첫 작업 호출 전에는 없다(N2).
+            "externalRunId": doc["bpm"].get("external_run_id"),
             "runId": doc["bpm"]["run_id"],
             "state": doc["bpm"]["state"],
+            # 바깥 실행의 사람 대기는 NowView가 모른다 — 비어 있다(Center를 읽는 것은 N3).
             "waiting": waiting,
-            "position": sorted({t["node_id"] for t in doc["bpm"]["snapshot"]["tokens"]}),
+            "position": (
+                sorted({t["node_id"] for t in doc["bpm"]["snapshot"]["tokens"]})
+                if doc["bpm"]["snapshot"] is not None
+                else doc["bpm"].get("position", [])
+            ),
             "visited": doc["bpm"].get("visited", []),
         },
         # 화면은 배열 순서를 그대로 쓴다(마지막 = 최신). 저장 순서가 아니라 만든 순서로 낸다.

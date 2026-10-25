@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "nowview-sc01",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "name": "NowView SC01 업무 시스템",
-  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다.",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -30,7 +30,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/validation",
-            "body": {}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
           },
           "response": {"output": {"passed": "$.passed", "error_count": "$.error_count"}}
         },
@@ -55,7 +55,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/comparison",
-            "body": {}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
           },
           "response": {
             "output": {"run_id": "$.run_id", "risk": "$.risk", "issue_id": "$.issue_id"}
@@ -75,7 +75,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/agent-draft",
-            "body": {}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
           },
           "response": {"output": {"output_id": "$.output_id"}}
         },
@@ -93,7 +93,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/handoff",
-            "body": {}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
           },
           "response": {"output": {"handed_off": "$.handed_off"}}
         },
@@ -111,7 +111,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}"}
           },
           "response": {"output": {"recorded": "$.recorded"}}
         },
@@ -129,7 +129,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}"}
           },
           "response": {"output": {"recorded": "$.recorded"}}
         },
@@ -147,7 +147,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"prod": "{{input.prod}}", "mat": "{{input.mat}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "prod": "{{input.prod}}", "mat": "{{input.mat}}"}
           },
           "response": {"output": {"prod_name": "$.prod_name", "mat_name": "$.mat_name"}}
         },
@@ -165,7 +165,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"fin": "{{input.fin}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "fin": "{{input.fin}}"}
           },
           "response": {"output": {"fin_name": "$.fin_name"}}
         },
@@ -183,7 +183,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"run_id": "{{input.run_id}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}"}
           },
           "response": {"output": {"recorded": "$.recorded"}}
         }
