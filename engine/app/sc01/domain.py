@@ -195,6 +195,8 @@ CASES = {"BASE": None, "EX08": "fail"}
 #: BPMN을 누가 도는가(docs/chaeksas-integration.md §4·N2). 내장이 아니면 엔진은 이 문서에서 step하지
 #: 않는다 — 바깥 실행의 진행은 그 실행이 부르는 작업으로만 안다.
 EXECUTORS = ("embedded", "studio", "center")
+#: 바깥 실행 위치의 이름 — 사유 문구에 쓴다.
+EXECUTOR_LABEL = {"studio": "Studio 시험 실행", "center": "Center 서버 실행"}
 #: 바깥 실행에 묶인 데모 실행에서 화면 조작이 거절될 때의 사유 — 어디서 답하는지 말한다.
 ANSWER_ELSEWHERE = {
     "studio": "이 데모 실행은 Studio 시험 실행이 돈다 — 결재는 Studio에서 답하라",
@@ -807,19 +809,28 @@ def executor_of(doc: dict) -> str:
     return (doc["bpm"] or {}).get("executor", "embedded")
 
 
-def link_external_run(doc: dict, run_id: str | None) -> None:
+def link_external_run(doc: dict, run_id: str | None, *, via: str | None = None) -> None:
     """
     바깥 작업 호출의 `run_id`(Chaeksas `{{run_id}}`)로 데모 실행과 바깥 실행을 묶는다.
 
     처음 오면 묶고, 같으면 지나가고, 다르면 409다 — 한 문서에서 두 실행이 업무를 적으면 누가 무엇을
     했는지 갈라 볼 수 없다. 정정(EX03)으로 대체된 실행은 `bpm_history`에 있고 그 뒤 새 실행이 묶인다
     (`receive_external`).
+
+    `via`는 호출에 실린 키가 말하는 실행 위치다(N6 — 시험용 키면 studio, 운영 키면 center). 데모
+    실행의 선언과 다르면 409다 — Studio 시험 실행이 Center용 데모 실행에 업무를 적게 된다.
     """
     executor = executor_of(doc)
     if executor == "embedded":
         raise DomainError(
             "이 데모 실행은 내장 BPM이 돈다 — 바깥 실행은 실행 위치를 studio·center로 만든 "
             "데모 실행에서 돌려라",
+            409,
+        )
+    if via is not None and via != executor:
+        raise DomainError(
+            f"{EXECUTOR_LABEL[via]} 키로 왔는데 이 데모 실행은 "
+            f"{EXECUTOR_LABEL[executor]}용이다 — 실행 위치를 맞춰 다시 만들어라",
             409,
         )
     if not run_id:

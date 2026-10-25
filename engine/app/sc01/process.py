@@ -620,6 +620,7 @@ class Sc01Process:
         *,
         external_run_id: str | None,
         node_id: str | None = None,
+        via: str | None = None,
     ) -> dict[str, Any]:
         """
         시스템 작업을 HTTP로 — 바깥 BPM(Chaeksas HTTP 어댑터)이 서비스 태스크에서 부른다.
@@ -628,11 +629,12 @@ class Sc01Process:
         데모 실행을 그 실행에 묶고, 다른 실행의 호출은 409다. 내장 BPM이 도는 데모 실행에 오면 409다
         — 두 실행이 한 문서에 업무를 적게 두지 않는다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족
         409)은 내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다(어댑터가 `$.passed` 등으로 꺼낸다).
-        `node_id`(`{{node_id}}`)는 진행 표시에만 쓴다.
+        `node_id`(`{{node_id}}`)는 진행 표시에만 쓴다. `via`는 키가 말하는 실행 위치다(N6, 꺼 두면
+        `None`).
         """
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
-            domain.link_external_run(doc, external_run_id)
+            domain.link_external_run(doc, external_run_id, via=via)
             try:
                 out = run_operation(doc, self.seed, operation, args)
             except KeyError as exc:

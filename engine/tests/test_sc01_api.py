@@ -16,9 +16,13 @@ from fastapi.testclient import TestClient
 from app import main
 from app.sc01 import demo
 from app.sc01.api import build_router
+from app.sc01.auth import SystemAuth
 from app.sc01.process import Sc01Process
 from app.sc01.store import SqliteSc01Store
 from app.store import build_sqlite_backend
+
+#: 시스템 작업 키(N6) — 운영 키는 Center 실행, 시험용 키는 Studio 시험 실행이 싣는다.
+RUN_KEY, TEST_KEY = "run-key-0123456789abcdef", "test-key-fedcba9876543210"
 
 
 @pytest.fixture
@@ -30,9 +34,13 @@ def client(tmp_path):
         inline_agent=True,
     )
     app = main.FastAPI()
-    app.include_router(build_router(process, main.hub))
+    app.include_router(
+        build_router(process, main.hub, SystemAuth(run_key=RUN_KEY, test_key=TEST_KEY))
+    )
     try:
         with TestClient(app) as c:
+            # 바깥 작업은 Studio에서 오는 것으로 — 데모 실행도 studio로 만든다(_received).
+            c.headers["Authorization"] = f"Bearer {TEST_KEY}"
             yield c
     finally:
         backend.close()
@@ -521,3 +529,58 @@ def test_reset_keeps_the_executor_and_unlinks(client) -> None:
     r = client.post(f"/sc01/demo-runs/{rid}/reset", json={"executor": "cloud"}, headers=h)
     assert r.status_code == 422
     assert client.post("/sc01/demo-runs", json={"executor": "cloud"}).status_code == 422
+
+
+# ───────────── 시스템 작업 인증 (N6) ─────────────
+
+
+def test_system_operations_need_the_key(client) -> None:
+    """운영계는 인터넷에 열려 있다 — 키 없는 시스템 작업은 401이다(업무 조작과는 별개)."""
+    rid, sid = _received(client)
+    url = f"/sc01/demo-runs/{rid}/sources/{sid}/validation"
+    assert client.post(url, json=EXT, headers={"Authorization": ""}).status_code == 401
+    r = client.post(url, json=EXT, headers={"Authorization": "Bearer wrong"})
+    assert r.status_code == 401 and "맞지 않는다" in r.json()["detail"]
+    assert client.post(url, json=EXT, headers={"Authorization": TEST_KEY}).status_code == 401
+    assert client.post(url, json=EXT).status_code == 200  # 시험용 키
+
+
+def test_the_key_must_match_the_declared_executor(client) -> None:
+    """
+    실행 위치는 데모 실행을 만들 때 선언한다(N2). 어느 키로 왔는지가 인증된 실행 위치다 — 시험용
+    키는 Studio에만 간다(Chaeksas R6). 어긋나면 409이고 묶이지 않는다.
+    """
+    rid, sid = _received(client)  # studio
+    url = f"/sc01/demo-runs/{rid}/sources/{sid}/validation"
+    r = client.post(url, json=EXT, headers={"Authorization": f"Bearer {RUN_KEY}"})
+    assert r.status_code == 409 and "Center 서버 실행 키로 왔는데" in r.json()["detail"]
+    assert client.get(f"/sc01/demo-runs/{rid}").json()["bpm"]["externalRunId"] is None
+
+    center = client.post("/sc01/demo-runs", json={"executor": "center"}).json()["demoRunId"]
+    h = {"X-Demo-Actor": "u-sales"}
+    client.post(f"/sc01/demo-runs/{center}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
+    url = f"/sc01/demo-runs/{center}/sources/SRC02/validation"
+    assert client.post(url, json=EXT).status_code == 409  # 시험용 키로 Center 데모 실행
+    r = client.post(url, json=EXT, headers={"Authorization": f"Bearer {RUN_KEY}"})
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.parametrize(
+    ("auth", "mode", "status"),
+    [
+        (SystemAuth(), "unconfigured", 503),
+        (SystemAuth(run_key="same", test_key="same"), "unconfigured", 503),
+        (SystemAuth(off=True), "off", 200),
+    ],
+)
+def test_unconfigured_keys_close_the_door(auth, mode, status) -> None:
+    """키가 없으면 조용히 열지 않는다(503). 끄는 것은 명시적이다(`NOWVIEW_SYSTEM_AUTH=off`)."""
+    from app.sc01.domain import DomainError
+
+    assert auth.describe()["mode"] == mode
+    if status == 503:
+        with pytest.raises(DomainError) as err:
+            auth.executor_of("Bearer same")
+        assert err.value.status == 503
+    else:
+        assert auth.executor_of(None) is None  # 꺼 두면 실행 위치를 검사하지 않는다

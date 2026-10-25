@@ -5,7 +5,8 @@
  * 엔진은 127.0.0.1에만 바인딩되어 있다(CLAUDE.md 5.4).
  *
  * 경로를 하나씩 옮겨 적지 않고 그대로 중계한다 — 업무 규칙(권한·상태 충돌·입력 검증)은 전부
- * 엔진에 있고, 여기서 같은 검사를 다시 하면 두 곳이 갈라진다. 넘기는 헤더는 행위자와 멱등키뿐이다.
+ * 엔진에 있고, 여기서 같은 검사를 다시 하면 두 곳이 갈라진다. 넘기는 헤더는 행위자·멱등키와
+ * 시스템 작업의 키(`authorization`, N6)뿐이다 — 키는 엔진이 검사한다. BFF는 키를 갖지 않는다.
  * SSE(`…/events`)는 본문 스트림을 그대로 흘린다.
  */
 
@@ -22,7 +23,7 @@ async function relay(request: Request, { params }: Context): Promise<Response> {
   const isStream = path.at(-1) === "events";
 
   const headers: Record<string, string> = { accept: isStream ? "text/event-stream" : "application/json" };
-  for (const name of ["x-demo-actor", "idempotency-key"]) {
+  for (const name of ["x-demo-actor", "idempotency-key", "authorization"]) {
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }

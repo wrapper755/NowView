@@ -25,7 +25,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 ```bash
 cd engine
 uv sync
-uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
+uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
 uv run pytest                                      # 147개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
@@ -237,7 +237,7 @@ NowView/
     │   ├── main.py               # FastAPI — health + /sc01 라우터
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
-    │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api
+    │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions,
                                   #   test_events · _notify
 ```
@@ -315,8 +315,17 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
   * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
     `-H 127.0.0.1`로 띄우면 연결 거부다.
   * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
-  * **`requires_keys`를 두지 않는다.** ADR-0091 이후 `auth` 없이 `run` 키를 적으면 E3로 거절된다 — NowView가
-    키를 검사하지 않으므로 「키를 받지 않는 앱」이 참이다. 인증은 요청서 R6의 답을 보고 붙인다.
+  * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
+    ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
+    **키는 NowView가 짓는다**(R6 답) — 운영 키(`NOWVIEW_SYSTEM_KEY`)는 Center의 「외부 앱 키」, 시험용 키
+    (`NOWVIEW_SYSTEM_KEY_TEST`)는 「시험용 키」에 넣는다(CON-07 → `nowview-sc01`). Center에는 검증 API가 없다.
+    * **어느 키로 왔는지가 실행 위치다** — 시험용 키는 Studio에만 간다. 데모 실행의 선언(`executor`)과 어긋나면
+      409(`domain.link_external_run`). 키가 없거나 틀리면 401, 엔진에 키가 하나도 없으면 **503**이다 — 환경
+      파일이 빠진 채 올라간 운영계가 조용히 열리면 안 된다. 끄려면 `NOWVIEW_SYSTEM_AUTH=off`를 명시한다.
+      두 키가 같아도 503이다(실행 위치를 가를 수 없다). `/health`의 `systemAuth.mode`가 `keys`·`off`·
+      `unconfigured`를 드러낸다(값은 싣지 않는다).
+    * 로컬은 `engine/.env.local`(gitignore)에 두면 `stack:start engine`이 `--env-file`로 읽는다. 운영은
+      `/etc/nowview.env` — `deploy/bootstrap.sh`가 **파일이 이미 있어도 빠진 키만** 지어 더한다.
   * **선택 입력을 본문 템플릿에 넣지 않는다.** 어댑터는 `{{input.x}}`의 `x`가 없으면 호출을 실패시킨다 —
     그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸고,
     `answered_by`는 R1이 오기 전까지 본문에 없다.
@@ -325,7 +334,7 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
 
 * **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
-  `X-Demo-Actor` 하나뿐이다.
+  `X-Demo-Actor`·`Idempotency-Key`·`Authorization`(시스템 작업 키, N6)이다. 키 검사도 엔진이 한다.
 * **화면은 규칙을 다시 구현하지 않는다.** 금액·비율은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다
   (`lib/sc01/format.ts`). 판정 임계값도 `/rules`로 받아 표시한다.
 * **페이지는 정적 프리렌더(`○`)다.** 데이터는 클라이언트에서 받는다 — 서버에서 엔진을 부르면 전부 `ƒ`가
@@ -395,8 +404,9 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     내장 데모 실행에 바깥 호출이 와도 409다. 예외는 정정(EX03): 묶인 실행이 있는데 보완 대기가 아닌 때
     정정본이 오면 그 실행을 `bpm_history`(`superseded`)로 옮긴다 — 그 실행의 남은 호출은 409이고 다음
     새 실행이 묶인다. 바깥 실행은 취소할 수 없으니 이것이 내장의 cancel에 해당한다.
-  * **Studio인지 Center인지는 선언이다.** 템플릿으로 알 길이 없고(요청 R5 거절), 인증된 구분은 N6의
-    시험용 키 ↔ 운영 키다. N6이 붙으면 키로 선언을 검사한다(`docs/chaeksas-integration.md` §5 N2).
+  * **Studio인지 Center인지는 선언하고, 키로 검사한다.** 템플릿으로 알 길이 없고(요청 R5 거절), 인증된
+    구분은 시험용 키 ↔ 운영 키다(N6, 4.3). 선언을 남긴 것은 화면이 첫 호출 전부터 읽기 전용이어야 해서다
+    (`docs/chaeksas-integration.md` §5 N2).
   * 바깥 실행의 업무는 대기 id를 (실행, 결재, 원천·계산)으로 지어 `sync_tasks`에 넘긴다 — 정정 뒤의 새
     실행이 같은 결재에 오면 인수한 업무에 재확인, 끝난 업무에 재검토 업무가 생긴다(내장과 같은 규칙).
   * 캔버스는 바깥 실행이 끝나도 알려 주지 않은 노드를 미실행으로 칠하지 않는다 — 시작·게이트웨이처럼
@@ -994,6 +1004,10 @@ scripts/deploy.sh --logs engine 80
   있고**, 데모 실행을 횟수 제한 없이 만들 수 있으며(행이 쌓인다), id를 알면 남의 실행을 초기화할 수
   있다(id는 무작위 8자리 hex). Agent를 `llm` 모드로 켜면 비용 위험이 다시 생긴다 — 계산마다 모델을 한 번
   (실패 시 두 번) 부르고, 영업담당·팀장 역할이면 "다시 생성"으로 횟수 제한 없이 부를 수 있다. 운영 기본은 `mock`이다.
+
+  **시스템 작업(바깥 Chaeksas가 부르는 길)은 이제 키를 받는다**(N6, 4.3). 아래 경고와 다른 경우다 — 키는
+  BFF↔엔진 사이의 것이 아니라 **바깥 호출자가 싣고 BFF가 그대로 넘기는 것**이라 공격 경로 끝에서 검사된다.
+  화면이 쓰는 업무 조작(행위자 헤더)은 여전히 열려 있다.
 
   **막을 자리를 짚을 때 층을 틀리기 쉽다.** 엔진(8077)은 **이미 127.0.0.1 전용이고**
   외부에서 연결 거부다 — 그래서 *엔진에* API key를 걸어도 BFF↔엔진 사이만 인증되고
