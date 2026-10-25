@@ -392,15 +392,16 @@ def _run_external(proc: Sc01Process, rid: str, sid: str, run_id: str):
     answers = {s.node_id: s.answer for s in demo.BASE if s.node_id}
     while engine.run_until_blocked(run) is State.WAITING:
         for p in list(run.pendings.values()):
-            engine.answer(run, p.request_id, answers[p.node_id], answered_by="콘솔")
+            # Center는 담당자만 답하게 한다 — 그 결재의 담당자(이름)가 답한다(ADR-0081)
+            engine.answer(run, p.request_id, answers[p.node_id], answered_by=p.assignees[0])
     return run
 
 
 def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) -> None:
     """
     Studio 시험 실행에서 확인완료 뒤 계산이 409로 막혔다(2026-10-25). 결정 기록 작업이 생긴 뒤에는
-    바깥 실행만으로 인계까지 간다 — 업무는 기록될 때 늦게 열리고, 답한 사람은 담당자로
-    짐작한다(R1 전). 내장 BPM은 그 데모 실행에서 돌지 않는다(N2).
+    바깥 실행만으로 인계까지 간다 — 업무는 기록될 때 늦게 열리고, 답한 사람은 결재 변수로 와서
+    짐작 없이 적힌다(R1). 내장 BPM은 그 데모 실행에서 돌지 않는다(N2).
     """
     from chaeksas.core.engine import State
 
@@ -425,8 +426,23 @@ def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) ->
     late = {t["type"]: t["opened_late"] for t in after["tasks"].values() if t.get("opened_late")}
     # 업무는 전부 기록 시점에 늦게 열렸다 — 대기를 여는 내장 실행이 없다.
     assert set(late) == {"DQ", "SALES", "PROD", "MAT", "FIN"}
-    guessed = [a for a in after["audit"] if a["action"] == "answer_recorded"]
-    assert guessed and all(a["detail"]["guessed"] for a in guessed)
+    recorded = {
+        a["detail"]["node_id"]: a["actor"]
+        for a in after["audit"]
+        if a["action"] == "answer_recorded"
+    }
+    assert recorded == {
+        "Approve_DQ": "u-sales",
+        "Approve_Sales": "u-sales-lead",
+        "Approve_Dispatch": "u-sales-lead",
+        "Approve_Review": "u-sales-lead",
+        "Accept_PROD": "u-prod",
+        "Accept_MAT": "u-mat",
+        "Accept_FIN": "u-fin",
+    }
+    [calc] = [a for a in after["audit"] if a["action"] == "calculation_requested"]
+    assert calc["actor"] == "u-sales"
+    assert not [a for a in after["audit"] if a["detail"].get("guessed")]
 
 
 def test_correction_supersedes_the_external_run_and_links_the_next(proc: Sc01Process) -> None:
@@ -522,4 +538,9 @@ def test_rejected_record_returns_to_the_same_approval_then_fix_request_continues
     assert run.state is State.DONE
     done = proc.get(rid)
     assert done["scene"] == "HANDED_OFF" and done["sources"][new_sid]["status"] == "VERIFIED"
+    # 콘솔 답은 관리자 계정 이름으로 온다 — 마스터 밖이라도 거절하지 않고 그 이름으로 적는다(R1)
+    recorded = [a for a in done["audit"] if a["action"] == "answer_recorded"]
+    assert recorded and all(
+        a["actor"] == "콘솔" and a["detail"]["outside_master"] for a in recorded
+    )
     assert done["bpm"]["external_run_id"] == run_id

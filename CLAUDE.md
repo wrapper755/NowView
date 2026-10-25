@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 147개 (SQLite만, LLM 제외)
+uv run pytest                                      # 177개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (180개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (217개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -204,7 +204,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01 운영계 · .local 로컬, 4.3)
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01 한 벌 — 로컬은 Center가 주소를 덮어쓴다, 4.3)
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
@@ -308,15 +308,18 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
     `nowview-sc01`이 됐다(BPMN `app_id`·`service_keys`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
   * **어댑터는 `base_url`의 경로를 버린다**(호스트·포트만 쓴다) — 그래서 작업 `path`에 BFF 경로
     `/api/engine/…`를 통째로 적었다.
-  * **외부 확장의 주소는 정의의 `base_url`뿐이다** — Center에서 바꿀 길이 없다(주소 바꾸기는 서비스 앱만).
-    그래서 정의는 운영계(`https://www.nowview.work`)만 가리키고 `localhost`·`allow_private_network`를 두지
-    않는다. **로컬용은 파일이 따로 있다** — `nowview-sc01.local.extension.json`(`0.3.0-local`,
-    `http://localhost:3000`, `allow_private_network`). id가 같으므로 한 Center에는 둘 중 하나만 올린다.
-    작업 정의는 두 파일이 같아야 한다 — 운영계 정의를 고치면 로컬 정의도 함께 고친다.
-  * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
-    `-H 127.0.0.1`로 띄우면 연결 거부다.
-  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.5.0 — 기록 작업
-    응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있다.
+  * **정의는 한 벌이고, 로컬 Center가 주소만 덮어쓴다**(R4, ADR-0097). 기본 주소는 운영계
+    (`https://www.nowview.work`)이고 `allowed_hosts`가 `[www.nowview.work, localhost]`,
+    `allow_private_network: true`다. 로컬 Center에서만 CON-07 → `nowview-sc01` → 「서버 주소」를
+    `http://localhost:3000`으로 바꾼다(`PUT /api/v1/resources/extensions/nowview-sc01/address`, 관리자).
+    Center는 정의의 허용 호스트 **안에서만** 받는다 — 정의가 상한이다. 해시가 하나라 로컬에서 시험한
+    그 판이 운영에 간다. 예전에는 Center에서 바꿀 길이 없어 `.local` 정의를 따로 두고 작업 정의를 두 파일에
+    맞춰 적었다 — 지웠다. 사설망 허용을 운영 정의에 켠 득실은 `docs/chaeksas-integration.md` §7의 5.
+    `test_extension_definition_matches_the_bpmn_service_calls`가 정의 ↔ BPMN 입력을 잠근다.
+  * **어댑터는 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
+    `-H 127.0.0.1`로 띄우면 연결 거부다. `127.0.0.1`로 덮어쓰면 허용 호스트 밖이라 어댑터가 거절한다.
+  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.6.0 — 기록 작업
+    응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있고, 기록 작업과 계산은 `answered_by`를 받는다.
   * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
     ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
     **키는 NowView가 짓는다**(R6 답) — 운영 키(`NOWVIEW_SYSTEM_KEY`)는 Center의 「외부 앱 키」, 시험용 키
@@ -337,8 +340,9 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
   * **메시지는 `schema: 1`이 있어야 한다**(`MessageRequest`) — 없으면 422 `input_invalid`(실측). 작업(`/jobs`)은
     `schema`가 없는 계약이다.
   * **선택 입력을 본문 템플릿에 넣지 않는다.** 어댑터는 `{{input.x}}`의 `x`가 없으면 호출을 실패시킨다 —
-    그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸고,
-    `answered_by`는 R1이 오기 전까지 본문에 없다.
+    그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸다.
+    `answered_via`는 대리 답이 아니면 `null`이지만 **변수는 늘 있다**(결재가 `answered_via_as`를 채운다) —
+    없는 것과 `null`은 다르다. 값 하나뿐인 템플릿은 JSON 값 그대로 실린다.
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
@@ -399,8 +403,14 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   내장 실행기의 답 훅에만 있어 Studio 실행에서 원천이 확인되지 않고 계산이 409였다(2026-10-25 실측).
   내장 경로는 답을 넣기 전에 `check_answer`로 **부수 효과 없이** 거절해 입력을 지키고(4.6), 기록 작업이
   같은 검사를 다시 한다(콘솔 답은 앞 검사를 거치지 않는다).
-  * **답한 사람**: 내장은 조작한 행위자, 바깥은 Chaeksas가 아직 넘기지 않아(요청서 R1) 그 결재의 담당자로
-    적고 감사 이력에 `guessed`로 남긴다.
+  * **답한 사람은 결재 변수로 온다**(R1, ADR-0096). 결재마다 `answered_by_as`·`answered_via_as`(`확인자`·
+    `확인경로` …)를 두고 뒤의 기록 작업·계산 입력에 `answered_by`·`answered_via`로 싣는다. 내장도 같은
+    변수다(`engine.answer(answered_by=행위자)`). **사용자 마스터에 없는 이름(콘솔 관리자 · Studio 「시험
+    케이스」)은 거절하지 않고 그 이름 그대로 적는다**(`outside_master`) — 정상 경로에서 오는 이름이고, 422로
+    거절하면 오류 경계가 같은 결재로 되돌리는데 답한 사람은 고칠 길이 없다. 인수 업무의 담당자는 답한
+    사람이 아니라 **배정 기록이 고른 사람**이다 — 관리자를 담당자로 두면 인계 조건이 깨진다(실측 409).
+    짐작(`guessed`)은 `answered_by`가 없던 옛 정의(0.5.0 이하) 호환으로만 남았다.
+    **`chaeksas-core`가 `8f0b08d` 이전이면 변수가 생기지 않아** 기록 작업 입력이 「모르는 이름」으로 멈춘다.
   * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
     판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래).
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
@@ -607,7 +617,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(147개 / 180개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(177개 / 217개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc01-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
@@ -922,6 +932,7 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 * `chaeksas-core`는 **git 커밋 고정 의존성**이다. Chaeksas 리포(`wrapper755/Chaeksas`, public)가 바뀌어도
   `rev`를 올리기 전에는 NowView가 따라가지 않는다. 올린 뒤에는 엔진 테스트를 양쪽 백엔드로 돌린다.
   2026-10-25에 `6088b75` → `c127c6f`로 올렸다 — 결재 담당자(`assignees`)를 엔진이 풀게 됐다(N4).
+  2026-10-26에 `c127c6f` → `8f0b08d`로 올렸다 — 결재에 답한 사람이 변수로 온다(R1, ADR-0096).
   **고정된 판이 낡으면 계약 검사도 낡는다**: 옛 판에서는 확장 정의가 통과했지만 최신 Center는 E3로 거절했다.
 * Chaeksas 패키지는 `requires-python <3.13`이다 — 엔진도 그 범위로 묶었다(`>=3.12,<3.13`).
 

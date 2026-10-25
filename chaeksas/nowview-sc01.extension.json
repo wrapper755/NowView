@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "nowview-sc01",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "name": "NowView SC01 업무 시스템",
-  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio.",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio. 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 http://localhost:3000으로 덮어쓴다(ADR-0097). 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다.",
   "publisher": "NowView",
   "tier": "external",
   "requires_keys": [{"purpose": "run"}],
@@ -11,7 +11,8 @@
     "protocol": "http-adapter",
     "base_url": "https://www.nowview.work",
     "adapter": {
-      "allowed_hosts": ["www.nowview.work"],
+      "allowed_hosts": ["www.nowview.work", "localhost"],
+      "allow_private_network": true,
       "auth": {"type": "bearer"},
       "limits": {"timeout_s": 30, "max_response_kb": 256},
       "operations": [
@@ -43,8 +44,8 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "source_id"],
-            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+            "required": ["demo_run_id", "source_id", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {
             "type": "object",
@@ -57,7 +58,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/comparison",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {
             "output": {"run_id": "$.run_id", "risk": "$.risk", "issue_id": "$.issue_id"}
@@ -106,14 +107,14 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "node_id", "source_id", "result", "opinion", "evidence"],
-            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "source_id": {"type": "string"}, "result": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}}
+            "required": ["demo_run_id", "node_id", "source_id", "result", "opinion", "evidence", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "source_id": {"type": "string"}, "result": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         },
@@ -124,14 +125,14 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "node_id", "run_id", "opinion", "evidence"],
-            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}, "manual_review": {}, "agent_output": {}}
+            "required": ["demo_run_id", "node_id", "run_id", "opinion", "evidence", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}, "manual_review": {}, "agent_output": {}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         },
@@ -142,14 +143,14 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "node_id", "prod", "mat"],
-            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "prod": {"type": "string"}, "mat": {"type": "string"}}
+            "required": ["demo_run_id", "node_id", "prod", "mat", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "prod": {"type": "string"}, "mat": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {"type": "object", "properties": {"prod_name": {"type": "string"}, "mat_name": {"type": "string"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "prod": "{{input.prod}}", "mat": "{{input.mat}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "prod": "{{input.prod}}", "mat": "{{input.mat}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"prod_name": "$.prod_name", "mat_name": "$.mat_name", "error_message": "$.error_message"}}
         },
@@ -160,14 +161,14 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "node_id", "fin"],
-            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "fin": {"type": "string"}}
+            "required": ["demo_run_id", "node_id", "fin", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "fin": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {"type": "object", "properties": {"fin_name": {"type": "string"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "fin": "{{input.fin}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "fin": "{{input.fin}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"fin_name": "$.fin_name", "error_message": "$.error_message"}}
         },
@@ -178,14 +179,14 @@
           "idempotent": false,
           "input_schema": {
             "type": "object",
-            "required": ["demo_run_id", "node_id", "run_id"],
-            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}}
+            "required": ["demo_run_id", "node_id", "run_id", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}}
           },
           "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         }

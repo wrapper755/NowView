@@ -96,21 +96,36 @@ RECORD_OF_NODE = {
 }
 
 
-def _answerer(doc: dict, node_id: str, args: dict[str, Any], actor: str | None) -> tuple[str, bool]:
+def _answerer(
+    doc: dict, node_id: str, args: dict[str, Any], actor: str | None
+) -> tuple[str, dict[str, Any]]:
     """
-    그 결재에 답한 사람과, 그것을 **짐작했는지**.
+    그 결재에 답한 사람과, 감사 이력에 덧붙일 것.
 
-    내장 실행은 조작한 행위자를 안다. 바깥 Chaeksas는 답한 사람을 아직 변수로 넘기지 않는다
-    (요청서 R1) — 그때까지는 그 결재의 담당자로 적고 짐작이라고 표시한다. 담당자만 답하게 막는 것은
-    Center다(`assignees`, ADR-0081).
+    답한 사람은 결재의 `answered_by_as` 변수로 와서 기록 작업 입력 `answered_by`에 실린다(R1,
+    ADR-0096). 내장 실행도 같은 변수를 쓴다(`engine.answer(answered_by=행위자)`) — 입력이 없을 때만
+    조작한 행위자(`actor`)를 본다.
+
+    * **사용자 마스터에 없는 이름은 거절하지 않고 그 이름 그대로 적는다**(`outside_master`).
+      콘솔에서 답한 관리자 계정 이름, Studio 케이스가 이름을 적지 않았을 때의 「시험 케이스」가 정상
+      경로에서 온다. 「담당자만 답한다」는 Center가 이미 막았고(`assignees`, ADR-0081), 이 이름은
+      키(N6)로 인증된 호출이 실어 온 것이다. 422로 거절하면 오류 경계가 같은 결재로 되돌리는데
+      답한 사람은 그것을 고칠 길이 없다 — 같은 답이 영영 기록되지 않는다.
+    * **짐작(`guessed`)은 옛 정의(0.5.0 이하) 호환으로만 남는다.** 본문에 `answered_by`가 없던
+      판이다 — 그 결재의 담당자로 적고 짐작이라고 표시한다.
     """
+    # 대리 답이면 그 키 이름(NowView 대리 답용 키) — 사람과 따로 남긴다(C6 `answered_via`)
+    via = {"answered_via": args["answered_via"]} if args.get("answered_via") else {}
     given = args.get("answered_by") or actor
     if given:
-        return domain.user_id_of(str(given)), False
+        try:
+            return domain.user_id_of(str(given)), {"guessed": False, **via}
+        except DomainError:
+            return str(given), {"guessed": False, "outside_master": True, **via}
     task = domain.task_for_node(doc, node_id)
     if task is not None and task["assigned_to"]:
-        return task["assigned_to"], True
-    return domain.user_for_role(domain.NODE_ROLES[node_id]["role"]), True
+        return task["assigned_to"], {"guessed": True}
+    return domain.user_for_role(domain.NODE_ROLES[node_id]["role"]), {"guessed": True}
 
 
 def check_answer(
@@ -169,8 +184,8 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
     answer, variables = _record_answer(operation, args)
     check_answer(doc, node_id, answer, variables)
 
-    by, guessed = _answerer(doc, node_id, args, actor)
-    domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, guessed=guessed)
+    by, how = _answerer(doc, node_id, args, actor)
+    domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, **how)
     _ensure_task(doc, node_id, args, by)
     return {**_apply_record(doc, operation, node_id, args, by), "error_message": None}
 
@@ -255,6 +270,29 @@ def reject_record(doc: dict, operation: str, args: dict[str, Any], exc: DomainEr
     )
 
 
+#: 인수 결재의 담당자를 정한 기록 — (감사 이력 action, 칸)
+_ASSIGNED_BY = {
+    "Accept_PROD": ("dispatched", "prod"),
+    "Accept_MAT": ("dispatched", "mat"),
+    "Accept_FIN": ("review_requested", "fin"),
+}
+
+
+def _assignee_of(doc: dict, node_id: str, by: str) -> str:
+    """
+    인수 업무의 담당자 — **배정 기록이 고른 사람**이다. 답한 사람이 아니다: 콘솔에서 관리자가 답하면
+    답한 사람은 마스터 밖의 이름이고(`_answerer`), 그 사람을 담당자로 두면 인계 조건(담당자가 있는
+    업무의 최신 run 확인)이 성립하지 않는다.
+    """
+    action, key = _ASSIGNED_BY[node_id]
+    chosen = next((a["detail"][key] for a in reversed(doc["audit"]) if a["action"] == action), None)
+    if chosen in domain.USERS:
+        return chosen
+    if by in domain.USERS:
+        return by
+    return domain.user_for_role(domain.NODE_ROLES[node_id]["role"])
+
+
 def _ensure_task(doc: dict, node_id: str, args: dict[str, Any], by: str) -> None:
     """
     바깥 실행의 결재를 업무로 옮긴다. 내장 실행은 사람 대기가 열릴 때 업무를 만들지만(`sync_tasks`),
@@ -275,7 +313,7 @@ def _ensure_task(doc: dict, node_id: str, args: dict[str, Any], by: str) -> None
         return  # 대기가 열릴 때 이미 만들었다 — 내장은 스냅샷, Center는 실행 기록 폴링(N3)
     variables = {"계산ID": args.get("run_id"), "원천ID": args.get("source_id")}
     if "assignee_var" in spec:
-        variables[spec["assignee_var"]] = by
+        variables[spec["assignee_var"]] = _assignee_of(doc, node_id, by)
     ext = (doc["bpm"] or {}).get("run_id")
     wait_id = f"external:{ext}:{node_id}:{args.get('source_id') or args.get('run_id') or ''}"
     before = set(doc["tasks"])
@@ -300,8 +338,8 @@ def run_operation(
     if operation == "compare":
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
-        by, guessed = _answerer(doc, "Confirm_Calc", args, actor)
-        domain.audit(doc, actor=by, action="calculation_requested", guessed=guessed)
+        by, how = _answerer(doc, "Confirm_Calc", args, actor)
+        domain.audit(doc, actor=by, action="calculation_requested", **how)
         return domain.compare(doc, seed, args["source_id"])
     if operation == "request_agent_draft":
         return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}

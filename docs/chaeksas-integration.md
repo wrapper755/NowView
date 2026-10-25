@@ -52,7 +52,7 @@ Studio에서 `nowview.sc01`을 돌렸더니 `validate_source`는 200이었다. �
 ### N1. 기록 작업 — 사람 결정 뒤에 서비스 태스크 하나씩
 
 `chaeksas/*.extension.json`의 `operations`와 BPMN에 다음 작업을 더한다. 입력에는 항상 `demo_run_id`,
-Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. 답한 사람은 요청서 R1이 해결돼야 받을 수 있다.
+Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. 답한 사람은 결재의 `answered_by_as` 변수로 받는다(R1, §7의 5).
 
 | 결재 뒤 | 작업 | 하는 일 (지금 `_before_answer`에서 옮긴다) |
 |---|---|---|
@@ -148,7 +148,7 @@ Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. �
   = 행위자 이름). Center 거절은 사유를 그대로 낸다(`not_assignee` 403, `already_answered`·`review_changed` 409,
   `answer_invalid` 422). 키가 받아들여지지 않거나 닿지 못하면 503. **업무 효과는 여전히 기록 작업이 낸다** —
   대리 답은 결재를 닫을 뿐이다. 감사 이력에 `answer_relayed`. 답한 사람이 대리 답의 이름이라 Center 결재에는
-  실제 사람이 남는다(R1이 오면 기록 작업도 짐작하지 않는다).
+  실제 사람이 남고, 기록 작업도 그 이름을 `answered_by`로 받는다(R1).
 * **진행**: 폴러가 `bpm.state == running`인 center 데모 실행만 2초마다 읽는다(`store.running_external` — 문서를
   다 읽지 않는다). C3 이벤트 → 지나온 노드·토큰 위치(시작했고 안 끝난 노드)·열린 결재(`human_requested` −
   `human_answered`·`human_timeout`·`human_withdrawn`)·끝(`run_finished`). 새로 열린 결재는 대리 답용 키로 읽어
@@ -239,8 +239,8 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
 
 1. **N1 + N4 — 했다.** Chaeksas 엔진 + HTTP 어댑터 + 로컬 정의로 SC01을 돌려 **인계(`HANDED_OFF`)까지** 갔다
    (서비스 호출 11건 모두 200). 설계와 달리 정한 것:
-   * 답한 사람은 폼에 임시 칸을 두지 않고 **그 결재의 담당자로 짐작해 적고 `guessed`로 표시**한다 — 자칭
-     이름을 하나 더 만들지 않는다. R1이 오면 본문에 `answered_by`를 더한다.
+   * 답한 사람은 폼에 임시 칸을 두지 않고 **그 결재의 담당자로 짐작해 적고 `guessed`로 표시**했다 — 자칭
+     이름을 하나 더 만들지 않았다. R1이 와서 짐작은 옛 정의 호환으로만 남았다(아래 5).
    * 배정 기록을 `record_dispatch`·`record_review_request` 둘로 나눴다 — 어댑터는 본문 템플릿의 입력이
      없으면 실패한다.
    * 업무(`TASK-*`)는 바깥 실행에서 **기록 때 늦게 연다**(`opened_late`). Studio에는 결재가 열리는 신호가 없다.
@@ -257,8 +257,40 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
    **운영계에 올리려면** `scripts/deploy.sh --bootstrap`(키 생성) → Center CON-07에 두 키 입력 → 0.5.0 정의(지금 판)
    서명·등록 순서다. 운영계는 아직 이전 구현이다(CLAUDE.md 5.4).
 3. **N3 — 했다.** 위 N3 「구현에서 정한 것」. 그 앞에 N1에서 미룬 **기록 거절 → 같은 결재** 오류 경계를 달았다
-   (정의 0.5.0). 남은 것: 진짜 서버 실행기·배포된 패키지로 한 바퀴(기동·정정 메시지 전달), R1 반영(기록 작업의
-   `answered_by`), 4xx 본문을 `error_message`에 싣는 것(Chaeksas 요청 후보).
+   (정의 0.5.0). 남은 것: 진짜 서버 실행기·배포된 패키지로 한 바퀴(기동·정정 메시지 전달), 4xx 본문을
+   `error_message`에 싣는 것(Chaeksas 요청 후보).
 4. **N5** — 가상 직원. 접수 Bot 그림, Center 등록, UI02 카드.
+5. **R1·R4 반영 — 했다** (Chaeksas `8f0b08d`, wrapper755/Chaeksas#183 · ADR-0096·0097, 정의 0.6.0).
+   * **R1 답한 사람.** `chaeksas-core`를 `8f0b08d`로 올렸다. 결재 8개(`Confirm_Calc` 포함)마다
+     `answered_by_as`·`answered_via_as`(예: `확인자`·`확인경로`)를 두고, 뒤의 기록 작업과 계산(`compare`)
+     입력에 `answered_by`·`answered_via`로 싣는다. 내장 실행도 같은 변수를 탄다(`engine.answer(answered_by=
+     행위자)`) — 길이 하나다. 감사 이력에는 대리 답이면 그 키 이름(`answered_via`)을 사람과 따로 남긴다.
+   * **마스터 밖의 이름은 422로 거절하지 않고 그 이름 그대로 적는다**(`outside_master`). 근거:
+     ① 콘솔 답의 관리자 계정 이름, Studio 케이스 기본값 「시험 케이스」는 **정상 경로에서 온다** — 고장이
+     아니다. ② 「담당자만 답한다」는 Center가 이미 막았고(ADR-0081), 이름은 키(N6)로 인증된 호출이 싣고
+     온다 — NowView가 다시 막을 근거가 약하다. ③ 거절하면 오류 경계(N1)가 같은 결재로 되돌리는데, **답한
+     사람은 자기 이름을 고칠 길이 없다** — 같은 결재가 영영 기록되지 않는 고리가 된다. 대신 업무의 담당자는
+     답한 사람이 아니라 **배정 기록이 고른 사람**으로 둔다 — 콘솔 관리자를 담당자로 두면 인계 조건(담당자가
+     있는 업무의 최신 run 확인)이 깨진다(실측: `hand_off` 409로 고쳤다).
+   * **짐작(`guessed`)은 옛 정의(0.5.0 이하) 호환으로만 남긴다.** 본문에 `answered_by`가 없던 판으로 고정된
+     Bot이 남아 있을 수 있다 — 그 판을 422로 끊을 이유가 없고 코드는 몇 줄이다. 그런 Bot이 없어지면 지운다.
+   * **R4 정의 한 벌.** `nowview-sc01.local.extension.json`을 지웠다. 정의는 `base_url: https://www.nowview.work`,
+     `allowed_hosts: [www.nowview.work, localhost]`, `allow_private_network: true`이고, **로컬 Center만**
+     CON-07 「서버 주소」(`PUT /api/v1/resources/extensions/nowview-sc01/address {"base_url":
+     "http://localhost:3000"}`)로 덮어쓴다. 운영 Center는 손대지 않는다.
+     * 득: 해시가 하나라 고정한 Bot이 두 환경에서 같이 돈다(로컬에서 시험한 그 판이 운영에 간다). 작업 정의를
+       두 파일에 맞춰 적는 일이 사라진다 — N1·N3·N6마다 두 파일을 같이 고쳐야 했고, 어긋나면 한쪽 환경에서만
+       실행 중에 멈춘다. 이제 `test_extension_definition_matches_the_bpmn_service_calls`가 정의 ↔ BPMN을 잠근다.
+     * 실: 운영 정의에서 사설망 허용이 켜진다. 덮어쓰기는 **관리자만** 하고 호스트는 `localhost` **정확히**
+       하나로 묶인다(실측: `127.0.0.1`·다른 호스트는 어댑터가 「허용 호스트 밖」으로 거절). 남는 위험은
+       ⓐ 운영 Center 관리자가 주소를 `localhost`로 잘못 바꾸면 **그 실행기가 도는 기계 자신**을 부른다 —
+       실행기가 NowView 운영 서버에서 돈다면 그 서버의 3000은 Chaeksa라 운영 키가 다른 앱으로 간다. ⓑ `www.nowview.work`의 DNS가 사설 IP를 돌려줘도 막히지
+       않는다(우리 Cloudflare DNS다). 둘 다 관리자·DNS 권한이 있어야 생기는 일이라 받아들였다.
+   * **실측.** Chaeksas 엔진 + `AdapterCaller` + 이 정의(주소만 `http://localhost:3010`으로 덮어쓰기, 시험용 키)
+     로 Studio 데모 실행을 돌려 **인계(`HANDED_OFF`)까지** 갔다. 어댑터는 `[::1]:3010`을 불렀다. 답한 사람
+     8건이 짐작 없이 적혔다 — 담당자 6건은 사용자 id, 대리 답 1건은 `answered_via`, 콘솔 관리자 1건은
+     `outside_master`. **재지 못한 것**: 진짜 Center에서 「서버 주소」를 바꾸는 단계(이 실측은 Center가 내려 줄
+     주소를 `Addresses`로 직접 줬다).
+   * Center에 다시 올릴 것: 정의 0.6.0 서명·등록, 로컬 Center에서만 주소 덮어쓰기.
 
-Chaeksas 요청(R1~R6)은 1과 동시에 보낸다. R1이 오면 1의 임시 칸을 걷는다.
+Chaeksas 요청(R1~R6)은 1과 동시에 보냈다. R1·R4는 5에서 반영했다.
