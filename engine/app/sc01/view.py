@@ -16,6 +16,7 @@ from chaeksas.contracts.bpmn_ext import BpmnProcess
 
 from app.sc01 import domain
 from app.sc01.calc import PERIODS, Pnl, monthly_pnl, period_pnl
+from app.sc01.process import RECORDS
 from app.sc01.seed import Seed
 
 
@@ -194,6 +195,13 @@ def dashboard(doc: dict, seed: Seed, *, period: str = "연간", month: int = 7) 
     }
 
 
+def _record_of(node: Any) -> str | None:
+    call = node.prop("serviceCall") if node.kind == "serviceTask" else None
+    if call is None or call.operation not in RECORDS:
+        return None
+    return str(call.input.get("node_id", "")).strip("'") or None
+
+
 def topology(process: BpmnProcess) -> dict[str, Any]:
     """캔버스가 그릴 노드·흐름. **BPMN 파일이 원천**이다 — 화면은 토폴로지를 따로 적지 않는다."""
     return {
@@ -205,6 +213,8 @@ def topology(process: BpmnProcess) -> dict[str, Any]:
                 "kind": n.kind,
                 "name": n.name,
                 "role": domain.NODE_ROLES.get(n.id, {}).get("role"),
+                # 결정 기록 태스크면 그 결재 — 캔버스가 결재 노드에 접어 그린다(N1).
+                "recordOf": _record_of(n),
             }
             for n in process.all_nodes()
         ],

@@ -267,7 +267,14 @@ export interface Dashboard {
 export interface ProcessTopology {
   processId: string;
   name: string | null;
-  nodes: { id: string; kind: string; name: string | null; role: string | null }[];
+  nodes: {
+    id: string;
+    kind: string;
+    name: string | null;
+    role: string | null;
+    /** 결정 기록 태스크면 그 결재 노드 id — 캔버스는 그 결재에 접어 그린다(docs/chaeksas-integration.md N1). */
+    recordOf?: string | null;
+  }[];
   flows: { id: string; source: string; target: string; condition: string | null; default: boolean }[];
 }
 

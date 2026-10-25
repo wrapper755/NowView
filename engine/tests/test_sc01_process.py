@@ -341,3 +341,59 @@ def test_deadline_rules() -> None:
     assert (
         due_at(parse_at("2027-06-19T10:00:00+09:00"), 2).isoformat() == "2027-06-23T18:00:00+09:00"
     )
+
+
+# ───────────── 바깥 실행 — Chaeksas가 그림을 돌리고 NowView는 작업으로만 듣는다 (N1) ─────────────
+
+
+class _ExternalCalls:
+    """Studio·서버 실행기의 HTTP 어댑터 흉내 — 행위자 없이 `operate`만 부른다."""
+
+    def __init__(self, proc: Sc01Process) -> None:
+        self.proc = proc
+
+    def call(self, request):
+        from chaeksas.core.services import OpOutcome
+
+        args = dict(request.input)
+        return OpOutcome(output=self.proc.operate(args.pop("demo_run_id"), request.operation, args))
+
+
+def test_external_run_reaches_handoff_through_record_tasks(proc: Sc01Process) -> None:
+    """
+    Studio 시험 실행에서 확인완료 뒤 계산이 409로 막혔다(2026-10-25). 결정 기록 작업이 생긴 뒤에는
+    바깥 실행만으로 인계까지 간다 — 업무는 기록될 때 늦게 열리고, 답한 사람은 담당자로
+    짐작한다(R1 전).
+    """
+    from chaeksas.core.engine import Engine, RunEnv, State
+    from chaeksas.core.run_log import RunLog
+
+    doc = proc.create()
+    rid = doc["demo_run_id"]
+    sid = proc.receive(rid, "CP02", actor="u-sales")["sources"]["SRC02"]["source_id"]
+
+    engine = Engine()
+    run_id = "run_20270616_090000_e0e0e0"
+    run = engine.start(
+        proc.process,
+        run_id=run_id,
+        log=RunLog(run_id=run_id),
+        env=RunEnv(services=_ExternalCalls(proc)),
+        executor="server_runner",
+        inputs={"데모실행ID": rid, "원천ID": sid},
+        now=parse_at(doc["clock"]),
+    )
+    answers = {s.node_id: s.answer for s in demo.BASE if s.node_id}
+    while engine.run_until_blocked(run) is State.WAITING:
+        for p in list(run.pendings.values()):
+            engine.answer(run, p.request_id, answers[p.node_id], answered_by="콘솔")
+    assert run.state is State.DONE
+
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF"
+    assert after["sources"][sid]["status"] == "VERIFIED"
+    late = {t["type"]: t["opened_late"] for t in after["tasks"].values() if t.get("opened_late")}
+    # TASK-DQ는 같은 데모 실행의 내장 실행이 열었다 — 나머지는 기록 시점에 늦게 열렸다.
+    assert set(late) == {"SALES", "PROD", "MAT", "FIN"}
+    guessed = [a for a in after["audit"] if a["action"] == "answer_recorded"]
+    assert guessed and all(a["detail"]["guessed"] for a in guessed)

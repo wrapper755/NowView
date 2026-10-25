@@ -204,7 +204,8 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01, 4.3)
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01 운영계 · .local 로컬, 4.3)
+├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
@@ -295,6 +296,7 @@ POST /sc01/demo-runs/{id}/sources/{sourceId}/validation    → {passed, error_co
 POST /sc01/demo-runs/{id}/sources/{sourceId}/comparison    → {run_id, risk, issue_id}
 POST /sc01/demo-runs/{id}/calc-runs/{runId}/agent-draft    → {output_id}
 POST /sc01/demo-runs/{id}/calc-runs/{runId}/handoff        → {handed_off}
+POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기록 (N1, 아래 4.5)
 ```
 
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
@@ -306,8 +308,17 @@ POST /sc01/demo-runs/{id}/calc-runs/{runId}/handoff        → {handed_off}
     `/api/engine/…`를 통째로 적었다.
   * **외부 확장의 주소는 정의의 `base_url`뿐이다** — Center에서 바꿀 길이 없다(주소 바꾸기는 서비스 앱만).
     그래서 정의는 운영계(`https://www.nowview.work`)만 가리키고 `localhost`·`allow_private_network`를 두지
-    않는다. 로컬에서 부르려면 버전을 달리한 정의를 따로 서명해야 한다.
+    않는다. **로컬용은 파일이 따로 있다** — `nowview-sc01.local.extension.json`(`0.2.0-local`,
+    `http://localhost:3000`, `allow_private_network`). id가 같으므로 한 Center에는 둘 중 하나만 올린다.
+    작업 정의는 두 파일이 같아야 한다 — 운영계 정의를 고치면 로컬 정의도 함께 고친다.
+  * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
+    `-H 127.0.0.1`로 띄우면 연결 거부다.
   * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
+  * **`requires_keys`를 두지 않는다.** ADR-0091 이후 `auth` 없이 `run` 키를 적으면 E3로 거절된다 — NowView가
+    키를 검사하지 않으므로 「키를 받지 않는 앱」이 참이다. 인증은 요청서 R6의 답을 보고 붙인다.
+  * **선택 입력을 본문 템플릿에 넣지 않는다.** 어댑터는 `{{input.x}}`의 `x`가 없으면 호출을 실패시킨다 —
+    그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸고,
+    `answered_by`는 R1이 오기 전까지 본문에 없다.
 
 * **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
@@ -360,7 +371,18 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   올라간다). Center·서버 실행기는 쓰지 않는다 — 정의 변경마다 서명·배포, 결재 응답은 관리자 토큰
   전용, 작업 결과 값 미반환이라 화면이 결과를 읽을 길이 없다. 대신 **우리가 붙인 것**: SSE(기존
   허브·notifier), 지난 시점(Chaeksas 스냅샷은 현재 하나뿐이라 `sc01_history`에 매번 문서 전체),
-  폼이 못 거는 업무 규칙(의견·근거 필수, 담당자만 인수 — `_before_answer`).
+  폼이 못 거는 업무 규칙(의견·근거 필수, 담당자만 인수 — `process.check_answer`).
+* **사람 결정의 업무 효과는 결재 뒤의 「… 기록」 서비스 태스크가 낸다**(`Record_*` → `record_*` 작업,
+  `docs/chaeksas-integration.md` N1). 결재를 내장·Studio·Center 어디서 닫았든 같은 길이다 — 예전에는
+  내장 실행기의 답 훅에만 있어 Studio 실행에서 원천이 확인되지 않고 계산이 409였다(2026-10-25 실측).
+  내장 경로는 답을 넣기 전에 `check_answer`로 **부수 효과 없이** 거절해 입력을 지키고(4.6), 기록 작업이
+  같은 검사를 다시 한다(콘솔 답은 앞 검사를 거치지 않는다).
+  * **답한 사람**: 내장은 조작한 행위자, 바깥은 Chaeksas가 아직 넘기지 않아(요청서 R1) 그 결재의 담당자로
+    적고 감사 이력에 `guessed`로 남긴다.
+  * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
+    판정이 그만큼 느슨하다. Center 결재를 읽게 되면(N3) 그때 연다.
+  * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
+    두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
 * **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
   저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
   보지 않는다(DATA-05).
@@ -369,6 +391,10 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   엑셀을 고치면 `engine/seed/`의 파일을 바꾸고 `pytest`를 돌린다.
 * **역할 배정은 코드에 있다**(`domain.NODE_ROLES`). `chk:approval`에 역할 칸이 없다. BPMN에 사람
   노드를 더하고 표를 빠뜨리면 `test_every_user_task_has_a_role`이 잡는다.
+* **결재 담당자(`chk:approval.assignees`)는 사람 이름이다**(N4) — 바깥 Chaeksas가 「담당자만 답한다」를
+  그것으로 막는다(ADR-0081). 인수 결재는 배정 기록이 돌려준 `…담당자명` 변수를 쓴다(폼은 id를 고른다).
+  `NODE_ROLES`와 어긋나면 `test_every_approval_names_assignees_matching_the_role_table`이 잡는다.
+  확인(`manualTask`)에는 담당자를 둘 수 없어 `Confirm_Calc`는 결재(`userTask`)다.
 * **행위자는 `X-Demo-Actor` 헤더다 — 신뢰 경계가 아니다.** 구현명세는 세션에서 꺼내라고 하지만 인증이
   없다(5.4). 서버는 "그 사용자가 그 역할·담당인가"까지 검사하고(403), 인증이 붙으면 헤더만 세션으로
   바꾸면 된다.
@@ -376,7 +402,7 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   SQLite로 조용히 되돌리지 않는다** — 운영에서 DB가 안 붙었다면 즉시 드러나야 한다. `/health`의
   `storage`가 어느 쪽인지 알려 준다.
 
-**흐름(BPMN)** — S01·S02 자동 검증 → `Approve_DQ`(영업담당, 보완이면 정정본 메시지 대기) →
+**흐름(BPMN)** — (각 결재 뒤에 기록 태스크가 있다 — 생략) S01·S02 자동 검증 → `Approve_DQ`(영업담당, 보완이면 정정본 메시지 대기) →
 `Confirm_Calc` → 전망 생성·지표 계산 → `Approve_Sales`(영업팀장) → **포함 게이트웨이**: 현업 배정(항상)
 ∥ Review 요청(`위험수준 == 'CRITICAL' or 경영검토요청`) → PROD·MAT(병렬)·FIN 인수 → 인계 기록.
 장면 완료는 **후속 업무 인수**이지 위험 해소·전망 승인이 아니다 — 끝나도 F02는 `UNDER_REVIEW`,
@@ -835,6 +861,8 @@ gh api repos/astral-sh/setup-uv/tags --jq '.[].name' | head
 
 * `chaeksas-core`는 **git 커밋 고정 의존성**이다. Chaeksas 리포(`wrapper755/Chaeksas`, public)가 바뀌어도
   `rev`를 올리기 전에는 NowView가 따라가지 않는다. 올린 뒤에는 엔진 테스트를 양쪽 백엔드로 돌린다.
+  2026-10-25에 `6088b75` → `c127c6f`로 올렸다 — 결재 담당자(`assignees`)를 엔진이 풀게 됐다(N4).
+  **고정된 판이 낡으면 계약 검사도 낡는다**: 옛 판에서는 확장 정의가 통과했지만 최신 Center는 E3로 거절했다.
 * Chaeksas 패키지는 `requires-python <3.13`이다 — 엔진도 그 범위로 묶었다(`>=3.12,<3.13`).
 
 ### 5.3 화면 → SC01 전환 — 완료

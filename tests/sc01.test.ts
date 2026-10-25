@@ -16,7 +16,7 @@ import {
   formatRatio,
   riskLabel,
 } from "@/lib/sc01/format";
-import { layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
+import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
 import { historySeqFor, SC01_SCENES } from "@/lib/sc01/scenes";
 import type { DemoRunView, HistoryEntry, ProcessTopology } from "@/lib/sc01/types";
 
@@ -26,8 +26,19 @@ describe("BPMN 배치", () => {
   const placed = layoutProcess(process);
   const at = (id: string) => placed.find((p) => p.id === id)!;
 
-  it("모든 노드를 놓는다", () => {
-    expect(placed).toHaveLength(process.nodes.length);
+  it("결정 기록 태스크만 빼고 모든 노드를 놓는다", () => {
+    const records = process.nodes.filter((n) => n.recordOf);
+    expect(records.length).toBeGreaterThan(0);
+    expect(placed).toHaveLength(process.nodes.length - records.length);
+    expect(placed.some((p) => p.id.startsWith("Record_"))).toBe(false);
+  });
+
+  it("기록 태스크를 접어도 흐름이 끊기지 않는다 — 결재에서 다음 노드로 바로 잇는다", () => {
+    const { flows, nodes } = canvasTopology(process);
+    const ids = new Set(nodes.map((n) => n.id));
+    expect(flows.every((f) => ids.has(f.source) && ids.has(f.target))).toBe(true);
+    expect(flows.some((f) => f.source === "Approve_DQ" && f.target === "Gw_DQ")).toBe(true);
+    expect(flows.some((f) => f.source === "Approve_Review" && f.target === "Accept_FIN")).toBe(true);
   });
 
   it("되돌아가는 흐름(보완 → 재검증)은 층 계산에서 빠진다", () => {
