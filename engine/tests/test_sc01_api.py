@@ -394,10 +394,59 @@ def test_every_decision_is_followed_by_its_record_task() -> None:
         assert (call.operation, call.input["node_id"]) == (operation, f"'{node_id}'"), node_id
 
 
+def test_extension_definition_matches_the_bpmn_service_calls() -> None:
+    """
+    확장 정의(`chaeksas/nowview-sc01.extension.json`)와 BPMN이 갈라지면 어댑터가 실행 중에
+    멈춘다 — 본문 템플릿의 `{{input.x}}`가 입력에 없으면 호출이 실패한다(4.3). 정의는 한 벌이고
+    (R4) 답한 사람을 받는 작업은 결재의 `answered_by_as` 변수를 싣는다(R1).
+    """
+    import json
+    import re
+    from pathlib import Path
+
+    from chaeksas.contracts import extension as ext
+    from chaeksas.contracts.bpmn_ext import read_process
+
+    from app.sc01.process import PROCESS_PATH, RECORD_OF_NODE
+
+    root = Path(__file__).resolve().parents[2] / "chaeksas"
+    assert sorted(p.name for p in root.glob("*.extension.json")) == ["nowview-sc01.extension.json"]
+    raw = (root / "nowview-sc01.extension.json").read_bytes()
+    manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
+    assert ext.validate(manifest, from_center=True) == []
+    adapter = json.loads(raw)["service"]["adapter"]
+    # 운영계가 기본 주소이고, 로컬 Center만 localhost로 덮어쓴다(ADR-0097) — 그 밖으로 넓히지 않는다
+    assert manifest.service.base_url == "https://www.nowview.work"
+    assert adapter["allowed_hosts"] == ["www.nowview.work", "localhost"]
+    operations = {o["name"]: o for o in adapter["operations"]}
+
+    process = read_process(PROCESS_PATH.read_bytes())
+    answered = {RECORD_OF_NODE[n]: n for n in RECORD_OF_NODE} | {"compare": "Confirm_Calc"}
+    for node in process.of_kind("serviceTask"):
+        call = node.prop("serviceCall")
+        op = operations[call.operation]
+        given = set(call.input)
+        assert set(op["input_schema"]["required"]) <= given, node.id
+        used = set(
+            re.findall(r"\{\{input\.(\w+)\}\}", json.dumps(op["request"], ensure_ascii=False))
+        )
+        assert used <= given, (node.id, used - given)
+        if call.operation in answered:
+            assert "answered_by" in op["input_schema"]["required"], call.operation
+    for node_id in [*RECORD_OF_NODE, "Confirm_Calc"]:
+        approval = process.node(node_id).prop("approval")
+        assert approval.answered_by_as and approval.answered_via_as, node_id
+        [flow] = process.outgoing(node_id)
+        call = process.node(flow.target).prop("serviceCall")
+        assert call.input["answered_by"] == approval.answered_by_as, node_id
+        assert call.input["answered_via"] == approval.answered_via_as, node_id
+
+
 def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> None:
     """
     Studio에서 「확인완료」해도 원천이 RECEIVED로 남아 계산이 409였다(2026-10-25 실측). 바깥 실행은
-    결재 뒤 기록 작업으로 확인을 적는다 — 답한 사람을 모르면 담당자로 적고 짐작이라 표시한다(R1 전).
+    결재 뒤 기록 작업으로 확인을 적는다. 이 본문은 `answered_by`가 없던 옛 정의(0.5.0 이하)의
+    것이다 — 그때만 담당자로 적고 짐작이라 표시한다(R1 이후의 길은 아래 시험).
     """
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
@@ -454,12 +503,58 @@ def test_record_answer_keeps_the_business_rules(client) -> None:
         ).status_code
         == 404
     )
-    # 답한 사람을 실어 보내면 그 사람으로 적는다(R1 이후의 길) — 모르는 이름은 422
+
+
+def test_record_writes_who_answered_without_guessing(client) -> None:
+    """
+    R1(ADR-0096) — 결재의 `answered_by_as` 변수가 기록 작업 `answered_by`로 온다. 마스터에 있는
+    이름은 사용자 id로, 없는 이름(콘솔 관리자 · Studio 「시험 케이스」)은 거절하지 않고 그 이름
+    그대로 적는다 — 거절하면 오류 경계가 같은 결재로 되돌리는데 답한 사람은 고칠 길이 없다.
+    """
+    rid, sid = _received(client)
+    base = f"/sc01/demo-runs/{rid}"
+    body = {**EXT, "source_id": sid, "opinion": "확인", "evidence": "SRC02"}
     r = client.post(
         f"{base}/answers/Approve_DQ",
-        json={**EXT, "source_id": sid, "result": "확인완료", "answered_by": "홍길동"},
+        json={
+            **body,
+            "result": "보완요청",
+            "answered_by": "이도윤",
+            "answered_via": "nowview-relay",
+        },
     )
-    assert r.status_code == 422
+    assert r.status_code == 200, r.text
+    doc = client.get(base).json()
+    [first] = [a for a in doc["audit"] if a["action"] == "answer_recorded"]
+    assert first["actor"] == "u-sales"
+    assert first["detail"] == {
+        "node_id": "Approve_DQ",
+        "guessed": False,
+        "answered_via": "nowview-relay",
+    }
+
+    rid, sid = _received(client)
+    base = f"/sc01/demo-runs/{rid}"
+    r = client.post(
+        f"{base}/answers/Approve_DQ",
+        json={
+            **body,
+            "source_id": sid,
+            "result": "확인완료",
+            "answered_by": "관리자",
+            "answered_via": None,
+        },
+    )
+    assert r.status_code == 200, r.text
+    doc = client.get(base).json()
+    source = next(s for s in doc["sources"] if s["source_id"] == sid)
+    assert (source["status"], source["verified_by"]) == ("VERIFIED", "관리자")
+    [recorded] = [a for a in doc["audit"] if a["action"] == "answer_recorded"]
+    assert recorded["actor"] == "관리자" and recorded["detail"]["outside_master"] is True
+    assert recorded["detail"]["guessed"] is False
+    # 업무의 담당자는 답한 사람이 아니라 그 결재의 담당자다
+    [task] = [t for t in doc["tasks"] if t["type"] == "DQ"]
+    assert task["assigned_to"] == "u-sales"
 
 
 # ───────────── 데모 실행 ↔ 바깥 실행 (N2) ─────────────
