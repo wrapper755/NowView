@@ -1,17 +1,19 @@
 {
   "schema": 2,
   "id": "nowview-sc01",
-  "version": "0.3.0-local",
+  "version": "0.4.0-local",
   "name": "NowView SC01 업무 시스템 (로컬)",
-  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 이 PC의 NowView(localhost:3000)를 부른다.",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio. 이 PC의 NowView(localhost:3000)를 부른다.",
   "publisher": "NowView",
   "tier": "external",
+  "requires_keys": [{"purpose": "run"}],
   "service": {
     "protocol": "http-adapter",
     "base_url": "http://localhost:3000",
     "adapter": {
       "allowed_hosts": ["localhost"],
       "allow_private_network": true,
+      "auth": {"type": "bearer"},
       "limits": {"timeout_s": 30, "max_response_kb": 256},
       "operations": [
         {

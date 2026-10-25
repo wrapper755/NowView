@@ -21,6 +21,7 @@ from fastapi import FastAPI
 from .events import hub
 from .notify import build_notifier
 from .sc01.api import build_router as build_sc01_router
+from .sc01.auth import SystemAuth
 from .sc01.process import Sc01Process
 from .sc01.store import build_sc01_store
 from .store import build_backend
@@ -41,7 +42,9 @@ backend = build_backend()
 notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
 
 sc01 = Sc01Process(build_sc01_store(backend), publish=notifier.publish)
-app.include_router(build_sc01_router(sc01, hub))
+# 시스템 작업의 키(N6). 키가 없으면 그 길은 503이다 — 끄려면 NOWVIEW_SYSTEM_AUTH=off(auth.py).
+system_auth = SystemAuth.from_env()
+app.include_router(build_sc01_router(sc01, hub, system_auth))
 
 
 @app.on_event("startup")
@@ -70,6 +73,8 @@ def health() -> dict[str, Any]:
             "process": sc01.process.id,
         },
         "demoRuns": len(sc01.store.list()),
+        # 시스템 작업 인증 — 「키 없이 꺼 둔 채 운영」을 눈치챌 수 있어야 한다. 값은 싣지 않는다.
+        "systemAuth": system_auth.describe(),
         "eventSubscribers": hub.subscriber_count,
         # 전파 방식을 드러내지 않으면 "여러 워커인데 알림이 로컬"인 상태를 눈치챌 수 없다.
         "notify": {

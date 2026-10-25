@@ -1,6 +1,6 @@
 # NowView ↔ Chaeksas 연계 설계 — SC01을 바깥 Chaeksas에서 돌려도 NowView 전체가 따라온다
 
-- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2 구현(2026-10-25), 나머지는 아래 7의 순서
+- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6 구현(2026-10-25), 나머지는 아래 7의 순서
 - 관련: CLAUDE.md 4.3(API·외부 확장)·4.5(BPM)·4.6(화면), Chaeksas ADR-0079~0085(가상 직원·결재 담당자·대리 답),
   Chaeksas에 보낼 요청서 [handoff/chaeksas-nowview-integration.md](handoff/chaeksas-nowview-integration.md)
 
@@ -83,13 +83,13 @@ Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. �
   * 템플릿으로 알 길이 없다 — Chaeksas가 R5를 거절했다. 템플릿 값은 부르는 쪽이 스스로 하는 주장이라
     인증된 구분이 아니라는 이유다.
   * 인증된 구분은 N6의 키다 — Studio에는 시험용 키만, 현장(Bot UI·서버 실행기)에는 운영 키만 간다
-    (R6 답, Chaeksas ADR-0094 §7). N6 전에는 확인할 수단이 없다.
+    (R6 답, Chaeksas ADR-0094 §7). N6이 그 검사를 붙였다(아래).
   * **화면이 읽기 전용인지는 첫 작업 호출 전에 정해져야 한다.** 수신 직후, 바깥 실행이 아직 시작되지
     않았을 때부터 "Studio에서 답하세요"와 Studio에 넣을 입력(데모실행ID·원천ID)을 보여야 한다. 첫 호출로
     알아내는 방식은 그 자리를 비운다.
   * **내장 데모 실행이 바깥 호출을 받아 바깥으로 바뀌게 두지 않는다.** 그러면 내장 BPM이 이미 시작된
     문서에 바깥 실행이 겹친다 — 고치려던 바로 그 상태다. 내장 데모 실행에 바깥 호출이 오면 409다.
-  * N6이 붙으면 키로 선언을 검사한다: 시험용 키로 온 호출이 `center` 데모 실행에, 운영 키로 온 호출이
+  * N6은 키로 선언을 검사한다: 시험용 키로 온 호출이 `center` 데모 실행에, 운영 키로 온 호출이
     `studio` 데모 실행에 오면 409. 선언은 남는다 — 위 셋째 이유 때문이다.
 * 문서: `bpm`은 바깥 실행이면 처음부터 있다 — `{executor, external_run_id, run_id, state, snapshot: null,
   visited, position: []}`. `state`는 `not_started` → 첫 호출에 `running` → 인계가 성립하면 `done`이다.
@@ -156,7 +156,25 @@ NowView 원천 수신 ──POST /messages──▶ 접수 Bot nowview.sc01-inta
 **지금 정의 두 벌은 최신 Chaeksas에서 거절된다**(2026-10-25 확인). ADR-0091 이후로는 `requires_keys: [{purpose: run}]`가
 있는데 `auth`가 없으면 E3 `adapter_invalid`다. NowView 엔진에 고정된 `chaeksas-core`는 그 이전 판이라 통과했고,
 Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bearer`를 두는 것이 N6의 방향이다.
-② `requires_keys`를 빼면 키를 받지 않는 앱이 된다.
+② `requires_keys`를 빼면 키를 받지 않는 앱이 된다. (N1에서 ②로 임시로 바로잡았고 N6에서 ①로 갔다.)
+
+**구현에서 정한 것(2026-10-25)** — Chaeksas R6 답을 그대로 따랐다.
+
+* 정의 0.4.0 / 0.4.0-local: `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`. 키 참조는 BPMN
+  `service_keys`의 `nowview`. 최신 계약 검사 위반 0건, `takes_key` 참.
+* **키 둘을 NowView가 짓는다.** 운영 키 `NOWVIEW_SYSTEM_KEY` → Center 「외부 앱 키」(서버 실행기·Bot UI),
+  시험용 키 `NOWVIEW_SYSTEM_KEY_TEST` → 「시험용 키」(Studio만). 엔진은 상수 시간 비교로 둘 다 대 보고
+  어느 쪽인지 가린다(`engine/app/sc01/auth.py`). 원문을 환경에 둔다 — 해시만 두는 것은 이득이 적다
+  (같은 서버의 `/etc/nowview.env` 0600, DB 비밀번호와 같은 자리다).
+* **어느 키인지가 실행 위치다** — 시험용 키면 `studio`, 운영 키면 `center`. 데모 실행의 선언과 어긋나면
+  409, 묶이지 않는다. 키가 없거나 틀리면 401.
+* **키가 하나도 없으면 503이다(fail closed).** 운영계는 인터넷에 열려 있다 — 환경 파일이 빠진 채
+  올라가면 조용히 열린다. 끄는 것은 `NOWVIEW_SYSTEM_AUTH=off`로 명시한다(로컬·시험). 두 키가 같아도
+  503이다 — 시험용 키가 운영을 여는 셈이다. `/health.systemAuth.mode`가 `keys`·`off`·`unconfigured`.
+* BFF는 `Authorization`을 그대로 넘기고 검사하지 않는다 — 키는 엔진만 쥔다.
+* 배포: `deploy/bootstrap.sh`가 **파일이 이미 있어도 빠진 키만** 지어 더한다(있는 값은 그대로 — 바꾸면
+  Center에 넣은 키와 어긋난다). 값은 출력하지 않는다. 로컬은 `engine/.env.local`을 `stack.sh`가 읽는다.
+* 내장 경로(`_InProcessCalls`)는 HTTP를 타지 않아 키와 무관하다.
 
 ## 6. 하지 않는 것
 
@@ -181,7 +199,10 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
    스냅샷 없음, 업무 5건 모두 늦게 열림). 이미 묶인 데모 실행에 다른 실행을 붙이면 첫 호출이 409로 실패하고,
    내장 데모 실행에 붙여도 409다. 화면은 배너·읽기 전용 폼·각본 비활성·캔버스 진행을 브라우저에서 봤다.
    설계와 다르게 정한 것은 위 N2 「구현에서 정한 것」에 적었다 — 실행 위치는 선언, 토큰 위치는 비움.
-   **N6은 남았다** — 키를 받으면 시험용 키 ↔ 운영 키로 실행 위치 선언을 검사한다.
+   **N6 — 했다.** 같은 방식으로 키를 실어 돌렸다: Studio 데모 실행 + 시험용 키, Center 데모 실행 + 운영 키는
+   인계까지(각 11건 200), 엇갈린 짝은 첫 호출 409로 실패·묶이지 않음, BFF 경유 키 없음·틀린 키는 401.
+   **운영계에 올리려면** `scripts/deploy.sh --bootstrap`(키 생성) → Center CON-07에 두 키 입력 → 0.4.0 정의
+   서명·등록 순서다. 운영계는 아직 이전 구현이다(CLAUDE.md 5.4).
 3. **N3** — Center 서버 Bot과 NowView 화면 대리 답, 폴링 SSE.
 4. **N5** — 가상 직원. 접수 Bot 그림, Center 등록, UI02 카드.
 

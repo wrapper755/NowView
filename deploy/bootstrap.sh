@@ -7,6 +7,9 @@
 # 덮어쓰지 않는다 — 덮어쓰면 DB 비밀번호가 바뀌어 엔진이 붙지 못한다.
 #
 # 비밀번호는 이 서버에서 생성해 이 서버에만 남는다. 리포에 들어가지 않는다.
+#
+# 시스템 작업 키 두 개(N6)는 **파일이 이미 있어도 빠졌으면 더한다** — 있는 값은 바꾸지 않는다
+# (바꾸면 Center에 넣은 키와 어긋난다). 값은 출력하지 않는다.
 set -euo pipefail
 
 ENV_FILE=/etc/nowview.env
@@ -15,8 +18,27 @@ DB_USER=nowview
 WEB_PORT=${WEB_PORT:-3100}
 ENGINE_PORT=${ENGINE_PORT:-8077}
 
+# 바깥 Chaeksas가 시스템 작업을 부를 때 싣는 키(engine/app/sc01/auth.py). 운영 키는 Center의
+# 「외부 앱 키」, 시험용 키는 「시험용 키」에 넣는다(CON-07 → nowview-sc01). 같은 키를 쓰면 엔진이
+# 실행 위치를 가를 수 없어 거절한다. hex라 ASCII다(어댑터는 ASCII 밖의 키를 거절한다).
+ensure_system_keys() {
+  local added=0
+  for var in NOWVIEW_SYSTEM_KEY NOWVIEW_SYSTEM_KEY_TEST; do
+    if ! grep -q "^${var}=" "$ENV_FILE"; then
+      echo "${var}=$(openssl rand -hex 32)" >> "$ENV_FILE"
+      echo "추가: ${var}"
+      added=1
+    fi
+  done
+  if (( added )); then
+    echo "Center CON-07(nowview-sc01)에 넣는다 — 값은 서버에서: grep NOWVIEW_SYSTEM_KEY $ENV_FILE"
+    echo "엔진을 다시 띄워야 읽는다: systemctl restart nowview-engine"
+  fi
+}
+
 if [[ -f $ENV_FILE ]]; then
   echo "이미 있다: $ENV_FILE — 그대로 둔다 (비밀번호를 바꾸면 엔진이 붙지 못한다)"
+  ensure_system_keys
   exit 0
 fi
 
@@ -64,5 +86,6 @@ umask 077
   echo "OLLAMA_MODEL=kimi-k3:cloud"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
+ensure_system_keys
 
 echo "작성: $ENV_FILE (0600, root만)"

@@ -23,6 +23,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
 from app.sc01 import demo, domain
+from app.sc01.auth import SystemAuth
 from app.sc01.domain import USERS, DomainError
 from app.sc01.process import RECORD_OF_NODE, Sc01Process
 from app.sc01.view import dashboard, topology, view
@@ -54,8 +55,10 @@ class ClockBody(BaseModel):
     at: str
 
 
-def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
+def build_router(process: Sc01Process, hub: Hub, auth: SystemAuth | None = None) -> APIRouter:
+    """`auth` — 시스템 작업의 키(N6). 주지 않으면 환경변수에서 읽는다(`SystemAuth.from_env`)."""
     r = APIRouter(prefix="/sc01", tags=["sc01"])
+    system_auth = auth or SystemAuth.from_env()
 
     def guard(fn, *args, **kwargs):
         try:
@@ -202,8 +205,16 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     # 부른다. 내장 BPM의 `_InProcessCalls`와 같은 함수·같은 출력이다(`process.run_operation`).
     # 사람의 업무가 아니라서 행위자 헤더를 받지 않는다 — 감사 이력에는 `system`으로 남는다.
     # 본문에는 언제나 바깥 실행의 `chaeksas_run_id`(`{{run_id}}`)와 `chaeksas_node_id`
-    # (`{{node_id}}`)가 실린다 — 데모 실행을 그 실행에 묶는 열쇠다(N2).
-    def operate(demo_run_id: str, operation: str, body: dict[str, Any], **args: Any):
+    # (`{{node_id}}`)가 실린다 — 데모 실행을 그 실행에 묶는 열쇠다(N2). `Authorization: Bearer`의
+    # 키가 어느 실행 위치에서 왔는지 말한다(N6, `auth.py`) — 데모 실행의 선언과 어긋나면 409다.
+    def operate(
+        demo_run_id: str,
+        operation: str,
+        body: dict[str, Any],
+        authorization: str | None,
+        **args: Any,
+    ):
+        via = guard(system_auth.executor_of, authorization)
         rest = dict(body)
         run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
         return guard(
@@ -213,37 +224,58 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
             {**rest, **args},
             external_run_id=run_id,
             node_id=node_id,
+            via=via,
         )
 
     link = Body(default_factory=dict)
+    key = Header(default=None)
 
     @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/validation")
     def validate_source(
-        demo_run_id: str, source_id: str, body: dict[str, Any] = link
+        demo_run_id: str,
+        source_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
     ) -> dict[str, Any]:
         """원천 자동 검증(UI03-01) → `{passed, error_count}`."""
-        return operate(demo_run_id, "validate_source", body, source_id=source_id)
+        return operate(demo_run_id, "validate_source", body, authorization, source_id=source_id)
 
     @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/comparison")
-    def compare(demo_run_id: str, source_id: str, body: dict[str, Any] = link) -> dict[str, Any]:
+    def compare(
+        demo_run_id: str,
+        source_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
+    ) -> dict[str, Any]:
         """확인된 원천으로 전망 생성·지표 계산 → `{run_id, risk, issue_id}`. 확인 전이면 409."""
-        return operate(demo_run_id, "compare", body, source_id=source_id)
+        return operate(demo_run_id, "compare", body, authorization, source_id=source_id)
 
     @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/agent-draft")
     def request_agent_draft(
-        demo_run_id: str, run_id: str, body: dict[str, Any] = link
+        demo_run_id: str,
+        run_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
     ) -> dict[str, Any]:
         """Agent 검토 초안 요청(AG-01) → `{output_id}`. 기다리지 않는다 — 초안은 배경에서 만든다."""
-        return operate(demo_run_id, "request_agent_draft", body, run_id=run_id)
+        return operate(demo_run_id, "request_agent_draft", body, authorization, run_id=run_id)
 
     @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/handoff")
-    def hand_off(demo_run_id: str, run_id: str, body: dict[str, Any] = link) -> dict[str, Any]:
+    def hand_off(
+        demo_run_id: str,
+        run_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
+    ) -> dict[str, Any]:
         """장면 인계 기록(UI06-01) → `{handed_off}`. 조건 미충족이면 409."""
-        return operate(demo_run_id, "hand_off", body, run_id=run_id)
+        return operate(demo_run_id, "hand_off", body, authorization, run_id=run_id)
 
     @r.post("/demo-runs/{demo_run_id}/answers/{node_id}")
     def record_answer(
-        demo_run_id: str, node_id: str, body: dict[str, Any] = link
+        demo_run_id: str,
+        node_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
     ) -> dict[str, Any]:
         """
         사람 결정의 기록(N1) — 결재 뒤의 서비스 태스크가 부른다. 결재가 Studio·Center 어디서
@@ -252,7 +284,7 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
         operation = RECORD_OF_NODE.get(node_id)
         if operation is None:
             raise HTTPException(404, f"기록할 결재가 아니다: {node_id}")
-        return operate(demo_run_id, operation, body, node_id=node_id)
+        return operate(demo_run_id, operation, body, authorization, node_id=node_id)
 
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(

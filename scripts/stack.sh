@@ -141,9 +141,14 @@ start_engine() {
   # `--timeout-graceful-shutdown`: 브라우저가 SSE로 붙어 있으면 uvicorn이 그 연결이 닫히기를
   # 기다리며 **reload가 끝나지 않는다** — 엔진이 응답 없이 멈춘 것처럼 보였고 TERM에도 안 죽었다.
   # 운영 유닛과 같은 이유다(CLAUDE.md 5.4).
+  # `engine/.env.local`(gitignore)이 있으면 읽는다 — 시스템 작업 키(N6)처럼 리포에 넣지 않을 값.
+  # 없으면 시스템 작업은 503이다(engine/app/sc01/auth.py).
+  local env_file=()
+  [[ -f $ROOT/engine/.env.local ]] && env_file=(--env-file .env.local)
   start_proc engine "$ENGINE_PORT" health_ok \
     env -C "$ROOT/engine" uv run uvicorn app.main:app \
-      --port "$ENGINE_PORT" --reload --timeout-graceful-shutdown 3 --log-level warning
+      --port "$ENGINE_PORT" --reload --timeout-graceful-shutdown 3 --log-level warning \
+      "${env_file[@]}"
 }
 
 start_db() {
