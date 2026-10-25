@@ -30,6 +30,8 @@ export function ActionForm({
   const actor = useSc01((s) => s.actor);
   const users = useSc01((s) => s.users);
   const historical = useSc01((s) => s.past !== null);
+  /** 바깥 실행의 결재는 바깥에서 답한다 — 엔진도 409로 거절한다(N2). 버튼은 편의다. */
+  const external = useSc01((s) => (s.live?.executor ?? "embedded") !== "embedded");
   const setLive = useSc01((s) => s.setLive);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
@@ -86,11 +88,16 @@ export function ActionForm({
         />
       ))}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={busy || historical || wrongRole || missing}>
+        <Button type="submit" size="sm" disabled={busy || historical || external || wrongRole || missing}>
           <Send aria-hidden className="size-3.5" />
           {busy ? "보내는 중…" : submitLabel}
         </Button>
-        {wrongRole ? (
+        {external ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Lock aria-hidden className="size-3" />
+            바깥 실행이 도는 데모 실행이다 — 결재는 바깥에서 답한다
+          </span>
+        ) : wrongRole ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Lock aria-hidden className="size-3" />
             {waiting.role} 역할만 할 수 있다 — 상단에서 역할을 바꾼다

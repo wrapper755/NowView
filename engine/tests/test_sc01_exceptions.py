@@ -305,6 +305,24 @@ def test_old_documents_get_their_order_back() -> None:
     assert [s["source_id"] for s in shown["sources"]] == ["SRC02", "SRC03"]
 
 
+def test_old_documents_are_embedded_runs() -> None:
+    """실행 위치(N2) 이전 문서는 전부 내장 실행이다 — 저장된 데모 실행을 버리지 않는다."""
+    from app.sc01.domain import executor_of, upgrade
+
+    store = SqliteSc01Store(sqlite3.connect(":memory:", check_same_thread=False))
+    proc = Sc01Process(store, inline_agent=True)
+    rid, _ = correct_after_handoff(proc)
+    doc = proc.get(rid)
+    for k in ("executor", "external_run_id"):
+        doc["bpm"].pop(k)
+    for old in doc["bpm_history"]:
+        old.pop("executor")
+    doc = upgrade(doc)
+    assert executor_of(doc) == "embedded" and doc["bpm"]["external_run_id"] is None
+    assert {h["executor"] for h in doc["bpm_history"]} == {"embedded"}
+    assert view(doc)["bpm"]["executor"] == "embedded"
+
+
 def test_waiting_list_follows_the_bpmn_order(proc) -> None:
     """사람 대기 목록도 저장 순서가 아니라 BPMN 노드 순서다 — 현업 배정이 Review 요청보다 먼저."""
     doc = play(proc, until=3)

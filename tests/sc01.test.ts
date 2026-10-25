@@ -61,6 +61,8 @@ describe("BPMN 배치", () => {
 
 describe("노드 상태", () => {
   const bpm = (over: Partial<NonNullable<DemoRunView["bpm"]>>): DemoRunView["bpm"] => ({
+    executor: "embedded",
+    externalRunId: null,
     runId: "r",
     state: "waiting",
     waiting: [],
@@ -79,6 +81,13 @@ describe("노드 상태", () => {
   it("끝나면 안 간 노드는 미실행, 종료 이벤트는 완료다", () => {
     const s = nodeStates(process, bpm({ state: "done", visited: ["Start", "Approve_DQ"] }));
     expect(s.Wait_Correction).toBe("skipped");
+    expect(s.End).toBe("done");
+  });
+
+  it("바깥 실행은 끝나도 알려 주지 않은 노드를 미실행으로 칠하지 않는다 — 모르는 것이다", () => {
+    const s = nodeStates(process, bpm({ executor: "studio", state: "done", visited: ["Approve_DQ", "Task_Handoff"] }));
+    expect(s.Approve_DQ).toBe("done");
+    expect(s.Start).toBe("pending");
     expect(s.End).toBe("done");
   });
 });

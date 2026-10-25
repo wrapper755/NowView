@@ -10,6 +10,7 @@ import type {
   Dashboard,
   DemoRunView,
   DemoUser,
+  Executor,
   HistoryEntry,
   ProcessTopology,
   ScriptStep,
@@ -79,7 +80,12 @@ export const sc01Api = {
     post<DemoRunView>(`/demo-runs/${id}/agent-outputs/${outputId}/adopt`, {}, actor),
   clock: (id: string, at: string) => post<DemoRunView>(`/demo-runs/${id}/clock`, { at }, "u-demo"),
   step: (id: string, index: number) => post<DemoRunView>(`/demo-runs/${id}/script/${index}`, {}),
-  reset: (id: string, caseId?: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/reset`, caseId ? { caseId } : {}, "u-demo"),
+  /** 사례·실행 위치를 주지 않으면 지금 것을 잇는다. */
+  reset: (id: string, caseId?: string, executor?: Executor) =>
+    post<DemoRunView>(
+      `/demo-runs/${id}/reset`,
+      { ...(caseId ? { caseId } : {}), ...(executor ? { executor } : {}) },
+      "u-demo",
+    ),
   eventsUrl: (id: string) => `${SC01_BASE}/demo-runs/${id}/events`,
 };

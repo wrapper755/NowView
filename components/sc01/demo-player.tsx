@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { sc01Api } from "@/lib/sc01/client";
 import { historySeqFor, nextBusinessEvening, SC01_SCENES } from "@/lib/sc01/scenes";
+import type { Executor } from "@/lib/sc01/types";
 import { useSc01 } from "@/lib/store/sc01";
 
 /** 장면이 반영된 뒤 머무는 시간. */
@@ -50,6 +51,14 @@ export function Sc01DemoPlayer() {
   /** 초기화할 때 고를 시연 사례 — 기본 / EX08(Agent 응답 실패). 같은 각본을 다른 조건으로 돌린다. */
   const [caseChoice, setCaseChoice] = useState<string | null>(null);
   const caseId = caseChoice ?? liveCase;
+  /**
+   * 초기화할 때 고를 실행 위치(N2) — 내장 BPM이 돌 것인가, Studio·Center가 돌 것인가. 바깥이면
+   * 엔진은 이 데모 실행에서 BPM을 돌리지 않고, 각본(자동 재생·다음 장면)도 돌지 않는다.
+   */
+  const liveExecutor = useSc01((s) => s.live?.executor ?? "embedded");
+  const [executorChoice, setExecutorChoice] = useState<Executor | null>(null);
+  const executor = executorChoice ?? liveExecutor;
+  const external = liveExecutor !== "embedded";
   const [error, setError] = useState<string | null>(null);
   const scene = SC01_SCENES[sceneIndex];
 
@@ -166,7 +175,7 @@ export function Sc01DemoPlayer() {
     setPlaying(false);
     requestSeq.current++;
     setPending(true);
-    const r = await sc01Api.reset(demoRunId, caseId);
+    const r = await sc01Api.reset(demoRunId, caseId, executor);
     setPending(false);
     if (!r.ok) {
       setError(r.error);
@@ -290,6 +299,17 @@ export function Sc01DemoPlayer() {
               <option value="BASE">기본 시연</option>
               <option value="EX08">EX08 Agent 실패</option>
             </select>
+            <select
+              value={executor}
+              onChange={(e) => setExecutorChoice(e.target.value as Executor)}
+              aria-label="초기화할 실행 위치"
+              title="초기화할 때 BPM을 누가 돌 것인가 — 바깥이면 결재는 그쪽에서 답한다"
+              className="hidden h-7 rounded-md border bg-transparent px-1 text-[11px] sm:block"
+            >
+              <option value="embedded">내장 BPM</option>
+              <option value="studio">Studio 시험 실행</option>
+              <option value="center">Center 서버 실행</option>
+            </select>
             <Button
               variant="outline"
               size="sm"
@@ -303,7 +323,7 @@ export function Sc01DemoPlayer() {
             <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0} aria-label="이전 장면">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
-            <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={sceneIndex >= LAST && !isPlaying}>
+            <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={external || (sceneIndex >= LAST && !isPlaying)} title={external ? "바깥 실행이 도는 데모 실행은 각본을 돌리지 않는다" : undefined}>
               {isPlaying ? (
                 <>
                   <Pause aria-hidden className="size-3" />
@@ -316,7 +336,7 @@ export function Sc01DemoPlayer() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={sceneIndex >= LAST} aria-label="다음 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={external || sceneIndex >= LAST} aria-label="다음 장면">
               <ChevronRight aria-hidden className="size-3" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7" onClick={togglePlayer} aria-label="플레이어 접기">

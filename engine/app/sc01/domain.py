@@ -192,15 +192,35 @@ def issue_id_for(model_id: str, period: date) -> str:
 
 #: 시연 사례 → Agent 모드. EX08은 Agent 응답 실패를 재현한다(나머지 업무는 그대로 진행된다).
 CASES = {"BASE": None, "EX08": "fail"}
+#: BPMN을 누가 도는가(docs/chaeksas-integration.md §4·N2). 내장이 아니면 엔진은 이 문서에서 step하지
+#: 않는다 — 바깥 실행의 진행은 그 실행이 부르는 작업으로만 안다.
+EXECUTORS = ("embedded", "studio", "center")
+#: 바깥 실행에 묶인 데모 실행에서 화면 조작이 거절될 때의 사유 — 어디서 답하는지 말한다.
+ANSWER_ELSEWHERE = {
+    "studio": "이 데모 실행은 Studio 시험 실행이 돈다 — 결재는 Studio에서 답하라",
+    "center": "이 데모 실행은 Center 서버 실행이 돈다 — 결재는 Center 결재함에서 답하라 "
+    "(NowView 대리 답은 N3)",
+}
 
 
 def new_demo_run(
-    seed: Seed, demo_run_id: str, *, case_id: str, created_at: datetime, agent_mode: str = "mock"
+    seed: Seed,
+    demo_run_id: str,
+    *,
+    case_id: str,
+    created_at: datetime,
+    agent_mode: str = "mock",
+    executor: str = "embedded",
 ) -> dict:
     """
     S0 — 기준 적재(2027-06-15 18:00). 승인 전망 F01과 기존 관심 이슈 A07·B07만 있다.
     CP02·F02는 아직 없다(AT01). 8·9월 관심 평가는 평가 결과일 뿐 이슈로 만들지 않는다(UI01-04).
+
+    `executor`가 내장이 아니면 `bpm`을 처음부터 둔다 — 실행 위치는 데모 실행을 만들 때 정하고,
+    바깥 실행 id는 첫 작업 호출에서 묶인다(`link_external_run`).
     """
+    if executor not in EXECUTORS:
+        raise DomainError(f"모르는 실행 위치: {executor} (가능: {', '.join(EXECUTORS)})", 422)
     clock = datetime(2027, 6, 15, 18, 0, tzinfo=KST)
     s0_keys = sorted(k for k in seed.plans["F01"] if k[3] in SOURCE_MONTHS)
     s0 = assess_all(s0_keys, seed.plans["T01"], seed.plans["F01"], seed.plans["F01"], seed)
@@ -256,7 +276,7 @@ def new_demo_run(
         "reviews": {},
         "handoff": None,
         "audit": [],
-        "bpm": None,
+        "bpm": None if executor == "embedded" else external_bpm(executor),
         "agent_mode": CASES.get(case_id) or agent_mode,
         "agent_outputs": {},
         "alerts": [],
@@ -763,6 +783,98 @@ def hand_off(doc: dict, run_id: str) -> bool:
     return True
 
 
+# ─────────────────────────── 실행 위치 (N2) ───────────────────────────
+
+
+def external_bpm(executor: str) -> dict:
+    """
+    바깥 실행의 자리. 스냅샷이 없다 — 대기·토큰은 바깥에 있고, NowView는 작업 호출이 알려 준
+    노드(`visited`·`position`)만 안다(§4 「진행 읽기」).
+    """
+    return {
+        "executor": executor,
+        "external_run_id": None,
+        "run_id": None,
+        "state": "not_started",
+        "snapshot": None,
+        "visited": [],
+        "position": [],
+        "error": None,
+    }
+
+
+def executor_of(doc: dict) -> str:
+    return (doc["bpm"] or {}).get("executor", "embedded")
+
+
+def link_external_run(doc: dict, run_id: str | None) -> None:
+    """
+    바깥 작업 호출의 `run_id`(Chaeksas `{{run_id}}`)로 데모 실행과 바깥 실행을 묶는다.
+
+    처음 오면 묶고, 같으면 지나가고, 다르면 409다 — 한 문서에서 두 실행이 업무를 적으면 누가 무엇을
+    했는지 갈라 볼 수 없다. 정정(EX03)으로 대체된 실행은 `bpm_history`에 있고 그 뒤 새 실행이 묶인다
+    (`receive_external`).
+    """
+    executor = executor_of(doc)
+    if executor == "embedded":
+        raise DomainError(
+            "이 데모 실행은 내장 BPM이 돈다 — 바깥 실행은 실행 위치를 studio·center로 만든 "
+            "데모 실행에서 돌려라",
+            409,
+        )
+    if not run_id:
+        raise DomainError(
+            "바깥 실행 id(chaeksas_run_id)가 없다 — 확장 정의 0.3.0 이상이 필요하다", 422
+        )
+    bpm = doc["bpm"]
+    if bpm["external_run_id"] == run_id:
+        return
+    if any(h["run_id"] == run_id for h in doc.get("bpm_history", [])):
+        raise DomainError(f"정정본 수신으로 대체된 실행이다: {run_id}", 409)
+    if bpm["external_run_id"] is not None:
+        raise DomainError(
+            f"이 데모 실행은 이미 바깥 실행 {bpm['external_run_id']}에 묶였다 (받은 값: {run_id})",
+            409,
+        )
+    bpm.update(external_run_id=run_id, run_id=run_id, state="running")
+    audit(doc, actor="system", action="external_run_linked", run_id=run_id, executor=executor)
+
+
+def note_external_progress(
+    doc: dict, node_id: str | None, *, decided: str | None = None, done: bool = False
+) -> None:
+    """
+    작업을 부른 노드(`{{node_id}}`)를 지나온 노드에 쌓는다. 기록 작업이면 그 앞의 결재(`decided`)도
+    지나왔다. 인계가 끝나면 흐름이 끝난 것으로 본다 — 인계 태스크 다음은 종료 이벤트뿐이다.
+
+    토큰 위치(`position`)는 비워 둔다 — 작업 호출이 끝난 순간 토큰은 이미 다음으로 갔고, 어디로
+    갔는지는 바깥만 안다. 「방금 부른 노드」를 진행 중으로 칠하면 틀린 그림이다.
+    """
+    bpm = doc["bpm"]
+    for nid in (decided, node_id):
+        if nid and nid not in bpm["visited"]:
+            bpm["visited"].append(nid)
+    if done:
+        bpm["state"] = "done"
+
+
+def receive_external(doc: dict, source_id: str) -> None:
+    """
+    바깥 실행에 묶인 데모 실행의 원천 수신 — **BPM을 시작하지 않는다**(시작은 Studio·Center가 한다).
+
+    이미 묶인 실행이 있으면 내장과 같은 갈래다: 보완 대기 중이면 같은 실행이 정정본을 받아 다시
+    검증하고(Studio에서 「원천정정」 메시지를 보낸다), 그 밖이면 이전 실행을 이력으로 옮긴다 — 그
+    실행의 남은 작업 호출은 409로 막히고, 다음에 오는 새 run_id가 묶인다.
+    """
+    bpm = doc["bpm"]
+    if bpm["external_run_id"] is None:
+        return
+    corrects = doc["sources"][source_id]["corrects"]
+    if corrects and doc["sources"].get(corrects, {}).get("status") == "NEEDS_INFO":
+        return
+    supersede_bpm(doc, source_id=source_id, final_state="superseded")
+
+
 # ─────────────────────────── 정정 (EX03·WF-03) ───────────────────────────
 
 
@@ -775,6 +887,7 @@ def supersede_bpm(doc: dict, *, source_id: str, final_state: str) -> None:
     doc.setdefault("bpm_history", []).append(
         {
             "run_id": old["run_id"],
+            "executor": old.get("executor", "embedded"),
             "state": final_state,
             "visited": old.get("visited", []),
             "superseded_at": doc["clock"],
@@ -782,7 +895,8 @@ def supersede_bpm(doc: dict, *, source_id: str, final_state: str) -> None:
         }
     )
     # 이전 실행에서 기다리던 업무는 새 계산이 그 지점에 닿을 때 새 근거로 이어진다 — 표시만 남긴다.
-    waiting = {p["request_id"] for p in old["snapshot"]["pendings"].values()}
+    # 바깥 실행은 스냅샷이 없다 — 업무가 기록 때 열리고 곧바로 닫히므로 기다리던 업무가 없다.
+    waiting = {p["request_id"] for p in (old["snapshot"] or {"pendings": {}})["pendings"].values()}
     for task in doc["tasks"].values():
         if task["request_id"] in waiting and task["status"] != "COMPLETED":
             task["history"].append(
@@ -796,7 +910,8 @@ def supersede_bpm(doc: dict, *, source_id: str, final_state: str) -> None:
     if doc.get("handoff"):
         doc.setdefault("handoff_history", []).append(doc["handoff"])
         doc["handoff"] = None
-    doc["bpm"] = None
+    executor = old.get("executor", "embedded")
+    doc["bpm"] = None if executor == "embedded" else external_bpm(executor)
     audit(doc, actor="system", action="bpm_superseded", old_run=old["run_id"], source_id=source_id)
 
 
@@ -924,6 +1039,12 @@ def upgrade(doc: dict) -> dict:
     doc.setdefault("agent_mode", "mock")
     doc.setdefault("agent_outputs", {})
     doc.setdefault("alerts", [])
+    # 실행 위치(N2) 이전 문서는 전부 내장 실행이다.
+    if doc.get("bpm") is not None:
+        doc["bpm"].setdefault("executor", "embedded")
+        doc["bpm"].setdefault("external_run_id", None)
+    for old in doc.get("bpm_history", []):
+        old.setdefault("executor", "embedded")
     # 순번(`seq`) 이전에 저장된 문서 — id의 숫자와 배정 시각으로 만든 순서를 되살린다.
     for name, key in (
         ("sources", lambda r: _digits(r["source_id"])),

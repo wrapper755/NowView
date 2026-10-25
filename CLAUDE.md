@@ -283,15 +283,16 @@ NowView/
 브라우저 ──/api/engine/sc01/*──▶ Next Route Handler(BFF, 그대로 중계) ──/sc01/*──▶ 엔진(127.0.0.1:8077)
 
 GET  /sc01/process · /users · /rules · /script · /customer-plans/{id}
-POST /sc01/demo-runs                       → 새 데모 실행(S0)
+POST /sc01/demo-runs  {caseId, executor}   → 새 데모 실행(S0). executor = embedded|studio|center (N2)
 GET  /sc01/demo-runs/{id}                  → 문서 뷰 (BPM 대기·업무·이슈·인계 조건)
 GET  /sc01/demo-runs/{id}/dashboard?period=&month=&seq=   → UI01 집계 (seq = 지난 시점)
 GET  /sc01/demo-runs/{id}/history · /history/{seq}         → 지난 시점(읽기 전용)
 POST /sc01/demo-runs/{id}/sources/receive  {fixtureId}     → 시연 원천 수신
 POST /sc01/demo-runs/{id}/actions/{nodeId} {answer}        → BPM 사람 대기에 응답
-POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset
+POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset {caseId, executor}
 GET  /sc01/demo-runs/{id}/events           → SSE
      시스템 작업 — 바깥 Chaeksas가 서비스 태스크에서 부른다 (행위자 헤더 없음)
+     본문에 늘 {chaeksas_run_id: {{run_id}}, chaeksas_node_id: {{node_id}}} — 데모 실행을 바깥 실행에 묶는다
 POST /sc01/demo-runs/{id}/sources/{sourceId}/validation    → {passed, error_count}
 POST /sc01/demo-runs/{id}/sources/{sourceId}/comparison    → {run_id, risk, issue_id}
 POST /sc01/demo-runs/{id}/calc-runs/{runId}/agent-draft    → {output_id}
@@ -308,7 +309,7 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
     `/api/engine/…`를 통째로 적었다.
   * **외부 확장의 주소는 정의의 `base_url`뿐이다** — Center에서 바꿀 길이 없다(주소 바꾸기는 서비스 앱만).
     그래서 정의는 운영계(`https://www.nowview.work`)만 가리키고 `localhost`·`allow_private_network`를 두지
-    않는다. **로컬용은 파일이 따로 있다** — `nowview-sc01.local.extension.json`(`0.2.0-local`,
+    않는다. **로컬용은 파일이 따로 있다** — `nowview-sc01.local.extension.json`(`0.3.0-local`,
     `http://localhost:3000`, `allow_private_network`). id가 같으므로 한 Center에는 둘 중 하나만 올린다.
     작업 정의는 두 파일이 같아야 한다 — 운영계 정의를 고치면 로컬 정의도 함께 고친다.
   * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
@@ -319,6 +320,8 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
   * **선택 입력을 본문 템플릿에 넣지 않는다.** 어댑터는 `{{input.x}}`의 `x`가 없으면 호출을 실패시킨다 —
     그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸고,
     `answered_by`는 R1이 오기 전까지 본문에 없다.
+  * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
+    작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
 * **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
@@ -383,6 +386,21 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     판정이 그만큼 느슨하다. Center 결재를 읽게 되면(N3) 그때 연다.
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
     두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
+* **실행 위치는 데모 실행마다 하나다**(`bpm.executor` = `embedded`|`studio`|`center`, N2). 만들 때·초기화할
+  때 고른다(플레이어의 실행 위치 선택, `POST /demo-runs {executor}`). 바깥이면 **내장 엔진은 그 문서에서
+  step하지 않는다** — 수신은 원천만 등록하고, 화면 답·각본은 409, 진행은 작업 호출이 알려 준 노드뿐이다.
+  예전에는 수신이 내장 BPM을 늘 시작해서 바깥 실행과 한 문서에서 함께 돌았다(내장 쪽이 Approve_DQ에 멈춘
+  채 남았다, 2026-10-25 실측).
+  * **첫 작업 호출의 `{{run_id}}`가 묶는다**(`bpm.external_run_id`). 같은 데모 실행에 다른 실행이 오면 409,
+    내장 데모 실행에 바깥 호출이 와도 409다. 예외는 정정(EX03): 묶인 실행이 있는데 보완 대기가 아닌 때
+    정정본이 오면 그 실행을 `bpm_history`(`superseded`)로 옮긴다 — 그 실행의 남은 호출은 409이고 다음
+    새 실행이 묶인다. 바깥 실행은 취소할 수 없으니 이것이 내장의 cancel에 해당한다.
+  * **Studio인지 Center인지는 선언이다.** 템플릿으로 알 길이 없고(요청 R5 거절), 인증된 구분은 N6의
+    시험용 키 ↔ 운영 키다. N6이 붙으면 키로 선언을 검사한다(`docs/chaeksas-integration.md` §5 N2).
+  * 바깥 실행의 업무는 대기 id를 (실행, 결재, 원천·계산)으로 지어 `sync_tasks`에 넘긴다 — 정정 뒤의 새
+    실행이 같은 결재에 오면 인수한 업무에 재확인, 끝난 업무에 재검토 업무가 생긴다(내장과 같은 규칙).
+  * 캔버스는 바깥 실행이 끝나도 알려 주지 않은 노드를 미실행으로 칠하지 않는다 — 시작·게이트웨이처럼
+    작업 호출이 없는 노드는 지나왔어도 모른다. 토큰 위치도 비워 둔다(호출이 끝나면 토큰은 이미 갔다).
 * **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
   저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
   보지 않는다(DATA-05).

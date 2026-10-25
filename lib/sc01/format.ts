@@ -84,6 +84,12 @@ export const SCENE_LABEL: Record<string, string> = {
   HANDED_OFF: "인계 완료",
 };
 
+export const EXECUTOR_LABEL: Record<string, string> = {
+  embedded: "내장 BPM",
+  studio: "Studio 시험 실행",
+  center: "Center 서버 실행",
+};
+
 export const METRIC_LABEL: Record<string, string> = {
   KPI01: "공급물량 전망 달성률",
   M01: "이번 추가 감소물량",

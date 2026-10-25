@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.sc01 import domain
 from app.sc01.domain import DomainError, parse_at
 from app.sc01.process import Sc01Process
 
@@ -115,6 +116,11 @@ def run_step(process: Sc01Process, demo_run_id: str, index: int) -> dict:
     if not 0 <= index < len(BASE):
         raise DomainError(f"각본에 없는 단계: {index}", 404)
     doc = process.get(demo_run_id)
+    if domain.executor_of(doc) != "embedded":
+        # 각본은 내장 실행의 결재에 답한다. Center 대리 답으로 돌리는 것은 N3이다.
+        raise DomainError(
+            "바깥 실행에 묶인 데모 실행은 각본을 돌리지 않는다 — 결재는 바깥에서 답한다", 409
+        )
     done = doc.get("script_index", -1)
     if index <= done:
         return doc
