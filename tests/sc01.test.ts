@@ -41,6 +41,14 @@ describe("BPMN 배치", () => {
     expect(flows.some((f) => f.source === "Approve_Review" && f.target === "Accept_FIN")).toBe(true);
   });
 
+  it("기록 거절 경계도 결재에 접히고, 결재에서 자기에게 도는 고리는 그리지 않는다", () => {
+    const bounds = process.nodes.filter((n) => n.kind === "boundaryEvent");
+    expect(bounds.length).toBeGreaterThan(0);
+    expect(bounds.every((n) => n.recordOf)).toBe(true);
+    const { flows } = canvasTopology(process);
+    expect(flows.some((f) => f.source === f.target)).toBe(false);
+  });
+
   it("되돌아가는 흐름(보완 → 재검증)은 층 계산에서 빠진다", () => {
     // 빠지지 않으면 순환이라 층이 끝없이 늘거나 검증이 보완 뒤로 밀린다.
     expect(at("Task_Validate").rank).toBeLessThan(at("Wait_Correction").rank);

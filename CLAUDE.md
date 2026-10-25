@@ -314,7 +314,8 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
     작업 정의는 두 파일이 같아야 한다 — 운영계 정의를 고치면 로컬 정의도 함께 고친다.
   * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
     `-H 127.0.0.1`로 띄우면 연결 거부다.
-  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
+  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.5.0 — 기록 작업
+    응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있다.
   * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
     ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
     **키는 NowView가 짓는다**(R6 답) — 운영 키(`NOWVIEW_SYSTEM_KEY`)는 Center의 「외부 앱 키」, 시험용 키
@@ -395,6 +396,11 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     판정이 그만큼 느슨하다. Center 결재를 읽게 되면(N3) 그때 연다.
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
     두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
+  * **기록이 거절되면 같은 결재로 되돌아간다** — 기록 태스크마다 오류 경계(`Bnd_Record_*`, `TASK_FAILED`).
+    Center 콘솔 답은 사전 검사를 거치지 않아 예전에는 실행이 실패로 끝났다. 결재 `show`의 `error_message`에는
+    **사유가 없다** — HTTP 어댑터가 4xx 본문을 버리고 「…이 409를 돌려줬다」만 남긴다. 사유는 감사 이력
+    `answer_rejected`에 있다. 검사가 부수 효과보다 먼저라 거절된 답은 기록·업무를 남기지 않고, 성공한 기록은
+    `error_message: null`을 돌려줘 낡은 사유를 비운다. 캔버스는 경계도 결재에 접는다.
 * **실행 위치는 데모 실행마다 하나다**(`bpm.executor` = `embedded`|`studio`|`center`, N2). 만들 때·초기화할
   때 고른다(플레이어의 실행 위치 선택, `POST /demo-runs {executor}`). 바깥이면 **내장 엔진은 그 문서에서
   step하지 않는다** — 수신은 원천만 등록하고, 화면 답·각본은 409, 진행은 작업 호출이 알려 준 노드뿐이다.

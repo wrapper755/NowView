@@ -140,7 +140,14 @@ def _user(value: Any) -> str:
 
 
 def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) -> dict[str, Any]:
-    """기록 작업 하나 — 입력은 BPMN이 결재 칸을 옮겨 실은 것이다(`chk:serviceCall.input`)."""
+    """
+    기록 작업 하나 — 입력은 BPMN이 결재 칸을 옮겨 실은 것이다(`chk:serviceCall.input`).
+
+    **검사가 먼저, 부수 효과가 나중이다.** 거절되면 그림의 오류 경계가 같은 결재로 되돌린다
+    (N1) — 거절된 답이 업무를 열거나 감사 이력에 「기록」으로 남으면 안 된다. 출력의
+    `error_message: None`은 직전 거절 사유를 비운다 — 결재가 `show`로 보이는 그 변수다(다음
+    결재에 낡은 사유가 남지 않게).
+    """
     node_id = args.get("node_id") or {
         "record_dq_review": "Approve_DQ",
         "record_sales_review": "Approve_Sales",
@@ -149,13 +156,34 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
     }.get(operation, "")
     if node_id not in domain.NODE_ROLES:
         raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
+    if operation == "record_acceptance" and not node_id.startswith("Accept_"):
+        raise DomainError(f"인수 결재가 아니다: {node_id}", 422)
+    answer, variables = _record_answer(operation, args)
+    check_answer(doc, node_id, answer, variables)
+
     by, guessed = _answerer(doc, node_id, args, actor)
     domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, guessed=guessed)
     _ensure_task(doc, node_id, args, by)
+    return {**_apply_record(doc, operation, node_id, args, by), "error_message": None}
 
+
+def _record_answer(operation: str, args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """기록 입력 → `check_answer`가 보는 (결재 칸, 변수)."""
     if operation == "record_dq_review":
-        answer = {"확인결과": args["result"]}
-        check_answer(doc, node_id, answer, {"원천ID": args["source_id"]})
+        return {"확인결과": args["result"]}, {"원천ID": args["source_id"]}
+    if operation == "record_sales_review":
+        return {"영업의견": args.get("opinion"), "영업근거": args.get("evidence")}, {}
+    if operation == "record_dispatch":
+        return {"생산담당자": args.get("prod"), "자재담당자": args.get("mat")}, {}
+    if operation == "record_review_request":
+        return {"경영관리담당자": args.get("fin")}, {}
+    return {}, {}
+
+
+def _apply_record(
+    doc: dict, operation: str, node_id: str, args: dict[str, Any], by: str
+) -> dict[str, Any]:
+    if operation == "record_dq_review":
         if args["result"] == "확인완료":
             domain.verify_source(
                 doc,
@@ -171,8 +199,6 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
         return {"recorded": True}
 
     if operation == "record_sales_review":
-        answer = {"영업의견": args.get("opinion"), "영업근거": args.get("evidence")}
-        check_answer(doc, node_id, answer, {})
         run_id = args["run_id"]
         doc["reviews"][run_id] = {
             "run_id": run_id,
@@ -188,26 +214,37 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
         return {"recorded": True}
 
     if operation == "record_dispatch":
-        answer = {"생산담당자": args.get("prod"), "자재담당자": args.get("mat")}
-        check_answer(doc, node_id, answer, {})
         prod, mat = _user(args["prod"]), _user(args["mat"])
         domain.audit(doc, actor=by, action="dispatched", prod=prod, mat=mat)
         # 인수 결재의 담당자는 **이름**이다(`chk:approval.assignees`) — 폼은 id를 고른다.
         return {"prod_name": domain.name_of(prod), "mat_name": domain.name_of(mat)}
 
     if operation == "record_review_request":
-        check_answer(doc, node_id, {"경영관리담당자": args.get("fin")}, {})
         fin = _user(args["fin"])
         domain.audit(doc, actor=by, action="review_requested", fin=fin)
         return {"fin_name": domain.name_of(fin)}
 
     if operation == "record_acceptance":
-        if not node_id.startswith("Accept_"):
-            raise DomainError(f"인수 결재가 아니다: {node_id}", 422)
         domain.mark_task(doc, node_id, actor=by, outcome="accepted")
         return {"recorded": True}
 
     raise DomainError(f"모르는 기록 작업: {operation}", 404)  # pragma: no cover - RECORDS가 막는다
+
+
+def reject_record(doc: dict, operation: str, args: dict[str, Any], exc: DomainError) -> None:
+    """
+    거절된 결정 기록을 남긴다. 그림은 오류 경계로 같은 결재에 되돌아가고, Center 결재의
+    `error_message`에는 HTTP 어댑터가 본문을 버려 「…이 409를 돌려줬다」만 남는다 —
+    **사유는 여기**다.
+    """
+    domain.audit(
+        doc,
+        actor="system",
+        action="answer_rejected",
+        node_id=args.get("node_id") or operation,
+        status=exc.status,
+        reason=str(exc),
+    )
 
 
 def _ensure_task(doc: dict, node_id: str, args: dict[str, Any], by: str) -> None:
@@ -279,6 +316,8 @@ class _InProcessCalls:
                 self.doc, self.seed, request.operation, dict(request.input), actor=self.actor
             )
         except DomainError as exc:
+            if request.operation in RECORDS:
+                reject_record(self.doc, request.operation, dict(request.input), exc)
             raise ServiceCallError(str(exc), code="input_invalid", status=422) from exc
         return OpOutcome(output=out)
 
@@ -636,9 +675,20 @@ class Sc01Process:
             doc, version = self._load(demo_run_id)
             domain.link_external_run(doc, external_run_id, via=via)
             try:
-                out = run_operation(doc, self.seed, operation, args)
-            except KeyError as exc:
-                raise DomainError(f"없는 대상: {exc.args[0]}", 404) from exc
+                try:
+                    out = run_operation(doc, self.seed, operation, args)
+                except KeyError as exc:
+                    raise DomainError(f"없는 대상: {exc.args[0]}", 404) from exc
+            except DomainError as exc:
+                if operation not in RECORDS:
+                    raise
+                # 거절만 남긴다 — 다시 읽어 반쯤 적힌 효과를 버린다. 그림은 같은 결재로
+                # 되돌아간다(N1).
+                doc, version = self._load(demo_run_id)
+                domain.link_external_run(doc, external_run_id, via=via)
+                reject_record(doc, operation, args, exc)
+                self._commit(doc, version, None, f"{operation}:rejected")
+                raise
             domain.note_external_progress(
                 doc,
                 node_id,

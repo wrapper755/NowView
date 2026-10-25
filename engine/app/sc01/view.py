@@ -204,7 +204,14 @@ def dashboard(doc: dict, seed: Seed, *, period: str = "연간", month: int = 7) 
     }
 
 
-def _record_of(node: Any) -> str | None:
+def _record_of(node: Any, process: BpmnProcess) -> str | None:
+    """
+    결정 기록 태스크면 그 결재. 기록 태스크에 붙은 오류 경계(「기록 거절」 → 같은 결재로)도 그
+    결재로 접는다 — 접으면 결재에서 결재로 도는 고리가 되어 캔버스는 그리지 않는다(N1).
+    """
+    if node.kind == "boundaryEvent":
+        host = process.node(node.attached_to or "")
+        return _record_of(host, process) if host is not None else None
     call = node.prop("serviceCall") if node.kind == "serviceTask" else None
     if call is None or call.operation not in RECORDS:
         return None
@@ -223,7 +230,7 @@ def topology(process: BpmnProcess) -> dict[str, Any]:
                 "name": n.name,
                 "role": domain.NODE_ROLES.get(n.id, {}).get("role"),
                 # 결정 기록 태스크면 그 결재 — 캔버스가 결재 노드에 접어 그린다(N1).
-                "recordOf": _record_of(n),
+                "recordOf": _record_of(n, process),
             }
             for n in process.all_nodes()
         ],

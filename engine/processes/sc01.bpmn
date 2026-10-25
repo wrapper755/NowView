@@ -18,6 +18,7 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc01">
   <bpmn:message id="Msg_correction" name="원천정정"/>
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="nowview.sc01" name="SC01 고객계획 변경 대응" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{
@@ -50,7 +51,7 @@
           "title": "고객계획 원천 확인",
           "assignees": ["이도윤"],
           "description": "고객·모델·공장·대상 월, 월 전체/잔여, 당사 배정 여부를 확인한다. 40%를 다시 곱하지 않는다.",
-          "show": ["원천ID", "검증통과", "검증오류수"],
+          "show": ["원천ID", "검증통과", "검증오류수", "error_message"],
           "fields": [
             {"key": "확인결과", "label": "확인 결과", "type": "choice", "required": true,
              "choices": ["확인완료", "보완요청"]},
@@ -66,10 +67,14 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_dq_review",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_DQ'", "source_id": "원천ID", "result": "확인결과", "opinion": "확인의견", "evidence": "확인근거"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_DQ'", "source_id": "원천ID", "result": "확인결과", "opinion": "확인의견", "evidence": "확인근거"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_DQ" name="기록 거절" attachedToRef="Record_DQ">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:exclusiveGateway id="Gw_DQ" name="원천 확인 결과" default="Flow_dq_fix"/>
 
@@ -126,7 +131,7 @@
           "title": "공급전망 변동 · 위험 검토",
           "assignees": ["박서진"],
           "description": "변경의 의미·지속성·고객 재확인 필요성과 후속 처리 경로를 판단한다. 계산 경보는 바꾸지 않는다.",
-          "show": ["계산ID", "위험수준", "이슈ID", "초안ID"],
+          "show": ["계산ID", "위험수준", "이슈ID", "초안ID", "error_message"],
           "fields": [
             {"key": "영업의견", "label": "검토 의견", "type": "text", "required": true},
             {"key": "영업근거", "label": "근거", "type": "text", "required": true},
@@ -141,10 +146,14 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_sales_review",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Sales'", "run_id": "계산ID", "opinion": "영업의견", "evidence": "영업근거", "manual_review": "경영검토요청", "agent_output": "초안ID"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Sales'", "run_id": "계산ID", "opinion": "영업의견", "evidence": "영업근거", "manual_review": "경영검토요청", "agent_output": "초안ID"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_Sales" name="기록 거절" attachedToRef="Record_Sales">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <!--
       현업 검토는 경보와 무관하게 항상 간다(S08·UI04-04). 경영 검토는 중요이거나 사유 있는 수동
@@ -158,7 +167,7 @@
         <chk:approval>{
           "title": "생산·자재 영향 검토 배정",
           "assignees": ["박서진"],
-          "show": ["계산ID", "이슈ID"],
+          "show": ["계산ID", "이슈ID", "error_message"],
           "fields": [
             {"key": "생산담당자", "label": "생산 담당", "type": "text", "required": true},
             {"key": "자재담당자", "label": "자재 담당", "type": "text", "required": true},
@@ -174,10 +183,13 @@
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_dispatch",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Dispatch'", "prod": "생산담당자", "mat": "자재담당자"},
-          "output": {"생산담당자명": "prod_name", "자재담당자명": "mat_name"}
+          "output": {"생산담당자명": "prod_name", "자재담당자명": "mat_name", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_Dispatch" name="기록 거절" attachedToRef="Record_Dispatch">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <!-- 생산과 자재는 반드시 별도 업무다(UI05-01) -->
     <bpmn:parallelGateway id="Gw_Ops_Split" name="생산 ∥ 자재"/>
@@ -187,7 +199,7 @@
         <chk:approval>{
           "title": "생산계획 영향 검토 인수",
           "assignees": "생산담당자명",
-          "show": ["계산ID", "이슈ID", "배정사유"],
+          "show": ["계산ID", "이슈ID", "배정사유", "error_message"],
           "fields": [{"key": "생산인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -197,17 +209,21 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_acceptance",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_PROD'", "run_id": "계산ID"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_PROD'", "run_id": "계산ID"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_PROD" name="기록 거절" attachedToRef="Record_PROD">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:userTask id="Accept_MAT" name="자재 영향 검토 인수">
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "소요자재·발주 영향 검토 인수",
           "assignees": "자재담당자명",
-          "show": ["계산ID", "이슈ID", "배정사유"],
+          "show": ["계산ID", "이슈ID", "배정사유", "error_message"],
           "fields": [{"key": "자재인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -217,10 +233,14 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_acceptance",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_MAT'", "run_id": "계산ID"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_MAT'", "run_id": "계산ID"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_MAT" name="기록 거절" attachedToRef="Record_MAT">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:parallelGateway id="Gw_Ops_Join" name="현업 인수 모으기"/>
 
@@ -230,7 +250,7 @@
         <chk:approval>{
           "title": "통합 손익 검토 요청",
           "assignees": ["박서진"],
-          "show": ["계산ID", "위험수준", "이슈ID"],
+          "show": ["계산ID", "위험수준", "이슈ID", "error_message"],
           "fields": [
             {"key": "경영관리담당자", "label": "경영관리 담당", "type": "text", "required": true},
             {"key": "검토요청사유", "label": "요청 사유", "type": "text", "required": true}
@@ -244,10 +264,13 @@
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_review_request",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Review'", "fin": "경영관리담당자"},
-          "output": {"경영관리담당자명": "fin_name"}
+          "output": {"경영관리담당자명": "fin_name", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_Review" name="기록 거절" attachedToRef="Record_Review">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:userTask id="Accept_FIN" name="손익분석 보고 인수">
       <bpmn:extensionElements>
@@ -255,7 +278,7 @@
           "title": "손익분석 보고 요청 인수",
           "assignees": "경영관리담당자명",
           "description": "장면 1에서는 인수까지다 — 분석 보고 완료로 표시하지 않는다.",
-          "show": ["계산ID", "이슈ID", "검토요청사유"],
+          "show": ["계산ID", "이슈ID", "검토요청사유", "error_message"],
           "fields": [{"key": "경영관리인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -265,10 +288,14 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "record_acceptance",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_FIN'", "run_id": "계산ID"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_FIN'", "run_id": "계산ID"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Bnd_Record_FIN" name="기록 거절" attachedToRef="Record_FIN">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:inclusiveGateway id="Gw_Join" name="후속 인수 모으기"/>
 
@@ -319,6 +346,13 @@
     <bpmn:sequenceFlow id="Flow_fin_done" sourceRef="Accept_FIN" targetRef="Record_FIN"/>
     <bpmn:sequenceFlow id="Flow_fin_recorded" sourceRef="Record_FIN" targetRef="Gw_Join"/>
     <bpmn:sequenceFlow id="Flow_join" sourceRef="Gw_Join" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_dq_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_DQ" targetRef="Approve_DQ"/>
+    <bpmn:sequenceFlow id="Flow_sales_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Sales" targetRef="Approve_Sales"/>
+    <bpmn:sequenceFlow id="Flow_dispatch_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Dispatch" targetRef="Approve_Dispatch"/>
+    <bpmn:sequenceFlow id="Flow_prod_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_PROD" targetRef="Accept_PROD"/>
+    <bpmn:sequenceFlow id="Flow_mat_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_MAT" targetRef="Accept_MAT"/>
+    <bpmn:sequenceFlow id="Flow_review_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Review" targetRef="Approve_Review"/>
+    <bpmn:sequenceFlow id="Flow_fin_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_FIN" targetRef="Accept_FIN"/>
     <bpmn:sequenceFlow id="Flow_end" sourceRef="Task_Handoff" targetRef="End"/>
   </bpmn:process>
 </bpmn:definitions>

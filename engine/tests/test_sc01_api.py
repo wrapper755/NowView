@@ -435,7 +435,11 @@ def test_record_answer_keeps_the_business_rules(client) -> None:
     r = client.post(
         f"{base}/answers/Approve_Dispatch", json={**EXT, "prod": "김태오", "mat": "u-mat"}
     )
-    assert r.status_code == 200 and r.json() == {"prod_name": "김태오", "mat_name": "최유나"}
+    assert r.status_code == 200 and r.json() == {
+        "prod_name": "김태오",
+        "mat_name": "최유나",
+        "error_message": None,  # 기록이 성공하면 직전 거절 사유를 비운다(N1)
+    }
     # 의견·근거 없는 영업 검토 422, 기록할 결재가 아닌 노드 404
     r = client.post(
         f"{base}/answers/Approve_Sales", json={**EXT, "run_id": "RUN-F01-001", "opinion": " "}
