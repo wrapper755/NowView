@@ -318,3 +318,99 @@ def test_operation_unknown_targets_are_404(client) -> None:
     assert client.post("/sc01/demo-runs/nope/sources/SRC-1/validation").status_code == 404
     assert client.post(f"/sc01/demo-runs/{rid}/sources/SRC-ZZ/validation").status_code == 404
     assert client.post(f"/sc01/demo-runs/{rid}/calc-runs/RUN-ZZ/agent-draft").status_code == 404
+
+
+# ─────── 결정 기록(N1)·결재 담당자(N4) — 바깥 Chaeksas에서 돌려도 업무 효과가 난다 ───────
+
+
+def _bpmn_nodes():
+    from chaeksas.contracts.bpmn_ext import read_process
+
+    from app.sc01.process import PROCESS_PATH
+
+    return read_process(PROCESS_PATH.read_bytes()).nodes
+
+
+def test_every_approval_names_assignees_matching_the_role_table() -> None:
+    """
+    바깥 Chaeksas는 결재 담당자(이름)로 「담당자만 답한다」를 막는다(ADR-0081). 그 이름이 역할 표
+    (`NODE_ROLES`)와 어긋나면 내장 실행과 바깥 실행의 권한이 갈라진다.
+    """
+    from app.sc01.domain import NODE_ROLES, USERS
+
+    human = [n for n in _bpmn_nodes() if n.kind in ("userTask", "manualTask")]
+    assert {n.id for n in human} == set(NODE_ROLES)
+    for n in human:
+        assert n.kind == "userTask", f"{n.id}: 확인(manualTask)에는 담당자를 둘 수 없다(C14 B12)"
+        spec, assignees = NODE_ROLES[n.id], n.prop("approval").assignees
+        if "assignee_var" in spec:
+            # 인수 담당자는 배정 결과다 — 배정 기록이 돌려주는 「…명」 변수(이름)를 쓴다.
+            assert assignees == spec["assignee_var"] + "명", n.id
+        else:
+            assert [USERS[u]["role"] for u in USERS if USERS[u]["name"] in assignees] == [
+                spec["role"]
+            ], n.id
+
+
+def test_every_decision_is_followed_by_its_record_task() -> None:
+    """결재 뒤에 기록 작업이 없으면 그 결정은 바깥 실행에서 NowView에 닿지 않는다(실측: 409)."""
+    from chaeksas.contracts.bpmn_ext import read_process
+
+    from app.sc01.process import PROCESS_PATH, RECORD_OF_NODE
+
+    process = read_process(PROCESS_PATH.read_bytes())
+    for node_id, operation in RECORD_OF_NODE.items():
+        [flow] = process.outgoing(node_id)
+        nxt = process.node(flow.target)
+        assert nxt.kind == "serviceTask", node_id
+        call = nxt.prop("serviceCall")
+        assert (call.operation, call.input["node_id"]) == (operation, f"'{node_id}'"), node_id
+
+
+def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> None:
+    """
+    Studio에서 「확인완료」해도 원천이 RECEIVED로 남아 계산이 409였다(2026-10-25 실측). 바깥 실행은
+    결재 뒤 기록 작업으로 확인을 적는다 — 답한 사람을 모르면 담당자로 적고 짐작이라 표시한다(R1 전).
+    """
+    rid, sid = _received(client)
+    base = f"/sc01/demo-runs/{rid}"
+    assert client.post(f"{base}/sources/{sid}/comparison").status_code == 409
+
+    r = client.post(
+        f"{base}/answers/Approve_DQ",
+        json={
+            "source_id": sid,
+            "result": "확인완료",
+            "opinion": "자동 검증 통과",
+            "evidence": "SRC02",
+        },
+    )
+    assert r.status_code == 200, r.text
+    doc = client.get(base).json()
+    source = next(s for s in doc["sources"] if s["source_id"] == sid)
+    assert (source["status"], source["verified_by"]) == ("VERIFIED", "u-sales")
+    recorded = next(a for a in doc["audit"] if a["action"] == "answer_recorded")
+    assert recorded["actor"] == "u-sales" and recorded["detail"]["guessed"] is True
+
+    assert client.post(f"{base}/sources/{sid}/comparison").status_code == 200
+
+
+def test_record_answer_keeps_the_business_rules(client) -> None:
+    """콘솔 답은 NowView의 사전 검사를 거치지 않는다 — 기록 작업이 마지막 관문이다."""
+    rid, sid = _received(client)
+    base = f"/sc01/demo-runs/{rid}"
+    # 배정한 사람이 그 역할이 아니면 422 (이름으로 와도 id로 와도 같다)
+    r = client.post(f"{base}/answers/Approve_Dispatch", json={"prod": "최유나", "mat": "u-mat"})
+    assert r.status_code == 422 and "생산 담당" in r.json()["detail"]
+    r = client.post(f"{base}/answers/Approve_Dispatch", json={"prod": "김태오", "mat": "u-mat"})
+    assert r.status_code == 200 and r.json() == {"prod_name": "김태오", "mat_name": "최유나"}
+    # 의견·근거 없는 영업 검토 422, 기록할 결재가 아닌 노드 404
+    r = client.post(f"{base}/answers/Approve_Sales", json={"run_id": "RUN-F01-001", "opinion": " "})
+    assert r.status_code == 422
+    assert client.post(f"{base}/answers/Task_Calc", json={}).status_code == 404
+    # 답한 사람을 실어 보내면 그 사람으로 적는다(R1 이후의 길) — 모르는 이름은 422
+    r = client.post(
+        f"{base}/answers/Approve_DQ",
+        json={"source_id": sid, "result": "확인완료", "answered_by": "홍길동"},
+    )
+    assert r.status_code == 422

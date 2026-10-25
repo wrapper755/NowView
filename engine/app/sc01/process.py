@@ -64,28 +64,203 @@ def request_draft(doc: dict, seed: Seed, run_id: str, *, actor: str, manual: boo
 #: 시스템 작업 — BPMN 서비스 태스크가 부르는 것. 내장 어댑터(`_InProcessCalls`)와 HTTP
 #: (`Sc01Process.operate`, 바깥 Chaeksas의 HTTP 어댑터가 부른다)가 **같은 함수**를 쓴다 —
 #: 두 길의 출력 모양이 갈라지면 BPMN의 `output` 대응이 한쪽에서만 맞는다.
-OPERATIONS = ("validate_source", "compare", "request_agent_draft", "hand_off")
+#: 사람 결정 뒤의 **기록** 작업. 결재를 어디서 답했든(내장·Studio·Center) 업무 효과는 이 길로만
+#: 난다 — 내장 실행기의 답 훅에만 두면 바깥 실행에서 원천이 확인되지 않아 계산이 409로 막힌다
+#: (docs/chaeksas-integration.md N1).
+RECORDS = (
+    "record_dq_review",
+    "record_sales_review",
+    "record_dispatch",
+    "record_review_request",
+    "record_acceptance",
+)
+OPERATIONS = ("validate_source", "compare", "request_agent_draft", "hand_off", *RECORDS)
+#: 결재 노드 → 기록 작업 (HTTP `POST …/answers/{node_id}`). 계산 실행(Confirm_Calc)은 없다 — 곧바로
+#: `compare`가 요청 기록을 남긴다.
+RECORD_OF_NODE = {
+    "Approve_DQ": "record_dq_review",
+    "Approve_Sales": "record_sales_review",
+    "Approve_Dispatch": "record_dispatch",
+    "Approve_Review": "record_review_request",
+    "Accept_PROD": "record_acceptance",
+    "Accept_MAT": "record_acceptance",
+    "Accept_FIN": "record_acceptance",
+}
 
 
-def run_operation(doc: dict, seed: Seed, operation: str, args: dict[str, Any]) -> dict[str, Any]:
-    """작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다."""
+def _answerer(doc: dict, node_id: str, args: dict[str, Any], actor: str | None) -> tuple[str, bool]:
+    """
+    그 결재에 답한 사람과, 그것을 **짐작했는지**.
+
+    내장 실행은 조작한 행위자를 안다. 바깥 Chaeksas는 답한 사람을 아직 변수로 넘기지 않는다
+    (요청서 R1) — 그때까지는 그 결재의 담당자로 적고 짐작이라고 표시한다. 담당자만 답하게 막는 것은
+    Center다(`assignees`, ADR-0081).
+    """
+    given = args.get("answered_by") or actor
+    if given:
+        return domain.user_id_of(str(given)), False
+    task = domain.task_for_node(doc, node_id)
+    if task is not None and task["assigned_to"]:
+        return task["assigned_to"], True
+    return domain.user_for_role(domain.NODE_ROLES[node_id]["role"]), True
+
+
+def check_answer(
+    doc: dict, node_id: str, answer: dict[str, Any], variables: dict[str, Any]
+) -> None:
+    """
+    폼이 못 거는 업무 규칙 — **부수 효과가 없다.** 내장 경로는 답을 엔진에 넣기 전에 불러 입력을
+    지우지 않고 거절하고(4.6), 기록 작업은 같은 검사를 다시 한다(Center 콘솔 답은 앞 검사를
+    거치지 않는다).
+    """
+    if node_id == "Approve_DQ":
+        source = doc["sources"][variables["원천ID"]]
+        if answer.get("확인결과") == "확인완료" and source["errors"]:
+            raise DomainError("검증 오류가 남아 있어 확인 완료할 수 없다 — 보완 요청하라", 409)
+    elif node_id == "Approve_Sales":
+        # 검토 완료에는 사람의 의견·근거가 있어야 한다. Agent 성공은 조건이 아니다(UI04-02).
+        if (
+            not str(answer.get("영업의견", "")).strip()
+            or not str(answer.get("영업근거", "")).strip()
+        ):
+            raise DomainError("검토 의견과 근거가 필요하다", 422)
+    elif node_id == "Approve_Dispatch":
+        _require(_user(answer.get("생산담당자")), "생산담당", what="생산 담당")
+        _require(_user(answer.get("자재담당자")), "자재담당", what="자재 담당")
+    elif node_id == "Approve_Review":
+        _require(_user(answer.get("경영관리담당자")), "경영관리담당", what="경영관리 담당")
+
+
+def _user(value: Any) -> str:
+    """폼 값(id 또는 이름) → id. 모르는 값은 그대로 둬 `_require`가 사유를 말하게 한다."""
+    try:
+        return domain.user_id_of(str(value or ""))
+    except DomainError:
+        return str(value or "")
+
+
+def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) -> dict[str, Any]:
+    """기록 작업 하나 — 입력은 BPMN이 결재 칸을 옮겨 실은 것이다(`chk:serviceCall.input`)."""
+    node_id = args.get("node_id") or {
+        "record_dq_review": "Approve_DQ",
+        "record_sales_review": "Approve_Sales",
+        "record_dispatch": "Approve_Dispatch",
+        "record_review_request": "Approve_Review",
+    }.get(operation, "")
+    if node_id not in domain.NODE_ROLES:
+        raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
+    by, guessed = _answerer(doc, node_id, args, actor)
+    domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, guessed=guessed)
+    _ensure_task(doc, node_id, args, by)
+
+    if operation == "record_dq_review":
+        answer = {"확인결과": args["result"]}
+        check_answer(doc, node_id, answer, {"원천ID": args["source_id"]})
+        if args["result"] == "확인완료":
+            domain.verify_source(
+                doc,
+                args["source_id"],
+                actor=by,
+                opinion=args.get("opinion") or "",
+                evidence=args.get("evidence") or "",
+            )
+            domain.mark_task(doc, node_id, actor=by, outcome="completed")
+        else:
+            domain.request_fix(doc, args["source_id"], actor=by, opinion=args.get("opinion") or "")
+            domain.mark_task(doc, node_id, actor=by, outcome="needs_info")
+        return {"recorded": True}
+
+    if operation == "record_sales_review":
+        answer = {"영업의견": args.get("opinion"), "영업근거": args.get("evidence")}
+        check_answer(doc, node_id, answer, {})
+        run_id = args["run_id"]
+        doc["reviews"][run_id] = {
+            "run_id": run_id,
+            "by": by,
+            "at": doc["clock"],
+            "opinion": args["opinion"],
+            "evidence": args["evidence"],
+            "manual_review": bool(args.get("manual_review")),
+            # 검토 시점의 초안 — "AI 초안"과 "담당자 의견"을 가른다(AG-03).
+            "agent_output": args.get("agent_output") or None,
+        }
+        domain.mark_task(doc, node_id, actor=by, outcome="completed")
+        return {"recorded": True}
+
+    if operation == "record_dispatch":
+        answer = {"생산담당자": args.get("prod"), "자재담당자": args.get("mat")}
+        check_answer(doc, node_id, answer, {})
+        prod, mat = _user(args["prod"]), _user(args["mat"])
+        domain.audit(doc, actor=by, action="dispatched", prod=prod, mat=mat)
+        # 인수 결재의 담당자는 **이름**이다(`chk:approval.assignees`) — 폼은 id를 고른다.
+        return {"prod_name": domain.name_of(prod), "mat_name": domain.name_of(mat)}
+
+    if operation == "record_review_request":
+        check_answer(doc, node_id, {"경영관리담당자": args.get("fin")}, {})
+        fin = _user(args["fin"])
+        domain.audit(doc, actor=by, action="review_requested", fin=fin)
+        return {"fin_name": domain.name_of(fin)}
+
+    if operation == "record_acceptance":
+        if not node_id.startswith("Accept_"):
+            raise DomainError(f"인수 결재가 아니다: {node_id}", 422)
+        domain.mark_task(doc, node_id, actor=by, outcome="accepted")
+        return {"recorded": True}
+
+    raise DomainError(f"모르는 기록 작업: {operation}", 404)  # pragma: no cover - RECORDS가 막는다
+
+
+def _ensure_task(doc: dict, node_id: str, args: dict[str, Any], by: str) -> None:
+    """
+    업무가 없으면 지금 만든다. 내장 실행은 사람 대기가 열릴 때 업무를 만들지만(`sync_tasks`), 바깥
+    실행(Studio 시험 실행)에서는 대기가 열리는 순간을 NowView가 모른다 — 결정이 기록될 때 처음 안다.
+    배정 시각이 실제 대기 시작보다 늦으므로 **늦게 열렸다고 표시한다** — 기한 초과 판정이 그만큼
+    느슨하다.
+    """
+    spec = domain.NODE_ROLES[node_id]
+    if spec["task"] is None or domain.task_for_node(doc, node_id) is not None:
+        return
+    variables = {"계산ID": args.get("run_id"), "원천ID": args.get("source_id")}
+    if "assignee_var" in spec:
+        variables[spec["assignee_var"]] = by
+    domain.sync_tasks(doc, {f"external:{node_id}": {"node_id": node_id}}, variables)
+    task = domain.task_for_node(doc, node_id)
+    if task is not None:
+        task["opened_late"] = True
+        task["history"][-1]["note"] = "바깥 실행 — 대기가 열린 시각을 모른다(결정 기록 시점에 만듦)"
+
+
+def run_operation(
+    doc: dict, seed: Seed, operation: str, args: dict[str, Any], *, actor: str | None = None
+) -> dict[str, Any]:
+    """
+    작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다.
+
+    `actor`는 내장 실행이 아는 「지금 답한 사람」이다 — 바깥 실행은 `None`이다(`_answerer`).
+    """
     if operation == "validate_source":
         errors = domain.validate_source(doc, seed, args["source_id"])
         return {"passed": not errors, "error_count": len(errors)}
     if operation == "compare":
+        # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
+        # 요청 기록을 여기서 남긴다.
+        by, guessed = _answerer(doc, "Confirm_Calc", args, actor)
+        domain.audit(doc, actor=by, action="calculation_requested", guessed=guessed)
         return domain.compare(doc, seed, args["source_id"])
     if operation == "request_agent_draft":
         return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}
     if operation == "hand_off":
         return {"handed_off": domain.hand_off(doc, args["run_id"])}
+    if operation in RECORDS:
+        return _record(doc, operation, args, actor)
     raise DomainError(f"모르는 작업: {operation} (가능: {', '.join(OPERATIONS)})", 404)
 
 
 class _InProcessCalls:
     """`chk:serviceCall` → 도메인 함수. 업무 규칙 위반은 다시 불러도 같으므로 재시도하지 않는다."""
 
-    def __init__(self, doc: dict, seed: Seed) -> None:
-        self.doc, self.seed = doc, seed
+    def __init__(self, doc: dict, seed: Seed, actor: str | None = None) -> None:
+        self.doc, self.seed, self.actor = doc, seed, actor
 
     def call(self, request: OpCall) -> OpOutcome:
         if request.app_id != APP_ID:
@@ -93,7 +268,9 @@ class _InProcessCalls:
         if request.operation not in OPERATIONS:
             raise ServiceCallError(request.operation, code="operation_not_found")
         try:
-            out = run_operation(self.doc, self.seed, request.operation, dict(request.input))
+            out = run_operation(
+                self.doc, self.seed, request.operation, dict(request.input), actor=self.actor
+            )
         except DomainError as exc:
             raise ServiceCallError(str(exc), code="input_invalid", status=422) from exc
         return OpOutcome(output=out)
@@ -139,16 +316,18 @@ class Sc01Process:
         doc, version = found
         return domain.upgrade(doc), version
 
-    def _env(self, doc: dict) -> RunEnv:
+    def _env(self, doc: dict, actor: str | None = None) -> RunEnv:
         # 가상시계 — 타이머·기한·감사 이력이 모두 데모 실행의 시각을 쓴다(구현명세 2장).
         return RunEnv(
-            services=_InProcessCalls(doc, self.seed), clock=lambda: domain.parse_at(doc["clock"])
+            services=_InProcessCalls(doc, self.seed, actor),
+            clock=lambda: domain.parse_at(doc["clock"]),
         )
 
-    def _restore(self, doc: dict):
+    def _restore(self, doc: dict, actor: str | None = None):
+        """`actor` — 이 조작에서 답하는 사람. 결재 뒤의 기록 작업이 그 이름으로 적는다."""
         bpm = doc["bpm"]
         log = RunLog(run_id=bpm["run_id"])
-        return restore(bpm["snapshot"], process=self.process, log=log, env=self._env(doc))
+        return restore(bpm["snapshot"], process=self.process, log=log, env=self._env(doc, actor))
 
     def _start(self, doc: dict, source_id: str):
         run_id = new_run_id(now=domain.parse_at(doc["clock"]))
@@ -385,13 +564,14 @@ class Sc01Process:
                 return doc  # 같은 요청의 재시도 — 이미 처리했다
             if doc["bpm"] is None:
                 raise DomainError("아직 시작되지 않은 데모 실행이다", 409)
-            run = self._restore(doc)
+            run = self._restore(doc, actor)
             pending = next((p for p in run.pendings.values() if p.node_id == node_id), None)
             if pending is None:
                 waiting = ", ".join(p.node_id for p in run.pendings.values()) or "없음"
                 raise DomainError(f"{node_id}는 지금 기다리는 업무가 아니다 (대기: {waiting})", 409)
             domain.check_actor(doc, node_id, actor)
-            self._before_answer(doc, node_id, answer, actor=actor, variables=run.variables)
+            # 업무 효과는 결재 뒤의 기록 작업이 낸다 — 여기서는 입력을 지우지 않고 거절할 것만 본다.
+            check_answer(doc, node_id, answer, run.variables)
             try:
                 self.engine.answer(run, pending.request_id, answer, answered_by=actor)
             except EngineError as exc:
@@ -418,61 +598,6 @@ class Sc01Process:
             doc = self._commit(doc, version, None, operation)
         self._dispatch(doc)
         return out
-
-    def _before_answer(
-        self, doc: dict, node_id: str, answer: dict, *, actor: str, variables: dict
-    ) -> None:
-        """BPM 폼이 못 거는 업무 규칙. 위반이면 엔진에 답을 넣기 전에 막는다."""
-        if node_id == "Approve_DQ":
-            sid = variables["원천ID"]
-            if answer.get("확인결과") == "확인완료":
-                domain.verify_source(
-                    doc,
-                    sid,
-                    actor=actor,
-                    opinion=answer.get("확인의견", ""),
-                    evidence=answer.get("확인근거", ""),
-                )
-                domain.mark_task(doc, node_id, actor=actor, outcome="completed")
-            else:
-                domain.request_fix(doc, sid, actor=actor, opinion=answer.get("확인의견", ""))
-                domain.mark_task(doc, node_id, actor=actor, outcome="needs_info")
-        elif node_id == "Approve_Sales":
-            # 검토 완료에는 사람의 의견·근거가 있어야 한다. Agent 성공은 조건이 아니다(UI04-02).
-            if (
-                not str(answer.get("영업의견", "")).strip()
-                or not str(answer.get("영업근거", "")).strip()
-            ):
-                raise DomainError("검토 의견과 근거가 필요하다", 422)
-            run_id = variables["계산ID"]
-            doc["reviews"][run_id] = {
-                "run_id": run_id,
-                "by": actor,
-                "at": doc["clock"],
-                "opinion": answer["영업의견"],
-                "evidence": answer["영업근거"],
-                "manual_review": bool(answer.get("경영검토요청")),
-                # 검토 시점의 초안 — "AI 초안"과 "담당자 의견"을 가른다(AG-03).
-                "agent_output": variables.get("초안ID") or None,
-            }
-            domain.mark_task(doc, node_id, actor=actor, outcome="completed")
-        elif node_id == "Approve_Dispatch":
-            _require(answer.get("생산담당자", ""), "생산담당", what="생산 담당")
-            _require(answer.get("자재담당자", ""), "자재담당", what="자재 담당")
-            domain.audit(
-                doc,
-                actor=actor,
-                action="dispatched",
-                prod=answer["생산담당자"],
-                mat=answer["자재담당자"],
-            )
-        elif node_id == "Approve_Review":
-            _require(answer.get("경영관리담당자", ""), "경영관리담당", what="경영관리 담당")
-            domain.audit(doc, actor=actor, action="review_requested", fin=answer["경영관리담당자"])
-        elif node_id.startswith("Accept_"):
-            domain.mark_task(doc, node_id, actor=actor, outcome="accepted")
-        elif node_id == "Confirm_Calc":
-            domain.audit(doc, actor=actor, action="calculation_requested")
 
     def reset(self, demo_run_id: str, *, actor: str, case_id: str | None = None) -> dict:
         """현재 데모 실행만 S0로 되돌린다. 이력은 남긴다(DATA-05). 사례를 바꿔 다시 시작한다."""

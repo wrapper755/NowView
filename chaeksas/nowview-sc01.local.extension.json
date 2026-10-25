@@ -1,0 +1,194 @@
+{
+  "schema": 2,
+  "id": "nowview-sc01",
+  "version": "0.2.0-local",
+  "name": "NowView SC01 업무 시스템 (로컬)",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 이 PC의 NowView(localhost:3000)를 부른다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "http://localhost:3000",
+    "adapter": {
+      "allowed_hosts": ["localhost"],
+      "allow_private_network": true,
+      "limits": {"timeout_s": 30, "max_response_kb": 256},
+      "operations": [
+        {
+          "name": "validate_source",
+          "description": "원천 자동 검증 (UI03-01)",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {"passed": {"type": "boolean"}, "error_count": {"type": "integer"}}
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/validation",
+            "body": {}
+          },
+          "response": {"output": {"passed": "$.passed", "error_count": "$.error_count"}}
+        },
+        {
+          "name": "compare",
+          "description": "확인된 원천으로 전망 생성 · 지표 계산. 다시 부르면 새 전망이 생긴다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {"type": "string"},
+              "risk": {"type": "string"},
+              "issue_id": {"type": "string"}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/comparison",
+            "body": {}
+          },
+          "response": {
+            "output": {"run_id": "$.run_id", "risk": "$.risk", "issue_id": "$.issue_id"}
+          }
+        },
+        {
+          "name": "request_agent_draft",
+          "description": "Agent 검토 초안 요청 (AG-01). 기다리지 않는다 — 초안은 NowView가 배경에서 만든다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "run_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "run_id": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"output_id": {"type": "string"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/agent-draft",
+            "body": {}
+          },
+          "response": {"output": {"output_id": "$.output_id"}}
+        },
+        {
+          "name": "hand_off",
+          "description": "장면 인계 기록 (UI06-01). 조건 미충족이면 409",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "run_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "run_id": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"handed_off": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/calc-runs/{{input.run_id}}/handoff",
+            "body": {}
+          },
+          "response": {"output": {"handed_off": "$.handed_off"}}
+        },
+        {
+          "name": "record_dq_review",
+          "description": "원천 확인 결정 기록 (N1) — 확인완료면 원천 VERIFIED, 보완요청이면 NEEDS_INFO. 검증 오류가 남았으면 409",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "node_id", "source_id", "result", "opinion", "evidence"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "source_id": {"type": "string"}, "result": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
+            "body": {"source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}"}
+          },
+          "response": {"output": {"recorded": "$.recorded"}}
+        },
+        {
+          "name": "record_sales_review",
+          "description": "영업 검토 기록 (N1, UI04-02·AG-03). 의견·근거가 없으면 422",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "node_id", "run_id", "opinion", "evidence"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}, "manual_review": {}, "agent_output": {}}
+          },
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
+            "body": {"run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}"}
+          },
+          "response": {"output": {"recorded": "$.recorded"}}
+        },
+        {
+          "name": "record_dispatch",
+          "description": "현업 검토 배정 기록 (N1). 담당자가 그 역할이 아니면 422. 이름을 돌려준다 — 인수 결재의 assignees",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "node_id", "prod", "mat"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "prod": {"type": "string"}, "mat": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"prod_name": {"type": "string"}, "mat_name": {"type": "string"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
+            "body": {"prod": "{{input.prod}}", "mat": "{{input.mat}}"}
+          },
+          "response": {"output": {"prod_name": "$.prod_name", "mat_name": "$.mat_name"}}
+        },
+        {
+          "name": "record_review_request",
+          "description": "Management Review 요청 기록 (N1). 이름을 돌려준다 — 인수 결재의 assignees",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "node_id", "fin"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "fin": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"fin_name": {"type": "string"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
+            "body": {"fin": "{{input.fin}}"}
+          },
+          "response": {"output": {"fin_name": "$.fin_name"}}
+        },
+        {
+          "name": "record_acceptance",
+          "description": "인수 기록 (N1) — 생산·자재·경영관리",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "node_id", "run_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}}
+          },
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
+            "body": {"run_id": "{{input.run_id}}"}
+          },
+          "response": {"output": {"recorded": "$.recorded"}}
+        }
+      ]
+    }
+  }
+}

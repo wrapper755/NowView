@@ -31,7 +31,12 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { cn } from "@/lib/utils";
-import { layoutProcess, NODE_STATE_LABEL, type NodeState } from "@/lib/sc01/process-layout";
+import {
+  canvasTopology,
+  layoutProcess,
+  NODE_STATE_LABEL,
+  type NodeState,
+} from "@/lib/sc01/process-layout";
 import type { ProcessTopology } from "@/lib/sc01/types";
 
 /**
@@ -119,6 +124,8 @@ export function Sc01Canvas({
   onSelect: (id: string) => void;
 }) {
   const placed = useMemo(() => layoutProcess(topology), [topology]);
+  // 흐름도 접은 토폴로지에서 — 기록 태스크로 가는 간선은 결재에서 바로 다음으로 이어진다.
+  const flows = useMemo(() => canvasTopology(topology).flows, [topology]);
 
   const nodes = useMemo<FlowNode[]>(
     () =>
@@ -134,7 +141,7 @@ export function Sc01Canvas({
 
   const edges = useMemo<Edge[]>(
     () =>
-      topology.flows.map((f) => {
+      flows.map((f) => {
         const passed = states[f.source] === "done" && states[f.target] !== "pending" && states[f.target] !== "skipped";
         const idle = states[f.target] === "skipped" || states[f.source] === "skipped";
         return {
@@ -154,7 +161,7 @@ export function Sc01Canvas({
           labelBgStyle: { fill: "var(--color-background)" },
         };
       }),
-    [topology.flows, states],
+    [flows, states],
   );
 
   return (

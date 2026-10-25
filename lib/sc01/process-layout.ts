@@ -54,7 +54,29 @@ function backEdges(topology: ProcessTopology, start: string): Set<string> {
   return back;
 }
 
-export function layoutProcess(topology: ProcessTopology): PlacedNode[] {
+/**
+ * 캔버스가 그릴 토폴로지 — 결정 기록 태스크(`recordOf`)를 그 결재 노드에 접는다.
+ *
+ * 기록 태스크는 결재마다 하나씩 붙는 NowView 쪽 장부다(바깥 Chaeksas에서도 결정이 NowView에 닿게
+ * 하는 길). 그대로 그리면 노드가 20개에서 27개로 늘어 캔버스 글자가 읽히지 않았다(실측) — 업무
+ * 흐름으로는 결재와 한 걸음이므로 결재 노드 하나로 보인다. BPMN 자체는 바꾸지 않는다.
+ */
+export function canvasTopology(topology: ProcessTopology): ProcessTopology {
+  const folded = new Map(
+    topology.nodes.filter((n) => n.recordOf).map((n) => [n.id, n.recordOf as string]),
+  );
+  if (folded.size === 0) return topology;
+  return {
+    ...topology,
+    nodes: topology.nodes.filter((n) => !folded.has(n.id)),
+    flows: topology.flows
+      .filter((f) => !folded.has(f.target))
+      .map((f) => (folded.has(f.source) ? { ...f, source: folded.get(f.source)! } : f)),
+  };
+}
+
+export function layoutProcess(full: ProcessTopology): PlacedNode[] {
+  const topology = canvasTopology(full);
   const start =
     topology.nodes.find((n) => n.kind === "startEvent")?.id ?? topology.nodes[0]?.id;
   if (!start) return [];

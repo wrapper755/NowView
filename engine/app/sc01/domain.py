@@ -47,6 +47,25 @@ class DomainError(Exception):
         self.status = status
 
 
+def user_id_of(value: str) -> str:
+    """사용자 id 또는 **이름**을 id로. Chaeksas 결재 담당자·답한 사람은 이름이다(ADR-0080)."""
+    if value in USERS:
+        return value
+    found = next((uid for uid, u in USERS.items() if u["name"] == value), None)
+    if found is None:
+        raise DomainError(f"모르는 사용자: {value}", 422)
+    return found
+
+
+def name_of(user_id: str) -> str:
+    return USERS[user_id]["name"]
+
+
+def user_for_role(role: str) -> str:
+    """그 역할의 사용자 — SC01 가상 회사는 역할마다 한 사람이다."""
+    return next(uid for uid, u in USERS.items() if u["role"] == role)
+
+
 # ─────────────────────────── 시간·달력 (WF-04) ───────────────────────────
 
 

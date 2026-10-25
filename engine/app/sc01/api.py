@@ -16,7 +16,7 @@ import asyncio
 import json
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -24,7 +24,7 @@ from starlette.concurrency import run_in_threadpool
 from app.events import KEEPALIVE_SECONDS, Hub
 from app.sc01 import demo, domain
 from app.sc01.domain import USERS, DomainError
-from app.sc01.process import Sc01Process
+from app.sc01.process import RECORD_OF_NODE, Sc01Process
 from app.sc01.view import dashboard, topology, view
 
 
@@ -210,6 +210,21 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     def hand_off(demo_run_id: str, run_id: str) -> dict[str, Any]:
         """장면 인계 기록(UI06-01) → `{handed_off}`. 조건 미충족이면 409."""
         return guard(process.operate, demo_run_id, "hand_off", {"run_id": run_id})
+
+    @r.post("/demo-runs/{demo_run_id}/answers/{node_id}")
+    def record_answer(
+        demo_run_id: str,
+        node_id: str,
+        body: dict[str, Any] = Body(default_factory=dict),  # noqa: B008 — FastAPI 본문 선언
+    ) -> dict[str, Any]:
+        """
+        사람 결정의 기록(N1) — 결재 뒤의 서비스 태스크가 부른다. 결재가 Studio·Center 어디서
+        닫혔든 업무 효과(원천 확인·검토 의견·배정·인수)가 이 길로 난다. 업무 규칙 위반은 409·422다.
+        """
+        operation = RECORD_OF_NODE.get(node_id)
+        if operation is None:
+            raise HTTPException(404, f"기록할 결재가 아니다: {node_id}")
+        return guard(process.operate, demo_run_id, operation, {**body, "node_id": node_id})
 
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(
