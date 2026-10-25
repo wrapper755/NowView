@@ -16,6 +16,7 @@ from chaeksas.contracts.bpmn_ext import BpmnProcess
 
 from app.sc01 import domain
 from app.sc01.calc import PERIODS, Pnl, monthly_pnl, period_pnl
+from app.sc01.center import CenterConfig
 from app.sc01.process import RECORDS
 from app.sc01.seed import Seed
 
@@ -34,8 +35,25 @@ def _node_rank(node_id: str) -> int:
     return nodes.index(node_id) if node_id in nodes else len(nodes)
 
 
-def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
+def view(
+    doc: dict, *, historical: bool = False, center: CenterConfig | None = None
+) -> dict[str, Any]:
+    """
+    `center` — 엔진의 Center 연동 설정. center 데모 실행에서 화면 답이 되는지(대리 답용 키)를
+    화면에 알린다(`answerHere`) — 버튼 비활성은 편의이고 거절은 엔진이 한다.
+    """
     pendings = ((doc["bpm"] or {}).get("snapshot") or {}).get("pendings", {})
+    # Center 실행의 사람 대기는 실행 기록 폴링이 채운다(N3). 모양은 내장 대기와 같다.
+    for w in (doc["bpm"] or {}).get("waiting", []):
+        pendings = {
+            **pendings,
+            w["request_id"]: {
+                "node_id": w["node_id"],
+                "title": w["title"],
+                "review": w["review"],
+                "form": {"fields": w["fields"]},
+            },
+        }
     waiting = [
         {
             "nodeId": p["node_id"],
@@ -73,6 +91,7 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
         "scene": doc["scene"],
         "historical": historical,
         "executor": domain.executor_of(doc),
+        "answerHere": _answer_here(doc, center),
         "bpm": None
         if doc["bpm"] is None
         else {
@@ -81,8 +100,10 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
             "externalRunId": doc["bpm"].get("external_run_id"),
             "runId": doc["bpm"]["run_id"],
             "state": doc["bpm"]["state"],
-            # 바깥 실행의 사람 대기는 NowView가 모른다 — 비어 있다(Center를 읽는 것은 N3).
+            # Studio 실행의 사람 대기는 NowView가 모른다 — 비어 있다. Center는 폴링이 채운다(N3).
             "waiting": waiting,
+            # Center 연동 — 기동한 작업과, 연동이 막힌 사유(설정 없음·Center 거절).
+            "center": _center_view(doc, center),
             "position": (
                 sorted({t["node_id"] for t in doc["bpm"]["snapshot"]["tokens"]})
                 if doc["bpm"]["snapshot"] is not None
@@ -109,6 +130,25 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
         ),
         "audit": doc["audit"],
     }
+
+
+def _answer_here(doc: dict, center: CenterConfig | None) -> bool:
+    """이 화면에서 결재에 답할 수 있나 — 내장이면 그렇고, center면 대리 답용 키가 있을 때다(N3)."""
+    executor = domain.executor_of(doc)
+    if executor == "center":
+        return center is not None and center.missing(relay=True) is None
+    return executor == "embedded"
+
+
+def _center_view(doc: dict, center: CenterConfig | None) -> dict[str, Any] | None:
+    if domain.executor_of(doc) != "center":
+        return None
+    ledger = (doc["bpm"] or {}).get("center") or {}
+    problem = ledger.get("problem")
+    if problem is None and center is not None:
+        relay = center.missing(relay=True)
+        problem = f"{relay} — 화면 답(대리 답)을 할 수 없다" if relay else None
+    return {"job": ledger.get("job"), "problem": problem}
 
 
 #: 초안이 이 시간(실시간)을 넘겨도 안 오면 "지연"이다(AG-02). 가상시계가 아니라 실제 시간이다 —

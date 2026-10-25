@@ -1,6 +1,6 @@
 # NowView ↔ Chaeksas 연계 설계 — SC01을 바깥 Chaeksas에서 돌려도 NowView 전체가 따라온다
 
-- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6 구현(2026-10-25), 나머지는 아래 7의 순서
+- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6·N3 구현(2026-10-25), 나머지(N5)는 아래 7의 순서
 - 관련: CLAUDE.md 4.3(API·외부 확장)·4.5(BPM)·4.6(화면), Chaeksas ADR-0079~0085(가상 직원·결재 담당자·대리 답),
   Chaeksas에 보낼 요청서 [handoff/chaeksas-nowview-integration.md](handoff/chaeksas-nowview-integration.md)
 
@@ -41,9 +41,10 @@ Studio에서 `nowview.sc01`을 돌렸더니 `validate_source`는 200이었다. �
 | 누가 BPMN을 도나 | 엔진 `chaeksas-core` | Studio | 서버 실행기 |
 | 결재는 어디서 답하나 | NowView 화면 | Studio 시험 대화상자 | Center 결재함 — 콘솔, 또는 **NowView 화면(대리 답용 키)** |
 | NowView 기록 | 기록 작업 (같은 프로세스) | 기록 작업 (HTTP 어댑터) | 기록 작업 (HTTP 어댑터) |
-| 진행 읽기 | 엔진 스냅샷 | 작업 호출이 알려 준 것만 (`{{node_id}}`) | `GET /api/v1/runs/{run_id}/events` (N3) — 그 전에는 Studio와 같다 |
-| NowView 화면 조작 | 된다 | **읽기만** — "Studio에서 답하세요" 배너 | 된다 (대리 답, N3) — 그 전에는 읽기만 |
-| 데모 플레이어 각본 | 된다 | 안 된다 | 된다 — 결재에 대리 답으로 답한다 (N3) — 그 전에는 안 된다 |
+| 진행 읽기 | 엔진 스냅샷 | 작업 호출이 알려 준 것만 (`{{node_id}}`) | `GET /api/v1/runs/{run_id}/events` 2초 폴링 (N3) |
+| NowView 화면 조작 | 된다 | **읽기만** — "Studio에서 답하세요" 배너 | 된다 — 대리 답 (N3). 대리 답용 키가 없으면 503과 사유 |
+| 데모 플레이어 각본 | 된다 | 안 된다 | 된다 — 결재에 대리 답으로 답한다 (N3) |
+| 누가 기동하나 | 수신 | Studio 시험 실행 | 수신 → `POST /jobs` (N3). 연동용 키가 없으면 기동하지 않고 사유를 남긴다 |
 | 어떻게 정하나 | 데모 실행을 만들 때·초기화할 때 고른다(`executor`) — 아래 N2 |||
 
 ## 5. NowView 변경 (단계)
@@ -130,6 +131,49 @@ Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. �
 * **진행은 폴링으로 받는다**(2초, 열린 데모 실행만). 바뀌면 기존 `notifier`로 SSE를 낸다. 요청서 R3이 생기면 push로 바꾼다.
 * BFF는 지금처럼 경로를 그대로 중계한다. 키는 엔진만 쥐고, 브라우저와 BFF에는 두지 않는다.
 
+**구현에서 정한 것(2026-10-25)** — `engine/app/sc01/center.py`(클라이언트) · `poller.py` · `process.py`의 「Center 실행」
+
+* **기동**: center 데모 실행의 원천 수신이 `POST /jobs {bpm_process_id, target: {type: server_runner}, inputs:
+  {데모실행ID, 원천ID}, idempotency_key: 데모실행:원천}`을 부른다. 패키지 id는 `CHAEKSAS_SC01_PACKAGE`(기본
+  `nowview.sc01`). 실행이 묶이는 것은 여전히 첫 작업 호출의 `{{run_id}}`다(N2) — 작업 정보에는 실행 id가 없다.
+  * 묶인 실행이 보완 대기면 정정본은 `POST /messages {schema: 1, name: 원천정정, correlation: 데모실행ID, …}`로
+    같은 실행에 간다. **그래서 BPMN `Wait_Correction`에 상관 키(`데모실행ID`)를 달았다** — Center는 상관 키 없는
+    메시지로 기다리는 실행을 찾지 않는다(C12). 그 밖의 정정은 실행을 이력으로 옮기고(N2와 같다) **앞 작업을
+    거둔 뒤**(`DELETE /jobs/{id}`, 실패해도 막지 않고 감사 이력에 남김) 새로 기동한다. 초기화도 앞 작업을 거둔다.
+  * 앞 작업이 아직 첫 호출 전인데 새 원천이 오면 409 — 늦게 깨어난 앞 실행이 데모 실행을 가로채지 않게.
+* **대리 답**: 화면 → 엔진 사전 검사(`check_actor` 403, `check_answer` 409·422 — **Center에 묻기 전에**, 입력을
+  지우지 않는다) → `GET /approvals?state=open&assignee=<이름>`에서 이 실행·이 노드의 결재를 찾는다(서버 실행기가
+  결재를 올리기까지 최대 10초 기다린다 — 각본이 수신 직후 원천 확인으로 넘어가도 끊기지 않게) → 결재가 보인
+  값(`review`)으로 한 번 더 검사 → `POST /approvals/{id}/answer {answer, if_review_digest}`(`X-CHK-On-Behalf-Of`
+  = 행위자 이름). Center 거절은 사유를 그대로 낸다(`not_assignee` 403, `already_answered`·`review_changed` 409,
+  `answer_invalid` 422). 키가 받아들여지지 않거나 닿지 못하면 503. **업무 효과는 여전히 기록 작업이 낸다** —
+  대리 답은 결재를 닫을 뿐이다. 감사 이력에 `answer_relayed`. 답한 사람이 대리 답의 이름이라 Center 결재에는
+  실제 사람이 남는다(R1이 오면 기록 작업도 짐작하지 않는다).
+* **진행**: 폴러가 `bpm.state == running`인 center 데모 실행만 2초마다 읽는다(`store.running_external` — 문서를
+  다 읽지 않는다). C3 이벤트 → 지나온 노드·토큰 위치(시작했고 안 끝난 노드)·열린 결재(`human_requested` −
+  `human_answered`·`human_timeout`·`human_withdrawn`)·끝(`run_finished`). 새로 열린 결재는 대리 답용 키로 읽어
+  (SC01은 역할마다 한 사람이라 역할로 담당자를 안다) 검토 자료·폼을 화면 대기에 싣고 **업무를 그때 연다** —
+  `opened_late`가 없다. 결재를 못 읽으면 업무는 열지 않는다(계산 id 없이 열면 인계 판정이 틀린다) — 기록 때
+  늦게 연다. 읽은 끝(`last_seq`)이 같으면 저장하지 않는다. 바뀌면 기존 notifier로 SSE.
+  * 대리 답한 결재는 Center 기록에 `human_answered`가 오기 전까지 대기로 다시 보이지 않는다(`relayed`).
+  * 캔버스는 Studio와 달리 시작·게이트웨이도 칠한다 — 실행 기록에 있다.
+* **설정이 없을 때**: 조용히 내장으로 돌지 않는다. 수신은 되고(BPM 밖의 일) 「기동하지 않았다」 사유가 배너에
+  보인다 — Center 콘솔에서 직접 기동하면 첫 호출로 묶이고 사유는 첫 폴링에서 걷힌다. 화면 답·각본은 503(빠진
+  환경변수 이름). 폴러는 연동용 키가 없으면 뜨지 않는다. `/health.center`가 `url`·`integration`·`relay`·
+  `polling`을 드러낸다(키 값은 싣지 않는다). 화면은 `answerHere`(엔진이 정한다)로 폼·각본을 켠다.
+* **실측(2026-10-25)**: 사용자 Center(:8800)에는 NowView용 키가 없어 쓰지 않았다(키를 지어내지 않는다). 대신
+  Chaeksas main 코드로 **빈 Center를 따로 띄워**(:8810, 임시 데이터 폴더·관리자 토큰) 연동용·대리 답용·
+  server_runner 키를 발급하고, 서버 실행기 몫은 진짜 Chaeksas 엔진으로 흉내 냈다(실행 기록·결재를 server_runner
+  키로 올리고 Center에 적힌 답을 읽어 넣음). 결과:
+  * 엔진 프로세스 + 화면(브라우저)에서 원천 확인·비교 계산을 화면으로 대리 답, 나머지를 엔진 API로 대리 답 →
+    **인계(`HANDED_OFF`)까지**. Center 결재 8건 모두 담당자 이름 + 대리 답 키 이름으로 닫혔고, 업무 5건은 전부
+    폴링 때 열렸다(늦게 연 것 0). 역할이 틀린 답은 Center에 가기 전에 403.
+  * `POST /jobs`는 빈 Center라 422 `no_deployment`로 사유가 그대로 보였다. **SC01 패키지 배포·진짜 서버 실행기로
+    기동되는 것은 재지 못했다** — 패키지 서명·배포가 필요하다.
+  * `POST /messages`는 처음에 422 `input_invalid`였다 — 메시지는 `schema`가 있는 계약(`MessageRequest`)이다.
+    고친 뒤 기다리는 실행이 없어 422 `no_receiver`. **기다리는 실행에 메시지가 전달되는 것은 재지 못했다** —
+    Center는 실행기의 하트비트(`waiting[]`)로 그것을 안다.
+
 ### N4. 결재 담당자 — 역할을 이름으로
 
 * BPMN `chk:approval.assignees`에 사람 이름을 적는다. `Approve_DQ`·`Confirm_Calc`는 `["이도윤"]`,
@@ -212,7 +256,9 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
    인계까지(각 11건 200), 엇갈린 짝은 첫 호출 409로 실패·묶이지 않음, BFF 경유 키 없음·틀린 키는 401.
    **운영계에 올리려면** `scripts/deploy.sh --bootstrap`(키 생성) → Center CON-07에 두 키 입력 → 0.5.0 정의(지금 판)
    서명·등록 순서다. 운영계는 아직 이전 구현이다(CLAUDE.md 5.4).
-3. **N3** — Center 서버 Bot과 NowView 화면 대리 답, 폴링 SSE.
+3. **N3 — 했다.** 위 N3 「구현에서 정한 것」. 그 앞에 N1에서 미룬 **기록 거절 → 같은 결재** 오류 경계를 달았다
+   (정의 0.5.0). 남은 것: 진짜 서버 실행기·배포된 패키지로 한 바퀴(기동·정정 메시지 전달), R1 반영(기록 작업의
+   `answered_by`), 4xx 본문을 `error_message`에 싣는 것(Chaeksas 요청 후보).
 4. **N5** — 가상 직원. 접수 Bot 그림, Center 등록, UI02 카드.
 
 Chaeksas 요청(R1~R6)은 1과 동시에 보낸다. R1이 오면 1의 임시 칸을 걷는다.

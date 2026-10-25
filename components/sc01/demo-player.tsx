@@ -58,7 +58,8 @@ export function Sc01DemoPlayer() {
   const liveExecutor = useSc01((s) => s.live?.executor ?? "embedded");
   const [executorChoice, setExecutorChoice] = useState<Executor | null>(null);
   const executor = executorChoice ?? liveExecutor;
-  const external = liveExecutor !== "embedded";
+  /** 각본이 돌지 않는 실행 위치 — Studio, 그리고 대리 답 설정이 없는 Center(N3). */
+  const external = useSc01((s) => s.live !== null && !s.live.answerHere);
   const [error, setError] = useState<string | null>(null);
   const scene = SC01_SCENES[sceneIndex];
 
@@ -323,7 +324,7 @@ export function Sc01DemoPlayer() {
             <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0} aria-label="이전 장면">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
-            <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={external || (sceneIndex >= LAST && !isPlaying)} title={external ? "바깥 실행이 도는 데모 실행은 각본을 돌리지 않는다" : undefined}>
+            <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={external || (sceneIndex >= LAST && !isPlaying)} title={external ? "이 실행 위치에서는 각본이 결재에 답할 수 없다 — 결재는 바깥에서 답한다" : undefined}>
               {isPlaying ? (
                 <>
                   <Pause aria-hidden className="size-3" />

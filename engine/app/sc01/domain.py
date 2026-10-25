@@ -200,8 +200,8 @@ EXECUTOR_LABEL = {"studio": "Studio 시험 실행", "center": "Center 서버 실
 #: 바깥 실행에 묶인 데모 실행에서 화면 조작이 거절될 때의 사유 — 어디서 답하는지 말한다.
 ANSWER_ELSEWHERE = {
     "studio": "이 데모 실행은 Studio 시험 실행이 돈다 — 결재는 Studio에서 답하라",
-    "center": "이 데모 실행은 Center 서버 실행이 돈다 — 결재는 Center 결재함에서 답하라 "
-    "(NowView 대리 답은 N3)",
+    # center는 화면 답이 대리 답이다(N3) — 대리 답용 키가 없을 때만 이 사유를 앞에 붙여 503이다.
+    "center": "이 데모 실행은 Center 서버 실행이 돈다 — 결재는 Center 결재함에서 답하라",
 }
 
 
@@ -604,7 +604,8 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[s
             continue
 
         task.update(request_id=request_id, node_id=p["node_id"], source_id=variables.get("원천ID"))
-        note = "보완 후 재배정"
+        # 보완 뒤가 아니면 같은 결재가 다시 열린 것이다 — 결정 기록이 거절돼 되돌아왔다(N1).
+        note = "보완 후 재배정" if task["status"] == "NEEDS_INFO" else "같은 결재가 다시 열림"
         if run_id and run_id != task["run_id"]:
             task["run_id"] = run_id
             task["runs"].append(run_id)
@@ -790,10 +791,11 @@ def hand_off(doc: dict, run_id: str) -> bool:
 
 def external_bpm(executor: str) -> dict:
     """
-    바깥 실행의 자리. 스냅샷이 없다 — 대기·토큰은 바깥에 있고, NowView는 작업 호출이 알려 준
-    노드(`visited`·`position`)만 안다(§4 「진행 읽기」).
+    바깥 실행의 자리. 스냅샷이 없다 — 대기·토큰은 바깥에 있다(§4 「진행 읽기」). Studio는 작업
+    호출이 알려 준 노드(`visited`)만 안다. Center는 실행 기록(C3)을 폴링해 사람 대기(`waiting`)·
+    토큰 위치(`position`)까지 채운다(N3) — `center`가 그 장부다.
     """
-    return {
+    bpm = {
         "executor": executor,
         "external_run_id": None,
         "run_id": None,
@@ -801,8 +803,22 @@ def external_bpm(executor: str) -> dict:
         "snapshot": None,
         "visited": [],
         "position": [],
+        "waiting": [],
         "error": None,
     }
+    if executor == "center":
+        bpm["center"] = new_center_ledger()
+    return bpm
+
+
+def new_center_ledger() -> dict:
+    """
+    Center 실행의 장부(N3). `job` — NowView가 기동한 작업(C5). `last_seq` — 읽은 실행 기록의 끝.
+    `relayed` — NowView가 대리 답한 결재 id: Center 기록에 `human_answered`가 오기 전까지 대기로
+    다시 보이지 않게 한다. `problem` — 연동 설정이 없거나 Center가 거절한 사유(조용히
+    넘어가지 않는다).
+    """
+    return {"job": None, "last_seq": 0, "relayed": [], "problem": None}
 
 
 def executor_of(doc: dict) -> str:
@@ -880,8 +896,11 @@ def receive_external(doc: dict, source_id: str) -> None:
     bpm = doc["bpm"]
     if bpm["external_run_id"] is None:
         return
-    corrects = doc["sources"][source_id]["corrects"]
-    if corrects and doc["sources"].get(corrects, {}).get("status") == "NEEDS_INFO":
+    # 보완 대기인지는 **바로 앞 원천**으로 본다 — 실행이 다루던 것이다. `corrects`는 같은
+    # 고객계획의 첫 원천을 가리켜, 보완 → 정정 → 확인 뒤의 또 다른 정정본을 보완 대기로
+    # 오인했다(N3에서 드러남).
+    earlier = [s for s in ordered(doc["sources"]) if s["source_id"] != source_id]
+    if earlier and earlier[-1]["status"] == "NEEDS_INFO":
         return
     supersede_bpm(doc, source_id=source_id, final_state="superseded")
 
@@ -1054,6 +1073,9 @@ def upgrade(doc: dict) -> dict:
     if doc.get("bpm") is not None:
         doc["bpm"].setdefault("executor", "embedded")
         doc["bpm"].setdefault("external_run_id", None)
+        doc["bpm"].setdefault("waiting", [])
+        if doc["bpm"]["executor"] == "center":
+            doc["bpm"].setdefault("center", new_center_ledger())
     for old in doc.get("bpm_history", []):
         old.setdefault("executor", "embedded")
     # 순번(`seq`) 이전에 저장된 문서 — id의 숫자와 배정 시각으로 만든 순서를 되살린다.

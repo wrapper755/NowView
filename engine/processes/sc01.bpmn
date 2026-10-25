@@ -78,10 +78,11 @@
 
     <bpmn:exclusiveGateway id="Gw_DQ" name="원천 확인 결과" default="Flow_dq_fix"/>
 
-    <!-- 보완 — 정정본이 오면 새 원천ID로 다시 검증한다. 이전 원천은 지우지 않는다(1.10). -->
+    <!-- 보완 — 정정본이 오면 새 원천ID로 다시 검증한다. 이전 원천은 지우지 않는다(1.10).
+         상관 키는 데모실행ID — Center는 상관 키 없는 메시지로 기다리는 실행을 찾지 않는다(C12, N3). -->
     <bpmn:receiveTask id="Wait_Correction" name="정정본 대기" messageRef="Msg_correction">
       <bpmn:extensionElements>
-        <chk:receive>{"message": "원천정정", "payload": ["원천ID"]}</chk:receive>
+        <chk:receive>{"message": "원천정정", "correlation": "데모실행ID", "payload": ["원천ID"]}</chk:receive>
       </bpmn:extensionElements>
     </bpmn:receiveTask>
 
