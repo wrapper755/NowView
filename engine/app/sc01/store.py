@@ -28,6 +28,7 @@ class Sc01Store(Protocol):
     def history(self, demo_run_id: str) -> list[dict[str, Any]]: ...
     def at(self, demo_run_id: str, seq: int) -> dict | None: ...
     def list(self) -> list[dict[str, Any]]: ...
+    def running_external(self, executor: str) -> list[str]: ...
 
 
 _SQLITE = [
@@ -135,6 +136,16 @@ class SqliteSc01Store:
             ).fetchall()
         return [{"demoRunId": r[0], "rowVersion": r[1], "createdAt": str(r[2])} for r in rows]
 
+    def running_external(self, executor: str) -> list[str]:
+        """그 실행 위치에서 **도는** 데모 실행 id — Center 폴링이 문서를 다 읽지 않게(N3)."""
+        with self._lock:
+            rows = self.conn.execute(
+                "SELECT id FROM sc01_demo_run WHERE json_extract(doc, '$.bpm.executor') = ? "
+                "AND json_extract(doc, '$.bpm.state') = 'running'",
+                (executor,),
+            ).fetchall()
+        return [r[0] for r in rows]
+
 
 class PostgresSc01Store:
     def __init__(self, pool: Any) -> None:
@@ -220,6 +231,15 @@ class PostgresSc01Store:
             }
             for r in rows
         ]
+
+    def running_external(self, executor: str) -> list[str]:
+        with self.pool.connection() as conn:
+            rows = conn.execute(
+                "SELECT id FROM sc01_demo_run WHERE doc->'bpm'->>'executor' = %s "
+                "AND doc->'bpm'->>'state' = 'running'",
+                (executor,),
+            ).fetchall()
+        return [r["id"] for r in rows]
 
 
 def build_sc01_store(backend: Any) -> Sc01Store:

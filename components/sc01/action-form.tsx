@@ -30,8 +30,12 @@ export function ActionForm({
   const actor = useSc01((s) => s.actor);
   const users = useSc01((s) => s.users);
   const historical = useSc01((s) => s.past !== null);
-  /** 바깥 실행의 결재는 바깥에서 답한다 — 엔진도 409로 거절한다(N2). 버튼은 편의다. */
-  const external = useSc01((s) => (s.live?.executor ?? "embedded") !== "embedded");
+  /**
+   * Studio 실행의 결재는 Studio에서 답한다(N2). Center 실행은 대리 답 설정이 있으면 여기서 답한다(N3)
+   * — 엔진도 409·503으로 거절한다. 버튼은 편의다.
+   */
+  const external = useSc01((s) => s.live !== null && !s.live.answerHere);
+  const relay = useSc01((s) => s.live?.executor === "center");
   const setLive = useSc01((s) => s.setLive);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
@@ -97,6 +101,8 @@ export function ActionForm({
             <Lock aria-hidden className="size-3" />
             바깥 실행이 도는 데모 실행이다 — 결재는 바깥에서 답한다
           </span>
+        ) : relay ? (
+          <span className="text-xs text-muted-foreground">Center 결재함에 대리 답으로 간다</span>
         ) : wrongRole ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Lock aria-hidden className="size-3" />

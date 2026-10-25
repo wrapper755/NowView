@@ -60,6 +60,9 @@ function backEdges(topology: ProcessTopology, start: string): Set<string> {
  * 기록 태스크는 결재마다 하나씩 붙는 NowView 쪽 장부다(바깥 Chaeksas에서도 결정이 NowView에 닿게
  * 하는 길). 그대로 그리면 노드가 20개에서 27개로 늘어 캔버스 글자가 읽히지 않았다(실측) — 업무
  * 흐름으로는 결재와 한 걸음이므로 결재 노드 하나로 보인다. BPMN 자체는 바꾸지 않는다.
+ *
+ * 기록 태스크의 오류 경계(「기록 거절」 → 같은 결재)도 접힌다 — 접고 나면 결재에서 자기에게 도는
+ * 고리라 그리지 않는다. 거절은 업무 흐름의 갈래가 아니라 「다시 답한다」이고, 사유는 감사 이력에 있다.
  */
 export function canvasTopology(topology: ProcessTopology): ProcessTopology {
   const folded = new Map(
@@ -71,7 +74,8 @@ export function canvasTopology(topology: ProcessTopology): ProcessTopology {
     nodes: topology.nodes.filter((n) => !folded.has(n.id)),
     flows: topology.flows
       .filter((f) => !folded.has(f.target))
-      .map((f) => (folded.has(f.source) ? { ...f, source: folded.get(f.source)! } : f)),
+      .map((f) => (folded.has(f.source) ? { ...f, source: folded.get(f.source)! } : f))
+      .filter((f) => f.source !== f.target),
   };
 }
 

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "nowview-sc01",
-  "version": "0.4.0-local",
+  "version": "0.5.0-local",
   "name": "NowView SC01 업무 시스템 (로컬)",
   "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio. 이 PC의 NowView(localhost:3000)를 부른다.",
   "publisher": "NowView",
@@ -110,13 +110,13 @@
             "required": ["demo_run_id", "node_id", "source_id", "result", "opinion", "evidence"],
             "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "source_id": {"type": "string"}, "result": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}}
           },
-          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "source_id": "{{input.source_id}}", "result": "{{input.result}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}"}
           },
-          "response": {"output": {"recorded": "$.recorded"}}
+          "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         },
         {
           "name": "record_sales_review",
@@ -128,13 +128,13 @@
             "required": ["demo_run_id", "node_id", "run_id", "opinion", "evidence"],
             "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}, "opinion": {"type": "string"}, "evidence": {"type": "string"}, "manual_review": {}, "agent_output": {}}
           },
-          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "opinion": "{{input.opinion}}", "evidence": "{{input.evidence}}", "manual_review": "{{input.manual_review}}", "agent_output": "{{input.agent_output}}"}
           },
-          "response": {"output": {"recorded": "$.recorded"}}
+          "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         },
         {
           "name": "record_dispatch",
@@ -146,13 +146,13 @@
             "required": ["demo_run_id", "node_id", "prod", "mat"],
             "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "prod": {"type": "string"}, "mat": {"type": "string"}}
           },
-          "output_schema": {"type": "object", "properties": {"prod_name": {"type": "string"}, "mat_name": {"type": "string"}}},
+          "output_schema": {"type": "object", "properties": {"prod_name": {"type": "string"}, "mat_name": {"type": "string"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "prod": "{{input.prod}}", "mat": "{{input.mat}}"}
           },
-          "response": {"output": {"prod_name": "$.prod_name", "mat_name": "$.mat_name"}}
+          "response": {"output": {"prod_name": "$.prod_name", "mat_name": "$.mat_name", "error_message": "$.error_message"}}
         },
         {
           "name": "record_review_request",
@@ -164,13 +164,13 @@
             "required": ["demo_run_id", "node_id", "fin"],
             "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "fin": {"type": "string"}}
           },
-          "output_schema": {"type": "object", "properties": {"fin_name": {"type": "string"}}},
+          "output_schema": {"type": "object", "properties": {"fin_name": {"type": "string"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "fin": "{{input.fin}}"}
           },
-          "response": {"output": {"fin_name": "$.fin_name"}}
+          "response": {"output": {"fin_name": "$.fin_name", "error_message": "$.error_message"}}
         },
         {
           "name": "record_acceptance",
@@ -182,13 +182,13 @@
             "required": ["demo_run_id", "node_id", "run_id"],
             "properties": {"demo_run_id": {"type": "string"}, "node_id": {"type": "string"}, "run_id": {"type": "string"}}
           },
-          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}, "error_message": {}}},
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/answers/{{input.node_id}}",
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}"}
           },
-          "response": {"output": {"recorded": "$.recorded"}}
+          "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
         }
       ]
     }

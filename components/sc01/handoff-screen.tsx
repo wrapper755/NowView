@@ -28,6 +28,8 @@ const ACTION_LABEL: Record<string, string> = {
   task_needs_info: "보완 요청",
   calculation_requested: "비교 계산 요청",
   calculated: "비교 계산 완료",
+  answer_recorded: "결정 기록",
+  answer_rejected: "결정 기록 거절 — 같은 결재로 되돌림",
   dispatched: "현업 검토 배정",
   review_requested: "Management Review 요청",
   SCENE_HANDED_OFF: "장면 1 인계 완료",

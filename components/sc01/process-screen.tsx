@@ -75,9 +75,11 @@ export function ProcessScreen() {
               <p className="text-sm text-muted-foreground">
                 {view?.bpm?.state === "done"
                   ? "흐름이 끝났다 — 장면 1 인계 완료."
-                  : view && view.executor !== "embedded"
+                  : view?.executor === "studio"
                     ? "바깥 실행의 사람 대기는 NowView가 모른다 — 작업 호출이 알려 준 곳까지만 칠한다."
-                    : "사람을 기다리는 곳이 없다."}
+                    : view?.executor === "center"
+                      ? "Center 실행 기록에 열린 결재가 없다 — 2초마다 다시 읽는다."
+                      : "사람을 기다리는 곳이 없다."}
               </p>
             ) : (
               <ul className="divide-y text-sm">

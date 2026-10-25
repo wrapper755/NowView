@@ -238,7 +238,8 @@ NowView/
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
-    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions,
+    │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
+    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center,
                                   #   test_events · _notify
 ```
 
@@ -314,7 +315,8 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
     작업 정의는 두 파일이 같아야 한다 — 운영계 정의를 고치면 로컬 정의도 함께 고친다.
   * **로컬 정의는 어댑터가 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
     `-H 127.0.0.1`로 띄우면 연결 거부다.
-  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409).
+  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.5.0 — 기록 작업
+    응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있다.
   * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
     ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
     **키는 NowView가 짓는다**(R6 답) — 운영 키(`NOWVIEW_SYSTEM_KEY`)는 Center의 「외부 앱 키」, 시험용 키
@@ -326,6 +328,14 @@ POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기�
       `unconfigured`를 드러낸다(값은 싣지 않는다).
     * 로컬은 `engine/.env.local`(gitignore)에 두면 `stack:start engine`이 `--env-file`로 읽는다. 운영은
       `/etc/nowview.env` — `deploy/bootstrap.sh`가 **파일이 이미 있어도 빠진 키만** 지어 더한다.
+* **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
+  없다). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
+  `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기) · `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재
+  읽기·답, `X-CHK-On-Behalf-Of` = 행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `nowview.sc01`). 키가 둘인 것은
+  Chaeksas 권한표 그대로다 — 대리 답용 키는 결재만, 연동용 키는 결재를 못 읽는다. `/health.center`가 설정·폴링
+  여부를 드러낸다(값은 싣지 않는다). 시스템 작업 키(N6)와는 방향이 반대인 다른 키다.
+  * **메시지는 `schema: 1`이 있어야 한다**(`MessageRequest`) — 없으면 422 `input_invalid`(실측). 작업(`/jobs`)은
+    `schema`가 없는 계약이다.
   * **선택 입력을 본문 템플릿에 넣지 않는다.** 어댑터는 `{{input.x}}`의 `x`가 없으면 호출을 실패시킨다 —
     그래서 배정 기록이 생산·자재(`record_dispatch`)와 경영관리(`record_review_request`)로 갈렸고,
     `answered_by`는 R1이 오기 전까지 본문에 없다.
@@ -392,9 +402,14 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   * **답한 사람**: 내장은 조작한 행위자, 바깥은 Chaeksas가 아직 넘기지 않아(요청서 R1) 그 결재의 담당자로
     적고 감사 이력에 `guessed`로 남긴다.
   * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
-    판정이 그만큼 느슨하다. Center 결재를 읽게 되면(N3) 그때 연다.
+    판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래).
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
     두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
+  * **기록이 거절되면 같은 결재로 되돌아간다** — 기록 태스크마다 오류 경계(`Bnd_Record_*`, `TASK_FAILED`).
+    Center 콘솔 답은 사전 검사를 거치지 않아 예전에는 실행이 실패로 끝났다. 결재 `show`의 `error_message`에는
+    **사유가 없다** — HTTP 어댑터가 4xx 본문을 버리고 「…이 409를 돌려줬다」만 남긴다. 사유는 감사 이력
+    `answer_rejected`에 있다. 검사가 부수 효과보다 먼저라 거절된 답은 기록·업무를 남기지 않고, 성공한 기록은
+    `error_message: null`을 돌려줘 낡은 사유를 비운다. 캔버스는 경계도 결재에 접는다.
 * **실행 위치는 데모 실행마다 하나다**(`bpm.executor` = `embedded`|`studio`|`center`, N2). 만들 때·초기화할
   때 고른다(플레이어의 실행 위치 선택, `POST /demo-runs {executor}`). 바깥이면 **내장 엔진은 그 문서에서
   step하지 않는다** — 수신은 원천만 등록하고, 화면 답·각본은 409, 진행은 작업 호출이 알려 준 노드뿐이다.
@@ -411,6 +426,22 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     실행이 같은 결재에 오면 인수한 업무에 재확인, 끝난 업무에 재검토 업무가 생긴다(내장과 같은 규칙).
   * 캔버스는 바깥 실행이 끝나도 알려 주지 않은 노드를 미실행으로 칠하지 않는다 — 시작·게이트웨이처럼
     작업 호출이 없는 노드는 지나왔어도 모른다. 토큰 위치도 비워 둔다(호출이 끝나면 토큰은 이미 갔다).
+  * **보완 대기인지는 바로 앞 원천으로 본다**(`receive_external`). `corrects`는 같은 고객계획의 첫 원천을
+    가리켜, 보완 → 정정 → 확인 뒤의 또 다른 정정본을 보완 대기로 오인했다(N3 시험에서 드러남).
+* **Center 실행(`center`)은 NowView가 기동하고, 화면 답이 대리 답이며, 진행을 폴링한다**(N3,
+  `docs/chaeksas-integration.md` N3 「구현에서 정한 것」).
+  * 수신 → `POST /jobs`. 묶인 실행이 보완 대기면 정정본은 `POST /messages`(상관 키 = 데모실행ID — 그래서
+    `Wait_Correction`에 `correlation`이 있다. Center는 상관 키 없는 메시지로 기다리는 실행을 찾지 않는다).
+    대체·초기화 때는 앞 작업을 거둔다.
+  * 화면 답(`act`)·각본 → **사전 검사가 Center보다 먼저**(403·409·422, 입력 보존) → 열린 결재 찾기(최대 10초 —
+    실행기가 결재를 올리는 동안) → 대리 답(`if_review_digest`). 업무 효과는 여전히 기록 작업이 낸다.
+  * 폴러(`poller.py`, 2초)는 `bpm.state == running`인 center 데모 실행만 읽는다(`store.running_external`).
+    C3 → 지나온 노드·토큰 위치·열린 결재·끝. 새 결재는 대리 답용 키로 읽어 검토 자료·폼을 싣고 **업무를 그때
+    연다**(늦게 열지 않는다). 대리 답한 결재는 `human_answered`가 오기 전까지 다시 보이지 않는다(`relayed`).
+  * **설정이 없으면 조용히 내장으로 돌지 않는다** — 수신은 되고 「기동하지 않았다」 사유가 배너에 남는다
+    (첫 폴링에서 걷힌다). 화면 답·각본은 503. 화면은 엔진이 정한 `answerHere`로 폼·각본을 켠다.
+  * 시험은 가짜 Center(`test_sc01_center.py`)와 **따로 띄운 빈 Center**(실측)로 했다. 진짜 서버 실행기·배포된
+    패키지로는 아직 돌려 보지 않았다(기동·메시지 전달이 남았다).
 * **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
   저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
   보지 않는다(DATA-05).
@@ -572,6 +603,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_agent.py` | Agent 계약 검증(틀린 금액·비율·물량, 없는 근거, 빠진 항목), EX08, 실패 응답 비노출, 재생성·채택·지연, **잠금 밖 실행**, `-m llm` 실호출 |
 | `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
 | `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
+| `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 

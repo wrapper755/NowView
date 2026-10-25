@@ -26,7 +26,8 @@ from app.sc01 import demo, domain
 from app.sc01.auth import SystemAuth
 from app.sc01.domain import USERS, DomainError
 from app.sc01.process import RECORD_OF_NODE, Sc01Process
-from app.sc01.view import dashboard, topology, view
+from app.sc01.view import dashboard, topology
+from app.sc01.view import view as render
 
 
 class CreateBody(BaseModel):
@@ -59,6 +60,10 @@ def build_router(process: Sc01Process, hub: Hub, auth: SystemAuth | None = None)
     """`auth` — 시스템 작업의 키(N6). 주지 않으면 환경변수에서 읽는다(`SystemAuth.from_env`)."""
     r = APIRouter(prefix="/sc01", tags=["sc01"])
     system_auth = auth or SystemAuth.from_env()
+
+    def view(doc: dict, **kwargs: Any) -> dict[str, Any]:
+        # 화면 답이 되는지(center면 대리 답용 키)는 엔진 설정이 정한다 — 문서에 없다(N3).
+        return render(doc, center=process.center.config, **kwargs)
 
     def guard(fn, *args, **kwargs):
         try:

@@ -10,6 +10,7 @@ dependencies = [
     "psycopg[binary,pool]>=3.2",
     "chaeksas-core",
     "openpyxl>=3.1",
+    "httpx>=0.27",  # Center 연동 클라이언트(N3, app/sc01/center.py)
 ]
 
 # Chaeksas BPM 엔진(BPMN 해석기)을 라이브러리로 쓴다 — Center·실행기는 쓰지 않는다.
@@ -20,7 +21,6 @@ chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "c127c6f
 
 [dependency-groups]
 dev = [
-    "httpx>=0.27",  # fastapi TestClient
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.8",

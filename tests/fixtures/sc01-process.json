@@ -31,6 +31,13 @@
    "recordOf": "Approve_DQ"
   },
   {
+   "id": "Bnd_Record_DQ",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_DQ"
+  },
+  {
    "id": "Gw_DQ",
    "kind": "exclusiveGateway",
    "name": "\uc6d0\ucc9c \ud655\uc778 \uacb0\uacfc",
@@ -80,6 +87,13 @@
    "recordOf": "Approve_Sales"
   },
   {
+   "id": "Bnd_Record_Sales",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_Sales"
+  },
+  {
    "id": "Gw_Route",
    "kind": "inclusiveGateway",
    "name": "\ud6c4\uc18d \ucc98\ub9ac \uacbd\ub85c",
@@ -97,6 +111,13 @@
    "id": "Record_Dispatch",
    "kind": "serviceTask",
    "name": "\ud604\uc5c5 \ubc30\uc815 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Approve_Dispatch"
+  },
+  {
+   "id": "Bnd_Record_Dispatch",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
    "role": null,
    "recordOf": "Approve_Dispatch"
   },
@@ -122,6 +143,13 @@
    "recordOf": "Accept_PROD"
   },
   {
+   "id": "Bnd_Record_PROD",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Accept_PROD"
+  },
+  {
    "id": "Accept_MAT",
    "kind": "userTask",
    "name": "\uc790\uc7ac \uc601\ud5a5 \uac80\ud1a0 \uc778\uc218",
@@ -132,6 +160,13 @@
    "id": "Record_MAT",
    "kind": "serviceTask",
    "name": "\uc790\uc7ac \uc778\uc218 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Accept_MAT"
+  },
+  {
+   "id": "Bnd_Record_MAT",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
    "role": null,
    "recordOf": "Accept_MAT"
   },
@@ -157,6 +192,13 @@
    "recordOf": "Approve_Review"
   },
   {
+   "id": "Bnd_Record_Review",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_Review"
+  },
+  {
    "id": "Accept_FIN",
    "kind": "userTask",
    "name": "\uc190\uc775\ubd84\uc11d \ubcf4\uace0 \uc778\uc218",
@@ -167,6 +209,13 @@
    "id": "Record_FIN",
    "kind": "serviceTask",
    "name": "\uc190\uc775\ubd84\uc11d \uc778\uc218 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Accept_FIN"
+  },
+  {
+   "id": "Bnd_Record_FIN",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
    "role": null,
    "recordOf": "Accept_FIN"
   },
@@ -386,6 +435,55 @@
    "id": "Flow_join",
    "source": "Gw_Join",
    "target": "Task_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_dq_rejected",
+   "source": "Bnd_Record_DQ",
+   "target": "Approve_DQ",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_sales_rejected",
+   "source": "Bnd_Record_Sales",
+   "target": "Approve_Sales",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_dispatch_rejected",
+   "source": "Bnd_Record_Dispatch",
+   "target": "Approve_Dispatch",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_prod_rejected",
+   "source": "Bnd_Record_PROD",
+   "target": "Accept_PROD",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_mat_rejected",
+   "source": "Bnd_Record_MAT",
+   "target": "Accept_MAT",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_review_rejected",
+   "source": "Bnd_Record_Review",
+   "target": "Approve_Review",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_fin_rejected",
+   "source": "Bnd_Record_FIN",
+   "target": "Accept_FIN",
    "condition": null,
    "default": false
   },

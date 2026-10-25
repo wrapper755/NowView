@@ -353,19 +353,26 @@ class _ExternalCalls:
         self.proc = proc
 
     def call(self, request):
-        from chaeksas.core.services import OpOutcome
+        from chaeksas.core.services import OpOutcome, ServiceCallError
 
         # 확장 정의가 본문에 `{{run_id}}`·`{{node_id}}`를 싣는 것과 같다(N2).
         args = dict(request.input)
-        return OpOutcome(
-            output=self.proc.operate(
+        try:
+            out = self.proc.operate(
                 args.pop("demo_run_id"),
                 request.operation,
                 args,
                 external_run_id=request.run_id,
                 node_id=request.node_id,
             )
-        )
+        except DomainError as exc:
+            # 어댑터는 4xx의 본문을 버리고 상태 코드만 말한다(`http_adapter.AdapterCaller.call`).
+            raise ServiceCallError(
+                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
+                code="http_error",
+                status=exc.status,
+            ) from exc
+        return OpOutcome(output=out)
 
 
 def _run_external(proc: Sc01Process, rid: str, sid: str, run_id: str):
@@ -449,3 +456,70 @@ def test_correction_supersedes_the_external_run_and_links_the_next(proc: Sc01Pro
     assert after["bpm"]["external_run_id"] == second and after["scene"] == "HANDED_OFF"
     linked = [a["detail"]["run_id"] for a in after["audit"] if a["action"] == "external_run_linked"]
     assert linked == [first, second]
+
+
+def test_rejected_record_returns_to_the_same_approval_then_fix_request_continues(
+    proc: Sc01Process,
+) -> None:
+    """
+    Center 콘솔 답은 NowView 사전 검사를 거치지 않는다 — 검증 오류가 남은 원천을 확인완료하면 기록
+    작업이 409였고 실행이 실패로 끝났다. 이제 오류 경계가 같은 결재로 되돌린다(N1). 거절은 감사
+    이력에 사유와 함께 남고 업무 효과는 없다. 그다음 보완 요청 → 정정본으로 바로잡으면 인계까지
+    간다.
+    """
+    from chaeksas.core.engine import Engine, RunEnv, State
+    from chaeksas.core.run_log import RunLog
+
+    rid = proc.create(executor="center")["demo_run_id"]
+    sid = proc.receive(rid, "EX02", actor="u-sales")["sources"]["SRC02"]["source_id"]
+
+    engine, run_id = Engine(), "run_20270616_090000_b0b0b0"
+    run = engine.start(
+        proc.process,
+        run_id=run_id,
+        log=RunLog(run_id=run_id),
+        env=RunEnv(services=_ExternalCalls(proc)),
+        executor="server_runner",
+        inputs={"데모실행ID": rid, "원천ID": sid},
+        now=parse_at(proc.get(rid)["clock"]),
+    )
+
+    def answer(node_id: str, values: dict) -> None:
+        [pending] = [p for p in run.pendings.values() if p.node_id == node_id]
+        engine.answer(run, pending.request_id, values, answered_by="콘솔")
+
+    dq = {"확인의견": "콘솔에서 확인", "확인근거": "원본 대조"}
+    assert engine.run_until_blocked(run) is State.WAITING
+    assert run.variables["검증통과"] is False  # EX02 — 필수값 누락
+    answer("Approve_DQ", {"확인결과": "확인완료", **dq})
+
+    # 실패로 끝나지 않고 같은 결재가 다시 열린다. 결재가 보이는 `error_message`에는 어댑터가 본문을
+    # 버려 상태 코드만 남는다 — 사유는 NowView 감사 이력에 있다.
+    assert engine.run_until_blocked(run) is State.WAITING
+    assert [p.node_id for p in run.pendings.values()] == ["Approve_DQ"]
+    assert "record_dq_review이 409를 돌려줬다" in run.variables["error_message"]
+    after = proc.get(rid)
+    assert after["sources"][sid]["status"] != "VERIFIED"
+    [rejected] = [a for a in after["audit"] if a["action"] == "answer_rejected"]
+    assert rejected["detail"]["node_id"] == "Approve_DQ" and rejected["detail"]["status"] == 409
+    assert "검증 오류" in rejected["detail"]["reason"]
+    # 거절된 답은 「기록」도 업무도 남기지 않는다.
+    assert not [a for a in after["audit"] if a["action"] == "answer_recorded"]
+    assert not after["tasks"]
+
+    answer("Approve_DQ", {"확인결과": "보완요청", **dq})
+    assert engine.run_until_blocked(run) is State.WAITING
+    assert run.variables["error_message"] is None  # 기록이 성공하면 낡은 사유를 비운다
+    assert proc.get(rid)["sources"][sid]["status"] == "NEEDS_INFO"
+
+    fixed = proc.receive(rid, "CP02", actor="u-sales")
+    new_sid = max(fixed["sources"], key=lambda s: fixed["sources"][s]["seq"])
+    engine.deliver(run, "원천정정", payload={"원천ID": new_sid})
+    answers = {s.node_id: s.answer for s in demo.BASE if s.node_id}
+    while engine.run_until_blocked(run) is State.WAITING:
+        for p in list(run.pendings.values()):
+            engine.answer(run, p.request_id, answers[p.node_id], answered_by="콘솔")
+    assert run.state is State.DONE
+    done = proc.get(rid)
+    assert done["scene"] == "HANDED_OFF" and done["sources"][new_sid]["status"] == "VERIFIED"
+    assert done["bpm"]["external_run_id"] == run_id

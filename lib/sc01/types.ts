@@ -222,6 +222,11 @@ export interface DemoRunView {
   /** 지난 시점을 되짚어 본 것인가 — true면 조작할 수 없다. */
   historical: boolean;
   executor: Executor;
+  /**
+   * 이 화면에서 결재에 답할 수 있나 — 내장이면 그렇고, Center면 엔진에 대리 답용 키가 있을 때다(N3).
+   * Studio는 늘 아니다. 버튼 비활성은 편의이고 거절은 엔진이 한다.
+   */
+  answerHere: boolean;
   bpm: null | {
     executor: Executor;
     /** 바깥 실행의 Chaeksas 실행 id — 첫 작업 호출에서 묶인다. 그 전에는 null이다. */
@@ -232,6 +237,11 @@ export interface DemoRunView {
     waiting: Waiting[];
     position: string[];
     visited: string[];
+    /** Center 실행이면 NowView가 기동한 작업과, 연동이 막힌 사유(설정 없음·Center 거절). */
+    center?: null | {
+      job: { job_id: string; source_id: string; at: string } | null;
+      problem: string | null;
+    };
   };
   sources: Source[];
   forecasts: { version_id: string; source_id: string; approval: string; created_at: string }[];

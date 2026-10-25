@@ -272,6 +272,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "chaeksas-core" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "openpyxl" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic" },
@@ -280,7 +281,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -290,6 +290,7 @@ dev = [
 requires-dist = [
     { name = "chaeksas-core", git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcore&rev=c127c6f00cbb1cef5aeb344b48b5544ce15ce2a6" },
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2" },
     { name = "pydantic", specifier = ">=2.9" },
@@ -298,7 +299,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.27" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "ruff", specifier = ">=0.8" },
