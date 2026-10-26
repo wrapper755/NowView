@@ -79,7 +79,11 @@ export function canvasTopology(topology: ProcessTopology): ProcessTopology {
   };
 }
 
-export function layoutProcess(full: ProcessTopology): PlacedNode[] {
+/**
+ * `maxColumns` — 한 줄에 놓는 층 수. 장면 2처럼 층이 많은 흐름은 넓게 펴야 세로 줄이 줄어 글자가 커진다
+ * (fitView는 폭·높이 중 작은 배율을 쓴다).
+ */
+export function layoutProcess(full: ProcessTopology, maxColumns = MAX_COLUMNS): PlacedNode[] {
   const topology = canvasTopology(full);
   const start =
     topology.nodes.find((n) => n.kind === "startEvent")?.id ?? topology.nodes[0]?.id;
@@ -110,7 +114,7 @@ export function layoutProcess(full: ProcessTopology): PlacedNode[] {
   }
   // 층을 줄(band)로 접는다. 줄 높이는 가장 붐비는 층에 맞춘다.
   const ranks = Math.max(...rank.values()) + 1;
-  const bands = Math.ceil(ranks / MAX_COLUMNS);
+  const bands = Math.ceil(ranks / maxColumns);
   const perBand = Math.ceil(ranks / bands);
   const widest = Math.max(...[...byRank.values()].map((c) => c.length));
   const bandHeight = (widest + 0.6) * ROW;
@@ -150,12 +154,15 @@ export function nodeStates(
   const position = new Set(bpm?.position ?? []);
   const finished = bpm?.state === "done";
   const known = (bpm?.executor ?? "embedded") === "embedded";
+  // 도달한 종료가 기록된 실행(장면 2 — 종료가 여럿)이면 그 종료만 완료다. 기록이 없으면(장면 1) 끝났을 때
+  // 종료를 완료로 본다.
+  const endsRecorded = topology.nodes.some((n) => n.kind === "endEvent" && visited.has(n.id));
   for (const n of topology.nodes) {
     if (waiting.has(n.id)) states[n.id] = "waiting";
     else if (position.has(n.id)) states[n.id] = "active";
     else if (visited.has(n.id)) states[n.id] = "done";
     // 종료 이벤트는 완료 기록을 남기지 않는다 — 실행이 끝났으면 도달한 것이다.
-    else if (finished && n.kind === "endEvent") states[n.id] = "done";
+    else if (finished && n.kind === "endEvent" && !endsRecorded) states[n.id] = "done";
     else states[n.id] = finished && known ? "skipped" : "pending";
   }
   return states;

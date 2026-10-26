@@ -3,10 +3,10 @@
 import { useRef, useState } from "react";
 import { Lock, Send } from "lucide-react";
 
+import { FormField, initialValue, isMissing } from "@/components/shared/form-field";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { sc01Api } from "@/lib/sc01/client";
-import type { FormField, Waiting } from "@/lib/sc01/types";
+import type { Waiting } from "@/lib/sc01/types";
 import { useSc01 } from "@/lib/store/sc01";
 
 /**
@@ -39,7 +39,7 @@ export function ActionForm({
   const setLive = useSc01((s) => s.setLive);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
-    ...Object.fromEntries(waiting.fields.map((f) => [f.key, f.default ?? (f.type === "bool" ? false : "")])),
+    ...Object.fromEntries(waiting.fields.map((f) => [f.key, initialValue(f)])),
     ...initial,
   }));
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +52,7 @@ export function ActionForm({
 
   const me = users.find((u) => u.userId === actor);
   const wrongRole = waiting.role !== null && me?.role !== waiting.role;
-  const missing = waiting.fields.some(
-    (f) => f.required && f.type !== "bool" && !String(values[f.key] ?? "").trim(),
-  );
+  const missing = waiting.fields.some((f) => isMissing(f, values[f.key]));
 
   const submit = async () => {
     if (!demoRunId) return;
@@ -80,7 +78,7 @@ export function ActionForm({
       }}
     >
       {waiting.fields.map((f) => (
-        <Field
+        <FormField
           key={f.key}
           field={f}
           value={values[f.key]}
@@ -116,85 +114,5 @@ export function ActionForm({
         </p>
       ) : null}
     </form>
-  );
-}
-
-function Field({
-  field,
-  value,
-  users,
-  onChange,
-}: {
-  field: FormField;
-  value: unknown;
-  users: { userId: string; name: string; role: string }[];
-  onChange: (v: unknown) => void;
-}) {
-  const id = `f-${field.key}`;
-  const label = (
-    <label htmlFor={id} className="text-xs font-medium">
-      {field.label}
-      {field.required ? <span className="text-muted-foreground"> (필수)</span> : null}
-    </label>
-  );
-
-  if (field.type === "bool") {
-    return (
-      <label className="flex items-center gap-2 text-xs">
-        <input id={id} type="checkbox" checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} />
-        {field.label}
-      </label>
-    );
-  }
-  if (field.type === "choice") {
-    return (
-      <fieldset className="space-y-1">
-        <legend className="text-xs font-medium">{field.label}</legend>
-        <div className="flex flex-wrap gap-1">
-          {(field.choices ?? []).map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-pressed={value === c}
-              onClick={() => onChange(c)}
-              className={
-                value === c
-                  ? "rounded-md border bg-muted px-2.5 py-1 text-xs font-medium"
-                  : "rounded-md border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground"
-              }
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-    );
-  }
-  // 담당자 칸(…담당자)은 사용자 마스터에서 고른다 — 이름을 손으로 치면 배정이 거절된다.
-  if (field.key.endsWith("담당자")) {
-    return (
-      <div className="space-y-1">
-        {label}
-        <select
-          id={id}
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          className="block w-full rounded-lg border bg-transparent px-2 py-1.5 text-sm"
-        >
-          <option value="">선택</option>
-          {users.map((u) => (
-            <option key={u.userId} value={u.userId}>
-              {u.name} · {u.role}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-1">
-      {label}
-      <Textarea id={id} rows={2} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />
-    </div>
   );
 }

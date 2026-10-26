@@ -1,0 +1,652 @@
+{
+ "processId": "nowview.sc02",
+ "name": "SC02 \ub2e8\uac00 \uc778\uc0c1 \uac80\ud1a0\uc640 \uacbd\uc601\uac80\ud1a0 \uc5f0\uacb0",
+ "nodes": [
+  {
+   "id": "Start",
+   "kind": "startEvent",
+   "name": "\ub2e8\uac00 \uc778\uc0c1 \uc694\uccad \uc811\uc218",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Screen",
+   "kind": "serviceTask",
+   "name": "\uc694\uccad \uc790\ub3d9 \uac80\uc0ac",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Verify_Request",
+   "kind": "userTask",
+   "name": "\uc694\uccad \uc6d0\ubb38 \ud655\uc778",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Verify",
+   "kind": "serviceTask",
+   "name": "\uc6d0\ubb38 \ud655\uc778 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Verify_Request"
+  },
+  {
+   "id": "Gw_Verify",
+   "kind": "exclusiveGateway",
+   "name": "\uc6d0\ubb38 \ud655\uc778 \uacb0\uacfc",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Report_Lead",
+   "kind": "userTask",
+   "name": "\ud300\uc7a5 \ubcf4\uace0 \uae30\ub85d",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Report",
+   "kind": "serviceTask",
+   "name": "\ubcf4\uace0 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Report_Lead"
+  },
+  {
+   "id": "Gw_Report",
+   "kind": "exclusiveGateway",
+   "name": "\uac80\ud1a0 \ud544\uc694\uc131",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Confirm_Analysis",
+   "kind": "userTask",
+   "name": "\uc694\uccad\uc548 \uc601\ud5a5\ubd84\uc11d",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Task_Analyze",
+   "kind": "serviceTask",
+   "name": "\uc694\uccad\uc548\u00b7\uc81c\uc2dc\uc548 \ubd84\uc11d",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Agent_Pre",
+   "kind": "serviceTask",
+   "name": "Agent \uc0ac\uc804 \uac80\ud1a0 \ucd08\uc548",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Record_Negotiation",
+   "kind": "userTask",
+   "name": "1\ucc28 \ud611\uc0c1 \uacb0\uacfc",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Neg",
+   "kind": "serviceTask",
+   "name": "\ud611\uc0c1 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Record_Negotiation"
+  },
+  {
+   "id": "Gw_Neg",
+   "kind": "exclusiveGateway",
+   "name": "\ud611\uc0c1 \uacb0\uacfc",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Confirm_Reanalysis",
+   "kind": "userTask",
+   "name": "\ud611\uc0c1\uc548 \uc7ac\ubd84\uc11d",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Task_Reanalyze",
+   "kind": "serviceTask",
+   "name": "\ud611\uc0c1\uc548 \ubd84\uc11d",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Agent_Neg",
+   "kind": "serviceTask",
+   "name": "Agent \ud611\uc0c1 \ube44\uad50\u00b7\uae30\uc548 \ucd08\uc548",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Draft_Proposal",
+   "kind": "userTask",
+   "name": "\uac00\uaca9\uc778\uc0c1 \ubcf4\uace0 \uae30\uc548",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Proposal",
+   "kind": "serviceTask",
+   "name": "\uae30\uc548 \uc0c1\uc2e0 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Draft_Proposal"
+  },
+  {
+   "id": "Approve_Lead",
+   "kind": "userTask",
+   "name": "\uad6c\ub9e4\ud300\uc7a5 \uc2b9\uc778",
+   "role": "\uad6c\ub9e4\ud300\uc7a5",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Lead",
+   "kind": "serviceTask",
+   "name": "\ud300\uc7a5 \uacb0\uc815 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Approve_Lead"
+  },
+  {
+   "id": "Gw_Lead",
+   "kind": "exclusiveGateway",
+   "name": "\ud300\uc7a5 \uacb0\uc815",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Approve_Exec",
+   "kind": "userTask",
+   "name": "\uad6c\ub9e4\uc784\uc6d0 \uc2b9\uc778",
+   "role": "\uad6c\ub9e4\uc784\uc6d0",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Exec",
+   "kind": "serviceTask",
+   "name": "\uc784\uc6d0 \uacb0\uc815 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Approve_Exec"
+  },
+  {
+   "id": "Gw_Exec",
+   "kind": "exclusiveGateway",
+   "name": "\uc784\uc6d0 \uacb0\uc815",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Authority",
+   "kind": "serviceTask",
+   "name": "\ub300\ud45c \uc2b9\uc778 \ub300\uc0c1 \ud310\ub2e8",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Authority",
+   "kind": "exclusiveGateway",
+   "name": "\ub300\ud45c \ub300\uc0c1",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Approve_CEO",
+   "kind": "userTask",
+   "name": "\ub300\ud45c\uc774\uc0ac \uc2b9\uc778",
+   "role": "\ub300\ud45c\uc774\uc0ac",
+   "recordOf": null
+  },
+  {
+   "id": "Record_CEO",
+   "kind": "serviceTask",
+   "name": "\ub300\ud45c \uacb0\uc815 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Approve_CEO"
+  },
+  {
+   "id": "Gw_CEO",
+   "kind": "exclusiveGateway",
+   "name": "\ub300\ud45c \uacb0\uc815",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Register_Cost",
+   "kind": "userTask",
+   "name": "\uc6d0\uac00 \uc801\uc6a9 \ub4f1\ub85d",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Cost",
+   "kind": "serviceTask",
+   "name": "\uc6d0\uac00 \ub4f1\ub85d \uae30\ub85d",
+   "role": null,
+   "recordOf": "Register_Cost"
+  },
+  {
+   "id": "Request_Handoff",
+   "kind": "userTask",
+   "name": "\uc7a5\uba74 3 \uac80\ud1a0\uc790\ub8cc \uc778\uacc4 \uc694\uccad",
+   "role": "\uad6c\ub9e4\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Handoff",
+   "kind": "serviceTask",
+   "name": "\uc778\uacc4 \uc694\uccad \uae30\ub85d",
+   "role": null,
+   "recordOf": "Request_Handoff"
+  },
+  {
+   "id": "Task_Agent_Handoff",
+   "kind": "serviceTask",
+   "name": "Agent \uc778\uacc4 \uc694\uc57d \ucd08\uc548",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_Handoff",
+   "kind": "userTask",
+   "name": "\uacbd\uc601\uad00\ub9ac \uc778\uc218",
+   "role": "\uacbd\uc601\uad00\ub9ac\ub2f4\ub2f9",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept",
+   "kind": "serviceTask",
+   "name": "\uc778\uc218 \uae30\ub85d",
+   "role": null,
+   "recordOf": "Accept_Handoff"
+  },
+  {
+   "id": "End",
+   "kind": "endEvent",
+   "name": "\uc7a5\uba74 2 \uc778\uacc4 \uc644\ub8cc",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_NeedsInfo",
+   "kind": "endEvent",
+   "name": "\uc790\ub8cc \ubcf4\uc644 \ub300\uae30",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_Closed",
+   "kind": "endEvent",
+   "name": "\uac80\ud1a0 \uc885\uacb0",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_Unresolved",
+   "kind": "endEvent",
+   "name": "\ud611\uc0c1 \ubbf8\ud569\uc758 \u2014 \ud300\uc7a5 \ud611\uc758",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_Rejected",
+   "kind": "endEvent",
+   "name": "\ubc18\ub824 \uc885\uacb0",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_Reneg",
+   "kind": "endEvent",
+   "name": "\uc7ac\ud611\uc0c1 \ub300\uae30 (S14)",
+   "role": null,
+   "recordOf": null
+  }
+ ],
+ "flows": [
+  {
+   "id": "Flow_start",
+   "source": "Start",
+   "target": "Task_Screen",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_screened",
+   "source": "Task_Screen",
+   "target": "Verify_Request",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify",
+   "source": "Verify_Request",
+   "target": "Record_Verify",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify_recorded",
+   "source": "Record_Verify",
+   "target": "Gw_Verify",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify_ok",
+   "source": "Gw_Verify",
+   "target": "Report_Lead",
+   "condition": "\ud655\uc778\uacb0\uacfc == '\ud655\uc778\uc644\ub8cc' and \uac80\uc0ac\ud1b5\uacfc",
+   "default": false
+  },
+  {
+   "id": "Flow_verify_fix",
+   "source": "Gw_Verify",
+   "target": "End_NeedsInfo",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_report",
+   "source": "Report_Lead",
+   "target": "Record_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_report_recorded",
+   "source": "Record_Report",
+   "target": "Gw_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_report_go",
+   "source": "Gw_Report",
+   "target": "Confirm_Analysis",
+   "condition": "\uac80\ud1a0\ud544\uc694\uc131 == '\uac80\ud1a0\uc9c4\ud589'",
+   "default": false
+  },
+  {
+   "id": "Flow_report_closed",
+   "source": "Gw_Report",
+   "target": "End_Closed",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_analysis",
+   "source": "Confirm_Analysis",
+   "target": "Task_Analyze",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_analyzed",
+   "source": "Task_Analyze",
+   "target": "Task_Agent_Pre",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent_pre",
+   "source": "Task_Agent_Pre",
+   "target": "Record_Negotiation",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_neg",
+   "source": "Record_Negotiation",
+   "target": "Record_Neg",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_neg_recorded",
+   "source": "Record_Neg",
+   "target": "Gw_Neg",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_neg_ok",
+   "source": "Gw_Neg",
+   "target": "Confirm_Reanalysis",
+   "condition": "\ud611\uc0c1\uacb0\uacfc == '\uc7a0\uc815\ud569\uc758'",
+   "default": false
+  },
+  {
+   "id": "Flow_neg_unresolved",
+   "source": "Gw_Neg",
+   "target": "End_Unresolved",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_reanalysis",
+   "source": "Confirm_Reanalysis",
+   "target": "Task_Reanalyze",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_reanalyzed",
+   "source": "Task_Reanalyze",
+   "target": "Task_Agent_Neg",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent_neg",
+   "source": "Task_Agent_Neg",
+   "target": "Draft_Proposal",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_draft",
+   "source": "Draft_Proposal",
+   "target": "Record_Proposal",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_submitted",
+   "source": "Record_Proposal",
+   "target": "Approve_Lead",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_lead",
+   "source": "Approve_Lead",
+   "target": "Record_Lead",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_lead_recorded",
+   "source": "Record_Lead",
+   "target": "Gw_Lead",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_lead_ok",
+   "source": "Gw_Lead",
+   "target": "Approve_Exec",
+   "condition": "\uacb0\uc815 == '\uc2b9\uc778'",
+   "default": false
+  },
+  {
+   "id": "Flow_lead_return",
+   "source": "Gw_Lead",
+   "target": "Draft_Proposal",
+   "condition": "\uacb0\uc815 == '\ubcf4\uc644'",
+   "default": false
+  },
+  {
+   "id": "Flow_lead_reject",
+   "source": "Gw_Lead",
+   "target": "End_Rejected",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_exec",
+   "source": "Approve_Exec",
+   "target": "Record_Exec",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_exec_recorded",
+   "source": "Record_Exec",
+   "target": "Gw_Exec",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_exec_ok",
+   "source": "Gw_Exec",
+   "target": "Task_Authority",
+   "condition": "\uacb0\uc815 == '\uc2b9\uc778'",
+   "default": false
+  },
+  {
+   "id": "Flow_exec_return",
+   "source": "Gw_Exec",
+   "target": "Draft_Proposal",
+   "condition": "\uacb0\uc815 == '\ubcf4\uc644'",
+   "default": false
+  },
+  {
+   "id": "Flow_exec_reneg",
+   "source": "Gw_Exec",
+   "target": "End_Reneg",
+   "condition": "\uacb0\uc815 == '\ucd94\uac00\ud611\uc0c1\uc9c0\uc2dc'",
+   "default": false
+  },
+  {
+   "id": "Flow_exec_reject",
+   "source": "Gw_Exec",
+   "target": "End_Rejected",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_authority",
+   "source": "Task_Authority",
+   "target": "Gw_Authority",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_ceo",
+   "source": "Gw_Authority",
+   "target": "Approve_CEO",
+   "condition": "\ub300\ud45c\ub300\uc0c1",
+   "default": false
+  },
+  {
+   "id": "Flow_no_ceo",
+   "source": "Gw_Authority",
+   "target": "Register_Cost",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_ceo_answered",
+   "source": "Approve_CEO",
+   "target": "Record_CEO",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_ceo_recorded",
+   "source": "Record_CEO",
+   "target": "Gw_CEO",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_ceo_ok",
+   "source": "Gw_CEO",
+   "target": "Register_Cost",
+   "condition": "\uacb0\uc815 == '\uc2b9\uc778'",
+   "default": false
+  },
+  {
+   "id": "Flow_ceo_return",
+   "source": "Gw_CEO",
+   "target": "Draft_Proposal",
+   "condition": "\uacb0\uc815 == '\ubcf4\uc644'",
+   "default": false
+  },
+  {
+   "id": "Flow_ceo_reneg",
+   "source": "Gw_CEO",
+   "target": "End_Reneg",
+   "condition": "\uacb0\uc815 == '\ucd94\uac00\ud611\uc0c1\uc9c0\uc2dc'",
+   "default": false
+  },
+  {
+   "id": "Flow_ceo_reject",
+   "source": "Gw_CEO",
+   "target": "End_Rejected",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_register",
+   "source": "Register_Cost",
+   "target": "Record_Cost",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_registered",
+   "source": "Record_Cost",
+   "target": "Request_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_handoff",
+   "source": "Request_Handoff",
+   "target": "Record_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_handoff_recorded",
+   "source": "Record_Handoff",
+   "target": "Task_Agent_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent_handoff",
+   "source": "Task_Agent_Handoff",
+   "target": "Accept_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_accept",
+   "source": "Accept_Handoff",
+   "target": "Record_Accept",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_end",
+   "source": "Record_Accept",
+   "target": "End",
+   "condition": null,
+   "default": false
+  }
+ ]
+}

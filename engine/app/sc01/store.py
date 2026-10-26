@@ -31,23 +31,36 @@ class Sc01Store(Protocol):
     def running_external(self, executor: str) -> list[str]: ...
 
 
-_SQLITE = [
-    """CREATE TABLE IF NOT EXISTS sc01_demo_run (
-         id TEXT PRIMARY KEY, doc TEXT NOT NULL, row_version INTEGER NOT NULL,
-         created_at TEXT DEFAULT CURRENT_TIMESTAMP)""",
-    """CREATE TABLE IF NOT EXISTS sc01_history (
-         demo_run_id TEXT NOT NULL, seq INTEGER NOT NULL, event TEXT NOT NULL,
-         clock TEXT NOT NULL, doc TEXT NOT NULL, PRIMARY KEY (demo_run_id, seq))""",
-]
+def _sqlite_ddl(p: str) -> list[str]:
+    return [
+        f"""CREATE TABLE IF NOT EXISTS {p}_demo_run (
+             id TEXT PRIMARY KEY, doc TEXT NOT NULL, row_version INTEGER NOT NULL,
+             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""",
+        f"""CREATE TABLE IF NOT EXISTS {p}_history (
+             demo_run_id TEXT NOT NULL, seq INTEGER NOT NULL, event TEXT NOT NULL,
+             clock TEXT NOT NULL, doc TEXT NOT NULL, PRIMARY KEY (demo_run_id, seq))""",
+    ]
 
-_POSTGRES = [
-    """CREATE TABLE IF NOT EXISTS sc01_demo_run (
-         id TEXT PRIMARY KEY, doc JSONB NOT NULL, row_version INTEGER NOT NULL,
-         created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
-    """CREATE TABLE IF NOT EXISTS sc01_history (
-         demo_run_id TEXT NOT NULL, seq INTEGER NOT NULL, event TEXT NOT NULL,
-         clock TEXT NOT NULL, doc JSONB NOT NULL, PRIMARY KEY (demo_run_id, seq))""",
-]
+
+def _postgres_ddl(p: str) -> list[str]:
+    return [
+        f"""CREATE TABLE IF NOT EXISTS {p}_demo_run (
+             id TEXT PRIMARY KEY, doc JSONB NOT NULL, row_version INTEGER NOT NULL,
+             created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
+        f"""CREATE TABLE IF NOT EXISTS {p}_history (
+             demo_run_id TEXT NOT NULL, seq INTEGER NOT NULL, event TEXT NOT NULL,
+             clock TEXT NOT NULL, doc JSONB NOT NULL, PRIMARY KEY (demo_run_id, seq))""",
+    ]
+
+
+#: 장면마다 테이블 쌍이 따로다(`sc01_*`, `sc02_*`). 고정된 식별자만 받는다 — SQL에 그대로 들어간다.
+PREFIXES = ("sc01", "sc02")
+
+
+def _prefix(value: str) -> str:
+    if value not in PREFIXES:
+        raise ValueError(f"모르는 저장 접두어: {value}")
+    return value
 
 
 def _index(value: Any) -> int:
@@ -63,11 +76,12 @@ class SqliteSc01Store:
     LangGraph 체크포인터와도 연결을 나누지 않는다 — 그쪽은 자기 잠금을 따로 쥔다.
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: sqlite3.Connection, prefix: str = "sc01") -> None:
         self.conn = conn
+        self.p = _prefix(prefix)
         self._lock = threading.Lock()
         with self._lock:
-            for ddl in _SQLITE:
+            for ddl in _sqlite_ddl(self.p):
                 conn.execute(ddl)
             conn.commit()
 
@@ -75,11 +89,11 @@ class SqliteSc01Store:
         body = json.dumps(doc, ensure_ascii=False)
         with self._lock:
             self.conn.execute(
-                "INSERT INTO sc01_demo_run (id, doc, row_version) VALUES (?,?,1)",
+                f"INSERT INTO {self.p}_demo_run (id, doc, row_version) VALUES (?,?,1)",
                 (demo_run_id, body),
             )
             self.conn.execute(
-                "INSERT INTO sc01_history VALUES (?,1,?,?,?)",
+                f"INSERT INTO {self.p}_history VALUES (?,1,?,?,?)",
                 (demo_run_id, doc["step"], doc["clock"], body),
             )
             self.conn.commit()
@@ -87,7 +101,7 @@ class SqliteSc01Store:
     def load(self, demo_run_id: str) -> tuple[dict, int] | None:
         with self._lock:
             row = self.conn.execute(
-                "SELECT doc, row_version FROM sc01_demo_run WHERE id = ?", (demo_run_id,)
+                f"SELECT doc, row_version FROM {self.p}_demo_run WHERE id = ?", (demo_run_id,)
             ).fetchone()
         return (json.loads(row[0]), row[1]) if row else None
 
@@ -95,7 +109,7 @@ class SqliteSc01Store:
         body = json.dumps(doc, ensure_ascii=False)
         with self._lock:
             cur = self.conn.execute(
-                "UPDATE sc01_demo_run SET doc = ?, row_version = row_version + 1 "
+                f"UPDATE {self.p}_demo_run SET doc = ?, row_version = row_version + 1 "
                 "WHERE id = ? AND row_version = ?",
                 (body, demo_run_id, expected),
             )
@@ -103,7 +117,7 @@ class SqliteSc01Store:
                 self.conn.rollback()
                 raise StaleWrite(demo_run_id)
             self.conn.execute(
-                "INSERT INTO sc01_history VALUES (?,?,?,?,?)",
+                f"INSERT INTO {self.p}_history VALUES (?,?,?,?,?)",
                 (demo_run_id, expected + 1, event, doc["clock"], body),
             )
             self.conn.commit()
@@ -113,7 +127,7 @@ class SqliteSc01Store:
         with self._lock:
             rows = self.conn.execute(
                 "SELECT seq, event, clock, json_extract(doc, '$.script_index') "
-                "FROM sc01_history WHERE demo_run_id = ? ORDER BY seq",
+                f"FROM {self.p}_history WHERE demo_run_id = ? ORDER BY seq",
                 (demo_run_id,),
             ).fetchall()
         return [
@@ -123,7 +137,7 @@ class SqliteSc01Store:
     def at(self, demo_run_id: str, seq: int) -> dict | None:
         with self._lock:
             row = self.conn.execute(
-                "SELECT doc FROM sc01_history WHERE demo_run_id = ? AND seq = ?",
+                f"SELECT doc FROM {self.p}_history WHERE demo_run_id = ? AND seq = ?",
                 (demo_run_id, seq),
             ).fetchone()
         return json.loads(row[0]) if row else None
@@ -131,7 +145,7 @@ class SqliteSc01Store:
     def list(self) -> list[dict[str, Any]]:
         with self._lock:
             rows = self.conn.execute(
-                "SELECT id, row_version, created_at FROM sc01_demo_run "
+                f"SELECT id, row_version, created_at FROM {self.p}_demo_run "
                 "ORDER BY created_at DESC, id DESC"
             ).fetchall()
         return [{"demoRunId": r[0], "rowVersion": r[1], "createdAt": str(r[2])} for r in rows]
@@ -140,7 +154,7 @@ class SqliteSc01Store:
         """그 실행 위치에서 **도는** 데모 실행 id — Center 폴링이 문서를 다 읽지 않게(N3)."""
         with self._lock:
             rows = self.conn.execute(
-                "SELECT id FROM sc01_demo_run WHERE json_extract(doc, '$.bpm.executor') = ? "
+                f"SELECT id FROM {self.p}_demo_run WHERE json_extract(doc, '$.bpm.executor') = ? "
                 "AND json_extract(doc, '$.bpm.state') = 'running'",
                 (executor,),
             ).fetchall()
@@ -148,10 +162,11 @@ class SqliteSc01Store:
 
 
 class PostgresSc01Store:
-    def __init__(self, pool: Any) -> None:
+    def __init__(self, pool: Any, prefix: str = "sc01") -> None:
         self.pool = pool
+        self.p = _prefix(prefix)
         with pool.connection() as conn:
-            for ddl in _POSTGRES:
+            for ddl in _postgres_ddl(self.p):
                 conn.execute(ddl)
 
     def insert(self, demo_run_id: str, doc: dict) -> None:
@@ -159,18 +174,18 @@ class PostgresSc01Store:
 
         with self.pool.connection() as conn, conn.transaction():
             conn.execute(
-                "INSERT INTO sc01_demo_run (id, doc, row_version) VALUES (%s,%s,1)",
+                f"INSERT INTO {self.p}_demo_run (id, doc, row_version) VALUES (%s,%s,1)",
                 (demo_run_id, Jsonb(doc)),
             )
             conn.execute(
-                "INSERT INTO sc01_history VALUES (%s,1,%s,%s,%s)",
+                f"INSERT INTO {self.p}_history VALUES (%s,1,%s,%s,%s)",
                 (demo_run_id, doc["step"], doc["clock"], Jsonb(doc)),
             )
 
     def load(self, demo_run_id: str) -> tuple[dict, int] | None:
         with self.pool.connection() as conn:
             row = conn.execute(
-                "SELECT doc, row_version FROM sc01_demo_run WHERE id = %s", (demo_run_id,)
+                f"SELECT doc, row_version FROM {self.p}_demo_run WHERE id = %s", (demo_run_id,)
             ).fetchone()
         return (row["doc"], row["row_version"]) if row else None
 
@@ -180,14 +195,14 @@ class PostgresSc01Store:
         # 풀이 autocommit이라 문서와 이력을 한 트랜잭션으로 묶는다.
         with self.pool.connection() as conn, conn.transaction():
             cur = conn.execute(
-                "UPDATE sc01_demo_run SET doc = %s, row_version = row_version + 1 "
+                f"UPDATE {self.p}_demo_run SET doc = %s, row_version = row_version + 1 "
                 "WHERE id = %s AND row_version = %s",
                 (Jsonb(doc), demo_run_id, expected),
             )
             if cur.rowcount != 1:
                 raise StaleWrite(demo_run_id)
             conn.execute(
-                "INSERT INTO sc01_history VALUES (%s,%s,%s,%s,%s)",
+                f"INSERT INTO {self.p}_history VALUES (%s,%s,%s,%s,%s)",
                 (demo_run_id, expected + 1, event, doc["clock"], Jsonb(doc)),
             )
         return expected + 1
@@ -196,7 +211,7 @@ class PostgresSc01Store:
         with self.pool.connection() as conn:
             rows = conn.execute(
                 "SELECT seq, event, clock, doc->>'script_index' AS script_index "
-                "FROM sc01_history WHERE demo_run_id = %s ORDER BY seq",
+                f"FROM {self.p}_history WHERE demo_run_id = %s ORDER BY seq",
                 (demo_run_id,),
             ).fetchall()
         return [
@@ -212,7 +227,7 @@ class PostgresSc01Store:
     def at(self, demo_run_id: str, seq: int) -> dict | None:
         with self.pool.connection() as conn:
             row = conn.execute(
-                "SELECT doc FROM sc01_history WHERE demo_run_id = %s AND seq = %s",
+                f"SELECT doc FROM {self.p}_history WHERE demo_run_id = %s AND seq = %s",
                 (demo_run_id, seq),
             ).fetchone()
         return row["doc"] if row else None
@@ -220,7 +235,7 @@ class PostgresSc01Store:
     def list(self) -> list[dict[str, Any]]:
         with self.pool.connection() as conn:
             rows = conn.execute(
-                "SELECT id, row_version, created_at FROM sc01_demo_run "
+                f"SELECT id, row_version, created_at FROM {self.p}_demo_run "
                 "ORDER BY created_at DESC, id DESC"
             ).fetchall()
         return [
@@ -235,16 +250,16 @@ class PostgresSc01Store:
     def running_external(self, executor: str) -> list[str]:
         with self.pool.connection() as conn:
             rows = conn.execute(
-                "SELECT id FROM sc01_demo_run WHERE doc->'bpm'->>'executor' = %s "
+                f"SELECT id FROM {self.p}_demo_run WHERE doc->'bpm'->>'executor' = %s "
                 "AND doc->'bpm'->>'state' = 'running'",
                 (executor,),
             ).fetchall()
         return [r["id"] for r in rows]
 
 
-def build_sc01_store(backend: Any) -> Sc01Store:
+def build_sc01_store(backend: Any, prefix: str = "sc01") -> Sc01Store:
     """엔진 백엔드와 같은 DB를 쓴다 — 파일·DB가 둘로 갈리면 한쪽만 지워지는 상태가 생긴다."""
     if backend.kind == "postgres":
-        return PostgresSc01Store(backend.pool)
+        return PostgresSc01Store(backend.pool, prefix)
     # 같은 파일, **다른 연결**이다 — 연결을 나누면 체크포인터의 잠금과 우리 잠금이 서로를 모른다.
-    return SqliteSc01Store(sqlite3.connect(backend.sqlite_path, check_same_thread=False))
+    return SqliteSc01Store(sqlite3.connect(backend.sqlite_path, check_same_thread=False), prefix)
