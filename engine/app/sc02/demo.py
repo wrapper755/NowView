@@ -262,6 +262,11 @@ def steps_for(case_id: str, seed: Seed | None = None) -> list[Step]:
 def run_step(process: Sc02Process, demo_run_id: str, index: int) -> dict:
     """각본의 `index`번째 단계. 이미 지나간 단계면 현재 문서를 돌려준다(SC01과 같다)."""
     doc = process.get(demo_run_id)
+    if (doc["bpm"] or {}).get("executor") == "studio":
+        # Studio 시험 실행의 결재는 Studio 대화상자만 받는다. Center는 각본이 대리 답한다.
+        raise DomainError(
+            "Studio 시험 실행의 데모 실행은 각본을 돌리지 않는다 — 결재는 Studio에서 답한다", 409
+        )
     steps = steps_for(doc["case_id"], process.seed)
     if not 0 <= index < len(steps):
         raise DomainError(f"각본에 없는 단계: {index}", 404)

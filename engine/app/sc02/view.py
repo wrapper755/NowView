@@ -13,7 +13,8 @@ from typing import Any
 
 from chaeksas.contracts.bpmn_ext import BpmnProcess
 
-from app.sc01.domain import USERS, ordered, overdue
+from app.sc01.center import CenterConfig
+from app.sc01.domain import USERS, executor_of, ordered, overdue
 from app.sc02 import domain
 from app.sc02.process import RECORDS
 
@@ -32,9 +33,25 @@ def selected_run(doc: dict) -> dict | None:
     return app or runs[-1]
 
 
-def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
+def view(
+    doc: dict, *, historical: bool = False, center: CenterConfig | None = None
+) -> dict[str, Any]:
+    """
+    `center` — 엔진의 Center 연동 설정. center 데모 실행에서 화면 답(대리 답)이 되는지 알린다
+    (`answerHere`). 버튼 비활성은 편의이고 거절은 엔진이 한다.
+    """
     bpm = doc["bpm"]
-    pendings = ((bpm or {}).get("snapshot") or {}).get("pendings", {})
+    pendings = dict(((bpm or {}).get("snapshot") or {}).get("pendings", {}))
+    # Center 실행의 사람 대기는 실행 기록 폴링이 채운다 — 모양을 내장 대기와 맞춘다(SC01 view와
+    # 같다).
+    for w in (bpm or {}).get("waiting", []):
+        pendings[w["request_id"]] = {
+            "node_id": w["node_id"],
+            "title": w["title"],
+            "review": w["review"],
+            "form": {"fields": w["fields"]},
+        }
+    executor = executor_of(doc)
     waiting = [
         {
             "nodeId": p["node_id"],
@@ -92,20 +109,58 @@ def view(doc: dict, *, historical: bool = False) -> dict[str, Any]:
         "tasks": tasks,
         "alerts": doc["alerts"],
         "audit": doc["audit"],
+        "executor": executor,
+        "answerHere": _answer_here(executor, center),
         "bpm": None
         if bpm is None
         else {
-            "executor": "embedded",
+            "executor": executor,
+            # 바깥 실행이면 Chaeksas 실행 id — 첫 작업 호출 전에는 없다.
+            "externalRunId": bpm.get("external_run_id"),
             "runId": bpm["run_id"],
             "state": bpm["state"],
+            # Studio 실행의 사람 대기는 NowView가 모른다 — 비어 있다. Center는 폴링이 채운다.
             "waiting": waiting,
-            "position": sorted({t["node_id"] for t in bpm["snapshot"]["tokens"]}),
+            "center": _center_view(doc, center),
+            "position": (
+                sorted({t["node_id"] for t in bpm["snapshot"]["tokens"]})
+                if bpm.get("snapshot") is not None
+                else bpm.get("position", [])
+            ),
             "visited": bpm.get("visited", []),
         },
     }
 
 
-def _record_of(node: Any) -> str | None:
+def _answer_here(executor: str, center: CenterConfig | None) -> bool:
+    """
+    이 화면에서 결재에 답할 수 있나 — Center면 대리 답용 키가 있을 때다. Studio는 아니다(Studio에서
+    답한다). 내장은 된다(시험용).
+    """
+    if executor == "center":
+        return center is not None and center.missing(relay=True) is None
+    return executor == "embedded"
+
+
+def _center_view(doc: dict, center: CenterConfig | None) -> dict[str, Any] | None:
+    if executor_of(doc) != "center":
+        return None
+    ledger = (doc["bpm"] or {}).get("center") or {}
+    problem = ledger.get("problem")
+    if problem is None and center is not None:
+        relay = center.missing(relay=True)
+        problem = f"{relay} — 화면 답(대리 답)을 할 수 없다" if relay else None
+    return {"job": ledger.get("job"), "problem": problem, "package": center and center.sc02_package}
+
+
+def _record_of(node: Any, process: BpmnProcess) -> str | None:
+    """
+    기록 태스크면 그 결재. 기록 태스크의 오류 경계(「기록 거절」 → 같은 결재)도 그 결재로 접는다
+    (SC01과 같다).
+    """
+    if node.kind == "boundaryEvent":
+        host = process.node(node.attached_to or "")
+        return _record_of(host, process) if host is not None else None
     call = node.prop("serviceCall") if node.kind == "serviceTask" else None
     if call is None or call.operation not in RECORDS:
         return None
@@ -123,7 +178,7 @@ def topology(process: BpmnProcess) -> dict[str, Any]:
                 "kind": n.kind,
                 "name": n.name,
                 "role": domain.NODE_ROLES.get(n.id, {}).get("role"),
-                "recordOf": _record_of(n),
+                "recordOf": _record_of(n, process),
             }
             for n in process.all_nodes()
         ],

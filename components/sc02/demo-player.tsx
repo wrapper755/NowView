@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, Clock, Pause, Play, PlayCircle, R
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { historySeqFor, nextBusinessEvening } from "@/lib/sc01/scenes";
-import { sc02Api } from "@/lib/sc02/client";
+import { sc02Api, type Sc02Executor } from "@/lib/sc02/client";
 import { scenesFor } from "@/lib/sc02/scenes";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc02 } from "@/lib/store/sc02";
@@ -34,6 +34,14 @@ export function Sc02DemoPlayer() {
   const hasDoc = useSc02((s) => s.live !== null);
   const caseId = useSc02((s) => s.live?.caseId ?? "BASE");
   const cases = useSc02((s) => s.cases);
+  /**
+   * 실행 위치 — Center(기본)·Studio. 화면은 내장을 고르지 않는다(2026-10-27). 지금 실행이 내장이면(이전에 만든
+   * 시험용) Center를 고른 것으로 보인다 — 초기화하면 Center로 바뀐다.
+   */
+  const liveExecutor = useSc02((s) => s.live?.executor);
+  const executor: Sc02Executor = liveExecutor === "studio" ? "studio" : "center";
+  /** 각본이 돌지 않는 실행 — Studio, 그리고 대리 답용 키가 없는 Center. */
+  const external = useSc02((s) => s.live !== null && !s.live.answerHere);
   const { setScene, setPlaying, togglePlayer } = useSc02.getState();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +152,7 @@ export function Sc02DemoPlayer() {
     setPlaying(false);
     requestSeq.current++;
     setPending(true);
-    const r = await sc02Api.reset(demoRunId);
+    const r = await sc02Api.reset(demoRunId, executor);
     setPending(false);
     if (!r.ok) {
       setError(r.error);
@@ -163,13 +171,32 @@ export function Sc02DemoPlayer() {
     setPending(true);
     setError(null);
     const fresh = next !== caseId || !hasDoc;
-    const r = await sc02Api.create(fresh && hasDoc ? null : demoRunId, next);
+    const r = await sc02Api.create(fresh && hasDoc ? null : demoRunId, next, executor);
     setPending(false);
     if (!r.ok) {
       setError(r.error);
       return;
     }
     if (r.data.demoRunId !== demoRunId) useSc01.getState().setDemoRunId(r.data.demoRunId);
+    useSc02.getState().setLive(r.data);
+    useSc02.getState().setPast(null);
+    setScene(0);
+    if (pathname !== "/sc02") router.push("/sc02");
+  };
+
+  /** 실행 위치 바꾸기 = 이 데모 실행의 장면 2를 그 위치로 D00부터(장면 1 기준은 그대로). */
+  const switchExecutor = async (next: Sc02Executor) => {
+    if (!demoRunId || !hasDoc) return;
+    setPlaying(false);
+    requestSeq.current++;
+    setPending(true);
+    setError(null);
+    const r = await sc02Api.reset(demoRunId, next);
+    setPending(false);
+    if (!r.ok) {
+      setError(r.error);
+      return;
+    }
     useSc02.getState().setLive(r.data);
     useSc02.getState().setPast(null);
     setScene(0);
@@ -277,6 +304,17 @@ export function Sc02DemoPlayer() {
                 </option>
               ))}
             </select>
+            <select
+              value={executor}
+              onChange={(e) => void switchExecutor(e.target.value as Sc02Executor)}
+              aria-label="실행 위치"
+              title="BPM을 누가 돌 것인가 — 바꾸면 이 데모 실행의 장면 2를 D00부터 다시 시작한다"
+              disabled={!hasDoc}
+              className="hidden h-7 rounded-md border bg-transparent px-1 text-[11px] sm:block"
+            >
+              <option value="center">Center 서버 실행</option>
+              <option value="studio">Studio 시험 실행</option>
+            </select>
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void reset()} disabled={!hasDoc} title="이 데모 실행의 장면 2만 D00으로 되돌린다">
               <RotateCcw aria-hidden className="size-3" />
               <span className="sr-only sm:not-sr-only">초기화</span>
@@ -284,7 +322,13 @@ export function Sc02DemoPlayer() {
             <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0 || !hasDoc} aria-label="이전 장면">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
-            <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={!hasDoc || (sceneIndex >= last && !isPlaying)}>
+            <Button
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => setPlaying(!isPlaying)}
+              disabled={!hasDoc || external || (sceneIndex >= last && !isPlaying)}
+              title={external ? "이 실행 위치에서는 각본이 결재에 답할 수 없다 — 결재는 바깥에서 답한다" : undefined}
+            >
               {isPlaying ? (
                 <>
                   <Pause aria-hidden className="size-3" />
@@ -297,7 +341,7 @@ export function Sc02DemoPlayer() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={!hasDoc || sceneIndex >= last} aria-label="다음 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={!hasDoc || external || sceneIndex >= last} aria-label="다음 장면">
               <ChevronRight aria-hidden className="size-3" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7" onClick={togglePlayer} aria-label="플레이어 접기">

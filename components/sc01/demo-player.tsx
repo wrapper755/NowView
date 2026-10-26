@@ -55,9 +55,11 @@ export function Sc01DemoPlayer() {
    * 초기화할 때 고를 실행 위치(N2) — 내장 BPM이 돌 것인가, Studio·Center가 돌 것인가. 바깥이면
    * 엔진은 이 데모 실행에서 BPM을 돌리지 않고, 각본(자동 재생·다음 장면)도 돌지 않는다.
    */
-  const liveExecutor = useSc01((s) => s.live?.executor ?? "embedded");
+  const liveExecutor = useSc01((s) => s.live?.executor ?? "center");
   const [executorChoice, setExecutorChoice] = useState<Executor | null>(null);
-  const executor = executorChoice ?? liveExecutor;
+  // 화면은 내장 BPM을 고르지 않는다(2026-10-27) — 지금 실행이 내장(이전에 만든 것)이면 Center를 고른
+  // 것으로 보이고, 초기화하면 Center로 바뀐다. 내장 경로는 엔진 시험용으로 남았다.
+  const executor = executorChoice ?? (liveExecutor === "embedded" ? "center" : liveExecutor);
   /** 각본이 돌지 않는 실행 위치 — Studio, 그리고 대리 답 설정이 없는 Center(N3). */
   const external = useSc01((s) => s.live !== null && !s.live.answerHere);
   const [error, setError] = useState<string | null>(null);
@@ -307,7 +309,6 @@ export function Sc01DemoPlayer() {
               title="초기화할 때 BPM을 누가 돌 것인가 — 바깥이면 결재는 그쪽에서 답한다"
               className="hidden h-7 rounded-md border bg-transparent px-1 text-[11px] sm:block"
             >
-              <option value="embedded">내장 BPM</option>
               <option value="studio">Studio 시험 실행</option>
               <option value="center">Center 서버 실행</option>
             </select>

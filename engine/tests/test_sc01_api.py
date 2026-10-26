@@ -47,7 +47,8 @@ def client(tmp_path):
 
 
 def _run(client) -> str:
-    r = client.post("/sc01/demo-runs", json={})
+    # 내장 실행 — 화면 기본은 Center지만(2026-10-27), 여기서는 업무 규칙을 같은 프로세스에서 잠근다.
+    r = client.post("/sc01/demo-runs", json={"executor": "embedded"})
     assert r.status_code == 201, r.text
     return r.json()["demoRunId"]
 
@@ -410,7 +411,11 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
-    assert sorted(p.name for p in root.glob("*.extension.json")) == ["nowview-sc01.extension.json"]
+    # 장면마다 한 벌 — 장면 2는 `nowview-sc02`(test_sc02_external.py가 잠근다)
+    assert sorted(p.name for p in root.glob("*.extension.json")) == [
+        "nowview-sc01.extension.json",
+        "nowview-sc02.extension.json",
+    ]
     raw = (root / "nowview-sc01.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
@@ -695,3 +700,10 @@ def test_unconfigured_keys_close_the_door(auth, mode, status) -> None:
         assert err.value.status == 503
     else:
         assert auth.executor_of(None) is None  # 꺼 두면 실행 위치를 검사하지 않는다
+
+
+def test_the_default_executor_is_center(client) -> None:
+    """화면은 내장 실행을 쓰지 않는다(2026-10-27) — 실행 위치를 주지 않으면 Center 서버 실행이다."""
+    r = client.post("/sc01/demo-runs", json={})
+    assert r.status_code == 201 and r.json()["executor"] == "center"
+

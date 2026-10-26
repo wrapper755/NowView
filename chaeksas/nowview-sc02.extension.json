@@ -1,0 +1,961 @@
+{
+  "schema": 2,
+  "id": "nowview-sc02",
+  "version": "0.1.0",
+  "name": "NowView SC02 구매 단가 검토 시스템",
+  "description": "가상 부품사 NowView의 장면 2(SC02) 시스템 작업 — 단가 인상 요청 검사·영향분석·협상 기록·기안 상신·결재 기록·대표 대상 판단·원가 등록·경영관리 인계. 숫자는 NowView 규칙 계산이 만든다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio(nowview-sc01과 같은 키). 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 덮어쓴다(ADR-0097) — 실행기가 호스트에서 돌면 http://localhost:3000, docker 컨테이너에서 돌면 http://host.docker.internal:3000. 기록 작업은 결재에 답한 사람(answered_by)을 받는다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "requires_keys": [
+    {
+      "purpose": "run"
+    }
+  ],
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "https://www.nowview.work",
+    "adapter": {
+      "allowed_hosts": [
+        "www.nowview.work",
+        "localhost",
+        "host.docker.internal"
+      ],
+      "allow_private_network": true,
+      "auth": {
+        "type": "bearer"
+      },
+      "limits": {
+        "timeout_s": 30,
+        "max_response_kb": 256
+      },
+      "operations": [
+        {
+          "name": "screen_request",
+          "description": "요청 자동 검사 (S01·CT21) — 필수값·KRW·VAT 제외·월초 적용·공급사-품목 매핑·기존가 = C01 부품 단가",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "request_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_count": {
+                "type": "integer"
+              },
+              "passed": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/screen_request",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "request_id": "{{input.request_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_count": "$.error_count",
+              "passed": "$.passed"
+            }
+          }
+        },
+        {
+          "name": "record_verification",
+          "description": "요청 원문 확인 기록 — 확인완료면 요청안 단가 버전을 만들고, 보완요청이면 보완 대기",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id",
+              "opinion",
+              "request_id",
+              "result"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/record_verification",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "node_id": "{{input.node_id}}",
+              "opinion": "{{input.opinion}}",
+              "request_id": "{{input.request_id}}",
+              "result": "{{input.result}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "record_report",
+          "description": "팀장 구두보고 기록 (S02·CT22) — 별도 승인 단계가 아니다. 검토종결이면 장면 종결",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "conclusion",
+              "demo_run_id",
+              "need",
+              "node_id",
+              "participants",
+              "summary"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "conclusion": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "direction": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "need": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "participants": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/record_report",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "conclusion": "{{input.conclusion}}",
+              "direction": "{{input.direction}}",
+              "need": "{{input.need}}",
+              "node_id": "{{input.node_id}}",
+              "participants": "{{input.participants}}",
+              "summary": "{{input.summary}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "analyze_request",
+          "description": "요청안·내부 제시안 영향분석 (S03) — 새 run 둘, 외부 협상기한을 받는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "offer_price",
+              "request_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "offer_price": {
+                "type": "number"
+              },
+              "request_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "offer_run": {
+                "type": "string"
+              },
+              "request_run": {
+                "type": "string"
+              },
+              "risk": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/analyze_request",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "due_at": "{{input.due_at}}",
+              "offer_price": "{{input.offer_price}}",
+              "request_id": "{{input.request_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "offer_run": "$.offer_run",
+              "request_run": "$.request_run",
+              "risk": "$.risk"
+            }
+          }
+        },
+        {
+          "name": "agent_draft",
+          "description": "Agent 검토 초안 (AG21·AG22·AG24) — 규칙 결과만 인용한다. 실패해도 흐름은 계속된다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "kind",
+              "run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "output_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/agent_draft",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "kind": "{{input.kind}}",
+              "run_id": "{{input.run_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "output_id": "$.output_id"
+            }
+          }
+        },
+        {
+          "name": "record_negotiation",
+          "description": "1차 협상 결과 기록 (S04·CT25) — 잠정합의는 승인이 아니다. 미합의는 단가 null",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "effective_date",
+              "node_id",
+              "outcome",
+              "participants"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "effective_date": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string"
+              },
+              "participants": {
+                "type": "string"
+              },
+              "price": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "unresolved": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "negotiation_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/record_negotiation",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "effective_date": "{{input.effective_date}}",
+              "node_id": "{{input.node_id}}",
+              "outcome": "{{input.outcome}}",
+              "participants": "{{input.participants}}",
+              "price": "{{input.price}}",
+              "unresolved": "{{input.unresolved}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "negotiation_id": "$.negotiation_id"
+            }
+          }
+        },
+        {
+          "name": "analyze_negotiation",
+          "description": "협상안 재분석 (S05) — 요청안의 12개월로 부담 감소를 다시 잰다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "negotiation_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "negotiation_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "risk": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/analyze_negotiation",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "negotiation_id": "{{input.negotiation_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "risk": "$.risk",
+              "run_id": "$.run_id"
+            }
+          }
+        },
+        {
+          "name": "submit_proposal",
+          "description": "가격인상 기안 상신 (S06·CT26) — 기안 버전을 고정하고 그 버전의 분석 run을 만든다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "effective_date",
+              "node_id",
+              "reason"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "diff_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effective_date": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "price": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "ceo_expected": {
+                "type": "boolean"
+              },
+              "error_message": {},
+              "proposal_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/submit_proposal",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "diff_reason": "{{input.diff_reason}}",
+              "effective_date": "{{input.effective_date}}",
+              "node_id": "{{input.node_id}}",
+              "price": "{{input.price}}",
+              "reason": "{{input.reason}}"
+            }
+          },
+          "response": {
+            "output": {
+              "ceo_expected": "$.ceo_expected",
+              "error_message": "$.error_message",
+              "proposal_id": "$.proposal_id",
+              "run_id": "$.run_id"
+            }
+          }
+        },
+        {
+          "name": "record_decision",
+          "description": "결재 결정 기록 (S07·S08·S10·S14) — 승인·보완·반려·추가협상지시. 순서·버전을 검사한다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "comment",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "proposal_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": "string"
+              },
+              "condition": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "proposal_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/record_decision",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "condition": "{{input.condition}}",
+              "decision": "{{input.decision}}",
+              "due_at": "{{input.due_at}}",
+              "node_id": "{{input.node_id}}",
+              "proposal_id": "{{input.proposal_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "judge_authority",
+          "description": "대표 승인 대상 판단 (S09·CT28) — 최종 기안 12개월 구매 증가 ≥ 1천만원 (AUTH02-v1)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "proposal_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "proposal_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "ceo_required": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/judge_authority",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "proposal_id": "{{input.proposal_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "ceo_required": "$.ceo_required"
+            }
+          }
+        },
+        {
+          "name": "register_cost",
+          "description": "승인 조건 대조·원가 버전 등록 (S11·CT29) — 같은 승인 버전이면 기존 버전을 돌려준다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "check",
+              "demo_run_id",
+              "node_id",
+              "proposal_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "check": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proposal_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "cost_version_id": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/register_cost",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "check": "{{input.check}}",
+              "node_id": "{{input.node_id}}",
+              "note": "{{input.note}}",
+              "proposal_id": "{{input.proposal_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "cost_version_id": "$.cost_version_id",
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "request_handoff",
+          "description": "장면 3 검토자료 인계 요청 (S12·CT30) — 인계 조건을 다시 확인한다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "fin",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "fin": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "fin_name": {
+                "type": "string"
+              },
+              "handoff_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/request_handoff",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "fin": "{{input.fin}}",
+              "node_id": "{{input.node_id}}",
+              "note": "{{input.note}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "fin_name": "$.fin_name",
+              "handoff_id": "$.handoff_id"
+            }
+          }
+        },
+        {
+          "name": "accept_handoff",
+          "description": "경영관리 인수 기록 (S13) — 지정 담당자만. 위험 해소·전망 승인이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "handoff_id",
+              "node_id",
+              "opinion"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "handoff_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc02/demo-runs/{{input.demo_run_id}}/operations/accept_handoff",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "handoff_id": "{{input.handoff_id}}",
+              "node_id": "{{input.node_id}}",
+              "opinion": "{{input.opinion}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

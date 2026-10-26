@@ -24,11 +24,14 @@ from decimal import Decimal
 from typing import Any
 
 from app.sc01.domain import (
+    EXECUTORS,
     KST,
     USERS,
     DomainError,
     audit,
     due_at,
+    executor_of,
+    external_bpm,
     name_of,
     ordered,
     overdue,
@@ -187,13 +190,25 @@ def baseline_from_sc01(sc01_doc: dict, seed: Seed) -> dict[str, Any]:
 
 
 def new_demo_run(
-    seed: Seed, demo_run_id: str, *, case_id: str, created_at: datetime, baseline: dict
+    seed: Seed,
+    demo_run_id: str,
+    *,
+    case_id: str,
+    created_at: datetime,
+    baseline: dict,
+    executor: str = "embedded",
 ) -> dict:
     """
     D00 — 장면 1 완료 데이터만 있다. 요청·협상·승인·원가·인계는 단계 실행 때 생긴다(DEMO-01·T21).
+
+    `executor` — BPMN을 누가 도는가(SC01 N2와 같다). Studio·Center면 `bpm`을 처음부터 두고, 바깥
+    실행 id는 첫 작업 호출에서 묶인다(`link_external_run`). 화면은 내장을 고르지 않는다 — 시험이
+    쓴다.
     """
     if case_id not in CASES:
         raise DomainError(f"모르는 시연 사례: {case_id} (가능: {', '.join(CASES)})", 422)
+    if executor not in EXECUTORS:
+        raise DomainError(f"모르는 실행 위치: {executor} (가능: {', '.join(EXECUTORS)})", 422)
     return {
         "demo_run_id": demo_run_id,
         "seed_id": SEED_ID,
@@ -235,8 +250,16 @@ def new_demo_run(
         "tasks": {},
         "alerts": [],
         "audit": [],
-        "bpm": None,
+        "bpm": None if executor == "embedded" else external_bpm(executor),
     }
+
+
+def bpm_started(doc: dict) -> bool:
+    """BPM이 시작됐나 — 내장은 스냅샷이 생겼을 때, 바깥은 첫 작업 호출이 실행을 묶었을 때."""
+    bpm = doc["bpm"]
+    if bpm is None:
+        return False
+    return executor_of(doc) == "embedded" or bpm.get("external_run_id") is not None
 
 
 def rows_for(doc: dict, seed: Seed) -> list[MonthRow]:
@@ -265,8 +288,7 @@ REQUEST_FIXTURES: dict[str, dict[str, Any]] = {
 def receive_request(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tuple[str, bool]:
     """
     요청 등록. **같은 문서 키 + 같은 내용이면 기존 요청을 돌려준다**(U21-03). 같은 키·다른 내용은
-    정정
-    버전으로 보존한다 — 이번 범위에서는 기본 경로 시작 전에만 받는다(시작 뒤 정정은 후속 범위).
+    정정 버전으로 보존한다 — 이번 범위에서는 기본 경로 시작 전에만 받는다(시작 뒤 정정은 후속 범위).
     """
     if fixture_id not in REQUEST_FIXTURES:
         raise DomainError(f"모르는 시연 요청: {fixture_id}", 404)
@@ -287,7 +309,7 @@ def receive_request(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tu
     if current is not None:
         if current["source_hash"] == digest:
             return current["request_id"], False
-        if doc["bpm"] is not None:
+        if bpm_started(doc):
             raise DomainError("이미 진행 중인 요청이다 — 진행 뒤의 정정은 이번 범위 밖이다", 409)
     doc["request"] = {
         "request_id": REQUEST_ID,
@@ -706,8 +728,7 @@ def submit_proposal(doc: dict, seed: Seed, args: dict[str, Any], *, by: str) -> 
     """
     상신 — 기안 버전을 **불변 스냅샷**으로 고정하고 그 버전의 분석 run을 연결한다(U24-02). 협상안과
     단가·조건이 같아도 기안 버전에 분석 근거를 명시적으로 잇는다(U24-01). 보완 뒤 재상신은 새
-    버전이고
-    팀장부터 다시 받는다 — 이전 승인은 보존하되 승계하지 않는다.
+    버전이고 팀장부터 다시 받는다 — 이전 승인은 보존하되 승계하지 않는다.
     """
     option, _preview = proposal_problems(doc, seed, args)
     req = _request(doc)
@@ -854,9 +875,8 @@ def record_decision(doc: dict, seed: Seed, node_id: str, args: dict[str, Any], *
 def judge_authority(doc: dict, seed: Seed) -> bool:
     """
     S09 — AUTH02-v1로 대표 상신 여부. **최종 기안**의 향후 12개월 구매 증가액이다(AUTH-01).
-    비대상이면
-    임원 최종 승인과 함께 근거 금액·권한표 버전을 남긴다(AUTH-02). 위험이 중요여도 금액 미만이면
-    대표를 더하지 않는다.
+    비대상이면 임원 최종 승인과 함께 근거 금액·권한표 버전을 남긴다(AUTH-02). 위험이 중요여도 금액
+    미만이면 대표를 더하지 않는다.
     """
     prop = current_proposal(doc)
     if prop is None or prop["status"] != "EXEC_APPROVED":
@@ -919,9 +939,8 @@ def cost_problems(doc: dict, check: Any) -> dict:
 def register_cost(doc: dict, seed: Seed, *, check: Any, note: str, by: str) -> str:
     """
     C02-APP01 — 승인 근거·적용기간·부품 구성·대상 모델·등록자. 같은 승인 버전의 중복 등록은 기존
-    버전을
-    돌려준다(COST-02). 적용일 전이면 적용 예정이다 — 상태는 시계에서 파생한다(적용일 도래는 사람
-    승인이나 전망 승인 이벤트가 아니다).
+    버전을 돌려준다(COST-02). 적용일 전이면 적용 예정이다 — 상태는 시계에서 파생한다(적용일 도래는
+    사람 승인이나 전망 승인 이벤트가 아니다).
     """
     prop = cost_problems(doc, check)
     for cv in doc["cost_versions"].values():
@@ -1076,17 +1095,22 @@ def request_handoff(doc: dict, *, fin: Any, note: str, by: str) -> dict[str, Any
     return {"fin_name": name_of(fin_id), "handoff_id": "HANDOFF-01"}
 
 
-def accept_handoff(doc: dict, *, opinion: str, by: str, bundle_hash: str | None = None) -> None:
+def accept_handoff(
+    doc: dict, *, opinion: str, by: str, bundle_hash: str | None = None, strict: bool = True
+) -> None:
     """
     D12 — 지정 담당자가 최신 자료 버전·범위·가정을 확인하고 인수한다. 장면 3 분석 기한은 두 번째
     영업일 18시다. **장면 2 인계 완료, 장면 3 손익 검토 대기** — 위험·전망은 그대로다(SCOPE-01).
+
+    `strict=False` — 답한 사람이 사용자 마스터 밖(콘솔 관리자)이다. 「담당자만」은 Center가 결재
+    담당자로 이미 막았다(ADR-0081) — 다시 막으면 오류 경계가 같은 결재로 되돌리는데 고칠 길이 없다.
     """
     h = doc["handoff"]
     if h is None or h["status"] != "FINANCE_PENDING":
         raise DomainError("인수할 인계가 없다", 409)
     if bundle_hash is not None and bundle_hash != h["bundle_hash"]:
         raise DomainError("본 자료가 최신 인계 자료가 아니다 — 새로 고친 뒤 다시 인수한다", 409)
-    if by != h["assignee"]:
+    if strict and by != h["assignee"]:
         raise DomainError("지정된 경영관리 담당자만 인수할 수 있다", 403)
     if not handoff_conditions(doc)["met"]:
         raise DomainError("인계 조건이 더는 성립하지 않는다 — 다시 인계 요청이 필요하다", 409)
@@ -1250,6 +1274,45 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]], variables: dict[s
             due=due,
             request_id=request_id,
         )
+
+
+def ensure_task(doc: dict, node_id: str) -> None:
+    """
+    결정이 기록되는데 그 결재의 업무가 없으면 지금 연다 — **늦게 열었다고 표시한다**(SC01
+    `opened_late`). Studio 시험 실행에는 결재가 열리는 신호가 없고, Center는 폴링보다 기록이 먼저 올
+    수 있다. 내장 실행은 대기가 열릴 때 이미 만들었으므로 아무 일도 없다.
+    """
+    spec = NODE_ROLES.get(node_id)
+    if spec is None or task_for_node(doc, node_id) is not None:
+        return
+    if spec.get("assignee_var") and doc.get("handoff"):
+        assignee = doc["handoff"]["assignee"]
+    else:
+        assignee = user_for_role(spec["role"])
+    manual = (doc["request"] or {}).get("negotiation_due", {}).get("due_at")
+    if spec["days"] is None and manual:
+        due = manual
+    else:
+        due = due_at(parse_at(doc["clock"]), spec["days"] or 1).isoformat()
+    task = _open_task(doc, spec["task"], node_id=node_id, assignee=assignee, due=due)
+    task["opened_late"] = True
+    task["history"][-1]["note"] = "바깥 실행 — 대기가 열린 시각을 모른다(결정 기록 시점에 만듦)"
+
+
+#: 이 결정이 기록되면 흐름이 끝난다 — Studio 시험 실행의 진행은 작업 호출로만 아는데, 종료 이벤트는
+#: 작업을 부르지 않는다. (작업, 칸, 값) — 칸이 None이면 그 작업 자체가 마지막이다.
+TERMINAL = (
+    ("record_verification", "result", "보완요청"),
+    ("record_report", "need", "검토종결"),
+    ("record_negotiation", "outcome", "미합의"),
+    ("record_decision", "decision", "반려"),
+    ("record_decision", "decision", "추가협상지시"),
+    ("accept_handoff", None, None),
+)
+
+
+def ends_flow(operation: str, args: dict[str, Any]) -> bool:
+    return any(op == operation and (key is None or args.get(key) == v) for op, key, v in TERMINAL)
 
 
 def complete_task(doc: dict, node_id: str, *, actor: str, note: str | None = None) -> None:

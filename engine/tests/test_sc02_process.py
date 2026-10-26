@@ -2,9 +2,8 @@
 SC02 업무 흐름 — Chaeksas BPM 위에서 기본 시연(D00~D12)과 예외(X01~X10)·권한·버전·멱등을 잠근다.
 
 검수 기준은 구현명세 14장 T21~T36이다. 각 테스트 이름 옆에 대응 ID를 적었다. 숫자는 통합 가상
-데이터의
-기대값이고 계산 대조는 `test_sc02_calc.py`가 따로 한다 — 여기서는 흐름이 그 값을 **그대로 싣는지**
-본다.
+데이터의 기대값이고 계산 대조는 `test_sc02_calc.py`가 따로 한다 — 여기서는 흐름이 그 값을 **그대로
+싣는지** 본다.
 """
 
 from __future__ import annotations
@@ -583,7 +582,7 @@ def test_http_errors_and_shapes(proc: Sc02Process) -> None:
     app = FastAPI()
     app.include_router(build_router(proc, Hub()))
     client = TestClient(app)
-    created = client.post("/sc02/demo-runs", json={})
+    created = client.post("/sc02/demo-runs", json={"executor": "embedded"})
     assert created.status_code == 201
     rid = created.json()["demoRunId"]
     assert created.json()["status"]["risk"] == "OPEN"

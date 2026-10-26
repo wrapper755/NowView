@@ -13,17 +13,30 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Protocol
 
-from app.sc01.process import Sc01Process
+from app.sc01.center import CenterClient
 
 log = logging.getLogger(__name__)
 
 INTERVAL_S = 2.0
 
 
+class _Polled(Protocol):
+    center: CenterClient
+
+    def poll_center(self) -> int: ...
+
+
 class CenterPoller:
-    def __init__(self, process: Sc01Process, *, interval_s: float = INTERVAL_S) -> None:
-        self.process = process
+    """
+    장면마다 실행이 따로다(SC01·SC02) — 주기마다 차례로 읽는다. 첫 장면의 Center 설정을 본다(같은
+    클라이언트를 쓴다).
+    """
+
+    def __init__(self, *processes: _Polled, interval_s: float = INTERVAL_S) -> None:
+        self.processes = processes
+        self.process = processes[0]
         self.interval_s = interval_s
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -48,7 +61,8 @@ class CenterPoller:
 
     def _loop(self) -> None:
         while not self._stop.wait(self.interval_s):
-            try:
-                self.process.poll_center()
-            except Exception:  # noqa: BLE001 — 폴러가 죽으면 진행이 조용히 멈춘다
-                log.exception("Center 진행 폴링 실패")
+            for process in self.processes:
+                try:
+                    process.poll_center()
+                except Exception:  # noqa: BLE001 — 폴러가 죽으면 진행이 조용히 멈춘다
+                    log.exception("Center 진행 폴링 실패")

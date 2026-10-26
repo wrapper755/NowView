@@ -2,9 +2,9 @@
 SC02 HTTP 경계 — `/sc02/*`. Next의 `/api/engine/sc02/*`가 그대로 중계한다(BFF).
 
 SC01(`app/sc01/api.py`)과 같은 규칙이다. 행위자는 `X-Demo-Actor` 헤더 — 신뢰 경계가 아니다(5.4).
-오류 코드: 권한 403 · 없음 404 · 상태·버전·멱등키 충돌 409 · 입력·기간·매핑 오류 422(API-23).
-쓰기의 `Idempotency-Key`도 같다. 시스템 작업(바깥 Chaeksas가 부르는 HTTP 길)은 아직 없다 — 내장
-실행만 돈다.
+오류 코드: 권한 403 · 없음 404 · 상태·버전·멱등키 충돌 409 · 입력·기간·매핑 오류 422(API-23). 쓰기의
+`Idempotency-Key`도 같다. 시스템 작업(바깥 Chaeksas가 부르는 HTTP 길)은 아직 없다 — 내장 실행만
+돈다.
 """
 
 from __future__ import annotations
@@ -13,24 +13,36 @@ import asyncio
 import json
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Body, Header, HTTPException
 from fastapi.requests import Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
+from app.sc01.auth import SystemAuth
 from app.sc01.domain import DomainError
 from app.sc02 import demo, domain
 from app.sc02.process import Sc02Process
-from app.sc02.view import topology, view
+from app.sc02.view import topology
+from app.sc02.view import view as render
+
+#: 시스템 작업 본문 — 호출마다 새 dict(SC01 `link`와 같은 모양).
+_BODY = Body(default_factory=dict)
 
 
 class CreateBody(BaseModel):
     #: 이어 갈 장면 1 데모 실행. 없으면 장면 1을 새로 만들어 인계까지 돌린다.
     sc01_demo_run_id: str | None = Field(default=None, alias="sc01DemoRunId")
     case_id: str = Field(default="BASE", alias="caseId")
+    #: BPMN을 누가 도는가 — center(기본) | studio. 화면은 내장(embedded)을 고르지 않는다
+    #: (2026-10-27 결정 — 내장은 시험용으로 남았다).
+    executor: str = "center"
     model_config = {"populate_by_name": True}
+
+
+class ResetBody(BaseModel):
+    executor: str | None = None
 
 
 class ReceiveBody(BaseModel):
@@ -53,8 +65,14 @@ class ClockBody(BaseModel):
     at: str
 
 
-def build_router(process: Sc02Process, hub: Hub) -> APIRouter:
+def build_router(process: Sc02Process, hub: Hub, auth: SystemAuth | None = None) -> APIRouter:
+    """`auth` — 시스템 작업의 키(N6). 장면 1과 같은 키다. 주지 않으면 환경변수에서 읽는다."""
     r = APIRouter(prefix="/sc02", tags=["sc02"])
+    system_auth = auth or SystemAuth.from_env()
+
+    def view(doc: dict, **kwargs: Any) -> dict[str, Any]:
+        # 화면 답이 되는지(center면 대리 답용 키)는 엔진 설정이 정한다 — 문서에 없다.
+        return render(doc, center=process.center.config, **kwargs)
 
     def guard(fn, *args, **kwargs):
         try:
@@ -124,6 +142,7 @@ def build_router(process: Sc02Process, hub: Hub) -> APIRouter:
                 sc01_demo_run_id=body.sc01_demo_run_id,
                 case_id=body.case_id,
                 actor=x_demo_actor or "u-demo",
+                executor=body.executor,
             )
         )
 
@@ -210,9 +229,46 @@ def build_router(process: Sc02Process, hub: Hub) -> APIRouter:
         return view(guard(demo.run_step, process, demo_run_id, index))
 
     @r.post("/demo-runs/{demo_run_id}/reset")
-    def reset(demo_run_id: str, x_demo_actor: str | None = Header(default=None)) -> dict[str, Any]:
-        """선택 실행만 D00로. 사례를 바꾸려면 새 데모 실행을 만든다(ERR-21)."""
-        return view(guard(process.reset, demo_run_id, actor=actor_of(x_demo_actor)))
+    def reset(
+        demo_run_id: str,
+        body: ResetBody | None = None,
+        x_demo_actor: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """선택 실행만 D00로. 실행 위치를 바꿀 수 있다. 사례를 바꾸려면 새 데모 실행이다(ERR-21)."""
+        return view(
+            guard(
+                process.reset,
+                demo_run_id,
+                actor=actor_of(x_demo_actor),
+                executor=body.executor if body else None,
+            )
+        )
+
+    @r.post("/demo-runs/{demo_run_id}/operations/{operation}")
+    def operate(
+        demo_run_id: str,
+        operation: str,
+        body: dict[str, Any] = _BODY,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """
+        시스템 작업 — 바깥 BPM(외부 확장 `nowview-sc02`, HTTP 어댑터)이 서비스 태스크에서 부른다.
+        행위자 헤더가 없다. 본문의 `chaeksas_run_id`(`{{run_id}}`)가 데모 실행을 그 실행에 묶고,
+        키가 실행 위치를 말한다(N6 — 데모 실행의 선언과 어긋나면 409). 돌려주는 것은 작업의
+        출력뿐이다.
+        """
+        via = guard(system_auth.executor_of, authorization)
+        rest = dict(body)
+        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
+        return guard(
+            process.operate,
+            demo_run_id,
+            operation,
+            rest,
+            external_run_id=run_id,
+            node_id=node_id,
+            via=via,
+        )
 
     @r.get("/demo-runs/{demo_run_id}/events")
     async def events(request: Request, demo_run_id: str) -> StreamingResponse:

@@ -61,6 +61,8 @@ class CenterConfig:
     relay_key: str | None = None
     package: str = "nowview.sc01"
     intake_worker: str | None = None
+    #: 장면 2 패키지(`processes/sc02.bpmn`을 Studio로 내보낸 서버 Bot)
+    sc02_package: str = "nowview.sc02"
 
     @classmethod
     def from_env(cls) -> CenterConfig:
@@ -70,6 +72,7 @@ class CenterConfig:
             relay_key=os.getenv("CHAEKSAS_RELAY_KEY") or None,
             package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "nowview.sc01",
             intake_worker=os.getenv("CHAEKSAS_INTAKE_WORKER") or None,
+            sc02_package=os.getenv("CHAEKSAS_SC02_PACKAGE") or "nowview.sc02",
         )
 
     def missing(self, *, relay: bool = False, integration: bool = False) -> str | None:
@@ -94,6 +97,7 @@ class CenterConfig:
             "integration": bool(self.integration_key),
             "relay": bool(self.relay_key),
             "package": self.package,
+            "sc02Package": self.sc02_package,
             "intakeWorker": self.intake_worker,
         }
 
@@ -111,19 +115,30 @@ class CenterClient:
 
     # ───────────── 연동용 키 ─────────────
 
-    def start_job(self, inputs: dict[str, Any], *, idempotency_key: str, on_behalf: str) -> dict:
-        """SC01 기동 — 서버 실행기에 맡긴다(대상 id는 Center가 고른다)."""
+    def start_job(
+        self,
+        inputs: dict[str, Any],
+        *,
+        idempotency_key: str,
+        on_behalf: str,
+        package: str | None = None,
+        note: str = "NowView SC01 — 고객계획 수신",
+    ) -> dict:
+        """
+        기동 — 서버 실행기에 맡긴다(대상 id는 Center가 고른다). `package`를 주지 않으면 SC01
+        패키지다.
+        """
         return self._call(
             "POST",
             "/jobs",
             self._need("integration"),
             on_behalf=on_behalf,
             json={
-                "bpm_process_id": self.config.package,
+                "bpm_process_id": package or self.config.package,
                 "target": {"type": "server_runner"},
                 "inputs": inputs,
                 "idempotency_key": idempotency_key,
-                "note": "NowView SC01 — 고객계획 수신",
+                "note": note,
             },
         )
 

@@ -8,6 +8,9 @@ import type { Sc02Case, Sc02View } from "@/lib/sc02/types";
 
 export const SC02_BASE = "/api/engine/sc02";
 
+/** 화면이 고르는 실행 위치 — 내장은 고르지 않는다(2026-10-27). */
+export type Sc02Executor = "center" | "studio";
+
 export type Result<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
 
 async function call<T>(
@@ -49,8 +52,12 @@ export const sc02Api = {
   rules: () => call<Record<string, string>>("/rules"),
   parts: () => call<{ modelId: string; partId: string; supplierId: string; qtyPer: string }[]>("/parts"),
   /** 장면 1 데모 실행을 이어 장면 2를 시작한다. 없으면 장면 1을 새로 만들어 인계까지 돌린다. */
-  create: (sc01DemoRunId: string | null, caseId = "BASE") =>
-    post<Sc02View>("/demo-runs", { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId }, "u-demo"),
+  create: (sc01DemoRunId: string | null, caseId = "BASE", executor: Sc02Executor = "center") =>
+    post<Sc02View>(
+      "/demo-runs",
+      { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId, executor },
+      "u-demo",
+    ),
   get: (id: string) => call<Sc02View>(`/demo-runs/${id}`),
   history: (id: string) => call<HistoryEntry[]>(`/demo-runs/${id}/history`),
   at: (id: string, seq: number) => call<Sc02View>(`/demo-runs/${id}/history/${seq}`),
@@ -70,6 +77,7 @@ export const sc02Api = {
     post<Sc02View>(`/demo-runs/${id}/agent-outputs/${outputId}/adopt`, {}, actor),
   clock: (id: string, at: string) => post<Sc02View>(`/demo-runs/${id}/clock`, { at }, "u-demo"),
   step: (id: string, index: number) => post<Sc02View>(`/demo-runs/${id}/script/${index}`, {}),
-  reset: (id: string) => post<Sc02View>(`/demo-runs/${id}/reset`, {}, "u-demo"),
+  reset: (id: string, executor?: Sc02Executor) =>
+    post<Sc02View>(`/demo-runs/${id}/reset`, executor ? { executor } : {}, "u-demo"),
   eventsUrl: (id: string) => `${SC02_BASE}/demo-runs/${id}/events`,
 };

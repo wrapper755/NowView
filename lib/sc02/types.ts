@@ -383,11 +383,18 @@ export interface Sc02View {
     event_code: string | null;
     detail: Record<string, unknown>;
   }[];
+  /** BPMN을 누가 도는가 — 화면은 center·studio만 고른다(내장은 시험용). */
+  executor: "embedded" | "studio" | "center";
+  /** 이 화면에서 결재에 답할 수 있나 — 엔진이 정한다(Center면 대리 답용 키가 있을 때). */
+  answerHere: boolean;
   bpm: {
-    executor: "embedded";
-    runId: string;
+    executor: "embedded" | "studio" | "center";
+    /** 바깥 실행이면 Chaeksas 실행 id — 첫 작업 호출 전에는 없다. */
+    externalRunId: string | null;
+    runId: string | null;
     state: string;
     waiting: Waiting[];
+    center: { job: { job_id: string } | null; problem: string | null; package: string | null } | null;
     position: string[];
     visited: string[];
   } | null;
