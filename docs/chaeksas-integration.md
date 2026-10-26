@@ -325,7 +325,12 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
      `localhost:3000` 연결 거부, `host.docker.internal:3000` 200). 허용 호스트에 `host.docker.internal`을 더했다.
      위험은 `localhost`와 같은 결이다 — 덮어쓰기는 관리자만 하고, 그 이름은 실행기가 도는 기계의 docker 호스트만
      가리킨다. 실행기를 호스트 프로세스로 띄우면 여전히 `localhost`다. 정의를 올렸으므로 패키지(정의 해시를
-     고정한다)도 다시 내보내 배포한다.
+     고정한다)도 다시 내보내 배포한다. ← 틀렸다: Studio 내보내기는 해시를 적지 않는다(아래).
+   * **후속(2026-10-27) — 그림이 외부 확장을 선언한다.** Studio로 내보낸 패키지가 실행기에서 「서비스 앱 주소를 모른다:
+     nowview-sc01」로 첫 호출(`screen_source`)에 실패했다. Studio는 `chk:process.extensions`에 적힌 확장만 `requires.
+     extensions`로 옮기고, 실행기는 거기 있는 확장만 Center에서 정의를 받는다 — 우리 그림에 그 칸이 없었다. 임시 Center
+     실측은 매니페스트를 손으로 지으며 그 칸을 채워 드러나지 않았다(시험의 빈틈). 두 그림에 `{"id": "nowview-sc01",
+     "version": ">=0.7.1,<1"}`을 적었다. 해시는 고정하지 않는다(정의를 올릴 때마다 그림·패키지를 다시 만들지 않게).
 5. **R1·R4 반영 — 했다** (Chaeksas `8f0b08d`, wrapper755/Chaeksas#183 · ADR-0096·0097, 정의 0.6.0).
    * **R1 답한 사람.** `chaeksas-core`를 `8f0b08d`로 올렸다. 결재 8개(`Confirm_Calc` 포함)마다
      `answered_by_as`·`answered_via_as`(예: `확인자`·`확인경로`)를 두고, 뒤의 기록 작업과 계산(`compare`)

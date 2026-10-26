@@ -330,8 +330,13 @@ POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대�
   * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.7.1 — 기록 작업
     응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있고, 기록 작업과 계산은 `answered_by`를 받는다.
     0.7.0에서 접수 Bot 작업 둘(`screen_source`·`record_intake_review`)과 `validate_source.processed_by`가 생겼다.
-    0.7.1은 허용 호스트에 `host.docker.internal`만 더했다. **패키지는 확장 정의를 해시로 고정한다** — 정의를
-    올리면 Studio에서 패키지를 다시 내보내 올리고 배포해야 새 정의를 쓴다.
+    0.7.1은 허용 호스트에 `host.docker.internal`만 더했다.
+  * **두 BPMN은 `chk:process.extensions`에 `nowview-sc01`(`>=0.7.1,<1`)을 선언한다.** Studio는 이 칸에 적힌 확장만
+    패키지 `requires.extensions`로 옮기고, 서버 실행기는 거기 있는 확장만 Center에서 정의(주소)를 받아 온다.
+    빠지면 실행기가 `nowview-sc01`을 서비스 앱으로 보고 「서비스 앱 주소를 모른다」로 첫 호출에서 실패한다
+    (2026-10-27 로컬 Center 실측). 정의 해시(`definition_hash`)는 고정하지 않는다 — 고정하면 정의를 올릴 때마다
+    그림·패키지를 다시 만들어야 한다(Studio가 경고만 한다, ADR-0060). 범위 밖으로 정의를 올리면(1.0) 그림의
+    범위도 올린다 — `test_extension_definition_matches_the_bpmn_service_calls`가 잡는다.
     시험이 정의 ↔ **두 BPMN**(SC01·접수 Bot)의 입력을 잠근다.
   * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
     ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
