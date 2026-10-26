@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 186개 (SQLite만, LLM 제외)
+uv run pytest                                      # 266개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (231개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (347개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -123,6 +123,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **Project Name**: NowView (INNONOW Management Reference Model Pilot Web Platform)
 * **Description**: 매출 약 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 AI Agent가 협업하는 경영 운영 플랫폼 프로토타입.
 * **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). Center 실행에서는 고객계획 접수를 **가상 직원**(접수 Bot)이 맡고 감독자가 승인한 건만 SC01이 된다(4.5 N5).
+  **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. 내장 BPM만 돈다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
   * **Human-in-the-Loop**: AI Agent는 데이터 수집, 이상 징후 감지, 원인 분석, 대안 초안을 지원하고, 최종 판단과 승인은 사람이 책임진다.
@@ -134,6 +135,8 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 
 기준 문서(리포 밖, 사용자 Downloads/INNONOW): 기획안 v0.5 · SC01 설계서 v0.5 · SC01 구현명세 v0.2 ·
 통합 가상 데이터 설계 v0.2(→ `engine/seed/`) · 설계 Template v0.5. 기획안 v0.1은 v0.5의 1~4장과 같다.
+장면 2(Downloads/INNONOW_S02): SC02 설계서 v0.5 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
+SC01_SC02 통합가상데이터 v0.2(→ `engine/seed/SYN-SC02-v0.2.xlsx`).
 **문서의 요구사항 ID(UI01-xx, CALC-xx, WF-xx, AT-xx, EX-xx, D-xx)를 코드 주석·테스트 이름에 그대로 쓴다.**
 
 ### 2.1 가상 고객사와 범위
@@ -157,9 +160,9 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 5. **Rolling Plan Update** — 승인 시 예상 효과, 실행 후 실현 효과로 전망·계획 갱신. 잔여 차이 유지.
 6. **Management Evolution** — Framework · Process · Agent 개선.
 
-**SC01은 1·2단계와 3단계 "연결"까지다.** 장면 2~7(단가 인상 · 통합 손익 · 대안 결정 · 실행·Rolling ·
-효과 검증 · Evolution)은 기획안 6장에 이야기만 있고 설계표·데이터가 없다 — 화면은 수치를 지어내지
-않고 "다음 장면"으로만 보인다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
+**SC01은 1·2단계와 3단계 "연결"까지다.** **SC02**(단가 인상 검토)도 같은 범위다 — 위험을 해소하지 않고
+장면 3 손익 검토로 넘긴다. 장면 3~7(통합 손익 · 대안 결정 · 실행·Rolling · 효과 검증 · Evolution)은 기획안
+6장에 이야기만 있고 설계표·데이터가 없다 — 화면은 수치를 지어내지 않고 "다음 장면"으로만 보인다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
 (공장관리손익 목표 34.77억)과 다르다(D18).
 
 ---
@@ -215,41 +218,49 @@ NowView/
 │   ├── tasks/page.tsx            # UI05 검토·승인 업무
 │   ├── handoff/page.tsx          # UI06 경영이슈 · 인계 현황
 │   ├── process/page.tsx          # BPM 흐름 (BPMN 캔버스)
-│   └── api/engine/sc01/[...path]/route.ts   # 엔진 프록시(BFF) — 유일한 라우트
+│   ├── sc02/                     # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
+│   │                             #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
+│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01·sc02만 중계)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
-│   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기)
+│   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
+│   │                             #   scenario-nav(장면 선택 + GNB), demo-player-switch(장면별 플레이어)
 │   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
 │   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
 │   │                             #   intake-card — 접수 가상 직원, N5)
-│   ├── flow/sc01-canvas.tsx      # React Flow 전용
+│   ├── sc02/                     # SC02 화면들 + bits · action-form · analysis-parts · session-sync · demo-player
+│   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2도 같은 캔버스 — `maxColumns`만 다르다)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
 │   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
-│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), ui-prefs(해설)
-├── tests/                        # Vitest — sc01.test.ts, fixtures/sc01-process.json
+│   ├── sc02/                     # types · client · format · scenes(엔진 각본 → 장면)
+│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02(장면 2 사본·플레이어), ui-prefs(해설)
+├── tests/                        # Vitest — sc01·sc02.test.ts, fixtures/sc01·sc02-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
     ├── processes/sc01-intake.bpmn # 고객계획 접수 Bot(가상 직원, N5) — Center 서버 Bot으로만 돈다
+    ├── processes/sc02.bpmn       # SC02 업무 흐름 — 내장 실행만(4.16)
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
+    ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
     ├── app/
-    │   ├── main.py               # FastAPI — health + /sc01 라우터
+    │   ├── main.py               # FastAPI — health + /sc01 · /sc02 라우터
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
     │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
+    │   └── sc02/                 # seed · calc · domain · agent · process · demo · view · api (저장은 sc01/store의 `sc02_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _intake,
-                                  #   test_events · _notify
+                                  #   test_sc02_calc · _process, test_events · _notify
 ```
 
 **디렉토리 규칙**
-* `components/sc01/` — SC01 화면 전용. 장면 2 이후를 만들면 같은 원칙으로 디렉토리를 나눈다.
+* `components/sc01/`·`components/sc02/` — 장면별 화면 전용. 장면 3 이후도 같은 원칙으로 나눈다.
 * `components/flow/` — React Flow 노드·엣지·캔버스 **전용**.
 * `components/shared/` — 두 화면 이상이 쓰는 조각 중 SC01에 묶이지 않은 것만 둔다.
-* `engine/app/sc01/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
+* `engine/app/sc01/`·`sc02/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
 
 ### 4.1 데모 플레이어
 
@@ -283,7 +294,7 @@ NowView/
 ### 4.3 API 계층
 
 ```
-브라우저 ──/api/engine/sc01/*──▶ Next Route Handler(BFF, 그대로 중계) ──/sc01/*──▶ 엔진(127.0.0.1:8077)
+브라우저 ──/api/engine/{sc01|sc02}/*──▶ Next Route Handler(BFF, 그대로 중계) ──/{sc01|sc02}/*──▶ 엔진(127.0.0.1:8077)
 
 GET  /sc01/process · /users · /rules · /script · /customer-plans/{id}
 POST /sc01/demo-runs  {caseId, executor}   → 새 데모 실행(S0). executor = embedded|studio|center (N2)
@@ -306,6 +317,15 @@ POST /sc01/demo-runs/{id}/intake/sources/{sourceId}/screening → {summary}  (�
 POST /sc01/demo-runs/{id}/intake/sources/{sourceId}/decision  → {recorded} (반려면 보완 요청)
 GET  /sc01/intake                          → 「접수 가상 직원」 카드 (Center 가상 직원 그대로)
 POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대리 답 (감독자는 Center가 대조)
+
+     장면 2(4.16) — 데모 실행 id는 장면 1과 같다. 시스템 작업 HTTP 길은 없다(내장 실행만)
+GET  /sc02/process · /cases · /rules · /parts · /script?case_id=
+POST /sc02/demo-runs  {sc01DemoRunId?, caseId}  → 장면 2 시작(D00). 장면 1이 인계 전이면 각본으로 인계까지 실행
+GET  /sc02/demo-runs/{id} · /history · /history/{seq} · /events(SSE, 채널 sc02:{id})
+POST /sc02/demo-runs/{id}/requests/receive {fixtureId}        → 요청 접수 = BPM 시작
+POST /sc02/demo-runs/{id}/actions/{nodeId} {answer, expect}   → 사람 대기에 응답. expect = {proposal}·{bundle}
+POST /sc02/demo-runs/{id}/negotiation-due {due, reason}        → 외부 협상기한 변경(이력 보존)
+POST /sc02/demo-runs/{id}/agent-outputs/{oid}/adopt · /clock {at} · /script/{i} · /reset
 ```
 
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
@@ -371,7 +391,8 @@ POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대�
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
-* **BFF는 경로를 하나씩 옮겨 적지 않고 그대로 중계한다.** 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
+* **BFF는 장면(`sc01`·`sc02`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 목록 밖의 장면은 404 —
+  엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 부르는 `/api/engine/sc01/…` 주소는 그대로다. 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
   `X-Demo-Actor`·`Idempotency-Key`·`Authorization`(시스템 작업 키, N6)이다. 키 검사도 엔진이 한다.
 * **화면은 규칙을 다시 구현하지 않는다.** 금액·비율은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다
@@ -660,13 +681,16 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
 | `engine/tests/test_sc01_intake.py` | N5 — 접수 Bot 그림(계약 검사·B16 없음·감독자 출처), 출처 입력(`input_required`·`input_not_from_caller`·`assignees_missing`), 가짜 Center 메시지 시작 + 진짜 엔진으로 승인 → 위임 → 인계·반려 → 보완 요청, 거절된 앞 작업·초기화 뒤 멱등 키 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체 — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
+| `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
+| `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(186개 / 231개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(266개 / 347개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
-* `tests/fixtures/sc01-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
+* `tests/fixtures/sc01-process.json`·`sc02-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
   실패하며 다시 만드는 명령을 알려 준다.
 * 렌더링 테스트는 두지 않는다 — 레이아웃·가독성은 브라우저에서 본다(4.10~4.14의 실측들).
 
@@ -901,11 +925,86 @@ Mock 데이터와 LangGraph 엔진으로 보여 줬다. SC01로 바꾸며 코드
   Agent 3개를 연달아 돌린 생성이 524로 끊기고 인스턴스는 고아가 됐다. 긴 진행은 배경으로 보내고
   SSE로 알리며, 배경 실패는 상태에 남긴다. 노드 사이 스냅샷이 "끝남"으로 새지 않게 진행 중 표시를 둔다.
 
+### 4.16 SC02 — 단가 인상 검토와 수익성 영향의 경영검토 연결 (장면 2)
+
+공급사 SUP-01이 공통부품 P-COM01(a·b모델 각 1개)의 단가를 2,000 → 2,200원으로 올려 달라고 한다. 구매담당이
+접수·팀장 보고·요청안 분석·1차 협상(2,120원)·재분석·기안을 하고, 팀장 → 임원 → (12개월 증가 ≥ 1천만원이면)
+대표가 승인한다. 승인 조건으로 원가 버전 C02-APP01을 등록하고, 장면 1 물량 감소(ISSUE-B07)와 장면 2 원가
+상승(ISSUE-COST01)을 상위 검토건 MR-2706-01에 **각각** 걸어 경영관리에 넘긴다. **끝나도 위험은 열려 있고 F02는
+검토 중이다**(SCOPE-01) — 「장면 2 인계 완료, 장면 3 손익 검토 대기」.
+
+```
+engine/processes/sc02.bpmn ──▶ Chaeksas Engine ── chk:serviceCall nowview-sc02 ──▶ app/sc02/process.py
+                                                                                      │ domain.py · calc.py
+                                                                                      ▼
+                         sc02_demo_run(id = 장면 1 데모 실행 id) · sc02_history → notifier("sc02:{id}") → SSE
+```
+
+**장면 1과 이어지는 방식**
+
+* **데모 실행 id가 장면 1과 같다**(DATA-22). 테이블만 다르다(`sc02_*` — `Sc01Store`의 `prefix`). 장면 1 문서에
+  장면 2를 얹지 않았다 — SC01 문서·업무 동기화·바깥 실행 규칙을 건드리지 않으려는 것이다.
+* **장면 2는 장면 1 인계에서 시작한다.** `POST /sc02/demo-runs`는 장면 1이 인계 전이면 **각본의 남은 단계를 실제로
+  실행**한다(역할 검사·업무 규칙 그대로). `sc01DemoRunId`가 없으면 장면 1 실행부터 새로 만든다 — X 사례는 그래서
+  별도 데모 실행이다(ERR-21).
+* **화면은 장면 2를 저절로 만들지 않는다.** 만들면 화면에 들어온 것만으로 장면 1 상태가 바뀐다. 404면 「장면 2
+  시작」을 묻는다(`Sc02StartCard`, 플레이어).
+* **장면 1 결과는 스냅샷이다**(`doc.sc01`) — 인계 run·F02 승인 상태·ISSUE-B07. 장면 1을 초기화해도 장면 2 근거는
+  그 시점 것이다(ERR-24 「완료된 승인과 당시 근거는 보존」). 장면 2 초기화도 스냅샷을 그대로 쓴다.
+* **장면 1 F02의 2027 물량이 통합 데이터와 다르면 409다**(`baseline_from_sc01`). 장면 2 기대값은 기본 F02 기준이고,
+  상충하는 데이터는 임의 보정하지 않는다(구현명세 1장). 장면 1을 정정(EX03)한 실행은 장면 2를 시작할 수 없다.
+
+**경계·범위에서 정한 것**
+
+* **내장 실행만 돈다.** SC01의 Studio·Center 실행 위치(N2·N3)·외부 확장·시스템 작업 HTTP 길·키(N6)·기록 거절
+  오류 경계가 SC02에는 없다. 내장 경로는 답을 넣기 전에 같은 규칙을 검사하므로(`domain.check_answer`, 입력 보존)
+  기록 작업이 거절되지 않는다. 바깥에 올리려면 SC01처럼 경계·확장 선언·HTTP 작업을 더한다.
+* **사람 업무 12개 · 서비스 태스크 17개 · 종료 6개**(인계 완료 · 보완 대기 · 검토 종결 · 미합의 · 반려 · 재협상 대기).
+  보완은 기안으로 되돌아가 새 버전(PROP01-v2)이고 팀장부터 다시 받는다 — 이전 결정은 보존하되 승계하지 않는다.
+  대표 대상은 S09 서비스(`judge_authority`)가 금액으로 판정한다 — 위험 등급과 무관하다(AUTH-02).
+* **상신이 그 버전의 분석 run을 만든다**(RUN-PROP01). 기안가·적용일이 협상안과 다르면 차이 사유가 필요하고(422),
+  기안안 분석이 미산출(월중 적용·누락·중복)이면 상신이 409다. 협상을 다시 기록하면 같은 안의 이전 run은 낡음 표시.
+* **결재·인수는 화면이 본 버전을 싣는다**(`expect: {proposal}`·`{bundle}`) — 그 사이 버전이 바뀌었으면 409(U25-03).
+* **외부 협상기한은 사람이 넣는다**(요청안 분석 때, 기본 6/21 18:00). 협상 업무의 기한이 그것이고 변경은 이력으로
+  남는다(`negotiation-due`). 내부 업무 기한은 SC01과 같은 달력(다음 영업일·두 번째 영업일 18시)이고, 「업무이력」
+  시트의 due_at과 같은 값이 나온다(테스트가 잠근다).
+* **추가 협상지시(X01)는 기록·배정까지다** — NEEDS_RENEGOTIATION, TASK-RENEG, 원가 등록·인계 차단. 상위 검토건에는
+  **잠정 자료**(`provisional: true`)로만 걸린다(H23). 2차 협상·재기안·재승인은 후속 범위다.
+* **Agent는 mock·fail뿐이다**(`app/sc02/agent.py`). SC01의 ollama 러너는 SC01 계약에 맞춰져 있어 쓰지 않았다. mock도
+  같은 검증(본문 숫자가 규칙 결과에 있는가·근거 id)을 통과해야 화면에 나온다. 순간에 끝나므로 서비스 태스크 안에서 만든다.
+* **시연 사례**: BASE · X01 · X02(2,050원 — 대표 비대상) · X04(8/1 적용) · X05(기안가 2,130원) · X06(미합의) ·
+  X07R(보완 → 재상신) · X07J(반려) · X09A(2028-06 b 누락) · X09B(Agent 실패) · X10(중복 행). 자료 사례는 이 문서의 물량
+  표만 바꾼다(`rows_override`) — 시드는 그대로다. X03·X08은 규칙 단위 시험값이라 실행 사례로 두지 않았다(테스트만).
+
+**계산에서 정한 것**(`app/sc02/calc.py`)
+
+* 기간은 **시작 포함·종료 제외**. 잔여 [적용일, 다음 해 1/1), 12개월 [적용일, +12개월). 12개월 창에 5모델 × 12개월이
+  다 있어야 12개월 금액·승인선이 나온다 — 없으면 미산출·판정 보류다(대표 비대상으로 처리하지 않는다).
+* **인상률 경계는 나눗셈 없이 비교한다** — `단가차이 ≥ 기존단가 × 임계값`(CALC-25). SC01의 비율 8자리 반올림을 가져오지 않았다.
+* 협상 효과(M25)는 **요청안의 12개월**로 같은 기간에서 잰다. 적용일이 다르면 가격 효과와 적용일 연기 효과로 나눈다.
+* 손익 연결은 F01+C01 → F02+C01 → F02+선택안. 고정비는 공장 월 1회, 모델 배부 없음. 12개월 물량 효과 −1,400만원도
+  월별 재집계 결과다. 2028 Target이 없어 12개월 Target 차이는 미산출이다.
+* **통합 영향(U27)은 한 안만 고른다** — 승인안이 있으면 그것, 없으면 최신 안을 **잠정**으로(`selectedProvisional`).
+
+**만들며 드러난 것**
+
+* **엑셀 ROUND는 0.5를 올린다.** 2028 물량(F01 × 97%)을 `Decimal.to_integral_value()`로 다시 내면 4898.5가 4898이 되어
+  한 행이 어긋났다 — 짝수 반올림이 기본이다. `ROUND_HALF_UP`을 쓴다.
+* **ruff의 줄 길이는 화면 폭으로 잰다** — 한글은 한 글자가 2다. 100자 제한이 한글 문장으로는 약 50자다. 주석이 넘치면 줄을 접는다.
+* **종료 이벤트는 「시작」만 기록된다**(완료가 없다). 캔버스의 「끝났으면 종료 = 완료」 규칙은 종료가 하나인 장면 1에서만
+  맞았다 — 종료가 여섯인 장면 2에서는 가지 않은 반려·재협상 종료까지 완료로 칠했다. 장면 2는 도달한 종료를 `visited`에
+  남기고, `nodeStates`는 종료가 기록된 실행이면 그것만 완료로 본다(장면 1 동작은 그대로).
+* **층이 많은 흐름은 넓게 편다.** 5열로 접으면 다섯 줄이 되어 fitView 배율이 0.3 남짓이었다 — 장면 2는 `maxColumns={8}`.
+* **숫자 칸의 빈 값은 `null`이다**(`components/shared/form-field.tsx`). 빈 글(`""`)을 숫자 칸에 보내면 Chaeksas가
+  형식 오류로 거절하고, 0으로 메우면 미합의가 0원이 된다. 장면 2 폼은 빈 값을 아예 보내지 않는다.
+* **GNB에 장면 칩을 더하자 375px에서 화면 메뉴가 0px로 눌렸다**(4.14와 같은 종류). 좁을 때 「장면」 글자를 숨기고
+  메뉴에 최소 폭을 줬다. 플레이어도 좁을 때 버튼 라벨을 숨긴다 — 154px → 120px.
+
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5)는 끝났다. 운영계(5.4)는 아직
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6, 내장 실행)는 끝났다. 운영계(5.4)는 아직
 이전 구현이 떠 있다.
 
 ### 5.1 CI — 완료
@@ -1137,5 +1236,22 @@ scripts/deploy.sh --logs engine 80
   프로세스가 내려간다 — `mock`에서는 순간이라 문제가 없다.
 * EX01·04·05는 엔진 테스트로 잠갔고 화면에서는 고객계획 화면의 시연 원천으로 돌릴 수 있다. 화면 검수는
   기본·EX03·EX07·EX08만 했다.
-* **장면 2 이후**는 Business 설계(설계표·데이터)가 나와야 시작한다 — 지어내지 않는다(4.7).
+* **장면 3 이후**는 Business 설계(설계표·데이터)가 나와야 시작한다 — 지어내지 않는다(4.7).
 * 운영 배포 전 확인: 인증이 없는 상태에서 `X-Demo-Actor`로 아무 역할이나 될 수 있다(5.4).
+
+### 5.6 장면 2(SC02) — 완료 (내장 실행)
+
+2026-10-27. 설계·데이터는 4.16. 엔진 테스트(SQLite·Postgres)와 브라우저에서 기본 시연 D00 → D12(인계 완료)와 X01
+(추가 협상지시 — 재협상 대기·원가 등록 차단)을 확인했다. 숫자는 통합가상데이터 v0.2의 파생 시트와 같다(2027 물량
+−14,000,000 · 단가 −9,364,320 · 통합 3,299,986,680 · Target 대비 부족 177,303,320 · 12개월 3,173,163,560).
+
+**남은 것**
+
+* **바깥 실행(Studio·Center)** — 외부 확장 `nowview-sc02` 정의·서명, 기록 거절 오류 경계, 시스템 작업 HTTP 길과 키,
+  대리 답. SC01의 N1~N6과 같은 일이다.
+* **Agent LLM 러너** — 지금은 mock·fail뿐이다. SC02 계약(summary·findings·questions·draft_text)에 맞춘 프롬프트와 실호출 시험이 필요하다.
+* **2차 이후 협상·재기안·재승인**(S14 뒤) — 설계상 후속 범위다.
+* **장면 1 F02가 정정된 뒤의 장면 2**(ERR-24) — 지금은 시작을 409로 막는다. 정정 물량으로 새 분석·재검토를 요청하는 길은 없다.
+* **요청 정정 버전**(U21-03) — 같은 문서 키·다른 내용은 BPM 시작 전에만 받는다.
+* 화면 검수는 BASE·X01만 했다. 나머지 X 사례는 엔진 테스트로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
+

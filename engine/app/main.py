@@ -26,6 +26,8 @@ from .sc01.center import CenterClient, CenterConfig
 from .sc01.poller import CenterPoller
 from .sc01.process import Sc01Process
 from .sc01.store import build_sc01_store
+from .sc02.api import build_router as build_sc02_router
+from .sc02.process import Sc02Process
 from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -33,7 +35,10 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
-    description="Chaeksas BPM(BPMN 2.0) 위의 SC01 장면 1. 업무 흐름은 processes/*.bpmn이다.",
+    description=(
+        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)·장면 2(SC02). "
+        "업무 흐름은 processes/*.bpmn이다."
+    ),
 )
 
 # `DATABASE_URL`이 있으면 Postgres, 없으면 파일 SQLite다. 연결 실패를 SQLite로
@@ -51,6 +56,9 @@ poller = CenterPoller(sc01)
 # 시스템 작업의 키(N6). 키가 없으면 그 길은 503이다 — 끄려면 NOWVIEW_SYSTEM_AUTH=off(auth.py).
 system_auth = SystemAuth.from_env()
 app.include_router(build_sc01_router(sc01, hub, system_auth))
+# 장면 2 — 장면 1 인계 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc02_*`). 내장 실행만.
+sc02 = Sc02Process(build_sc01_store(backend, "sc02"), sc01, publish=notifier.publish)
+app.include_router(build_sc02_router(sc02, hub))
 
 
 @app.on_event("startup")
@@ -79,6 +87,7 @@ def health() -> dict[str, Any]:
             "engine": "chaeksas-core",
             "version": version("chaeksas-core"),
             "process": sc01.process.id,
+            "processes": [sc01.process.id, sc02.process.id],
         },
         "demoRuns": len(sc01.store.list()),
         # 시스템 작업 인증 — 「키 없이 꺼 둔 채 운영」을 눈치챌 수 있어야 한다. 값은 싣지 않는다.

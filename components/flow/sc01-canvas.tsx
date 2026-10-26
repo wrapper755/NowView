@@ -117,13 +117,16 @@ export function Sc01Canvas({
   states,
   selected,
   onSelect,
+  maxColumns,
 }: {
   topology: ProcessTopology;
   states: Record<string, NodeState>;
   selected: string | null;
   onSelect: (id: string) => void;
+  /** 한 줄의 층 수 — 기본 5. 장면 2 흐름은 층이 많아 넓게 편다. */
+  maxColumns?: number;
 }) {
-  const placed = useMemo(() => layoutProcess(topology), [topology]);
+  const placed = useMemo(() => layoutProcess(topology, maxColumns), [topology, maxColumns]);
   // 흐름도 접은 토폴로지에서 — 기록 태스크로 가는 간선은 결재에서 바로 다음으로 이어진다.
   const flows = useMemo(() => canvasTopology(topology).flows, [topology]);
 

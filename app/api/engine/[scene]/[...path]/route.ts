@@ -1,5 +1,5 @@
 /**
- * SC01 엔진 프록시(BFF) — `/api/engine/sc01/*` → 엔진 `/sc01/*`.
+ * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`·`sc02`뿐이다.
  *
  * **브라우저가 엔진을 직접 부르지 않는다.** CORS가 생기고 엔진 주소가 드러난다. 운영계에서
  * 엔진은 127.0.0.1에만 바인딩되어 있다(CLAUDE.md 5.4).
@@ -14,12 +14,16 @@ const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:8077";
 
 export const dynamic = "force-dynamic";
 
-type Context = { params: Promise<{ path: string[] }> };
+/** 중계할 장면. 목록 밖의 경로는 엔진에 보내지 않는다 — 엔진의 다른 경로(`/health` 등)가 열리지 않게. */
+const SCENES = new Set(["sc01", "sc02"]);
+
+type Context = { params: Promise<{ scene: string; path: string[] }> };
 
 async function relay(request: Request, { params }: Context): Promise<Response> {
-  const { path } = await params;
+  const { scene, path } = await params;
+  if (!SCENES.has(scene)) return Response.json({ error: `없는 장면: ${scene}` }, { status: 404 });
   const url = new URL(request.url);
-  const target = `${ENGINE_URL}/sc01/${path.map(encodeURIComponent).join("/")}${url.search}`;
+  const target = `${ENGINE_URL}/${scene}/${path.map(encodeURIComponent).join("/")}${url.search}`;
   const isStream = path.at(-1) === "events";
 
   const headers: Record<string, string> = { accept: isStream ? "text/event-stream" : "application/json" };

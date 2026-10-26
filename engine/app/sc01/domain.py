@@ -27,7 +27,7 @@ CUSTOMERS = {"CUS-HK"}
 PLANTS = {"ULS"}
 SOURCE_MONTHS = {date(2027, m, 1) for m in (7, 8, 9)}
 
-#: 시연 사용자 마스터 — 가상 인물이다. 역할은 구현명세 2장 표.
+#: 시연 사용자 마스터 — 가상 인물이다. 역할은 구현명세 2장 표. 장면 1·2가 같은 가상 회사를 쓴다.
 USERS: dict[str, dict[str, str]] = {
     "u-sales": {"name": "이도윤", "role": "영업담당"},
     "u-sales-lead": {"name": "박서진", "role": "영업팀장"},
@@ -35,6 +35,12 @@ USERS: dict[str, dict[str, str]] = {
     "u-mat": {"name": "최유나", "role": "자재담당"},
     "u-fin": {"name": "정하윤", "role": "경영관리담당"},
     "u-plant": {"name": "한준호", "role": "공장장"},
+    # 장면 2(SC02) — 구매 승인선. 구매담당·팀장·임원·대표는 서로 다른 사람이다(AUTH-03).
+    # 원가 등록(ROLE-COST)은 Pilot에서 구매담당이 겸한다(구현명세 2장).
+    "u-buy": {"name": "윤채원", "role": "구매담당"},
+    "u-buy-lead": {"name": "서도현", "role": "구매팀장"},
+    "u-buy-exec": {"name": "문지후", "role": "구매임원"},
+    "u-ceo": {"name": "임하준", "role": "대표이사"},
     "u-demo": {"name": "시연관리자", "role": "시연관리자"},
 }
 
