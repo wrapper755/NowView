@@ -17,7 +17,7 @@ dependencies = [
 # 커밋에 고정한다: 브랜치를 따라가면 같은 락파일로 다른 엔진이 깔린다.
 # core가 같은 워크스페이스의 contracts·llm·extension_api를 끌고 온다.
 [tool.uv.sources]
-chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "8f0b08d4af20962e3294ca7a96d5f56bd1cd5499", subdirectory = "packages/core" }
+chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "d2e2e4605cebb87ed912bb571196d31e3a4440e2", subdirectory = "packages/core" }
 
 [dependency-groups]
 dev = [

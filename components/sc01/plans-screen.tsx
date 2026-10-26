@@ -5,6 +5,7 @@ import { CheckCircle2, Inbox, XCircle } from "lucide-react";
 
 import { ActionForm } from "@/components/sc01/action-form";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
+import { IntakeCard } from "@/components/sc01/intake-card";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,9 @@ export function PlansScreen() {
       <ScreenHeader id="UI02·03" title="고객 생산계획" question="어떤 계획이 들어왔고 무엇을 처리해야 하는가?" />
 
       <ReceiveCard sources={view.sources} selected={source?.source_id ?? null} onSelect={setSelected} />
+
+      {/* Center 실행이면 수신이 접수 가상 직원을 깨운다(N5) — 감독자 승인 전에는 SC01이 없다. */}
+      {view.executor === "center" ? <IntakeCard /> : null}
 
       {source ? (
         <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[3fr_2fr]">

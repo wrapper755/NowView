@@ -291,6 +291,44 @@ def build_router(process: Sc01Process, hub: Hub, auth: SystemAuth | None = None)
             raise HTTPException(404, f"기록할 결재가 아니다: {node_id}")
         return operate(demo_run_id, operation, body, authorization, node_id=node_id)
 
+    # 접수 Bot(N5, `sc01-intake.bpmn`)의 작업 — 같은 키·같은 본문 규칙이지만 데모 실행을
+    # 바깥 실행에 묶지 않는다(`chaeksas_run_id`는 접수 Bot 실행이다). 묶는 것은 승인 뒤 위임된
+    # SC01의 첫 호출이다.
+    @r.post("/demo-runs/{demo_run_id}/intake/sources/{source_id}/screening")
+    def screen_source(
+        demo_run_id: str,
+        source_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
+    ) -> dict[str, Any]:
+        """접수 Bot의 원천 검증 → `{summary}`(검증 결과·변경 요약 — 일괄 결재가 보인다)."""
+        return operate(demo_run_id, "screen_source", body, authorization, source_id=source_id)
+
+    @r.post("/demo-runs/{demo_run_id}/intake/sources/{source_id}/decision")
+    def record_intake_review(
+        demo_run_id: str,
+        source_id: str,
+        body: dict[str, Any] = link,
+        authorization: str | None = key,
+    ) -> dict[str, Any]:
+        """감독자 일괄 결정 기록 → `{recorded}`. 반려면 원천 NEEDS_INFO + 보완 요청 업무."""
+        return operate(
+            demo_run_id, "record_intake_review", body, authorization, source_id=source_id
+        )
+
+    @r.get("/intake")
+    def intake() -> dict[str, Any]:
+        """「접수 가상 직원」 카드(UI02) — 오늘 접수·승인 대기·기동된 SC01(Center 가상 직원)."""
+        return process.intake_status()
+
+    @r.post("/intake/approvals/{request_id}/answer")
+    def answer_intake(
+        request_id: str, body: ActBody, x_demo_actor: str | None = Header(default=None)
+    ) -> dict[str, Any]:
+        """일괄 결재 대리 답 — 감독자인지는 Center가 대조한다(403 `not_assignee`)."""
+        guard(process.answer_intake, request_id, body.answer, actor=actor_of(x_demo_actor))
+        return process.intake_status()
+
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(
         demo_run_id: str, run_id: str, x_demo_actor: str | None = Header(default=None)

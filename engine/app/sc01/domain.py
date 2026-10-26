@@ -905,6 +905,119 @@ def receive_external(doc: dict, source_id: str) -> None:
     supersede_bpm(doc, source_id=source_id, final_state="superseded")
 
 
+# ─────────────────────────── 고객계획 접수 가상 직원 (N5) ───────────────────────────
+
+#: 접수 Bot을 깨우는 메시지 — `sc01-intake.bpmn`의 메시지 시작 이름이다.
+INTAKE_MESSAGE = "고객계획접수"
+INTAKE_DECISIONS = ("승인", "반려")
+
+
+def change_summary(doc: dict, seed: Seed, source_id: str) -> list[dict[str, Any]]:
+    """
+    직전 원천(시드 CP01) 대비 바뀐 행 — 일괄 결재가 보이는 「변경 요약」이다. UI02의 원천 비교와
+    같은 기준이고(CP01 → 수신본), 전망 비교(F01 → F02)가 아니다(UI02-02). 누락은 `None` 그대로다.
+    """
+    before = {(r.model_id, r.period.isoformat()): r.quantity for r in seed.customer_plans["CP01"]}
+    out = []
+    for r in doc["sources"][source_id]["rows"]:
+        prior = before.get((r["model_id"], r["period"]))
+        if prior != r["quantity"]:
+            out.append(
+                {"model": r["model_id"], "period": r["period"], "from": prior, "to": r["quantity"]}
+            )
+    return out
+
+
+def note_processor(doc: dict, name: str) -> None:
+    """
+    위임된 SC01이 실어 온 처리자(가상 직원 이름, SC01 입력 `처리자`)를 그 실행에 남긴다 — 화면이
+    「접수 가상 직원이 기동한 실행」이라고 말한다. 혼자 기동한 SC01은 `None`이라 여기 오지 않는다.
+    """
+    bpm = doc["bpm"]
+    if bpm is None or bpm.get("processed_by") == name:
+        return
+    bpm["processed_by"] = name
+    audit(
+        doc, actor="system", action="processed_by_virtual_worker", name=name, run_id=bpm["run_id"]
+    )
+
+
+def screen_source(
+    doc: dict, seed: Seed, source_id: str, *, processed_by: str | None
+) -> dict[str, Any]:
+    """
+    접수 Bot의 원천 검증 — SC01의 자동 검증과 같은 검사(`validate_source`)에 변경 요약을 붙여 일괄
+    결재에 보인다. **데모 실행을 바깥 실행에 묶지 않는다** — 묶는 것은 위임된 SC01의 첫 호출이다.
+    """
+    errors = validate_source(doc, seed, source_id)
+    s = doc["sources"][source_id]
+    summary = {
+        "원천ID": source_id,
+        "고객계획": s["customer_plan_id"],
+        "검증통과": not errors,
+        "검증오류수": len(errors),
+        "검증오류": [f"{e['row']} {e['message']}" for e in errors][:5],
+        "변경": change_summary(doc, seed, source_id),
+    }
+    s["screened_by"] = processed_by
+    return summary
+
+
+def record_intake(
+    doc: dict,
+    source_id: str,
+    *,
+    decision: str,
+    opinion: str,
+    by: str,
+    how: dict[str, Any],
+    intake_run: str | None,
+    processed_by: str | None,
+) -> None:
+    """
+    감독자의 일괄 결정(N5). **반려면 SC01을 시작하지 않는다** — 원천을 NEEDS_INFO로 두고 영업담당의
+    원천 확인 업무(TASK-DQ)를 보완 요청 상태로 연다. 정정본이 와서 다시 승인되면 위임된 SC01의 원천
+    확인이 같은 업무를 「보완 후 재배정」으로 잇는다(`sync_tasks`). 승인이면 감사 이력만 남긴다 —
+    업무는 SC01의 원천 확인 결재가 열 때 생긴다.
+    """
+    if decision not in INTAKE_DECISIONS:
+        raise DomainError(f"접수 결정은 {'·'.join(INTAKE_DECISIONS)} 중 하나다: {decision}", 422)
+    if source_id not in doc["sources"]:
+        raise DomainError(f"없는 원천: {source_id}", 404)
+    if decision == "반려" and not opinion.strip():
+        raise DomainError("반려에는 보완할 내용(의견)이 필요하다", 422)
+    ledger = ((doc["bpm"] or {}).get("center")) or {}
+    job = ledger.get("job") or {}
+    if job.get("via") == "intake" and job.get("source_id") == source_id:
+        job["decision"] = decision
+    audit(
+        doc,
+        actor=by,
+        action="intake_reviewed",
+        source_id=source_id,
+        decision=decision,
+        opinion=opinion,
+        intake_run=intake_run,
+        processed_by=processed_by,
+        **how,
+    )
+    if decision == "승인":
+        return
+    request_fix(doc, source_id, actor=by, opinion=opinion)
+    sync_tasks(
+        doc,
+        {f"intake:{intake_run}:{source_id}": {"node_id": "Approve_DQ"}},
+        {"원천ID": source_id},
+    )
+    mark_task(
+        doc,
+        "Approve_DQ",
+        actor=by,
+        outcome="needs_info",
+        note=f"접수 일괄 반려 — 보완 요청: {opinion}",
+    )
+
+
 # ─────────────────────────── 정정 (EX03·WF-03) ───────────────────────────
 
 

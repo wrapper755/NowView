@@ -407,7 +407,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from chaeksas.contracts import extension as ext
     from chaeksas.contracts.bpmn_ext import read_process
 
-    from app.sc01.process import PROCESS_PATH, RECORD_OF_NODE
+    from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
     assert sorted(p.name for p in root.glob("*.extension.json")) == ["nowview-sc01.extension.json"]
@@ -421,8 +421,12 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     operations = {o["name"]: o for o in adapter["operations"]}
 
     process = read_process(PROCESS_PATH.read_bytes())
-    answered = {RECORD_OF_NODE[n]: n for n in RECORD_OF_NODE} | {"compare": "Confirm_Calc"}
-    for node in process.of_kind("serviceTask"):
+    intake = read_process(INTAKE_PATH.read_bytes())  # 접수 Bot(N5)도 같은 정의를 부른다
+    answered = {RECORD_OF_NODE[n]: n for n in RECORD_OF_NODE} | {
+        "compare": "Confirm_Calc",
+        "record_intake_review": "Approve_Batch",
+    }
+    for node in [*process.of_kind("serviceTask"), *intake.of_kind("serviceTask")]:
         call = node.prop("serviceCall")
         op = operations[call.operation]
         given = set(call.input)

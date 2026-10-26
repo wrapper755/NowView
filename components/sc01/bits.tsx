@@ -165,6 +165,7 @@ function ExecutorBanner() {
         ) : (
           "첫 작업 호출 전"
         )}
+        {view.bpm?.center?.processedBy ? <> · 처리자 {view.bpm.center.processedBy}</> : null}
       </span>
     </p>
   );

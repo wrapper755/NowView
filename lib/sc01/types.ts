@@ -239,8 +239,23 @@ export interface DemoRunView {
     visited: string[];
     /** Center 실행이면 NowView가 기동한 작업과, 연동이 막힌 사유(설정 없음·Center 거절). */
     center?: null | {
-      job: { job_id: string; source_id: string; at: string } | null;
+      /**
+       * `via: "intake"`면 SC01이 아니라 접수 가상 직원의 접수 Bot 작업이다(N5) — `decision`은 감독자의
+       * 일괄 결정(승인 전에는 null).
+       */
+      job: {
+        job_id: string;
+        source_id: string;
+        at: string;
+        via?: "intake";
+        worker?: string;
+        decision?: "승인" | "반려" | null;
+      } | null;
       problem: string | null;
+      /** 엔진에 설정된 접수 가상 직원 id — 있으면 수신이 접수 Bot을 깨운다(N5). */
+      intakeWorker?: string | null;
+      /** 위임된 SC01이 실어 온 처리자(가상 직원 이름). 혼자 기동했으면 null. */
+      processedBy?: string | null;
     };
   };
   sources: Source[];
@@ -327,4 +342,26 @@ export interface CustomerPlanRow {
   modelId: string;
   period: string;
   quantity: number | null;
+}
+
+/**
+ * 「접수 가상 직원」 카드(UI02, N5) — 엔진이 Center `GET /virtual-workers/{id}`를 읽어 센다.
+ * 설정이 없거나 Center가 거절하면 `problem`이 그 사유다(조용히 비우지 않는다).
+ */
+export interface IntakeStatus {
+  workerId: string | null;
+  configured: boolean;
+  problem: string | null;
+  name?: string;
+  state?: string;
+  supervisors?: string[];
+  /** 접수 Bot 패키지 id */
+  intake?: string;
+  /** 오늘(한국 시각) 시작한 일괄 — 수신 한 번이 일괄 하나다. */
+  today?: number;
+  pendingApprovals?: { requestId: string; runId: string; startedAt: string }[];
+  /** 최근 일괄이 기동한 SC01 실행 수 */
+  started?: number;
+  startedByStatus?: Record<string, number>;
+  batches?: { runId: string; status: string; startedAt: string; children: number; openApprovals: number }[];
 }

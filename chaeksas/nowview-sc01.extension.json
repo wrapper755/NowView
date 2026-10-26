@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "nowview-sc01",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "name": "NowView SC01 업무 시스템",
-  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio. 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 http://localhost:3000으로 덮어쓴다(ADR-0097). 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다.",
+  "description": "가상 부품사 NowView의 SC01 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 장면 인계. 사람 업무는 포함하지 않는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio. 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 http://localhost:3000으로 덮어쓴다(ADR-0097). 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 접수 Bot(nowview.sc01-intake, 고객계획 접수 가상 직원)의 작업 screen_source·record_intake_review는 데모 실행을 묶지 않는다 — 묶는 것은 위임된 SC01의 첫 호출이다.",
   "publisher": "NowView",
   "tier": "external",
   "requires_keys": [{"purpose": "run"}],
@@ -18,13 +18,13 @@
       "operations": [
         {
           "name": "validate_source",
-          "description": "원천 자동 검증 (UI03-01)",
+          "description": "원천 자동 검증 (UI03-01). processed_by는 일괄을 맡긴 가상 직원의 이름이다(혼자 기동하면 null)",
           "modes": ["autonomous", "deterministic"],
           "idempotent": true,
           "input_schema": {
             "type": "object",
             "required": ["demo_run_id", "source_id"],
-            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}}
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}, "processed_by": {"type": ["string", "null"]}}
           },
           "output_schema": {
             "type": "object",
@@ -33,7 +33,7 @@
           "request": {
             "method": "POST",
             "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/sources/{{input.source_id}}/validation",
-            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}"}
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "processed_by": "{{input.processed_by}}"}
           },
           "response": {"output": {"passed": "$.passed", "error_count": "$.error_count"}}
         },
@@ -189,6 +189,42 @@
             "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "run_id": "{{input.run_id}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}"}
           },
           "response": {"output": {"recorded": "$.recorded", "error_message": "$.error_message"}}
+        },
+        {
+          "name": "screen_source",
+          "description": "접수 Bot의 원천 자동 검증 (N5) — 검증 결과와 변경 요약을 일괄 결재에 보인다. 데모 실행을 바깥 실행에 묶지 않는다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}, "processed_by": {"type": ["string", "null"]}}
+          },
+          "output_schema": {"type": "object", "properties": {"summary": {"type": "object"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/intake/sources/{{input.source_id}}/screening",
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "processed_by": "{{input.processed_by}}"}
+          },
+          "response": {"output": {"summary": "$.summary"}}
+        },
+        {
+          "name": "record_intake_review",
+          "description": "접수 일괄 결정 기록 (N5) — 반려면 원천 NEEDS_INFO + 보완 요청 업무, 승인이면 감사 이력. 데모 실행을 묶지 않는다",
+          "modes": ["autonomous", "deterministic"],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": ["demo_run_id", "source_id", "decision", "opinion", "answered_by"],
+            "properties": {"demo_run_id": {"type": "string"}, "source_id": {"type": "string"}, "decision": {"type": "string"}, "opinion": {"type": "string"}, "answered_by": {"type": "string"}, "answered_via": {"type": ["string", "null"]}, "processed_by": {"type": ["string", "null"]}}
+          },
+          "output_schema": {"type": "object", "properties": {"recorded": {"type": "boolean"}}},
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc01/demo-runs/{{input.demo_run_id}}/intake/sources/{{input.source_id}}/decision",
+            "body": {"chaeksas_run_id": "{{run_id}}", "chaeksas_node_id": "{{node_id}}", "decision": "{{input.decision}}", "opinion": "{{input.opinion}}", "answered_by": "{{input.answered_by}}", "answered_via": "{{input.answered_via}}", "processed_by": "{{input.processed_by}}"}
+          },
+          "response": {"output": {"recorded": "$.recorded"}}
         }
       ]
     }
