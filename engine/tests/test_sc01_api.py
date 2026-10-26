@@ -438,6 +438,13 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
         assert used <= given, (node.id, used - given)
         if call.operation in answered:
             assert "answered_by" in op["input_schema"]["required"], call.operation
+    # 그림이 외부 확장을 선언해야 패키지 `requires.extensions`에 오르고, 서버 실행기가 Center에서
+    # 정의(주소)를 받아 온다 — 빠지면 「서비스 앱 주소를 모른다」로 실행이 실패했다(실측).
+    from chaeksas.contracts._semver import satisfies
+
+    for drawn in (process, intake):
+        [need] = [n for n in drawn.info.extensions if n.id == manifest.id]
+        assert satisfies(manifest.version, need.version), (drawn.id, need.version)
     for node_id in [*RECORD_OF_NODE, "Confirm_Calc"]:
         approval = process.node(node_id).prop("approval")
         assert approval.answered_by_as and approval.answered_via_as, node_id
