@@ -51,14 +51,15 @@ notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
 # Center 연동(N3) — 키는 엔진만 쥔다. 설정이 없으면 center 데모 실행의 대리 답·기동이 503이다.
 center = CenterClient(CenterConfig.from_env())
 sc01 = Sc01Process(build_sc01_store(backend), publish=notifier.publish, center=center)
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절).
-poller = CenterPoller(sc01)
 # 시스템 작업의 키(N6). 키가 없으면 그 길은 503이다 — 끄려면 NOWVIEW_SYSTEM_AUTH=off(auth.py).
 system_auth = SystemAuth.from_env()
 app.include_router(build_sc01_router(sc01, hub, system_auth))
 # 장면 2 — 장면 1 인계 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc02_*`). 내장 실행만.
 sc02 = Sc02Process(build_sc01_store(backend, "sc02"), sc01, publish=notifier.publish)
-app.include_router(build_sc02_router(sc02, hub))
+app.include_router(build_sc02_router(sc02, hub, system_auth))
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 두 장면
+# 모두.
+poller = CenterPoller(sc01, sc02)
 
 
 @app.on_event("startup")

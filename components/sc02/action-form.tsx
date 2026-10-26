@@ -32,6 +32,9 @@ export function Sc02ActionForm({
   const actor = useSc01((s) => s.actor);
   const users = useSc01((s) => s.users);
   const historical = useSc02((s) => s.past !== null);
+  /** Studio 실행은 Studio에서, Center 실행은 대리 답용 키가 있을 때만 여기서 답한다 — 엔진도 409·503으로 막는다. */
+  const elsewhere = useSc02((s) => s.live !== null && !s.live.answerHere);
+  const relay = useSc02((s) => s.live?.executor === "center");
   const setLive = useSc02((s) => s.setLive);
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
     ...Object.fromEntries(waiting.fields.map((f) => [f.key, initialValue(f)])),
@@ -84,11 +87,18 @@ export function Sc02ActionForm({
         />
       ))}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={busy || historical || wrongRole || missing}>
+        <Button type="submit" size="sm" disabled={busy || historical || elsewhere || wrongRole || missing}>
           <Send aria-hidden className="size-3.5" />
           {busy ? "보내는 중…" : submitLabel}
         </Button>
-        {wrongRole ? (
+        {elsewhere ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <Lock aria-hidden className="size-3" />
+            바깥 실행이 도는 데모 실행이다 — 결재는 {relay ? "Center 결재함" : "Studio"}에서 답한다
+          </span>
+        ) : relay ? (
+          <span className="text-xs text-muted-foreground">Center 결재함에 대리 답으로 간다</span>
+        ) : wrongRole ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Lock aria-hidden className="size-3" />
             {waiting.role} 역할만 할 수 있다 — 상단에서 역할을 바꾼다

@@ -66,7 +66,13 @@ function Overview({ view }: { view: Sc02View }) {
         <Card>
           <CardHeader>
             <CardTitle>지금 기다리는 업무 {waiting.length}건</CardTitle>
-            <CardDescription>{view.bpm ? `BPM ${view.bpm.runId} · ${view.bpm.state}` : "요청 접수 전 — 구매담당이 공문을 등록한다"}</CardDescription>
+            <CardDescription>
+              {view.request === null
+                ? "요청 접수 전 — 구매담당이 공문을 등록한다"
+                : view.bpm?.runId
+                  ? `BPM ${view.bpm.runId} · ${view.bpm.state}`
+                  : "바깥 실행이 아직 NowView를 부르지 않았다"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {waiting.length === 0 ? (

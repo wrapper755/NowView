@@ -262,6 +262,76 @@
    "recordOf": "Accept_Handoff"
   },
   {
+   "id": "Bnd_Record_Verify",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Verify_Request"
+  },
+  {
+   "id": "Bnd_Record_Report",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Report_Lead"
+  },
+  {
+   "id": "Bnd_Record_Neg",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Record_Negotiation"
+  },
+  {
+   "id": "Bnd_Record_Proposal",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Draft_Proposal"
+  },
+  {
+   "id": "Bnd_Record_Lead",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_Lead"
+  },
+  {
+   "id": "Bnd_Record_Exec",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_Exec"
+  },
+  {
+   "id": "Bnd_Record_CEO",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Approve_CEO"
+  },
+  {
+   "id": "Bnd_Record_Cost",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Register_Cost"
+  },
+  {
+   "id": "Bnd_Record_Handoff",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Request_Handoff"
+  },
+  {
+   "id": "Bnd_Record_Accept",
+   "kind": "boundaryEvent",
+   "name": "\uae30\ub85d \uac70\uc808",
+   "role": null,
+   "recordOf": "Accept_Handoff"
+  },
+  {
    "id": "End",
    "kind": "endEvent",
    "name": "\uc7a5\uba74 2 \uc778\uacc4 \uc644\ub8cc",
@@ -638,6 +708,76 @@
    "id": "Flow_accept",
    "source": "Accept_Handoff",
    "target": "Record_Accept",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Verify_rejected",
+   "source": "Bnd_Record_Verify",
+   "target": "Verify_Request",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Report_rejected",
+   "source": "Bnd_Record_Report",
+   "target": "Report_Lead",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Neg_rejected",
+   "source": "Bnd_Record_Neg",
+   "target": "Record_Negotiation",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Proposal_rejected",
+   "source": "Bnd_Record_Proposal",
+   "target": "Draft_Proposal",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Lead_rejected",
+   "source": "Bnd_Record_Lead",
+   "target": "Approve_Lead",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Exec_rejected",
+   "source": "Bnd_Record_Exec",
+   "target": "Approve_Exec",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_CEO_rejected",
+   "source": "Bnd_Record_CEO",
+   "target": "Approve_CEO",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Cost_rejected",
+   "source": "Bnd_Record_Cost",
+   "target": "Register_Cost",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Handoff_rejected",
+   "source": "Bnd_Record_Handoff",
+   "target": "Request_Handoff",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_rejected",
+   "source": "Bnd_Record_Accept",
+   "target": "Accept_Handoff",
    "condition": null,
    "default": false
   },

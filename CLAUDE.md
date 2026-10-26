@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 266개 (SQLite만, LLM 제외)
+uv run pytest                                      # 275개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (347개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (356개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -123,7 +123,8 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **Project Name**: NowView (INNONOW Management Reference Model Pilot Web Platform)
 * **Description**: 매출 약 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 AI Agent가 협업하는 경영 운영 플랫폼 프로토타입.
 * **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). Center 실행에서는 고객계획 접수를 **가상 직원**(접수 Bot)이 맡고 감독자가 승인한 건만 SC01이 된다(4.5 N5).
-  **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. 내장 BPM만 돈다.
+  **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. **Studio 시험 실행·Center 서버 실행**에서 돈다(외부 확장 `nowview-sc02`).
+  **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
   * **Human-in-the-Loop**: AI Agent는 데이터 수집, 이상 징후 감지, 원인 분석, 대안 초안을 지원하고, 최종 판단과 승인은 사람이 책임진다.
@@ -207,7 +208,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 (nowview-sc01 한 벌 — 로컬은 Center가 주소를 덮어쓴다, 4.3)
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01·nowview-sc02, 로컬은 Center가 주소를 덮어쓴다, 4.3)
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
@@ -242,7 +243,7 @@ NowView/
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
     ├── processes/sc01-intake.bpmn # 고객계획 접수 Bot(가상 직원, N5) — Center 서버 Bot으로만 돈다
-    ├── processes/sc02.bpmn       # SC02 업무 흐름 — 내장 실행만(4.16)
+    ├── processes/sc02.bpmn       # SC02 업무 흐름 — Studio·Center 실행(4.16)
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
     ├── app/
@@ -251,7 +252,7 @@ NowView/
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
     │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
-    │   └── sc02/                 # seed · calc · domain · agent · process · demo · view · api (저장은 sc01/store의 `sc02_*`)
+    │   └── sc02/                 # seed · calc · domain · agent · process(내장·Studio·Center) · demo · view · api (저장은 sc01/store의 `sc02_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _intake,
                                   #   test_sc02_calc · _process, test_events · _notify
 ```
@@ -318,14 +319,15 @@ POST /sc01/demo-runs/{id}/intake/sources/{sourceId}/decision  → {recorded} (�
 GET  /sc01/intake                          → 「접수 가상 직원」 카드 (Center 가상 직원 그대로)
 POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대리 답 (감독자는 Center가 대조)
 
-     장면 2(4.16) — 데모 실행 id는 장면 1과 같다. 시스템 작업 HTTP 길은 없다(내장 실행만)
+     장면 2(4.16) — 데모 실행 id는 장면 1과 같다
 GET  /sc02/process · /cases · /rules · /parts · /script?case_id=
-POST /sc02/demo-runs  {sc01DemoRunId?, caseId}  → 장면 2 시작(D00). 장면 1이 인계 전이면 각본으로 인계까지 실행
+POST /sc02/demo-runs  {sc01DemoRunId?, caseId, executor=center|studio}  → 장면 2 시작(D00). 장면 1이 인계 전이면 각본으로 인계까지 실행
 GET  /sc02/demo-runs/{id} · /history · /history/{seq} · /events(SSE, 채널 sc02:{id})
 POST /sc02/demo-runs/{id}/requests/receive {fixtureId}        → 요청 접수 = BPM 시작
 POST /sc02/demo-runs/{id}/actions/{nodeId} {answer, expect}   → 사람 대기에 응답. expect = {proposal}·{bundle}
 POST /sc02/demo-runs/{id}/negotiation-due {due, reason}        → 외부 협상기한 변경(이력 보존)
-POST /sc02/demo-runs/{id}/agent-outputs/{oid}/adopt · /clock {at} · /script/{i} · /reset
+POST /sc02/demo-runs/{id}/agent-outputs/{oid}/adopt · /clock {at} · /script/{i} · /reset {executor?}
+POST /sc02/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 13개(외부 확장 nowview-sc02, 키 검사)
 ```
 
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
@@ -444,6 +446,9 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   전용, 작업 결과 값 미반환이라 화면이 결과를 읽을 길이 없다. 대신 **우리가 붙인 것**: SSE(기존
   허브·notifier), 지난 시점(Chaeksas 스냅샷은 현재 하나뿐이라 `sc01_history`에 매번 문서 전체),
   폼이 못 거는 업무 규칙(의견·근거 필수, 담당자만 인수 — `process.check_answer`).
+* **화면은 내장을 고르지 않는다**(2026-10-27). 플레이어의 실행 위치는 Center·Studio뿐이고 API 기본(`POST /demo-runs`의
+  `executor`)이 `center`다. 지금 실행이 내장(이전에 만든 것)이면 플레이어는 Center를 고른 것으로 보이고 초기화가 Center로
+  바꾼다. 엔진의 내장 경로·`Sc01Process.create()`의 기본값(내장)은 시험이 업무 규칙을 같은 프로세스에서 잠그는 데 쓴다.
 * **사람 결정의 업무 효과는 결재 뒤의 「… 기록」 서비스 태스크가 낸다**(`Record_*` → `record_*` 작업,
   `docs/chaeksas-integration.md` N1). 결재를 내장·Studio·Center 어디서 닫았든 같은 길이다 — 예전에는
   내장 실행기의 답 훅에만 있어 Studio 실행에서 원천이 확인되지 않고 계산이 409였다(2026-10-25 실측).
@@ -683,11 +688,12 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc02_external.py` | 확장 정의 `nowview-sc02` ↔ BPMN(본문 입력·답한 사람·오류 경계·확장 선언), Studio 흉내(진짜 엔진 + 시험용 키)로 인계까지, 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·폴링·도달한 종료), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(266개 / 347개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(275개 / 356개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc01-process.json`·`sc02-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
@@ -956,9 +962,29 @@ engine/processes/sc02.bpmn ──▶ Chaeksas Engine ── chk:serviceCall nowv
 
 **경계·범위에서 정한 것**
 
-* **내장 실행만 돈다.** SC01의 Studio·Center 실행 위치(N2·N3)·외부 확장·시스템 작업 HTTP 길·키(N6)·기록 거절
-  오류 경계가 SC02에는 없다. 내장 경로는 답을 넣기 전에 같은 규칙을 검사하므로(`domain.check_answer`, 입력 보존)
-  기록 작업이 거절되지 않는다. 바깥에 올리려면 SC01처럼 경계·확장 선언·HTTP 작업을 더한다.
+* **Studio 시험 실행·Center 서버 실행에서 돈다**(SC01 N1~N6과 같은 틀). 처음(2026-10-27 오전)에는 내장만 만들었다가
+  「BPM은 Center에서 도는 것 아니냐」는 지적으로 같은 날 붙였다. 구성:
+  * **외부 확장 `nowview-sc02` 0.1.0**(`chaeksas/nowview-sc02.extension.json`) — 작업 13개, 모두
+    `POST /api/engine/sc02/demo-runs/{id}/operations/{이름}`. 본문은 그림의 서비스 입력 전부 + `{{run_id}}`·`{{node_id}}`.
+    키·주소 규칙은 `nowview-sc01`과 같다(같은 운영·시험용 키, 기본 운영계, 로컬 Center만 주소 덮어쓰기).
+    `test_sc02_external.py`가 정의 ↔ BPMN을 잠근다(본문의 `{{input.x}}`가 그림 입력에 없으면 어댑터가 실행 중에 멈춘다).
+  * **BPMN**: `chk:process.extensions`에 `nowview-sc02`(`>=0.1.0,<1`), 결재마다 `answered_by_as`·`answered_via_as`, 기록 작업
+    10개마다 오류 경계(`Bnd_Record_*` → 같은 결재), 기록 출력 `error_message`. 팀장 결재 기록은 `condition`·`due_at`을 빈 글
+    리터럴로 싣는다 — 본문 템플릿의 입력은 늘 있어야 한다(4.3).
+  * **기록 작업이 사전 검사를 다시 한다**(`process._recheck` → `domain.check_answer`). Studio 대화상자·Center 콘솔 답은 NowView
+    사전 검사를 거치지 않는다 — 처음에는 검사 오류가 남은 요청을 「확인완료」하면 부수 효과 단계에서 422로 터졌다(시험이 잡았다).
+    거절은 감사 이력 `answer_rejected`에 남고 반쯤 적힌 효과는 버린다.
+  * **실행 잇기·키**: SC01 `link_external_run`·`note_external_progress`를 그대로 쓴다 — 첫 호출이 묶고, 키가 실행 위치를 말한다
+    (어긋나면 409). Studio는 기록 때 업무를 늦게 열고(`opened_late`), 끝은 작업 호출로만 안다 — 종료로 가는 결정(반려·추가
+    협상지시·미합의·검토 종결·보완 요청·인수)이 기록되면 끝으로 본다(`domain.TERMINAL`). **Center는 그렇게 끝내지 않는다** —
+    끝냈다고 적으면 폴링이 멈춰 도달한 종료를 읽지 못했다(시험이 잡았다). Center는 `run_finished`로 안다.
+  * **Center**: 요청 접수 → `POST /jobs`(패키지 `CHAEKSAS_SC02_PACKAGE`, 기본 `nowview.sc02`, 멱등 키에 초기화 회차). 화면 답 =
+    대리 답(사전 검사 → 열린 결재 찾기 → 답). 폴러는 장면 1·2를 차례로 읽는다(`CenterPoller(sc01, sc02)`). 결재가 열릴 때 업무를
+    연다. 끝나면 실행 기록에서 시작만 있고 끝나지 않은 종료 이벤트를 지나온 노드에 넣는다. 초기화는 앞 작업을 거둔다.
+  * **설정이 없거나 Center가 거절하면 그 사유가 그대로 보인다** — 조용히 내장으로 돌지 않는다. 로컬 Center(:8800)에서는
+    `nowview.sc02`가 아직 배포되지 않아 요청 등록이 422 `no_deployment`로 거절되는 것을 화면에서 봤다(아래 5.6 「Center에 올릴 것」).
+  * 장면 2를 시작할 때 장면 1이 Center 실행이면 각본이 대리 답으로 인계까지 가고 인계 작업을 잠깐 기다린다. Studio 실행이면 409 —
+    Studio에서 인계까지 진행한다.
 * **사람 업무 12개 · 서비스 태스크 17개 · 종료 6개**(인계 완료 · 보완 대기 · 검토 종결 · 미합의 · 반려 · 재협상 대기).
   보완은 기안으로 되돌아가 새 버전(PROP01-v2)이고 팀장부터 다시 받는다 — 이전 결정은 보존하되 승계하지 않는다.
   대표 대상은 S09 서비스(`judge_authority`)가 금액으로 판정한다 — 위험 등급과 무관하다(AUTH-02).
@@ -970,6 +996,8 @@ engine/processes/sc02.bpmn ──▶ Chaeksas Engine ── chk:serviceCall nowv
   시트의 due_at과 같은 값이 나온다(테스트가 잠근다).
 * **추가 협상지시(X01)는 기록·배정까지다** — NEEDS_RENEGOTIATION, TASK-RENEG, 원가 등록·인계 차단. 상위 검토건에는
   **잠정 자료**(`provisional: true`)로만 걸린다(H23). 2차 협상·재기안·재승인은 후속 범위다.
+* **`npm run build`를 dev 서버가 도는 중에 돌리면 dev의 라우트가 404가 된다** — 같은 `.next`를 쓴다. BFF가 모든 장면 경로에
+  404를 냈다(앱 코드까지는 갔다). `npm run stack:restart web`으로 풀린다. 빌드 검증은 dev를 내린 뒤나 다른 체크아웃에서 한다.
 * **Agent는 mock·fail뿐이다**(`app/sc02/agent.py`). SC01의 ollama 러너는 SC01 계약에 맞춰져 있어 쓰지 않았다. mock도
   같은 검증(본문 숫자가 규칙 결과에 있는가·근거 id)을 통과해야 화면에 나온다. 순간에 끝나므로 서비스 태스크 안에서 만든다.
 * **시연 사례**: BASE · X01 · X02(2,050원 — 대표 비대상) · X04(8/1 적용) · X05(기안가 2,130원) · X06(미합의) ·
@@ -1239,7 +1267,7 @@ scripts/deploy.sh --logs engine 80
 * **장면 3 이후**는 Business 설계(설계표·데이터)가 나와야 시작한다 — 지어내지 않는다(4.7).
 * 운영 배포 전 확인: 인증이 없는 상태에서 `X-Demo-Actor`로 아무 역할이나 될 수 있다(5.4).
 
-### 5.6 장면 2(SC02) — 완료 (내장 실행)
+### 5.6 장면 2(SC02) — 완료 (Studio·Center 실행)
 
 2026-10-27. 설계·데이터는 4.16. 엔진 테스트(SQLite·Postgres)와 브라우저에서 기본 시연 D00 → D12(인계 완료)와 X01
 (추가 협상지시 — 재협상 대기·원가 등록 차단)을 확인했다. 숫자는 통합가상데이터 v0.2의 파생 시트와 같다(2027 물량
@@ -1247,8 +1275,11 @@ scripts/deploy.sh --logs engine 80
 
 **남은 것**
 
-* **바깥 실행(Studio·Center)** — 외부 확장 `nowview-sc02` 정의·서명, 기록 거절 오류 경계, 시스템 작업 HTTP 길과 키,
-  대리 답. SC01의 N1~N6과 같은 일이다.
+* **Center에 올릴 것**(사람이 한다 — 서명·관리자 권한): ① CON-07에 `chaeksas/nowview-sc02.extension.json` 0.1.0 서명·등록,
+  외부 앱 키(`NOWVIEW_SYSTEM_KEY`)·시험용 키(`NOWVIEW_SYSTEM_KEY_TEST`) — SC01과 같은 값, 로컬 Center는 「서버 주소」를
+  `http://host.docker.internal:3000`(실행기가 컨테이너일 때)으로 덮어쓰기. ② Studio에서 `engine/processes/sc02.bpmn`을 열어
+  내보낸 패키지 `nowview.sc02` 승인·배포. 엔진 설정은 더 필요 없다(패키지 id 기본값). **진짜 서버 실행기·Studio로는 아직 돌려
+  보지 않았다** — 가짜 Center + 진짜 Chaeksas 엔진(실행기·Studio 흉내)으로 인계까지 갔다(`test_sc02_external.py`).
 * **Agent LLM 러너** — 지금은 mock·fail뿐이다. SC02 계약(summary·findings·questions·draft_text)에 맞춘 프롬프트와 실호출 시험이 필요하다.
 * **2차 이후 협상·재기안·재승인**(S14 뒤) — 설계상 후속 범위다.
 * **장면 1 F02가 정정된 뒤의 장면 2**(ERR-24) — 지금은 시작을 409로 막는다. 정정 물량으로 새 분석·재검토를 요청하는 길은 없다.

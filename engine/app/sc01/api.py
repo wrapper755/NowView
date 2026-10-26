@@ -32,8 +32,9 @@ from app.sc01.view import view as render
 
 class CreateBody(BaseModel):
     case_id: str = Field(default="BASE", alias="caseId")
-    #: BPMN을 누가 도는가 — embedded | studio | center (N2). 바깥이면 내장 BPM은 돌지 않는다.
-    executor: str = "embedded"
+    #: BPMN을 누가 도는가 — center(기본) | studio | embedded (N2). 바깥이면 내장 BPM은 돌지 않는다.
+    #: 화면은 내장을 고르지 않는다(2026-10-27 결정) — 내장은 시험용으로 남았다.
+    executor: str = "center"
     model_config = {"populate_by_name": True}
 
 

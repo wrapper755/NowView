@@ -59,7 +59,8 @@ export function Sc02ProcessScreen() {
           <CardHeader>
             <CardTitle>지금 기다리는 사람 업무 {waiting.length}건</CardTitle>
             <CardDescription>
-              내장 BPM {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태 {view?.bpm?.state ?? "—"}
+              {view?.executor === "studio" ? "Studio 시험 실행" : view?.executor === "center" ? "Center 서버 실행" : "내장 BPM(시험용)"}{" "}
+              {view?.bpm?.runId ?? "— 아직 시작 전"} · 상태 {view?.bpm?.state ?? "—"}
             </CardDescription>
           </CardHeader>
           <CardContent>

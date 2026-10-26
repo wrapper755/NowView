@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BellRing, History, PlayCircle, WifiOff } from "lucide-react";
+import { AlertTriangle, BellRing, ExternalLink, History, PlayCircle, WifiOff } from "lucide-react";
 
 import { StatePill } from "@/components/sc01/bits";
 import { Sc02ActionForm } from "@/components/sc02/action-form";
@@ -48,6 +48,7 @@ export function Sc02Header({ id, title, question }: { id: string; title: string;
         </p>
       </Commentary>
       <Banner />
+      <ExecutorBanner />
     </header>
   );
 }
@@ -64,6 +65,55 @@ function MyAlerts() {
     >
       <BellRing aria-hidden className="size-3" style={{ color: "var(--viz-status-critical)" }} />내 알림 {count}건
     </Link>
+  );
+}
+
+const EXECUTOR_LABEL: Record<string, string> = {
+  center: "Center 서버 실행",
+  studio: "Studio 시험 실행",
+  embedded: "내장 BPM(시험용)",
+};
+
+/**
+ * 어디서 BPM이 도는지·어디서 답하는지 — 표시하지 않으면 화면에서 답할 수 있다고 착각한다(SC01 N2와 같다).
+ * Studio면 Studio에 넣을 입력(데모실행ID·요청ID)을 보이고, Center면 기동한 작업과 막힌 사유를 그대로 보인다.
+ */
+function ExecutorBanner() {
+  const view = useSc02(selectView2);
+  if (!view || view.executor === "embedded") return null;
+  const problem = view.bpm?.center?.problem;
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs">
+      <ExternalLink aria-hidden className="size-3.5" />
+      <span>
+        <span className="font-medium">{EXECUTOR_LABEL[view.executor]}</span>이 BPM을 돈다 —{" "}
+        {view.answerHere
+          ? "이 화면의 답은 Center 결재함에 대리 답으로 간다."
+          : view.executor === "studio"
+            ? "결재는 Studio 시험 대화상자에서 답하세요. 이 화면은 결재를 받지 않는다."
+            : "결재는 Center 결재함에서 답하세요."}
+      </span>
+      {problem ? (
+        <span className="inline-flex basis-full items-center gap-1 font-medium">
+          <AlertTriangle aria-hidden className="size-3.5 shrink-0" style={{ color: "var(--viz-status-serious)" }} />
+          {problem}
+        </span>
+      ) : null}
+      <span className="text-muted-foreground">
+        입력 데모실행ID <span className="font-mono">{view.demoRunId}</span>
+        {view.request ? (
+          <>
+            {" "}· 요청ID <span className="font-mono">{view.request.request_id}</span>
+          </>
+        ) : null}{" "}
+        · 바깥 실행 {view.bpm?.externalRunId ? <span className="font-mono">{view.bpm.externalRunId}</span> : "첫 작업 호출 전"}
+        {view.bpm?.center?.job ? (
+          <>
+            {" "}· 작업 <span className="font-mono">{view.bpm.center.job.job_id}</span>
+          </>
+        ) : null}
+      </span>
+    </p>
   );
 }
 
@@ -114,7 +164,8 @@ export function Sc02StartCard() {
   const start = async () => {
     setBusy(true);
     setError(null);
-    const r = await sc02Api.create(demoRunId);
+    // 실행 위치는 Center다(2026-10-27 — 화면은 내장을 고르지 않는다). Studio는 플레이어에서 고른다.
+    const r = await sc02Api.create(demoRunId, "BASE", "center");
     setBusy(false);
     if (r.ok) {
       useSc02.getState().setLive(r.data);

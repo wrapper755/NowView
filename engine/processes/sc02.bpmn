@@ -14,18 +14,21 @@
   (CT28) → S10 대표 → S11 원가 등록(CT29) → S12 장면 3 자료 연결 → S13 경영관리 인수(CT30).
   S14 추가 협상지시는 임원·대표 결재의 분기다 — 재협상 대기로 끝나고 2차 협상은 후속 범위다.
 
-  **이 그림은 내장 실행만 돈다.** 바깥 Chaeksas(Studio·Center)에 올리지 않았다 — 외부 확장 정의·오류
-  경계(SC01의 `Bnd_Record_*`)가 없다. 내장 경로는 답을 넣기 전에 같은 검사를 하므로(`check_answer`)
-  기록 작업이 거절되지 않는다. 바깥에 올릴 때 SC01처럼 경계와 확장 선언을 더한다.
+  **Studio 시험 실행·Center 서버 실행에서 돈다**(SC01 N1~N6과 같은 틀). 서비스 태스크는 외부 확장 `nowview-sc02`
+  (`chaeksas/nowview-sc02.extension.json`)의 HTTP 작업이고, 본문마다 `{{run_id}}`로 데모 실행을 묶는다. 결재에 답한
+  사람은 `answered_by_as`·`answered_via_as`로 받아 기록 작업에 싣는다. 기록이 거절되면 오류 경계로 **같은 결재로
+  되돌아간다**(`Bnd_Record_*`). 엔진 안의 내장 실행기도 같은 그림을 돌린다 — 화면에서는 고르지 않고 시험이 쓴다.
   역할 검사는 `app/sc02/domain.py`의 NODE_ROLES, 결재 담당자 이름은 `chk:approval.assignees` — 테스트가 맞춰 본다.
 -->
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc02">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="nowview.sc02" name="SC02 단가 인상 검토와 경영검토 연결" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
         "service_keys": {"nowview-sc02": "nowview"},
+        "extensions": [{"id": "nowview-sc02", "version": "&gt;=0.1.0,&lt;1"}],
         "inputs": [
           {"name": "데모실행ID", "type": "string", "required": true},
           {"name": "요청ID", "type": "string", "required": true}
@@ -50,10 +53,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "단가 인상 요청 원문 대조",
-          "answered_by_as": "확인자",
+          "answered_by_as": "확인자", "answered_via_as": "확인경로",
           "assignees": ["윤채원"],
           "description": "공문과 등록 내용(공급사·품목·기존가·요청가·적용일·VAT 제외)을 대조한다. 요청가는 승인 원가가 아니다.",
-          "show": ["요청ID", "검사통과", "검사오류수"],
+          "show": ["요청ID", "검사통과", "검사오류수", "error_message"],
           "fields": [
             {"key": "확인결과", "label": "확인 결과", "type": "choice", "required": true,
              "choices": ["확인완료", "보완요청"]},
@@ -67,8 +70,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_verification",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Verify_Request'", "request_id": "요청ID", "result": "확인결과", "opinion": "확인의견", "answered_by": "확인자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Verify_Request'", "request_id": "요청ID", "result": "확인결과", "opinion": "확인의견", "answered_by": "확인자", "answered_via": "확인경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -80,10 +83,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "구매팀장 구두보고 결과",
-          "answered_by_as": "보고자",
+          "answered_by_as": "보고자", "answered_via_as": "보고경로",
           "assignees": ["윤채원"],
           "description": "팀장과 협의한 결과를 적는다. 전자 승인이 아니다.",
-          "show": ["요청ID"],
+          "show": ["요청ID", "error_message"],
           "fields": [
             {"key": "참여자", "label": "참여자", "type": "text", "required": true},
             {"key": "요청요약", "label": "요청 요약", "type": "text", "required": true},
@@ -100,8 +103,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_report",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Report_Lead'", "participants": "참여자", "summary": "요청요약", "need": "검토필요성", "direction": "협상방향", "conclusion": "보고결론", "answered_by": "보고자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Report_Lead'", "participants": "참여자", "summary": "요청요약", "need": "검토필요성", "direction": "협상방향", "conclusion": "보고결론", "answered_by": "보고자", "answered_via": "보고경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -113,7 +116,7 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "요청안 분석 · 내부 협상 검토안",
-          "answered_by_as": "분석요청자",
+          "answered_by_as": "분석요청자", "answered_via_as": "분석요청경로",
           "assignees": ["윤채원"],
           "description": "요청안과 내부 제시안을 같은 F02·C01 기준으로 계산한다. 외부 협상기한은 내부 업무기한과 따로다.",
           "show": ["요청ID"],
@@ -130,7 +133,7 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "analyze_request",
-          "input": {"demo_run_id": "데모실행ID", "request_id": "요청ID", "offer_price": "내부제시단가", "due_at": "협상기한", "answered_by": "분석요청자"},
+          "input": {"demo_run_id": "데모실행ID", "request_id": "요청ID", "offer_price": "내부제시단가", "due_at": "협상기한", "answered_by": "분석요청자", "answered_via": "분석요청경로"},
           "output": {"요청분석ID": "request_run", "제시분석ID": "offer_run", "위험수준": "risk"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
@@ -152,10 +155,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "1차 협상 결과 기록",
-          "answered_by_as": "협상기록자",
+          "answered_by_as": "협상기록자", "answered_via_as": "협상기록경로",
           "assignees": ["윤채원"],
           "description": "기존가·요청가·내부제시가와 구분해 협상가·적용일을 적는다. 미합의면 단가를 비워 둔다(0원이 아니다).",
-          "show": ["요청ID", "요청분석ID", "제시분석ID", "위험수준"],
+          "show": ["요청ID", "요청분석ID", "제시분석ID", "위험수준", "error_message"],
           "fields": [
             {"key": "협상결과", "label": "협상 결과", "type": "choice", "required": true,
              "choices": ["잠정합의", "미합의"]},
@@ -172,8 +175,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_negotiation",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Record_Negotiation'", "outcome": "협상결과", "price": "협상단가", "effective_date": "협상적용일", "participants": "협상참석자", "unresolved": "미합의사항", "answered_by": "협상기록자"},
-          "output": {"협상ID": "negotiation_id"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Record_Negotiation'", "outcome": "협상결과", "price": "협상단가", "effective_date": "협상적용일", "participants": "협상참석자", "unresolved": "미합의사항", "answered_by": "협상기록자", "answered_via": "협상기록경로"},
+          "output": {"협상ID": "negotiation_id", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -185,7 +188,7 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "협상안 영향 재분석",
-          "answered_by_as": "재분석요청자",
+          "answered_by_as": "재분석요청자", "answered_via_as": "재분석요청경로",
           "assignees": ["윤채원"],
           "description": "가격·적용일이 바뀌면 새 run이다. 인상률이 줄어든 것을 위험 해소로 읽지 않는다.",
           "show": ["요청ID", "협상ID"],
@@ -198,7 +201,7 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "analyze_negotiation",
-          "input": {"demo_run_id": "데모실행ID", "negotiation_id": "협상ID", "answered_by": "재분석요청자"},
+          "input": {"demo_run_id": "데모실행ID", "negotiation_id": "협상ID", "answered_by": "재분석요청자", "answered_via": "재분석요청경로"},
           "output": {"협상분석ID": "run_id", "위험수준": "risk"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
@@ -220,10 +223,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "가격인상 보고 기안 · 상신",
-          "answered_by_as": "기안자",
+          "answered_by_as": "기안자", "answered_via_as": "기안경로",
           "assignees": ["윤채원"],
           "description": "기안가·적용일이 협상안과 다르면 차이 사유가 필요하다. 상신하면 그 버전은 고칠 수 없다.",
-          "show": ["요청ID", "협상ID", "협상분석ID"],
+          "show": ["요청ID", "협상ID", "협상분석ID", "error_message"],
           "fields": [
             {"key": "기안단가", "label": "기안 단가(원)", "type": "number", "required": true},
             {"key": "기안적용일", "label": "적용일 (월초)", "type": "text", "required": true},
@@ -238,8 +241,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "submit_proposal",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Proposal'", "price": "기안단가", "effective_date": "기안적용일", "reason": "인상필요성", "diff_reason": "차이사유", "answered_by": "기안자"},
-          "output": {"기안ID": "proposal_id", "기안분석ID": "run_id", "대표대상예상": "ceo_expected"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Proposal'", "price": "기안단가", "effective_date": "기안적용일", "reason": "인상필요성", "diff_reason": "차이사유", "answered_by": "기안자", "answered_via": "기안경로"},
+          "output": {"기안ID": "proposal_id", "기안분석ID": "run_id", "대표대상예상": "ceo_expected", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -249,10 +252,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "가격인상 기안 — 구매팀장",
-          "answered_by_as": "팀장결재자",
+          "answered_by_as": "팀장결재자", "answered_via_as": "팀장결재경로",
           "assignees": ["서도현"],
           "description": "필요성·산출근거·협상 결과와 기안 일치를 본다. 보완은 새 기안 버전으로 팀장부터 다시 받는다.",
-          "show": ["기안ID", "기안분석ID", "대표대상예상"],
+          "show": ["기안ID", "기안분석ID", "대표대상예상", "error_message"],
           "fields": [
             {"key": "결정", "label": "결정", "type": "choice", "required": true,
              "choices": ["승인", "보완", "반려"]},
@@ -266,8 +269,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_decision",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Lead'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "answered_by": "팀장결재자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Lead'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "condition": "''", "due_at": "''", "answered_by": "팀장결재자", "answered_via": "팀장결재경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -279,10 +282,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "가격인상 기안 — 구매임원",
-          "answered_by_as": "임원결재자",
+          "answered_by_as": "임원결재자", "answered_via_as": "임원결재경로",
           "assignees": ["문지후"],
           "description": "인상 수용 필요성을 판단한다. 대표 승인 여부는 위험 등급이 아니라 금액 기준(AUTH02-v1)이 정한다.",
-          "show": ["기안ID", "기안분석ID", "대표대상예상"],
+          "show": ["기안ID", "기안분석ID", "대표대상예상", "error_message"],
           "fields": [
             {"key": "결정", "label": "결정", "type": "choice", "required": true,
              "choices": ["승인", "보완", "반려", "추가협상지시"]},
@@ -298,8 +301,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_decision",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Exec'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "condition": "지시요구조건", "due_at": "지시기한", "answered_by": "임원결재자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Exec'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "condition": "지시요구조건", "due_at": "지시기한", "answered_by": "임원결재자", "answered_via": "임원결재경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -324,10 +327,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "가격인상 기안 — 대표이사",
-          "answered_by_as": "대표결재자",
+          "answered_by_as": "대표결재자", "answered_via_as": "대표결재경로",
           "assignees": ["임하준"],
           "description": "같은 기안 버전과 이전 승인 이력을 본다. 단가안 승인은 공식 전망 승인이 아니다.",
-          "show": ["기안ID", "기안분석ID", "대표대상"],
+          "show": ["기안ID", "기안분석ID", "대표대상", "error_message"],
           "fields": [
             {"key": "결정", "label": "결정", "type": "choice", "required": true,
              "choices": ["승인", "보완", "반려", "추가협상지시"]},
@@ -343,8 +346,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "record_decision",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_CEO'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "condition": "지시요구조건", "due_at": "지시기한", "answered_by": "대표결재자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_CEO'", "proposal_id": "기안ID", "decision": "결정", "comment": "결재의견", "condition": "지시요구조건", "due_at": "지시기한", "answered_by": "대표결재자", "answered_via": "대표결재경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -356,10 +359,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "승인 조건 대조 · 원가 버전 등록",
-          "answered_by_as": "등록자",
+          "answered_by_as": "등록자", "answered_via_as": "등록경로",
           "assignees": ["윤채원"],
           "description": "최종 승인된 품목·단가·적용일·모델 범위만 등록한다. 다르면 기안 변경 절차로 돌린다. C01은 보존한다.",
-          "show": ["기안ID"],
+          "show": ["기안ID", "error_message"],
           "fields": [
             {"key": "대조결과", "label": "승인 조건 대조", "type": "choice", "required": true,
              "choices": ["일치", "불일치"]},
@@ -373,8 +376,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "register_cost",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Register_Cost'", "proposal_id": "기안ID", "check": "대조결과", "note": "등록메모", "answered_by": "등록자"},
-          "output": {"원가버전": "cost_version_id"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Register_Cost'", "proposal_id": "기안ID", "check": "대조결과", "note": "등록메모", "answered_by": "등록자", "answered_via": "등록경로"},
+          "output": {"원가버전": "cost_version_id", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -384,10 +387,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "통합 영향 확인 · 경영관리 인계 요청",
-          "answered_by_as": "인계요청자",
+          "answered_by_as": "인계요청자", "answered_via_as": "인계요청경로",
           "assignees": ["윤채원"],
           "description": "F01+C01 → F02+C01 → F02+승인 원가의 손익을 중복 없이 연결해 넘긴다.",
-          "show": ["기안ID", "원가버전"],
+          "show": ["기안ID", "원가버전", "error_message"],
           "fields": [
             {"key": "경영관리담당자", "label": "경영관리 담당", "type": "text", "required": true},
             {"key": "인계메모", "label": "인계 메모", "type": "text", "required": true}
@@ -400,8 +403,8 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "request_handoff",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Request_Handoff'", "fin": "경영관리담당자", "note": "인계메모", "answered_by": "인계요청자"},
-          "output": {"경영관리담당자명": "fin_name", "인계ID": "handoff_id"}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Request_Handoff'", "fin": "경영관리담당자", "note": "인계메모", "answered_by": "인계요청자", "answered_via": "인계요청경로"},
+          "output": {"경영관리담당자명": "fin_name", "인계ID": "handoff_id", "error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
@@ -422,10 +425,10 @@
       <bpmn:extensionElements>
         <chk:approval>{
           "title": "장면 2 검토자료 인수",
-          "answered_by_as": "인수자",
+          "answered_by_as": "인수자", "answered_via_as": "인수경로",
           "assignees": "경영관리담당자명",
           "description": "범위·버전·근거 완전성을 확인하고 인수한다. 장면 3 손익 검토는 이제 시작이다.",
-          "show": ["인계ID", "기안ID", "원가버전"],
+          "show": ["인계ID", "기안ID", "원가버전", "error_message"],
           "fields": [{"key": "인수의견", "label": "인수 의견", "type": "text", "required": true}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -435,11 +438,42 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc02", "operation": "accept_handoff",
-          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_Handoff'", "handoff_id": "인계ID", "opinion": "인수의견", "answered_by": "인수자"},
-          "output": {}
+          "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_Handoff'", "handoff_id": "인계ID", "opinion": "인수의견", "answered_by": "인수자", "answered_via": "인수경로"},
+          "output": {"error_message": "error_message"}
         }</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
+
+    <bpmn:boundaryEvent id="Bnd_Record_Verify" name="기록 거절" attachedToRef="Record_Verify">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Report" name="기록 거절" attachedToRef="Record_Report">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Neg" name="기록 거절" attachedToRef="Record_Neg">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Proposal" name="기록 거절" attachedToRef="Record_Proposal">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Lead" name="기록 거절" attachedToRef="Record_Lead">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Exec" name="기록 거절" attachedToRef="Record_Exec">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_CEO" name="기록 거절" attachedToRef="Record_CEO">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Cost" name="기록 거절" attachedToRef="Record_Cost">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Handoff" name="기록 거절" attachedToRef="Record_Handoff">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept" name="기록 거절" attachedToRef="Record_Accept">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
 
     <bpmn:endEvent id="End" name="장면 2 인계 완료"/>
     <bpmn:endEvent id="End_NeedsInfo" name="자료 보완 대기"/>
@@ -520,6 +554,16 @@
     <bpmn:sequenceFlow id="Flow_handoff_recorded" sourceRef="Record_Handoff" targetRef="Task_Agent_Handoff"/>
     <bpmn:sequenceFlow id="Flow_agent_handoff" sourceRef="Task_Agent_Handoff" targetRef="Accept_Handoff"/>
     <bpmn:sequenceFlow id="Flow_accept" sourceRef="Accept_Handoff" targetRef="Record_Accept"/>
+    <bpmn:sequenceFlow id="Flow_Record_Verify_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Verify" targetRef="Verify_Request"/>
+    <bpmn:sequenceFlow id="Flow_Record_Report_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Report" targetRef="Report_Lead"/>
+    <bpmn:sequenceFlow id="Flow_Record_Neg_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Neg" targetRef="Record_Negotiation"/>
+    <bpmn:sequenceFlow id="Flow_Record_Proposal_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Proposal" targetRef="Draft_Proposal"/>
+    <bpmn:sequenceFlow id="Flow_Record_Lead_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Lead" targetRef="Approve_Lead"/>
+    <bpmn:sequenceFlow id="Flow_Record_Exec_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Exec" targetRef="Approve_Exec"/>
+    <bpmn:sequenceFlow id="Flow_Record_CEO_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_CEO" targetRef="Approve_CEO"/>
+    <bpmn:sequenceFlow id="Flow_Record_Cost_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Cost" targetRef="Register_Cost"/>
+    <bpmn:sequenceFlow id="Flow_Record_Handoff_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Handoff" targetRef="Request_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept" targetRef="Accept_Handoff"/>
     <bpmn:sequenceFlow id="Flow_end" sourceRef="Record_Accept" targetRef="End"/>
   </bpmn:process>
 </bpmn:definitions>
