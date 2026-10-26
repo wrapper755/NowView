@@ -317,9 +317,15 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
 4. **N5 — 했다** (2026-10-26). 위 N5 「구현에서 정한 것」. 접수 Bot 그림(`sc01-intake.bpmn`), SC01 입력 `처리자`, 수신 →
    메시지 시작, 연동용 키로 가상 직원 읽기, UI02 카드, `chaeksas-core` `d2e2e46`, 확장 정의 0.7.0. 설계와 다르게 정한 것: 일괄
    결재는 **일괄로** 승인·반려(폼에 다중 선택이 없고 B16), 카드는 대리 답용 키가 아니라 **연동용 키**로 읽는다. 임시 Center +
-   진짜 서버 실행기로 승인 → 인계, 반려 → 보완 요청까지 쟀다. **Center에 올릴 것**: 정의 0.7.0 서명·등록, `nowview.sc01`·
+   진짜 서버 실행기로 승인 → 인계, 반려 → 보완 요청까지 쟀다. **Center에 올릴 것**: 정의 0.7.1 서명·등록, `nowview.sc01`·
    `nowview.sc01-intake` 패키지 배포, 가상 직원 `nowview-intake`(감독자 이도윤, 접수 Bot `nowview.sc01-intake`) 등록, 엔진에
    `CHAEKSAS_INTAKE_WORKER=nowview-intake`.
+   * **후속(2026-10-27) — 정의 0.7.1.** 사용자 로컬 Center(docker compose)에 실행기가 **컨테이너**로 붙자 주소 덮어쓰기
+     `http://localhost:3000`이 닿지 않았다 — 컨테이너 안의 `localhost`는 그 컨테이너다(실측: 실행기 컨테이너에서
+     `localhost:3000` 연결 거부, `host.docker.internal:3000` 200). 허용 호스트에 `host.docker.internal`을 더했다.
+     위험은 `localhost`와 같은 결이다 — 덮어쓰기는 관리자만 하고, 그 이름은 실행기가 도는 기계의 docker 호스트만
+     가리킨다. 실행기를 호스트 프로세스로 띄우면 여전히 `localhost`다. 정의를 올렸으므로 패키지(정의 해시를
+     고정한다)도 다시 내보내 배포한다.
 5. **R1·R4 반영 — 했다** (Chaeksas `8f0b08d`, wrapper755/Chaeksas#183 · ADR-0096·0097, 정의 0.6.0).
    * **R1 답한 사람.** `chaeksas-core`를 `8f0b08d`로 올렸다. 결재 8개(`Confirm_Calc` 포함)마다
      `answered_by_as`·`answered_via_as`(예: `확인자`·`확인경로`)를 두고, 뒤의 기록 작업과 계산(`compare`)
@@ -335,7 +341,8 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
    * **짐작(`guessed`)은 옛 정의(0.5.0 이하) 호환으로만 남긴다.** 본문에 `answered_by`가 없던 판으로 고정된
      Bot이 남아 있을 수 있다 — 그 판을 422로 끊을 이유가 없고 코드는 몇 줄이다. 그런 Bot이 없어지면 지운다.
    * **R4 정의 한 벌.** `nowview-sc01.local.extension.json`을 지웠다. 정의는 `base_url: https://www.nowview.work`,
-     `allowed_hosts: [www.nowview.work, localhost]`, `allow_private_network: true`이고, **로컬 Center만**
+     `allowed_hosts: [www.nowview.work, localhost]`(0.7.1에서 `host.docker.internal`을 더했다 — 아래 N5 후속),
+     `allow_private_network: true`이고, **로컬 Center만**
      CON-07 「서버 주소」(`PUT /api/v1/resources/extensions/nowview-sc01/address {"base_url":
      "http://localhost:3000"}`)로 덮어쓴다. 운영 Center는 손대지 않는다.
      * 득: 해시가 하나라 고정한 Bot이 두 환경에서 같이 돈다(로컬에서 시험한 그 판이 운영에 간다). 작업 정의를

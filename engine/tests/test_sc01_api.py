@@ -415,9 +415,10 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
     adapter = json.loads(raw)["service"]["adapter"]
-    # 운영계가 기본 주소이고, 로컬 Center만 localhost로 덮어쓴다(ADR-0097) — 그 밖으로 넓히지 않는다
+    # 운영계가 기본 주소이고, 로컬 Center만 localhost(실행기가 호스트에서 돌 때)나
+    # host.docker.internal(실행기가 컨테이너에서 돌 때)로 덮어쓴다(ADR-0097) — 더 넓히지 않는다
     assert manifest.service.base_url == "https://www.nowview.work"
-    assert adapter["allowed_hosts"] == ["www.nowview.work", "localhost"]
+    assert adapter["allowed_hosts"] == ["www.nowview.work", "localhost", "host.docker.internal"]
     operations = {o["name"]: o for o in adapter["operations"]}
 
     process = read_process(PROCESS_PATH.read_bytes())
