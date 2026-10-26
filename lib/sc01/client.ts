@@ -12,6 +12,7 @@ import type {
   DemoUser,
   Executor,
   HistoryEntry,
+  IntakeStatus,
   ProcessTopology,
   ScriptStep,
 } from "@/lib/sc01/types";
@@ -88,4 +89,9 @@ export const sc01Api = {
       "u-demo",
     ),
   eventsUrl: (id: string) => `${SC01_BASE}/demo-runs/${id}/events`,
+  /** 접수 가상 직원(N5) — 데모 실행이 아니라 Center의 가상 직원 하나의 상태다. */
+  intake: () => call<IntakeStatus>("/intake"),
+  /** 일괄 결재 대리 답 — 감독자인지는 Center가 대조한다. */
+  answerIntake: (requestId: string, answer: Record<string, unknown>, actor: string) =>
+    post<IntakeStatus>(`/intake/approvals/${requestId}/answer`, { answer }, actor),
 };

@@ -148,7 +148,13 @@ def _center_view(doc: dict, center: CenterConfig | None) -> dict[str, Any] | Non
     if problem is None and center is not None:
         relay = center.missing(relay=True)
         problem = f"{relay} — 화면 답(대리 답)을 할 수 없다" if relay else None
-    return {"job": ledger.get("job"), "problem": problem}
+    # 접수 가상 직원(N5)이면 처리자 — 위임된 SC01이 실어 온 가상 직원 이름(SC01 입력 `처리자`)
+    return {
+        "job": ledger.get("job"),
+        "problem": problem,
+        "intakeWorker": center.intake_worker if center is not None else None,
+        "processedBy": (doc["bpm"] or {}).get("processed_by"),
+    }
 
 
 #: 초안이 이 시간(실시간)을 넘겨도 안 오면 "지연"이다(AG-02). 가상시계가 아니라 실제 시간이다 —

@@ -1,6 +1,6 @@
 # NowView ↔ Chaeksas 연계 설계 — SC01을 바깥 Chaeksas에서 돌려도 NowView 전체가 따라온다
 
-- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6·N3 구현(2026-10-25), 나머지(N5)는 아래 7의 순서
+- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6·N3 구현(2026-10-25), N5 구현(2026-10-26) — 아래 7
 - 관련: CLAUDE.md 4.3(API·외부 확장)·4.5(BPM)·4.6(화면), Chaeksas ADR-0079~0085(가상 직원·결재 담당자·대리 답),
   Chaeksas에 보낼 요청서 [handoff/chaeksas-nowview-integration.md](handoff/chaeksas-nowview-integration.md)
 
@@ -201,6 +201,61 @@ NowView 원천 수신 ──POST /messages──▶ 접수 Bot nowview.sc01-inta
 * NowView의 AI Agent(AG-01~03, 검토 초안)는 가상 직원이 아니다. 서비스 태스크가 부르는 규칙 검증된 초안이고, 그대로 둔다.
 * SC01은 위임 대상이므로 **서버 Bot 패키지**로 배포돼야 한다. Studio는 위임하지 않으므로(B14), 가상 직원 경로는 Center에서만 돈다.
 
+**구현에서 정한 것(2026-10-26)** — Chaeksas R7이 ADR-0099(입력의 「값 출처」)로 풀린 뒤 지었다. `engine/processes/sc01-intake.bpmn`,
+`process.py`의 「접수 가상 직원」, `components/sc01/intake-card.tsx`.
+
+* **감독자 이름을 그림에 적지 않는다.** 접수 Bot 입력 `감독자`(list, 필수, `source: virtual_worker.supervisors`)를 일괄
+  결재가 `assignees: "감독자"`로 받는다. 값은 Center가 가상 직원 등록(CON-13)에서 넣는다 — 감독자를 바꾸면 다음 일괄부터
+  따라간다. 필수라서 가상 직원 없이 돌리면 시작하지 않는다(`input_required`). `가상직원`(`virtual_worker.name`)도 받아
+  검증·기록 작업의 `processed_by`로 싣는다.
+* **일괄 결재는 건별이 아니라 일괄로 승인·반려한다.** 설계는 「승인된 건마다」였지만 두 가지가 막는다. ① 결재 폼에 여러 건을
+  고르는 칸이 없다(C14 `bool·number·text·choice`). ② 결재 뒤에 반복할 목록을 다시 만들면 B16 「보여 준 것과 다른 것을
+  기동」 경고이고, Center는 B16이 있는 접수 Bot을 가상 직원에 묶지 않는다(`intake_not_gated`). NowView는 수신 한 번에 메시지
+  하나를 보내므로 일괄 하나가 대개 원천 하나라 실제로는 건별과 같다. 폼은 `결정`(승인·반려)·`의견`(필수)이다.
+* **흐름**: 메시지 시작 `고객계획접수`(본문 `원천목록` = `[{데모실행ID, 원천ID}]`) → 건수 → 원천마다 `screen_source`(반복) →
+  `Approve_Batch` → 원천마다 `record_intake_review`(반복) → 승인이면 `Call_SC01`(위임 반복, **함께 돈다** `isSequential=false`
+  — SC01은 사람을 며칠 기다린다), 반려면 끝. 위임 실패는 오류 경계 → 사유만 남기고 끝.
+* **접수 Bot의 작업은 데모 실행을 바깥 실행에 묶지 않는다**(`Sc01Process._intake_operate`). 접수 Bot 실행은 SC01 실행이
+  아니다 — 묶으면 승인 뒤 위임된 SC01의 첫 호출이 「이미 다른 실행에 묶였다」 409가 된다. 묶는 것은 위임된 SC01의 첫
+  호출(`validate_source`)이다. center 데모 실행·운영 키에서만 받는다(내장·Studio 키는 409).
+* **반려 = SC01을 시작하지 않는다.** `record_intake_review`가 원천을 `NEEDS_INFO`(`fix_opinion` = 의견)로 두고 영업담당의 원천
+  확인 업무 TASK-DQ를 **보완 요청(`NEEDS_INFO`)** 상태로 연다. 정정본이 새 일괄로 승인되면 위임된 SC01의 원천 확인 결재가
+  같은 업무를 「보완 후 재배정」으로 잇는다(`sync_tasks` — 내장의 보완 경로와 같은 규칙). 승인이면 감사 이력(`intake_reviewed`)만.
+* **SC01 입력 `처리자`**(string, 필수 아님, `source: virtual_worker.name`). 일괄이 맡긴 서버 실행이면 Center가 이어받은 가상 직원의
+  이름을 넣는다(ADR-0099 §3). 접수 Bot은 넘기지 않는다(넘기면 422). **기록에 남긴다** — `validate_source`의 `processed_by`로
+  받아 그 실행에 `processed_by`를 두고 감사 이력 `processed_by_virtual_worker`를 남긴다. 화면은 실행 배너·카드에 「처리자」로
+  보인다. 혼자 기동한 SC01·내장은 `None`이라 아무 일도 없다. 확장 정의 **0.7.0**(작업 둘 + `validate_source.processed_by`).
+* **엔진**: `CHAEKSAS_INTAKE_WORKER`(가상 직원 id, 예 `nowview-intake`)가 있으면 center 데모 실행의 수신이 `POST /jobs` 대신
+  `POST /messages {name: 고객계획접수, virtual_worker, payload: {원천목록}}`(상관 키 없음 = 메시지 시작)을 보낸다. 출처가 있는
+  입력(`감독자`·`가상직원`)은 보내지 않는다 — 보내면 422 `input_not_from_caller`. 장부의 작업은 접수 Bot 작업이고
+  (`via: intake`, `decision`), 정정·초기화로 대체되면 그것을 거둔다 — 일괄 취소가 위임된 SC01도 취소한다(ADR-0084). 승인 전에
+  다른 원천이 오면 409, 반려된 뒤면 새 일괄로 보낸다. 보완 대기 중인 SC01 실행에 가는 정정본 메시지(N3)는 그대로다. 설정이
+  없으면 N3처럼 SC01을 바로 기동한다.
+* **카드(UI02 「접수 가상 직원」)**: `GET /sc01/intake` → 엔진이 **연동용 키**로 `GET /virtual-workers/{id}`를 읽어 센다 — 오늘
+  접수(한국 시각의 실제 날짜, 일괄 수), 승인 대기(열린 일괄 결재), 기동된 SC01(일괄의 자식 수·상태별). 설계의 「대리 답용
+  키」가 아니라 연동용 키다 — 대리 답용 키는 감독하는 가상 직원만 보이고 행위자 이름이 필요하다. 승인 대기 일괄은 감독자가 카드에서
+  답할 수 있다(`POST /sc01/intake/approvals/{id}/answer`, 대리 답 — 감독자인지는 Center가 대조해 403 `not_assignee`). 일괄
+  결재는 SSE가 모르는 Center 쪽 일이라 카드만 10초마다 다시 읽는다.
+* **`chaeksas-core`를 `d2e2e46`으로 올렸다**(b421880 이후). 담당자 변수가 `None`이면 결재를 만들 때 실행이 `assignees_missing`
+  으로 실패해 멈춘다(예외가 아니라 `run_finished.error_code`) — 시험이 잠갔다.
+* **실측(2026-10-26)**: 사용자 Center(:8800)에는 NowView 키가 없어 쓰지 않았다. Chaeksas `d2e2e46` 코드로 **빈 Center(:8810)와
+  진짜 서버 실행기**(`chk-server-runner`)를 임시로 띄우고, 확장 정의 0.7.0 등록·주소 덮어쓰기(`http://localhost:3010`)·운영/시험용
+  키, 두 패키지(관리자 업로드·승인·배포), 가상 직원 `nowview-intake`(감독자 이도윤)를 놓았다. NowView 엔진 :8078 + 웹 :3010.
+  * **가상 직원 등록 201** — Center의 B16 관문(`intake_not_gated`)을 이 그림이 통과했다.
+  * 화면 수신 → 메시지 시작 → 실행기가 접수 Bot 기동 → HTTP 어댑터가 `screening` 200 → 일괄 결재가 Center 결재함에
+    **담당자 `["이도윤"]`**(그림에 없는 이름 — 등록에서 왔다)으로 올랐다. 카드가 오늘 접수 1·승인 대기 1을 보였고, 카드에서 승인
+    → `decision` 200 → SC01 위임 작업(가상 직원 이어받음, `requested_by = server_bot:<접수 실행>`) → 위임된 SC01이 데모 실행을
+    묶고 `처리자 = 고객계획 접수 담당`이 NowView에 남았다 → 나머지 결재 8건을 화면 대리 답으로 → **인계(`HANDED_OFF`)**, 접수
+    일괄 `success`(자식 1 성공).
+  * 반려: EX02 수신 → 카드에서 반려 → 원천 `NEEDS_INFO`·TASK-DQ `NEEDS_INFO`, SC01 작업 0, 일괄 `success`(자식 0).
+  * **드러나 고친 것 둘**: ① 실행기가 환경변수 키로 붙으면 Center가 앱 키를 봉해 줄 수 없어 접수 작업을 `not_ready`로 거절했는데
+    (Chaeksas 설정 문서대로 — `CHK_SERVER_RUNNER__SVC__NOWVIEW`로 풀었다) NowView 장부는 「승인 대기」로 남아 다음 수신이 영영
+    409였다 → 수신 때 앞 작업을 `GET /jobs/{id}`로 읽어 거절·만료·취소·실행 끝이면 `center_job_ended`를 남기고 새로 보낸다.
+    ② 초기화하면 원천 번호가 다시 SRC02라 Center 멱등 키(`데모실행:원천`)가 겹쳐 초기화 전의 (거절된) 작업이 그대로
+    돌아왔다 — N3의 `/jobs`도 같았다 → 키에 초기화 회차를 넣었다(`_center_key`). 둘 다 시험으로 잠갔다.
+  * **재지 못한 것**: 서명된 패키지(Studio 내보내기)·Center가 봉해 내려 주는 앱 키 경로, 운영 Center. 패키지 매니페스트는 손으로
+    지었다(`requires.service_apps`·`extensions`·`delegations`).
+
 ### N6. 시스템 작업의 인증
 
 지금 시스템 작업 네 개는 **인증 없이 열려 있다.** 운영계는 인터넷에 노출돼 있다. 연계를 붙이기 전에
@@ -259,7 +314,12 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
 3. **N3 — 했다.** 위 N3 「구현에서 정한 것」. 그 앞에 N1에서 미룬 **기록 거절 → 같은 결재** 오류 경계를 달았다
    (정의 0.5.0). 남은 것: 진짜 서버 실행기·배포된 패키지로 한 바퀴(기동·정정 메시지 전달), 4xx 본문을
    `error_message`에 싣는 것(Chaeksas 요청 후보).
-4. **N5** — 가상 직원. 접수 Bot 그림, Center 등록, UI02 카드.
+4. **N5 — 했다** (2026-10-26). 위 N5 「구현에서 정한 것」. 접수 Bot 그림(`sc01-intake.bpmn`), SC01 입력 `처리자`, 수신 →
+   메시지 시작, 연동용 키로 가상 직원 읽기, UI02 카드, `chaeksas-core` `d2e2e46`, 확장 정의 0.7.0. 설계와 다르게 정한 것: 일괄
+   결재는 **일괄로** 승인·반려(폼에 다중 선택이 없고 B16), 카드는 대리 답용 키가 아니라 **연동용 키**로 읽는다. 임시 Center +
+   진짜 서버 실행기로 승인 → 인계, 반려 → 보완 요청까지 쟀다. **Center에 올릴 것**: 정의 0.7.0 서명·등록, `nowview.sc01`·
+   `nowview.sc01-intake` 패키지 배포, 가상 직원 `nowview-intake`(감독자 이도윤, 접수 Bot `nowview.sc01-intake`) 등록, 엔진에
+   `CHAEKSAS_INTAKE_WORKER=nowview-intake`.
 5. **R1·R4 반영 — 했다** (Chaeksas `8f0b08d`, wrapper755/Chaeksas#183 · ADR-0096·0097, 정의 0.6.0).
    * **R1 답한 사람.** `chaeksas-core`를 `8f0b08d`로 올렸다. 결재 8개(`Confirm_Calc` 포함)마다
      `answered_by_as`·`answered_via_as`(예: `확인자`·`확인경로`)를 두고, 뒤의 기록 작업과 계산(`compare`)

@@ -137,16 +137,34 @@ class _SystemCalls:
 class FakeRunner:
     """서버 실행기 — 작업 하나로 같은 BPMN을 돌리고, 결재를 Center에 올리고 답을 받아 넣는다."""
 
-    def __init__(self, proc: Sc01Process, center: FakeCenter, job: dict, run_id: str) -> None:
+    def __init__(
+        self,
+        proc: Sc01Process,
+        center: FakeCenter,
+        job: dict,
+        run_id: str,
+        *,
+        process: Any = None,
+        sourced: dict[str, Any] | None = None,
+        delegate: Any = None,
+    ) -> None:
+        """
+        `process`를 주면 그 그림을 돈다(접수 Bot, N5). `sourced`는 Center가 가상 직원 등록에서
+        붙이는 출처 입력이고(ADR-0099), `delegate`는 위임을 받는 쪽이다.
+        """
         self.proc, self.center, self.engine = proc, center, Engine()
+        inputs = job["inputs"]
+        demo_run_id = inputs.get("데모실행ID") or inputs["원천목록"][0]["데모실행ID"]
+        env = RunEnv(services=_SystemCalls(proc), **({"delegate": delegate} if delegate else {}))
         self.run = self.engine.start(
-            proc.process,
+            process or proc.process,
             run_id=run_id,
             log=RunLog(run_id=run_id),
-            env=RunEnv(services=_SystemCalls(proc)),
+            env=env,
             executor="server_runner",
-            inputs=job["inputs"],
-            now=parse_at(proc.get(job["inputs"]["데모실행ID"])["clock"]),
+            inputs=inputs,
+            sourced=sourced,
+            now=parse_at(proc.get(demo_run_id)["clock"]),
         )
         self.step()
 

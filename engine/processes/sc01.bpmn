@@ -16,6 +16,8 @@
   사람 결정의 업무 효과는 결재 뒤의 「… 기록」 서비스 태스크가 낸다(docs/chaeksas-integration.md N1).
   답한 사람은 결재마다 `answered_by_as`·`answered_via_as` 변수로 받아 기록 작업에 싣는다(R1, ADR-0096) —
   어디서 답했든(내장·Studio·Center 콘솔·NowView 대리 답) 짐작하지 않는다.
+  고객계획 접수 가상 직원(N5)이 일괄로 맡기면 `처리자`에 그 가상 직원의 이름이 들어온다 — 그림이 넘기지
+  않고 선언만 한다(출처가 `virtual_worker.name`, 부르는 쪽이 주면 422 `input_not_from_caller`).
 -->
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc01">
@@ -28,7 +30,9 @@
         "service_keys": {"nowview-sc01": "nowview"},
         "inputs": [
           {"name": "데모실행ID", "type": "string", "required": true},
-          {"name": "원천ID", "type": "string", "required": true}
+          {"name": "원천ID", "type": "string", "required": true},
+          {"name": "처리자", "type": "string", "source": "virtual_worker.name",
+           "description": "접수 가상 직원의 이름 — 일괄이 맡긴 실행이면 Center가 넣는다(ADR-0099). 혼자 기동하면 비어 있다"}
         ]
       }</chk:process>
     </bpmn:extensionElements>
@@ -40,7 +44,7 @@
       <bpmn:extensionElements>
         <chk:serviceCall>{
           "app_id": "nowview-sc01", "operation": "validate_source",
-          "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID"},
+          "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID", "processed_by": "처리자"},
           "output": {"검증통과": "passed", "검증오류수": "error_count"}
         }</chk:serviceCall>
       </bpmn:extensionElements>

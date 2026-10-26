@@ -7,6 +7,10 @@ Chaeksas Center 연동(N3) — 엔진 안의 클라이언트. 키는 **엔진만
 * `CHAEKSAS_RELAY_KEY` — 대리 답용 키: 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름, C6·ADR-0081)
 * `CHAEKSAS_SC01_PACKAGE` — SC01 패키지 id(기본 `nowview.sc01`). 실행 기록은 패키지 id로 말한다
   (ADR-0086)
+* `CHAEKSAS_INTAKE_WORKER` — 고객계획 접수 가상 직원 id(N5, 예: `nowview-intake`). 있으면 원천
+  수신이 SC01을 직접 기동하지 않고 메시지(`고객계획접수`)로 그 가상 직원의 접수 Bot을 깨운다.
+  감독자가 승인한 건만 접수 Bot이 SC01을 위임해 기동한다. 읽기(`GET /virtual-workers/{id}`)는
+  연동용 키로 한다.
 
 **설정이 없으면 조용히 다른 길로 가지 않는다.** center 데모 실행에서 그 설정이 필요한 조작은 503과
 빠진 이름을 낸다(`problem`). Center 콘솔에서 답하는 길(N2·N6)은 이 설정 없이도 돈다.
@@ -56,6 +60,7 @@ class CenterConfig:
     integration_key: str | None = None
     relay_key: str | None = None
     package: str = "nowview.sc01"
+    intake_worker: str | None = None
 
     @classmethod
     def from_env(cls) -> CenterConfig:
@@ -64,6 +69,7 @@ class CenterConfig:
             integration_key=os.getenv("CHAEKSAS_INTEGRATION_KEY") or None,
             relay_key=os.getenv("CHAEKSAS_RELAY_KEY") or None,
             package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "nowview.sc01",
+            intake_worker=os.getenv("CHAEKSAS_INTAKE_WORKER") or None,
         )
 
     def missing(self, *, relay: bool = False, integration: bool = False) -> str | None:
@@ -88,6 +94,7 @@ class CenterConfig:
             "integration": bool(self.integration_key),
             "relay": bool(self.relay_key),
             "package": self.package,
+            "intakeWorker": self.intake_worker,
         }
 
 
@@ -124,28 +131,40 @@ class CenterClient:
         self,
         name: str,
         *,
-        correlation: str,
+        correlation: str | None = None,
         payload: dict[str, Any],
         idempotency_key: str,
         on_behalf: str,
+        virtual_worker: str | None = None,
     ) -> dict:
         """
-        기다리는 실행에 메시지(정정본 EX03). 상관 키가 없으면 Center가 기다리는 실행을 찾지 않는다.
+        메시지 하나(C12 §메시지). 상관 키가 있으면 기다리는 실행에(정정본 EX03), 없으면
+        **메시지 시작**만 깨운다 — 접수 Bot(N5). `virtual_worker`는 메시지 시작으로 만들 작업의
+        가상 직원 id다(ADR-0099 — 그 가상 직원의 `intake`가 이 Bot이 아니면 422
+        `virtual_worker_mismatch`).
         """
-        return self._call(
-            "POST",
-            "/messages",
-            self._need("integration"),
-            on_behalf=on_behalf,
+        body: dict[str, Any] = {
             # 메시지는 `schema`가 있는 계약이다(`MessageRequest`) — 빠지면 422 input_invalid(실측).
-            json={
-                "schema": 1,
-                "name": name,
-                "correlation": correlation,
-                "payload": payload,
-                "idempotency_key": idempotency_key,
-            },
+            "schema": 1,
+            "name": name,
+            "payload": payload,
+            "idempotency_key": idempotency_key,
+        }
+        if correlation is not None:
+            body["correlation"] = correlation
+        if virtual_worker is not None:
+            body["virtual_worker"] = virtual_worker
+        return self._call(
+            "POST", "/messages", self._need("integration"), on_behalf=on_behalf, json=body
         )
+
+    def virtual_worker(self, worker_id: str) -> dict:
+        """가상 직원 하나 + 최근 일괄 20개(C5 CON-13). 연동용 키는 전부 읽는다(ADR-0098 §4)."""
+        return self._call("GET", f"/virtual-workers/{quote(worker_id)}", self._need("integration"))
+
+    def job(self, job_id: str) -> dict:
+        """NowView가 만든 작업 하나(C5 `JobInfo`) — `state`·`state_reason`·`run_status`."""
+        return self._call("GET", f"/jobs/{quote(job_id)}", self._need("integration"))
 
     def cancel_job(self, job_id: str) -> dict:
         """NowView가 기동한 작업을 거둔다(정정·초기화로 대체됐다). 도는 서버 실행도 멈춘다."""
