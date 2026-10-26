@@ -253,8 +253,19 @@ NowView 원천 수신 ──POST /messages──▶ 접수 Bot nowview.sc01-inta
     409였다 → 수신 때 앞 작업을 `GET /jobs/{id}`로 읽어 거절·만료·취소·실행 끝이면 `center_job_ended`를 남기고 새로 보낸다.
     ② 초기화하면 원천 번호가 다시 SRC02라 Center 멱등 키(`데모실행:원천`)가 겹쳐 초기화 전의 (거절된) 작업이 그대로
     돌아왔다 — N3의 `/jobs`도 같았다 → 키에 초기화 회차를 넣었다(`_center_key`). 둘 다 시험으로 잠갔다.
-  * **재지 못한 것**: 서명된 패키지(Studio 내보내기)·Center가 봉해 내려 주는 앱 키 경로, 운영 Center. 패키지 매니페스트는 손으로
-    지었다(`requires.service_apps`·`extensions`·`delegations`).
+  * ~~재지 못한 것: 서명된 패키지(Studio 내보내기)·Center가 봉해 내려 주는 앱 키 경로~~ — 아래 로컬 Center 실측에서 쟀다.
+    남은 것은 **운영 Center**와 **로컬 Center에서의 반려 경로**(임시 Center에서만 쟀다)다.
+* **로컬 Center 실측(2026-10-27)** — 사용자의 로컬 Chaeksas(docker compose: Center :8800 + 서버 실행기 컨테이너 — compose에 실행기를
+  더한 Chaeksas 작업 위)에 정식 경로로 올렸다: CON-07에 정의 0.7.1 등록·외부 앱 키·시험용 키·주소 `http://host.docker.internal:3000`,
+  **Studio로 내보낸** 두 패키지 승인·배포(실행기는 **등록 승인**으로 붙어 앱 키를 Center가 봉해 내려 줬다 — `SVC` 환경변수 없음),
+  CON-13 가상 직원 `nowview-intake`. NowView는 메인 체크아웃(웹 :3000·엔진 :8077, `engine/.env.local`).
+  * 화면 수신 → 메시지 시작 → 접수 Bot `screening` 200(`172.17.0.1:3000` — 컨테이너에서 호스트로) → 일괄 결재(담당자 이도윤) → 카드에서
+    승인 → SC01 위임 → 처리자 기록 → 결재 8건을 화면 대리 답(원천 확인·계산·영업 검토·배정·Review 요청·인수 셋) → 실행기가 `handoff` 200
+    → **`HANDED_OFF`**, SC01 실행 `success`, 접수 일괄 `success`(자식 1). 오류·거절 0.
+  * **가는 길에 드러나 고친 것 둘**(위 §7의 4 후속): ① 실행기가 컨테이너라 `localhost:3000`이 닿지 않았다 → 정의 0.7.1(허용 호스트
+    `host.docker.internal`). ② Studio 내보내기의 `requires.extensions`가 비어 실행기가 「서비스 앱 주소를 모른다」로 실패했다 → 두 그림에
+    `chk:process.extensions` 선언. 둘 다 임시 Center 실측(실행기를 호스트 프로세스로, 매니페스트를 손으로)에서는 안 보였다.
+  * 화면에서 각본(플레이어 「다음 장면」)이 아니라 폼으로 답했다 — 수신을 손으로 했으므로 각본과 섞으면 409다(CLAUDE.md 4.1).
 
 ### N6. 시스템 작업의 인증
 

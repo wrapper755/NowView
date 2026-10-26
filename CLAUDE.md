@@ -493,6 +493,10 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     (예외가 아니라 `run_finished.error_code`). 가상 직원 없이 돌린 접수 Bot은 `감독자`가 필수라 시작조차 하지 않는다.
   * 실측은 임시 Center(:8810) + **진짜 서버 실행기**로 했다(승인 → 인계, 반려 → 보완 요청). 환경변수 키로 붙은 실행기에는
     Center가 앱 키를 봉해 줄 수 없다 — `CHK_SERVER_RUNNER__SVC__NOWVIEW`로 준다(아니면 작업이 `not_ready`로 거절된다).
+  * **로컬 Center(docker compose, 실행기 컨테이너) + Studio로 내보낸 패키지로 승인 → 인계까지 갔다**(2026-10-27). 순서: CON-07 정의
+    등록·외부 앱 키·시험용 키·주소(`http://host.docker.internal:3000` — 실행기가 컨테이너다) → Studio 내보내기 두 패키지 승인·배포 →
+    CON-13 가상 직원 → `engine/.env.local`(`CHAEKSAS_*` 키·`NOWVIEW_SYSTEM_KEY*`·`CHAEKSAS_INTAKE_WORKER`) → `uv sync` +
+    `stack:restart engine`. 상세는 `docs/chaeksas-integration.md` N5 「로컬 Center 실측」.
 * **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
   저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
   보지 않는다(DATA-05).
