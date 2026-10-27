@@ -36,7 +36,7 @@ from app.sc01.process import Sc01Process
 from app.sc01.store import SqliteSc01Store
 from app.sc02 import demo as sc02_demo
 from app.sc02.process import Sc02Process
-from app.sc03 import demo
+from app.sc03 import demo, domain
 from app.sc03 import process as sc03_process
 from app.sc03.process import PROCESS_PATH, RECORDS, Sc03Process
 from app.sc03.view import view
@@ -334,6 +334,30 @@ def test_center_script_waits_for_each_record_before_moving_the_clock(
             assert parse_at(done[node_id]) == parse_at(at), node_id
     assert after["review"]["state"] == "SC03_COMPLETED"
     assert not after["bpm"]["center"].get("inflight")
+
+
+def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
+    proc: Sc03Process, center: FakeCenter
+) -> None:
+    """
+    대리 답이 폴러보다 먼저 결재를 찾아도 업무는 결재가 열려 있던 때 열린 것이다
+    (늦게 열지 않는다).
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
+    node = demo.steps_for("BASE")[1].node_id
+    demo.run_step(proc, rid, 0)  # D31 착수
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    runner = FakeRunner(proc, center, job, "run_20270624_100500_c7d7e7")
+    # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
+    doc = demo.run_step(proc, rid, 1)
+    task = domain.task_for_node(doc, node)
+    assert task is not None and task["request_id"] and not task.get("opened_late")
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    same = [t for t in doc["tasks"].values() if t["type"] == task["type"]]
+    assert [t["task_id"] for t in same] == [task["task_id"]]
+    assert same[0]["status"] == "COMPLETED" and not same[0].get("opened_late")
 
 
 def test_center_relay_prechecks_before_touching_center(

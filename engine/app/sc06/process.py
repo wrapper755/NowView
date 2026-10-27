@@ -587,6 +587,11 @@ class Sc06Process:
                 )
             except CenterError as exc:
                 raise exc.as_domain("대리 답") from exc
+            # 폴러(2초)보다 대리 답이 먼저 결재를 찾으면 폴러는 대리 답한 결재를
+            # 건너뛴다 — 업무를 지금 연다. 결재가 열려 있었으니 늦게 연 것이 아니다
+            # (각본 실측: 6건 중 4건이 늦게 열렸다).
+            if confirm.task_for_node(doc, node_id) is None:
+                confirm.sync_tasks(doc, {approval["request_id"]: {"node_id": node_id}})
             bpm = doc["bpm"]
             bpm["center"]["relayed"].append(approval["request_id"])
             bpm["waiting"] = [

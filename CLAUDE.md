@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 535개 (SQLite만, LLM 제외)
+uv run pytest                                      # 539개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (735개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (739개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -598,7 +598,8 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     짐작(`guessed`)은 `answered_by`가 없던 옛 정의(0.5.0 이하) 호환으로만 남았다.
     **`chaeksas-core`가 `8f0b08d` 이전이면 변수가 생기지 않아** 기록 작업 입력이 「모르는 이름」으로 멈춘다.
   * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
-    판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래).
+    판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래) — 대리 답이 폴러보다
+    먼저 결재를 찾으면 대리 답 때 연다(장면 3~6 `_relay`, 5.10).
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
     두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
   * **기록이 거절되면 같은 결재로 되돌아간다** — 기록 태스크마다 오류 경계(`Bnd_Record_*`, `TASK_FAILED`).
@@ -845,7 +846,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 735개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 739개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc0{1,2,3,4,5,6}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
@@ -1511,8 +1512,8 @@ MIXED 1) · 확인 지연 5건(복합 포함) · Q4 관리손익(보조) 902,868
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10)은 끝났다(장면 4~6은
-Center 등록이 남았다). 운영계(5.4)는 아직 이전 구현이 떠 있다.
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10)은 끝났다(장면 1~6 모두
+로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)는 아직 이전 구현이 떠 있다.
 
 ### 5.1 CI — 완료
 
@@ -1877,9 +1878,13 @@ Center + 실행기 흉내로 대표 보고까지 잠갔다. 브라우저에서�
 
 **남은 것**
 
-* **Center에 올릴 것**(사람이 한다): ① CON-07에 `chaeksas/nowview-sc06.extension.json` 0.1.0 서명·등록, 외부 앱 키·시험용 키(장면 1~5와
-  같은 값), 로컬 Center 「서버 주소」 덮어쓰기. ② Studio에서 `engine/processes/sc06.bpmn`을 내보내 `nowview.sc06` 승인·배포. 그 전에는
-  Center 실행의 착수가 Center 거절(배포 없음)로 막힌다. **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.**
+* **Center 등록 끝 · 로컬 Center 실측**(2026-10-28): `nowview-sc06` 0.1.0 정의·키·주소, `nowview.sc06` 패키지를 사람이 올렸다. 장면 5까지
+  Center로 끝난 데모 실행에서 장면 6을 열고 각본 D601 → D607을 대리 답으로 돌려 REPORTED · 실행 `done`(`End`)까지 갔다(진짜 서버 실행기,
+  확인 기록 일곱 건·시각이 각본과 같다). 막힌 곳 하나를 고쳤다: **대리 답이 폴러(2초)보다 먼저 결재를 찾으면 폴러는 대리 답한 결재를
+  건너뛰어 업무가 기록 때 「늦게 열림」으로 생겼다**(6건 중 4건) — 대리 답 때 업무가 없으면 그 결재로 연다(`_relay`). 초기화 → 재실행에서
+  6건 모두 제때 열렸다. **장면 3~5의 `_relay`도 같은 모양이라 함께 고쳤다** — 같은 데모 실행의 Center 각본에서 늦게 연 업무가 장면 3
+  8/18 · 장면 4 11/24 · 장면 5 12/46건이었다(시험 `test_center_relay_ahead_of_the_poller_opens_the_task_on_time`이 장면 3~6에서 잠근다 —
+  장면 3~5는 진짜 실행기로 다시 돌려 보지 않았다). Studio 시험 실행은 아직 돌려 보지 않았다.
 * **새 보고 버전(RPT61-v2) 흐름** — 재적재가 새 산정과 재확인 대상을 알리는 데까지다. 새 보고본 작성·확인은 없다.
 * **Agent LLM 러너** — AG61~63은 고정 기록 재현뿐이다(장면 2~5와 같다).
 * 운영계 배포는 5.4와 같이 남았다.

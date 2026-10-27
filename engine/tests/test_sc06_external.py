@@ -286,6 +286,31 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     assert "End" in after["bpm"]["visited"]
 
 
+def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
+    proc: Sc06Process, center: FakeCenter
+) -> None:
+    """
+    대리 답이 폴러보다 먼저 결재를 찾아도 업무는 결재가 열려 있던 때 열린 것이다
+    (늦게 열지 않는다).
+    """
+    rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)  # D601 착수
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06"]
+    runner = FakeRunner(proc, center, job, "run_20280111_090000_c6d6e7")
+    # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
+    doc = demo.run_step(proc, rid, 1)
+    task = doc["tasks"]["TASK-CONFIRM_PROD"]
+    assert not task["opened_late"] and task["request_id"]
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    assert [t["task_id"] for t in doc["tasks"].values() if t["type"] == "CONFIRM_PROD"] == [
+        "TASK-CONFIRM_PROD"
+    ]
+    assert doc["tasks"]["TASK-CONFIRM_PROD"]["status"] == "COMPLETED"
+    assert not doc["tasks"]["TASK-CONFIRM_PROD"]["opened_late"]
+
+
 def test_center_relay_prechecks_before_touching_center(
     proc: Sc06Process, center: FakeCenter
 ) -> None:

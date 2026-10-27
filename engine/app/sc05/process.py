@@ -720,6 +720,11 @@ class Sc05Process:
                 )
             except CenterError as exc:
                 raise exc.as_domain("대리 답") from exc
+            # 폴러(2초)보다 대리 답이 먼저 결재를 찾으면 폴러는 대리 답한 결재를
+            # 건너뛴다 — 업무를 지금 연다. 결재가 열려 있었으니 늦게 연 것이 아니다
+            # (각본 실측: 늦게 연 업무가 장면 3 8/18 · 장면 4 11/24 · 장면 5 12/46건).
+            if domain.task_for_node(doc, node_id) is None:
+                domain.sync_tasks(doc, {approval["request_id"]: {"node_id": node_id}})
             bpm = doc["bpm"]
             bpm["center"]["relayed"].append(approval["request_id"])
             # 이 결재의 기록 작업은 실행기가 따로 부른다(약 10초 — 화면 직접 진행 실측). 그동안 폼은
