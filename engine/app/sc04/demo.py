@@ -16,6 +16,7 @@ event_at_KST다. 이벤트가 없는 중간 단계(판단 초안·승인서 초�
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -23,6 +24,7 @@ from app.sc01.domain import USERS, DomainError, parse_at
 from app.sc04 import domain
 from app.sc04.process import Sc04Process
 from app.sc04.seed import Seed, kst, load_seed
+from app.script_wait import after_record
 
 
 @dataclass(frozen=True)
@@ -331,7 +333,7 @@ def base_steps(seed: Seed) -> list[Step]:
             {
                 "등록확인": "등록",
                 "등록메모": "ACT41~43 · CON41 · SUP41 · DIR41 등록 — 상세 계획은 결정 실행·계획 "
-                            "갱신",
+                "갱신",
             },
             "실행과제·조건·지시 등록",
             "EV41-17",
@@ -349,7 +351,7 @@ def base_steps(seed: Seed) -> list[Step]:
             "Complete_Scene",
             {
                 "완료메모": "승인·인수 완료 — 결정 실행·계획 갱신 상세 실행계획 대기. CON41 "
-                            "미충족·위험 미해소 "
+                "미충족·위험 미해소 "
                 "유지"
             },
             "개선안 검토·실행 승인 완료 · HANDOFF41",
@@ -535,14 +537,44 @@ def run_step(process: Sc04Process, demo_run_id: str, index: int) -> dict:
         return process.start(demo_run_id, actor=step.actor, **mark)
     if step.kind in ("view", "clock"):
         return process.mark(demo_run_id, note=step.label, **mark)
+    center = (doc["bpm"] or {}).get("executor") == "center"
     if step.kind == "record":
-        return process.meeting_record(demo_run_id, actor=step.actor, **step.answer, **mark)
+        return _after_record(
+            process,
+            center,
+            lambda: process.meeting_record(demo_run_id, actor=step.actor, **step.answer, **mark),
+        )
     if step.kind == "agent":
-        return process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark)
-    expect = _expect(process.get(demo_run_id), step.node_id or "")
-    return process.act(
-        demo_run_id, step.node_id or "", dict(step.answer), actor=step.actor, expect=expect, **mark
+        return _after_record(
+            process,
+            center,
+            lambda: process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark),
+        )
+    node_id = step.node_id or ""
+    # 화면이 보는 버전은 시도마다 다시 읽는다 — 앞 기록이 들어오기 전에 읽으면 낡은 버전이다.
+    return _after_record(
+        process,
+        center,
+        lambda: process.act(
+            demo_run_id,
+            node_id,
+            dict(step.answer),
+            actor=step.actor,
+            expect=_expect(process.get(demo_run_id), node_id),
+            **mark,
+        ),
     )
+
+
+def _after_record(process: Sc04Process, center: bool, run: Callable[[], dict]) -> dict:
+    """
+    Center 실행이면 앞 결재의 기록 작업을 기다린다(`app.script_wait`, 장면 3 실측).
+
+    대리 답 대기의 세 배다 — 인수 다섯 건의 기록 작업을 서버 실행기가 차례로 불러 완료 조건이
+    30초 안에 서지 않았다(2026-10-28 로컬 Center 실측, 약 50초).
+    """
+    wait_s = process.center_wait_s * 3
+    return after_record(wait_s, center, run, gated=(domain.PrerequisiteError,))
 
 
 def _expect(doc: dict, node_id: str) -> dict[str, Any] | None:

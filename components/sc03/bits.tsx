@@ -16,6 +16,8 @@ import type { Sc03View, Sc03Waiting } from "@/lib/sc03/types";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc02 } from "@/lib/store/sc02";
 import { selectView3, useSc03 } from "@/lib/store/sc03";
+import { PreparationNote } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 /**
  * 장면 3 화면 머리 — 제목 한 줄 + 상태 한 줄(장면 1·2와 같다). 검토건·공장·제품·단위는 상태 줄에 늘 있다
@@ -146,13 +148,15 @@ function Banner() {
 export function Sc03StartCard() {
   const demoRunId = useSc01((s) => s.demoRunId);
   const [busy, setBusy] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const start = async () => {
     setBusy(true);
     setError(null);
     // 실행 위치는 Center다(2026-10-27 — 화면은 내장을 고르지 않는다). Studio는 플레이어에서 고른다.
-    const r = await sc03Api.create(demoRunId, "BASE", "center");
+    const r = await sc03Api.create(demoRunId, "BASE", "center", setPrep);
     setBusy(false);
+    setPrep(null);
     if (r.ok) {
       useSc03.getState().setLive(r.data);
       // 장면 2(·1)가 각본으로 끝났을 수 있다 — 그 화면도 새 상태를 받게 한다.
@@ -176,6 +180,7 @@ export function Sc03StartCard() {
           <PlayCircle aria-hidden className="size-3.5" />
           {busy ? "준비하는 중…" : "수익성 통합 분석 시작"}
         </Button>
+        {busy ? <PreparationNote p={prep} /> : null}
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
             시작 실패: {error}

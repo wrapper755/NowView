@@ -53,6 +53,7 @@ from app.sc01.domain import (
     parse_at,
     user_id_of,
 )
+from app.sc01.process import CENTER_WAIT_S as SC01_CENTER_WAIT_S
 from app.sc01.process import read_run_events
 from app.sc01.store import Sc01Store, StaleWrite
 from app.sc04 import demo as sc04_demo
@@ -70,8 +71,9 @@ GATED = {
     "Start_Operation": domain.check_start,
     "Submit_Forecast": domain.check_submit_forecast,
 }
-#: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — 장면 1~3과 같다.
-CENTER_WAIT_S = 10.0
+#: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — 장면 1~3과 같은 값이다(10초로는
+#: 실행기가 다음 결재를 올리기 전에 포기했다 — 장면 2·3 실측).
+CENTER_WAIT_S = SC01_CENTER_WAIT_S
 
 log = logging.getLogger(__name__)
 
@@ -678,9 +680,22 @@ class Sc05Process:
         doc = self.get(demo_run_id)
         if check_idempotency(doc, idempotency_key, body):
             return doc
-        _check_expect(doc, node_id, expect or {})
-        self.precheck(doc, node_id, answer, actor)
         name = name_of(actor)
+        try:
+            _check_expect(doc, node_id, expect or {})
+            self.precheck(doc, node_id, answer, actor)
+        except DomainError as exc:
+            if exc.status != 409:
+                raise
+            # 앞 결재 뒤의 기록·계산 작업을 실행기가 아직 부르지 않았을 수 있다(장면 2·3
+            # 실측). 이 결재가 열렸으면 앞 작업은 끝났다 — 다시 본다. 아직 Center에 답하기 전이다.
+            try:
+                self._await_approval(demo_run_id, node_id, name)
+            except DomainError:
+                raise exc from None  # 결재가 열리지 않는다 — 처음 사유가 맞다
+            doc = self.get(demo_run_id)
+            _check_expect(doc, node_id, expect or {})
+            self.precheck(doc, node_id, answer, actor)
         ext, approval = self._await_approval(demo_run_id, node_id, name)
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)

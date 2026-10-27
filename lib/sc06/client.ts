@@ -6,6 +6,7 @@
  * **조회만 있다.** 장면 6 화면은 승인·확인·발의를 하지 않는다 — 「장면 6 열기」(적재)만 쓰기다.
  */
 
+import { afterPreparation, type Preparation } from "@/lib/preparation";
 import type { Evidence, Report, Sc06Meta, Summary, Variance } from "@/lib/sc06/types";
 
 export const SC06_BASE = "/api/engine/sc06";
@@ -38,12 +39,22 @@ const q = (version: string) => `?report_version=${encodeURIComponent(version)}`;
 
 export const sc06Api = {
   /** 같은 데모 실행을 이어 장면 6을 연다. 장면 5가 완료 전이면 각본으로 HANDOFF51까지 실행한 뒤 RV61을 적재한다. */
-  open: (sc01DemoRunId: string | null, executor: "center" | "studio" = "center") =>
-    call<Sc06Meta>("/demo-runs", {
-      method: "POST",
-      body: JSON.stringify({ ...(sc01DemoRunId ? { sc01DemoRunId } : {}), executor }),
-      actor: "u-demo",
-    }),
+  open: async (
+    sc01DemoRunId: string | null,
+    executor: "center" | "studio" = "center",
+    onProgress?: (p: Preparation) => void,
+  ) =>
+    // 장면 5까지 돌리느라 오래 걸리면 엔진이 202(준비 중)로 답한다 — 끝날 때까지 기다려 머리를 받는다.
+    afterPreparation(
+      SC06_BASE,
+      await call<Sc06Meta | Preparation>("/demo-runs", {
+        method: "POST",
+        body: JSON.stringify({ ...(sc01DemoRunId ? { sc01DemoRunId } : {}), executor }),
+        actor: "u-demo",
+      }),
+      (id) => call<Sc06Meta>(`/demo-runs/${id}`),
+      onProgress,
+    ),
   meta: (id: string) => call<Sc06Meta>(`/demo-runs/${id}`),
   summary: (id: string, version: string, actor: string) =>
     call<Summary>(`/demo-runs/${id}/reviews/RV61/summary${q(version)}`, { actor }),

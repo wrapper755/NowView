@@ -4,6 +4,7 @@
  */
 
 import type { HistoryEntry, ProcessTopology } from "@/lib/sc01/types";
+import { afterPreparation, type Preparation } from "@/lib/preparation";
 import type { Sc03Case, Sc03ScriptStep, Sc03View } from "@/lib/sc03/types";
 
 export const SC03_BASE = "/api/engine/sc03";
@@ -55,8 +56,19 @@ export const sc03Api = {
   cases: () => call<Sc03Case[]>("/cases"),
   script: (caseId: string) => call<Sc03ScriptStep[]>(`/script?case_id=${encodeURIComponent(caseId)}`),
   /** 같은 데모 실행을 이어 장면 3을 시작한다. 장면 2가 인수 전이면 각본으로 인수까지 실행한다. */
-  create: (sc01DemoRunId: string | null, caseId = "BASE", executor: Sc03Executor = "center") =>
-    post<Sc03View>("/demo-runs", { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId, executor }, "u-demo"),
+  create: async (
+    sc01DemoRunId: string | null,
+    caseId = "BASE",
+    executor: Sc03Executor = "center",
+    onProgress?: (p: Preparation) => void,
+  ) =>
+    // 앞 장면을 끝까지 돌리느라 오래 걸리면 엔진이 202(준비 중)로 답한다 — 끝날 때까지 기다려 문서를 받는다.
+    afterPreparation(
+      SC03_BASE,
+      await post<Sc03View | Preparation>("/demo-runs", { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId, executor }, "u-demo"),
+      (id) => call<Sc03View>(`/demo-runs/${id}`),
+      onProgress,
+    ),
   get: (id: string) => call<Sc03View>(`/demo-runs/${id}`),
   history: (id: string) => call<HistoryEntry[]>(`/demo-runs/${id}/history`),
   at: (id: string, seq: number) => call<Sc03View>(`/demo-runs/${id}/history/${seq}`),

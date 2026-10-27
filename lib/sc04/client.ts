@@ -4,6 +4,7 @@
  */
 
 import type { HistoryEntry, ProcessTopology } from "@/lib/sc01/types";
+import { afterPreparation, type Preparation } from "@/lib/preparation";
 import type { BudgetPolicy, Sc04Case, Sc04ScriptStep, Sc04View } from "@/lib/sc04/types";
 
 export const SC04_BASE = "/api/engine/sc04";
@@ -55,8 +56,19 @@ export const sc04Api = {
   cases: () => call<Sc04Case[]>("/cases"),
   script: (caseId: string) => call<Sc04ScriptStep[]>(`/script?case_id=${encodeURIComponent(caseId)}`),
   /** 같은 데모 실행을 이어 장면 4를 시작한다. 장면 3이 완료 전이면 각본으로 완료(HANDOFF31)까지 실행한다. */
-  create: (sc01DemoRunId: string | null, caseId = "BASE", executor: Sc04Executor = "center") =>
-    post<Sc04View>("/demo-runs", { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId, executor }, "u-demo"),
+  create: async (
+    sc01DemoRunId: string | null,
+    caseId = "BASE",
+    executor: Sc04Executor = "center",
+    onProgress?: (p: Preparation) => void,
+  ) =>
+    // 앞 장면을 끝까지 돌리느라 오래 걸리면 엔진이 202(준비 중)로 답한다 — 끝날 때까지 기다려 문서를 받는다.
+    afterPreparation(
+      SC04_BASE,
+      await post<Sc04View | Preparation>("/demo-runs", { ...(sc01DemoRunId ? { sc01DemoRunId } : {}), caseId, executor }, "u-demo"),
+      (id) => call<Sc04View>(`/demo-runs/${id}`),
+      onProgress,
+    ),
   get: (id: string) => call<Sc04View>(`/demo-runs/${id}`),
   history: (id: string) => call<HistoryEntry[]>(`/demo-runs/${id}/history`),
   at: (id: string, seq: number) => call<Sc04View>(`/demo-runs/${id}/history/${seq}`),

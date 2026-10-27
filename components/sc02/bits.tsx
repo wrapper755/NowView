@@ -21,6 +21,8 @@ import {
 import type { Sc02View, Waiting } from "@/lib/sc02/types";
 import { useSc01 } from "@/lib/store/sc01";
 import { selectView2, useSc02 } from "@/lib/store/sc02";
+import { PreparationNote } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 /**
  * 장면 2 화면 머리 — SC01과 같은 모양(제목 한 줄 + 상태 한 줄). 화면 id·질문은 해설 모드에서만 보인다.
@@ -160,13 +162,15 @@ export function Sc02StartCard() {
   const demoRunId = useSc01((s) => s.demoRunId);
   const sc01Scene = useSc01((s) => s.live?.scene);
   const [busy, setBusy] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const start = async () => {
     setBusy(true);
     setError(null);
     // 실행 위치는 Center다(2026-10-27 — 화면은 내장을 고르지 않는다). Studio는 플레이어에서 고른다.
-    const r = await sc02Api.create(demoRunId, "BASE", "center");
+    const r = await sc02Api.create(demoRunId, "BASE", "center", setPrep);
     setBusy(false);
+    setPrep(null);
     if (r.ok) {
       useSc02.getState().setLive(r.data);
       // 장면 1이 각본으로 끝났을 수 있다 — 장면 1 화면도 새 상태를 받게 한다.
@@ -196,6 +200,7 @@ export function Sc02StartCard() {
           <PlayCircle aria-hidden className="size-3.5" />
           {busy ? "준비하는 중…" : "외주 단가 인상 검토 시작"}
         </Button>
+        {busy ? <PreparationNote p={prep} /> : null}
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
             시작 실패: {error}

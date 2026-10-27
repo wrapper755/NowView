@@ -13,6 +13,8 @@ import { million, shortClock } from "@/lib/sc06/format";
 import type { Evidence, Person } from "@/lib/sc06/types";
 import { useSc01 } from "@/lib/store/sc01";
 import { type Load, useSc06 } from "@/lib/store/sc06";
+import { PreparationNote } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 /**
  * 장면 6 화면 머리 — 제목 한 줄 + 문맥 한 줄(장면 1~5와 같다). 문맥 줄은 구현명세 2장 「상단 문맥」이다: RV61 · 울산 A제품
@@ -58,12 +60,14 @@ export function Sc06Body({ children }: { children: React.ReactNode }) {
 function OpenCard() {
   const demoRunId = useSc01((s) => s.demoRunId);
   const [pending, setPending] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const open = async () => {
     setPending(true);
     setError(null);
-    const r = await sc06Api.open(demoRunId);
+    const r = await sc06Api.open(demoRunId, "center", setPrep);
     setPending(false);
+    setPrep(null);
     if (!r.ok) {
       setError(r.error);
       return;
@@ -85,6 +89,7 @@ function OpenCard() {
           <PlayCircle aria-hidden className="size-3.5" />
           {pending ? "여는 중…" : "완료·성과 검토 열기"}
         </Button>
+        {pending ? <PreparationNote p={prep} /> : null}
         {error ? <Problem text={error} /> : null}
       </CardContent>
     </Card>

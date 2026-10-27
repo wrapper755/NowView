@@ -22,6 +22,8 @@ import type { Sc05View, Sc05Waiting } from "@/lib/sc05/types";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc04 } from "@/lib/store/sc04";
 import { selectView5, useSc05 } from "@/lib/store/sc05";
+import { PreparationNote } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 /**
  * 장면 5 화면 머리 — 제목 한 줄 + 상태 한 줄(장면 1~4와 같다). 검토건·공장·제품·대상기간·단위·기준시각·공식본/검토안
@@ -148,13 +150,15 @@ function Banner() {
 export function Sc05StartCard() {
   const demoRunId = useSc01((s) => s.demoRunId);
   const [busy, setBusy] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const start = async () => {
     setBusy(true);
     setError(null);
     // 실행 위치는 Center다(2026-10-27 — 화면은 내장을 고르지 않는다). Studio는 플레이어에서 고른다.
-    const r = await sc05Api.create(demoRunId, "BASE", "center");
+    const r = await sc05Api.create(demoRunId, "BASE", "center", setPrep);
     setBusy(false);
+    setPrep(null);
     if (r.ok) {
       useSc05.getState().setLive(r.data);
       // 장면 4(·1~3)가 각본으로 끝났을 수 있다 — 그 화면도 새 상태를 받게 한다.
@@ -178,6 +182,7 @@ export function Sc05StartCard() {
           <PlayCircle aria-hidden className="size-3.5" />
           {busy ? "준비하는 중…" : "결정 실행·계획 갱신 시작"}
         </Button>
+        {busy ? <PreparationNote p={prep} /> : null}
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
             시작 실패: {error}

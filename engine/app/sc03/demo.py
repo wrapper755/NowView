@@ -14,7 +14,6 @@ EV31-01~22),
 
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
@@ -23,6 +22,7 @@ from app.sc01.domain import DomainError, parse_at
 from app.sc03 import domain
 from app.sc03.process import Sc03Process
 from app.sc03.seed import Seed, kst, load_seed
+from app.script_wait import after_record
 
 
 @dataclass(frozen=True)
@@ -480,23 +480,8 @@ def run_step(process: Sc03Process, demo_run_id: str, index: int) -> dict:
 
 
 def _after_record(process: Sc03Process, center: bool, run: Callable[[], dict]) -> dict:
-    """
-    각본 한 단계. **Center 실행이면 앞 결재의 기록 작업을
-    기다린다** — 대리 답 뒤의 기록(회의 열기 등)은 실행기가 따로 부르므로, 각본이 곧바로
-    다음 단계를 넣으면 「진행 중인 회의가 없다」·「본 배정버전(0)이 최신(1)이 아니다」(409)였다
-    (로컬 Center 실측).
-    `center_wait_s`까지 다시 해 보고, 그래도 409면 그 사유를 낸다.
-    """
-    deadline = time.monotonic() + (process.center_wait_s if center else 0)
-    while True:
-        try:
-            return run()
-        except DomainError as exc:
-            # 완료 조건 미충족도 같다 — 인수 기록이 들어오기 전이면 「미인수」다(실측).
-            waiting = exc.status == 409 or isinstance(exc, domain.PrerequisiteError)
-            if not waiting or time.monotonic() >= deadline:
-                raise
-        time.sleep(min(1.0, process.center_wait_s))
+    """Center 실행이면 앞 결재의 기록 작업을 기다린다(`app.script_wait`, 실측)."""
+    return after_record(process.center_wait_s, center, run, gated=(domain.PrerequisiteError,))
 
 
 def _expect(doc: dict, node_id: str) -> dict[str, Any] | None:

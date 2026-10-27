@@ -21,6 +21,7 @@ EV51-01~49), 그리고 X
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
@@ -30,6 +31,7 @@ from app.sc04.seed import load_seed as load_sc04_seed
 from app.sc05 import domain
 from app.sc05.process import Sc05Process
 from app.sc05.seed import Seed, kst, load_seed
+from app.script_wait import after_record
 
 
 @dataclass(frozen=True)
@@ -782,27 +784,45 @@ def run_step(process: Sc05Process, demo_run_id: str, index: int) -> dict:
         return process.start(demo_run_id, actor=step.actor, **mark)
     if step.kind == "view":
         return process.mark(demo_run_id, note=step.label, **mark)
+    center = (doc["bpm"] or {}).get("executor") == "center"
     if step.kind == "agent":
-        return process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark)
+        return _after_record(
+            process,
+            center,
+            lambda: process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark),
+        )
     if step.kind == "review":
         output = latest_output(process.get(demo_run_id), step.answer["kind"])
         if output is None:
             return process.mark(
                 demo_run_id, note=f"{step.answer['kind']} 초안 없음 — 수동 진행", **mark
             )
-        return process.review_agent(
-            demo_run_id, output, actor=step.actor, note=step.answer["note"], **mark
+        return _after_record(
+            process,
+            center,
+            lambda: process.review_agent(
+                demo_run_id, output, actor=step.actor, note=step.answer["note"], **mark
+            ),
         )
-    current = process.get(demo_run_id)
-    answer = resolve(current, step.answer)
-    return process.act(
-        demo_run_id,
-        step.node_id or "",
-        answer,
-        actor=step.actor,
-        expect=_expect(current, step.node_id or ""),
-        **mark,
-    )
+
+    def act() -> dict:
+        # 답·버전은 시도마다 다시 읽는다 — 앞 기록이 들어오기 전에 읽으면 낡은 값이다.
+        current = process.get(demo_run_id)
+        return process.act(
+            demo_run_id,
+            step.node_id or "",
+            resolve(current, step.answer),
+            actor=step.actor,
+            expect=_expect(current, step.node_id or ""),
+            **mark,
+        )
+
+    return _after_record(process, center, act)
+
+
+def _after_record(process: Sc05Process, center: bool, run: Callable[[], dict]) -> dict:
+    """Center 실행이면 앞 결재의 기록 작업을 기다린다(`app.script_wait`, 장면 3 실측)."""
+    return after_record(process.center_wait_s, center, run, gated=(domain.PrerequisiteError,))
 
 
 def latest_output(doc: dict, kind: str) -> str | None:

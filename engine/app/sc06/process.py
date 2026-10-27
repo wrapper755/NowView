@@ -27,13 +27,16 @@ import time
 from datetime import UTC, datetime
 
 from app.sc01.domain import DomainError, executor_of
+from app.sc01.process import CENTER_WAIT_S as SC01_CENTER_WAIT_S
 from app.sc01.store import Sc01Store
 from app.sc05 import demo as sc05_demo
 from app.sc05.process import Sc05Process
 from app.sc06 import domain
 from app.sc06.seed import Seed, load_seed
 
-CENTER_WAIT_S = 10.0
+#: 앞 장면의 완료 기록을 기다리는 시간(초) — 장면 1~5와 같다. 바깥 실행의 기록 작업은 대리 답보다
+#: 늦게 온다(장면 2·3 실측).
+CENTER_WAIT_S = SC01_CENTER_WAIT_S
 
 
 class Sc06Process:

@@ -12,6 +12,8 @@ import { sc02Api, type Sc02Executor } from "@/lib/sc02/client";
 import { scenesFor } from "@/lib/sc02/scenes";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc02 } from "@/lib/store/sc02";
+import { preparationText } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 const DWELL_MS = 7_000;
 
@@ -45,6 +47,7 @@ export function Sc02DemoPlayer() {
   const external = useSc02((s) => s.live !== null && !s.live.answerHere);
   const { setScene, setPlaying, togglePlayer } = useSc02.getState();
   const [pending, setPending] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scene = scenes[sceneIndex];
 
@@ -194,8 +197,9 @@ export function Sc02DemoPlayer() {
     setPending(true);
     setError(null);
     const fresh = next !== caseId || !hasDoc;
-    const r = await sc02Api.create(fresh && hasDoc ? null : demoRunId, next, executor);
+    const r = await sc02Api.create(fresh && hasDoc ? null : demoRunId, next, executor, setPrep);
     setPending(false);
+    setPrep(null);
     if (!r.ok) {
       setError(r.error);
       return;
@@ -299,7 +303,9 @@ export function Sc02DemoPlayer() {
                 missing ? "이 데모 실행에는 외주 단가 인상 검토가 없다 — 「외주 단가 인상 검토 시작」을 누르면 고객 생산계획 변경 대응을 인계까지 진행한 뒤 시작한다." : scene.narration
               }
             />
-            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 단계를 반영하는 중…</p> : null}
+            {pending ? (
+              <p className="text-[11px] text-muted-foreground">{prep ? preparationText(prep) : "엔진에 단계를 반영하는 중…"}</p>
+            ) : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
                 단계 이동 실패 — {error}

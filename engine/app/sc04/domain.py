@@ -1803,6 +1803,9 @@ LINKED = {"ACT42": ("CON41",), "SUP41": ("SUP41",), "TOTAL": ("DIR41",)}
 
 def check_acceptance(doc: dict, target: str, args: dict[str, Any]) -> None:
     a = doc["assignments"].get(target)
+    if a is None and target in ACCEPT_NODES:
+        # 아는 대상인데 배정이 없다 = 등록 기록 전이다(Center 실행의 기록 작업이 늦다 — 상태 충돌)
+        raise DomainError(f"{target}는 아직 배정되지 않았다 — 실행과제 등록 전이다", 409)
     if a is None:
         raise DomainError(f"없는 인수 대상: {target}", 404)
     if a["state"] != "ASSIGNED":
