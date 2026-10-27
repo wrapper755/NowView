@@ -593,6 +593,20 @@ def test_register_twice_is_409(proc: Sc04Process) -> None:
     assert exc.value.status == 409
 
 
+def test_acceptance_before_registration_is_a_conflict_not_missing() -> None:
+    """
+    등록 기록 전의 인수는 상태 충돌(409)이다 — Center 실행의 각본이 그것을 기다린다. 404로 내면
+    대기 없이 멈췄다(2026-10-28 로컬 Center 실측). 모르는 대상은 그대로 404다.
+    """
+    doc = {"assignments": {}}
+    with pytest.raises(DomainError) as early:
+        domain.check_acceptance(doc, "ACT41", {"decision": "인수"})
+    assert early.value.status == 409
+    with pytest.raises(DomainError) as unknown:
+        domain.check_acceptance(doc, "ACT99", {"decision": "인수"})
+    assert unknown.value.status == 404
+
+
 def test_t411_budget_policy_lookup_creates_nothing(proc: Sc04Process) -> None:
     """
     T411·E407 — 전용 1백만원은 전체 책임 임원 승인, 총괄 19백만원은 대표 별도 승인. 거래·이력 없음.

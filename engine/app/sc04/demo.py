@@ -567,8 +567,14 @@ def run_step(process: Sc04Process, demo_run_id: str, index: int) -> dict:
 
 
 def _after_record(process: Sc04Process, center: bool, run: Callable[[], dict]) -> dict:
-    """Center 실행이면 앞 결재의 기록 작업을 기다린다(`app.script_wait`, 장면 3 실측)."""
-    return after_record(process.center_wait_s, center, run, gated=(domain.PrerequisiteError,))
+    """
+    Center 실행이면 앞 결재의 기록 작업을 기다린다(`app.script_wait`, 장면 3 실측).
+
+    대리 답 대기의 세 배다 — 인수 다섯 건의 기록 작업을 서버 실행기가 차례로 불러 완료 조건이
+    30초 안에 서지 않았다(2026-10-28 로컬 Center 실측, 약 50초).
+    """
+    wait_s = process.center_wait_s * 3
+    return after_record(wait_s, center, run, gated=(domain.PrerequisiteError,))
 
 
 def _expect(doc: dict, node_id: str) -> dict[str, Any] | None:
