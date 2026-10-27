@@ -60,7 +60,7 @@ from app.sc01.process import read_run_events
 from app.sc01.store import Sc01Store, StaleWrite
 from app.sc03 import demo as sc03_demo
 from app.sc03.process import Sc03Process
-from app.sc04 import domain
+from app.sc04 import agent, domain
 from app.sc04.seed import Seed, load_seed
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc04.bpmn"
@@ -610,6 +610,14 @@ class Sc04Process:
             raise DomainError("Agent 초안은 경영관리 담당·임원이 요청한다", 403)
 
         def do(doc: dict) -> None:
+            # 입력 자료가 아직 없으면(대표 결정 전 등) 상태 충돌이다 — 실패 초안을 남기지 않는다.
+            # Center 실행의 각본이 결정 기록 작업보다 먼저 요청해 AG43이 FAILED로 남았다
+            # (2026-10-28 로컬 Center 실측). 생성 실패(E408)는 그대로 실패 초안으로 남는다.
+            if kind in agent.KINDS:
+                try:
+                    agent.build_input(doc, kind)
+                except agent.AgentFailure as exc:
+                    raise DomainError(str(exc), 409) from exc
             domain.agent_draft(doc, kind=kind)
             _mark(doc, event_code, script_index)
 
