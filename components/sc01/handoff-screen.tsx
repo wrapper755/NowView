@@ -32,7 +32,7 @@ const ACTION_LABEL: Record<string, string> = {
   answer_rejected: "결정 기록 거절 — 같은 결재로 되돌림",
   dispatched: "현업 검토 배정",
   review_requested: "Management Review 요청",
-  SCENE_HANDED_OFF: "장면 1 인계 완료",
+  SCENE_HANDED_OFF: "고객 생산계획 변경 대응 인계 완료",
   task_reconfirmed: "새 근거 재확인",
   agent_requested: "Agent 초안 요청",
   agent_succeeded: "Agent 초안 검증 통과",
@@ -47,12 +47,12 @@ const ACTION_LABEL: Record<string, string> = {
  * 않고 무엇이 이어지는지만 적는다(D18: 100→85→97억은 설명용 예시다).
  */
 const NEXT_SCENES = [
-  { id: "장면 2", title: "원재료·외주단가 인상 기안이 같은 이슈에 연결된다", input: "TASK-MAT 결과, 단가 변경 기안" },
-  { id: "장면 3", title: "부문별 변화를 하나의 손익 전망으로 — 통합 손익 검토", input: "TASK-FIN, 원가 버전 C02" },
-  { id: "장면 4", title: "대응 대안을 비교하고 사람이 결정한다", input: "통합 손익 분석" },
-  { id: "장면 5", title: "결정이 실행과제와 Rolling Plan 갱신으로", input: "승인된 과제" },
-  { id: "장면 6", title: "과제 완료와 성과 실현을 구분해 검토한다", input: "다음 월간 Review" },
-  { id: "장면 7", title: "실제 경험을 관리모델 개선(Evolution)에 반영한다", input: "이번 대응의 지연·누락 기록" },
+  { id: "외주 단가 인상 검토", title: "원재료·외주단가 인상 기안이 같은 이슈에 연결된다", input: "TASK-MAT 결과, 단가 변경 기안" },
+  { id: "수익성 통합 분석", title: "부문별 변화를 하나의 손익 전망으로 — 통합 손익 검토", input: "TASK-FIN, 원가 버전 C02" },
+  { id: "개선안 검토·실행 승인", title: "대응 대안을 비교하고 사람이 결정한다", input: "통합 손익 분석" },
+  { id: "결정 실행·계획 갱신", title: "결정이 실행과제와 Rolling Plan 갱신으로", input: "승인된 과제" },
+  { id: "완료·성과 검토", title: "과제 완료와 성과 실현을 구분해 검토한다", input: "다음 월간 Review" },
+  { id: "관리모델 개선", title: "실제 경험을 관리모델 개선(Evolution)에 반영한다", input: "이번 대응의 지연·누락 기록" },
 ];
 
 /**
@@ -98,7 +98,7 @@ function Body({ view }: { view: DemoRunView }) {
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
             <StatePill
-              label="장면"
+              label="업무"
               value={SCENE_LABEL[view.scene]}
               tone={view.scene === "HANDED_OFF" ? "good" : "neutral"}
             />
@@ -113,7 +113,7 @@ function Body({ view }: { view: DemoRunView }) {
             <StatePill label="전망" value={forecast ? `${forecast.version_id} 검토 중(미승인)` : "F01 승인"} />
           </div>
           {view.scene === "HANDED_OFF" ? (
-            <p className="text-sm font-medium">장면 1 인계 완료 — 현업 검토와 손익분석 진행 중</p>
+            <p className="text-sm font-medium">고객 생산계획 변경 대응 인계 완료 — 현업 검토와 손익분석 진행 중</p>
           ) : null}
           {review ? (
             <p className="text-sm">
@@ -154,7 +154,7 @@ function Body({ view }: { view: DemoRunView }) {
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>장면 완료 조건</CardTitle>
+            <CardTitle>업무 완료 조건</CardTitle>
             <Commentary block>
               <CardDescription>조건을 다시 확인한 뒤 인계 기록(SCENE_HANDED_OFF)을 한 번만 남긴다.</CardDescription>
             </Commentary>
@@ -193,7 +193,7 @@ function Body({ view }: { view: DemoRunView }) {
           <CardHeader>
             <CardTitle>후속 업무</CardTitle>
             <Commentary block>
-              <CardDescription>인수는 장면 종료 조건이다. 인수 후에도 업무는 계속 진행된다.</CardDescription>
+              <CardDescription>인수는 업무 종료 조건이다. 인수 후에도 업무는 계속 진행된다.</CardDescription>
             </Commentary>
           </CardHeader>
           <CardContent>
@@ -275,22 +275,22 @@ function Body({ view }: { view: DemoRunView }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>다음 장면</CardTitle>
-          <CardDescription>장면 2~7 — 설계표·데이터 준비 전</CardDescription>
+          <CardTitle>다음 업무</CardTitle>
+          <CardDescription>이어질 업무 — 일부는 설계표·데이터 준비 전</CardDescription>
           <Commentary block>
             <p className="text-[13px] text-muted-foreground">
-              기획안 v0.5의 경영 이야기에는 있지만 아직 장면별 설계표와 데이터가 없다. 수치를 만들지 않고 무엇이
+              기획안 v0.5의 경영 이야기에는 있지만 아직 업무별 설계표와 데이터가 없다. 수치를 만들지 않고 무엇이
               이어지는지만 보인다. 연간 100억 → 85억 → 97억은 설명용 예시이고, 이 데이터의 손익(34.77억 목표)과
               다르다(데이터 설계 D18).
             </p>
           </Commentary>
         </CardHeader>
         <CardContent>
-          <Disclosure summary="이어질 장면 보기">
+          <Disclosure summary="이어질 업무 보기">
             <ol className="space-y-1.5 text-sm">
               {NEXT_SCENES.map((s) => (
                 <li key={s.id} className="flex flex-wrap gap-x-2">
-                  <span className="w-14 shrink-0 text-xs text-muted-foreground">{s.id}</span>
+                  <span className="w-36 shrink-0 text-xs text-muted-foreground">{s.id}</span>
                   <span>{s.title}</span>
                   <span className="text-xs text-muted-foreground">← {s.input}</span>
                 </li>

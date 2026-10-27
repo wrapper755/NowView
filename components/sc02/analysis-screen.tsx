@@ -130,7 +130,7 @@ function Analysis({ view }: { view: Sc02View }) {
             <CardHeader>
               <CardTitle>손익 연결 — 이 안 기준</CardTitle>
               <CardDescription>
-                F01+C01 → F02+C01(장면 1 물량) → F02+이 안(장면 2 단가). 고정비는 공장 월 1회 차감, 모델 배부 없음.
+                F01+C01 → F02+C01(고객 생산계획 변경 대응 물량) → F02+이 안(외주 단가 인상 검토 단가). 고정비는 공장 월 1회 차감, 모델 배부 없음.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">

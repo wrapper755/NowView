@@ -26,7 +26,7 @@ const STAGES: { id: string; label: string; done: (v: Sc04View) => boolean; href:
   { id: "S08·09", label: "대표 질의 · 판단본", done: (v) => v.reports.some((r) => r.kind === "DECISION" && r.status === "CONFIRMED"), href: "/sc04/meeting" },
   { id: "S10·11", label: "대표 결정 · 승인서", done: (v) => v.approvals.length > 0, href: "/sc04/approval" },
   { id: "S12·13", label: "과제 등록 · 책임 인수", done: (v) => v.completion.rate.assigned > 0 && v.completion.rate.accepted === v.completion.rate.assigned && v.completion.rate.overall_accepted, href: "/sc04/actions" },
-  { id: "S14", label: "장면 5 인계 · 종료", done: (v) => v.handoff !== null, href: "/sc04/handoff" },
+  { id: "S14", label: "인계 · 종료", done: (v) => v.handoff !== null, href: "/sc04/handoff" },
 ];
 
 const TITLE: Record<string, string> = {
@@ -43,7 +43,7 @@ const TITLE: Record<string, string> = {
 export function Sc04InboxScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <Sc04Header id="U401" title="분석 결과 업무함" question="장면 3의 분석 지시가 결과로 돌아와 의사결정의 입력이 됐는가?" />
+      <Sc04Header id="U401" title="분석 결과 업무함" question="수익성 통합 분석의 분석 지시가 결과로 돌아와 의사결정의 입력이 됐는가?" />
       <Sc04Body>{(view) => <Inbox view={view} />}</Sc04Body>
     </main>
   );
@@ -67,13 +67,13 @@ function StartButton({ view }: { view: Sc04View }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>지금 할 일 — 장면 4 착수</CardTitle>
-        <CardDescription>담당 경영관리 담당 · 기존 검토건 MR-2706-01에 HANDOFF31과 AT31~AT34를 잇는다(장면 3을 다시 승인하지 않는다).</CardDescription>
+        <CardTitle>지금 할 일 — 개선안 검토·실행 승인 착수</CardTitle>
+        <CardDescription>담당 경영관리 담당 · 기존 검토건 MR-2706-01에 HANDOFF31과 AT31~AT34를 잇는다(수익성 통합 분석을 다시 승인하지 않는다).</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <Button size="sm" onClick={() => void start()} disabled={busy || actor !== "u-fin"}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "착수하는 중…" : "장면 4 착수"}
+          {busy ? "착수하는 중…" : "개선안 검토·실행 승인 착수"}
         </Button>
         {actor !== "u-fin" ? <p className="text-xs text-muted-foreground">경영관리 담당(정하윤) 역할만 착수한다 — 상단에서 역할을 바꾼다.</p> : null}
         {error ? (
@@ -105,7 +105,7 @@ function Inbox({ view }: { view: Sc04View }) {
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>장면 3 인계 — {h.handoff_id}</CardTitle>
+            <CardTitle>수익성 통합 분석 인계 — {h.handoff_id}</CardTitle>
             <CardDescription>
               {String(h.report_version)} · {String(h.minutes_version)} · 대응 전 Target 대비 부족 <Mn value={kpis.total_gap ?? null} />백만원
             </CardDescription>
@@ -127,7 +127,7 @@ function Inbox({ view }: { view: Sc04View }) {
             </dl>
             <Commentary>
               <p className="text-xs text-muted-foreground">
-                장면 3은 손익영향과 추가 분석 범위를 정했고, 장면 4는 그 분석 결과로 실행을 승인한다. 승인만으로 예상 효과를 실적으로 보거나
+                수익성 통합 분석은 손익영향과 추가 분석 범위를 정했고, 개선안 검토·실행 승인은 그 분석 결과로 실행을 승인한다. 승인만으로 예상 효과를 실적으로 보거나
                 목표 미달 위험을 해소된 것으로 보지 않는다.
               </p>
             </Commentary>
@@ -204,7 +204,7 @@ function Inbox({ view }: { view: Sc04View }) {
       {view.followups.length ? (
         <Card>
           <CardHeader>
-            <CardTitle>장면 3 미확인 사항의 후속 확인</CardTitle>
+            <CardTitle>수익성 통합 분석 미확인 사항의 후속 확인</CardTitle>
             <CardDescription>과거 상태는 그대로 두고 7월 확인 이력만 더한다 — 위험 해소가 아니다.</CardDescription>
           </CardHeader>
           <CardContent>

@@ -126,7 +126,7 @@ function Tasks({ view }: { view: Sc03View }) {
         <Card>
           <CardHeader>
             <CardTitle>알림 {view.alerts.length}건</CardTitle>
-            <CardDescription>기한 초과 — 인수 지연·제출 지연. 지연은 장면 완료를 취소하지 않는다.</CardDescription>
+            <CardDescription>기한 초과 — 인수 지연·제출 지연. 지연은 업무 완료를 취소하지 않는다.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm">

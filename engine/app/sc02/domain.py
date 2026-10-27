@@ -153,7 +153,8 @@ def baseline_from_sc01(sc01_doc: dict, seed: Seed) -> dict[str, Any]:
     """
     if sc01_doc["scene"] != "HANDED_OFF" or not sc01_doc.get("handoff"):
         raise DomainError(
-            "장면 1이 아직 인계되지 않았다 — 장면 2는 장면 1 인계 결과에서 시작한다", 409
+            "고객 생산계획 변경 대응이 아직 인계되지 않았다 — 외주 단가 인상 검토는 고객 생산계획 "
+            "변경 대응 인계 결과에서 시작한다", 409
         )
     run_id = sc01_doc["handoff"]["run_id"]
     run = sc01_doc["calc_runs"][run_id]
@@ -164,14 +165,15 @@ def baseline_from_sc01(sc01_doc: dict, seed: Seed) -> dict[str, Any]:
     if got != want:
         diff = sorted(k for k in want if got.get(k) != want[k])[:3]
         raise DomainError(
-            f"장면 1의 {version} 물량이 통합 가상 데이터 v0.2와 다르다"
+            f"고객 생산계획 변경 대응의 {version} 물량이 통합 가상 데이터 v0.2와 다르다"
             f"({', '.join(map(str, diff))}…) — "
-            "장면 2 기대값은 기본 F02 기준이다. 장면 1을 초기화해 기본 시연으로 다시 돌린다",
+            "외주 단가 인상 검토 기대값은 기본 F02 기준이다. 고객 생산계획 변경 대응을 초기화해 "
+            "기본 시연으로 다시 돌린다",
             409,
         )
     issue = sc01_doc["issues"].get(VOLUME_ISSUE_ID)
     if issue is None:
-        raise DomainError(f"장면 1에 {VOLUME_ISSUE_ID}가 없다", 409)
+        raise DomainError(f"고객 생산계획 변경 대응에 {VOLUME_ISSUE_ID}가 없다", 409)
     return {
         "demo_run_id": sc01_doc["demo_run_id"],
         "run_id": run_id,
@@ -1041,7 +1043,7 @@ def handoff_conditions(doc: dict) -> dict[str, Any]:
         "approved": "필요 승인 미완료",
         "cost_registered": "C02 원가 미등록",
         "run_matches_approval": "승인 조건과 분석·원가가 다르다",
-        "sc01_run_valid": "장면 1 run이 유효하지 않다",
+        "sc01_run_valid": "고객 생산계획 변경 대응 run이 유효하지 않다",
         "evidence_complete": "원천·협상·기안·승인 근거가 빠졌다",
         "no_renegotiation": "추가 협상지시 — 재협상 대기",
     }

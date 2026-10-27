@@ -297,7 +297,7 @@ def base_steps(seed: Seed) -> list[Step]:
             "act",
             "Complete_Scene",
             {"완료메모": "통합 영향 검토 완료 · 대응안 분석 책임·기한 확정 — 7/12 MT41 보고"},
-            "장면 3 완료 · MT41 연결",
+            "수익성 통합 분석 완료 · MT41 연결",
             "EV31-22",
         ),
     ]

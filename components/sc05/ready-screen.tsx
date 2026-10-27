@@ -51,7 +51,7 @@ function Body({ view }: { view: Sc05View }) {
           <CardTitle>착수 요건</CardTitle>
           <CardDescription>
             ACT42 {op ? OPERATION_STATE_LABEL[op.state] : "—"}
-            {check ? ` · 준비 ${check.ready === "READY" ? "완료" : "대기"} · 적용일 ${formatClock(check.apply_at)}` : " · 장면 착수 전"}
+            {check ? ` · 준비 ${check.ready === "READY" ? "완료" : "대기"} · 적용일 ${formatClock(check.apply_at)}` : " · 업무 착수 전"}
             {view.start ? ` · ${view.start.start_id} ${formatClock(view.start.started_at)} 착수(${view.start.plan_version})` : ""}
           </CardDescription>
         </CardHeader>

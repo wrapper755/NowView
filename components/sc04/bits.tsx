@@ -29,7 +29,7 @@ export function Sc04Header({ id, title, question }: { id: string; title: string;
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
         <span>{view ? formatClock(view.clock) : "—"}</span>
         <span aria-hidden>·</span>
-        <span>MR-2706-01 · 울산 A제품 · 2027 · 기준 장면 3 통합손익 · 백만원</span>
+        <span>MR-2706-01 · 울산 A제품 · 2027 · 기준 수익성 통합 분석 통합손익 · 백만원</span>
         <span aria-hidden>·</span>
         <span>{view ? (SCENE_STATE_LABEL[view.status.review] ?? view.status.review) : "—"}</span>
         {view && view.caseId !== "BASE" ? (
@@ -162,19 +162,19 @@ export function Sc04StartCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 4 시작</CardTitle>
+        <CardTitle>개선안 검토·실행 승인 시작</CardTitle>
         <CardDescription>
-          장면 4는 장면 3 완료(HANDOFF31 — 분석과제 AT31~AT34 인수)에서 시작한다. 같은 데모 실행
+          개선안 검토·실행 승인은 수익성 통합 분석 완료(HANDOFF31 — 분석과제 AT31~AT34 인수)에서 시작한다. 같은 데모 실행
           {demoRunId ? <span className="font-mono"> {demoRunId}</span> : null}을 잇는다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-xs text-muted-foreground">
-          장면 3이 아직 완료 전이면 장면 3 각본의 남은 단계를 완료까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
+          수익성 통합 분석이 아직 완료 전이면 수익성 통합 분석 각본의 남은 단계를 완료까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
         </p>
         <Button size="sm" onClick={() => void start()} disabled={busy || !demoRunId}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "준비하는 중…" : "장면 4 시작"}
+          {busy ? "준비하는 중…" : "개선안 검토·실행 승인 시작"}
         </Button>
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
@@ -192,7 +192,7 @@ export function Sc04Body({ children }: { children: (view: Sc04View) => React.Rea
   const missing = useSc04((s) => s.missing);
   if (view) return <>{children(view)}</>;
   if (missing) return <Sc04StartCard />;
-  return <p className="text-sm text-muted-foreground">장면 4를 불러오는 중…</p>;
+  return <p className="text-sm text-muted-foreground">개선안 검토·실행 승인을 불러오는 중…</p>;
 }
 
 /**
@@ -203,7 +203,7 @@ export function StatusPills({ view }: { view: Sc04View }) {
   const s = view.status;
   return (
     <div className="flex flex-wrap gap-1.5">
-      <StatePill label="장면" value={SCENE_STATE_LABEL[s.review] ?? s.review} tone={s.review === "SC04_COMPLETED" ? "good" : "neutral"} />
+      <StatePill label="업무" value={SCENE_STATE_LABEL[s.review] ?? s.review} tone={s.review === "SC04_COMPLETED" ? "good" : "neutral"} />
       <StatePill label="승인서" value={s.approval === "VALID" ? "유효(APR41-v1)" : "확정 전"} tone={s.approval === "VALID" ? "good" : "neutral"} />
       <StatePill label="조건" value={s.conditions === "OPEN" ? "CON41 미충족 — 실행 착수 제한" : s.conditions ? "충족" : "없음"} tone={s.conditions === "OPEN" ? "warn" : "neutral"} />
       <StatePill label="Risk" value="OPEN — 미해결" tone="warn" />

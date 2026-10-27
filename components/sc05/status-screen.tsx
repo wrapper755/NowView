@@ -40,7 +40,7 @@ function Body({ view }: { view: Sc05View }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>장면 4 승인서와 전체 책임</CardTitle>
+          <CardTitle>개선안 검토·실행 승인 승인서와 전체 책임</CardTitle>
           <CardDescription>
             {view.sc04.approval.approval_id} · 판단본 {h.decision} · 회의록 {h.minutes} · 전체 책임 {nameOf(h.overall_owner)} · 인계 {formatClock(h.as_of)}
           </CardDescription>
@@ -59,7 +59,7 @@ function Body({ view }: { view: Sc05View }) {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">반영 후 남는 부족(장면 4)</p>
+            <p className="text-xs text-muted-foreground">반영 후 남는 부족(개선안 검토·실행 승인)</p>
             <p className="text-lg font-semibold">
               <Mn value={fs.gap} />
             </p>
@@ -205,13 +205,13 @@ function StartCard({ view }: { view: Sc05View }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 5 착수</CardTitle>
+        <CardTitle>결정 실행·계획 갱신 착수</CardTitle>
         <CardDescription>경영관리 담당이 HANDOFF41을 기존 검토건 MR-2706-01에 잇는다 — 새 검토건을 만들지 않는다.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <Button size="sm" onClick={() => void start()} disabled={busy || view.historical || actor !== "u-fin"}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "착수하는 중…" : "장면 5 착수"}
+          {busy ? "착수하는 중…" : "결정 실행·계획 갱신 착수"}
         </Button>
         {actor !== "u-fin" ? <p className="text-xs text-muted-foreground">경영관리담당만 할 수 있다 — 상단에서 역할을 바꾼다.</p> : null}
         {error ? (

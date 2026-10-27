@@ -164,19 +164,19 @@ export function Sc05StartCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 5 시작</CardTitle>
+        <CardTitle>결정 실행·계획 갱신 시작</CardTitle>
         <CardDescription>
-          장면 5는 장면 4 완료(HANDOFF41 — 포괄 승인 APR41-v1과 ACT41~43 책임 인수)에서 시작한다. 같은 데모 실행
+          결정 실행·계획 갱신은 개선안 검토·실행 승인 완료(HANDOFF41 — 포괄 승인 APR41-v1과 ACT41~43 책임 인수)에서 시작한다. 같은 데모 실행
           {demoRunId ? <span className="font-mono"> {demoRunId}</span> : null}을 잇는다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-xs text-muted-foreground">
-          장면 4가 아직 완료 전이면 장면 4 각본의 남은 단계를 완료까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
+          개선안 검토·실행 승인이 아직 완료 전이면 개선안 검토·실행 승인 각본의 남은 단계를 완료까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
         </p>
         <Button size="sm" onClick={() => void start()} disabled={busy || !demoRunId}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "준비하는 중…" : "장면 5 시작"}
+          {busy ? "준비하는 중…" : "결정 실행·계획 갱신 시작"}
         </Button>
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
@@ -194,7 +194,7 @@ export function Sc05Body({ children }: { children: (view: Sc05View) => React.Rea
   const missing = useSc05((s) => s.missing);
   if (view) return <>{children(view)}</>;
   if (missing) return <Sc05StartCard />;
-  return <p className="text-sm text-muted-foreground">장면 5를 불러오는 중…</p>;
+  return <p className="text-sm text-muted-foreground">결정 실행·계획 갱신을 불러오는 중…</p>;
 }
 
 /**
@@ -205,7 +205,7 @@ export function StatusPills({ view }: { view: Sc05View }) {
   const s = view.status;
   return (
     <div className="flex flex-wrap gap-1.5">
-      <StatePill label="장면" value={SCENE_STATE_LABEL[s.scene] ?? s.scene} tone={s.scene === "SC05_COMPLETED" ? "good" : "neutral"} />
+      <StatePill label="업무" value={SCENE_STATE_LABEL[s.scene] ?? s.scene} tone={s.scene === "SC05_COMPLETED" ? "good" : "neutral"} />
       <StatePill label="ACT42 계획" value={s.planVersion ? `${s.planVersion} ${s.plan === "CONFIRMED" ? "확정" : (s.plan ?? "")}` : "초안 없음"} />
       <StatePill
         label="경영관리 확인"

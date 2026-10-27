@@ -222,19 +222,21 @@ def baseline_from_sc02(sc02_doc: dict) -> dict[str, Any]:
     h = sc02_doc.get("handoff") or {}
     if sc02_doc.get("scene") != "HANDED_OFF" or h.get("status") != "HANDED_OFF":
         raise DomainError(
-            "장면 2가 아직 경영관리 인수 전이다 — 장면 3은 승인 원가 등록·인수 완료에서 시작한다",
+            "외주 단가 인상 검토가 아직 경영관리 인수 전이다 — 수익성 통합 분석은 승인 원가 "
+            "등록·인수 완료에서 시작한다",
             409,
         )
     if sc02_doc.get("case_id") != "BASE":
         raise DomainError(
-            f"장면 2가 기본 시연이 아니다({sc02_doc.get('case_id')}) — "
-            "장면 3 기대값은 기본 경로 기준이다",
+            f"외주 단가 인상 검토가 기본 시연이 아니다({sc02_doc.get('case_id')}) — "
+            "수익성 통합 분석 기대값은 기본 경로 기준이다",
             409,
         )
     pv = sc02_doc["price_versions"].get("PV-APP01")
     cv = sc02_doc["cost_versions"].get("C02-APP01")
     if pv is None or cv is None or sc02_doc.get("approval_status") != "APPROVED":
-        raise DomainError("장면 2의 승인 단가(PV-APP01)·원가 버전(C02-APP01)이 없다", 409)
+        raise DomainError("외주 단가 인상 검토의 승인 단가(PV-APP01)·원가 버전(C02-APP01)이 "
+                          "없다", 409)
     sc01 = sc02_doc["sc01"]
     return {
         "demo_run_id": sc02_doc["demo_run_id"],
@@ -274,7 +276,7 @@ def baseline_from_sc02(sc02_doc: dict) -> dict[str, Any]:
                 "risk": sc01["issue"]["risk"],
                 "status": sc01["issue"]["status"],
                 "run_id": sc01["run_id"],
-                "summary": "b모델 7월 9,500 → 8,800대분 (장면 1)",
+                "summary": "b모델 7월 9,500 → 8,800대분 (고객 생산계획 변경 대응)",
             },
             {
                 "issue_id": sc02_doc["issue"]["issue_id"],
@@ -282,7 +284,7 @@ def baseline_from_sc02(sc02_doc: dict) -> dict[str, Any]:
                 "risk": sc02_doc["issue"]["risk"],
                 "status": sc02_doc["issue"]["status"],
                 "run_id": pv["run_id"],
-                "summary": "공통부품 P-COM01 2,000 → 2,120원 7/1 적용 (장면 2)",
+                "summary": "공통부품 P-COM01 2,000 → 2,120원 7/1 적용 (외주 단가 인상 검토)",
             },
         ],
         "sc01_run": sc01["run_id"],
@@ -382,7 +384,8 @@ def start_review(doc: dict, *, by: str) -> bool:
     if r["started_at"] is not None:
         return False
     if doc["sc02"]["handoff"].get("accepted_by") != FIN:
-        raise DomainError("장면 2 인수 근거가 경영관리 담당 인수가 아니다 — 착수할 수 없다", 409)
+        raise DomainError("외주 단가 인상 검토 인수 근거가 경영관리 담당 인수가 아니다 — 착수할 수 "
+                          "없다", 409)
     r.update(state="ANALYSIS_IN_PROGRESS", started_at=doc["clock"], started_by=by)
     audit(doc, actor=by, action="review_started", review_id=REVIEW_ID, event_code="EV31-01")
     return True
@@ -1618,7 +1621,7 @@ def completion_conditions(doc: dict) -> dict[str, Any]:
 
 def check_complete(doc: dict) -> None:
     if doc["handoff"] is not None:
-        raise DomainError("이미 완료된 장면이다 — 완료본은 바꾸지 않는다", 409)
+        raise DomainError("이미 완료된 업무다 — 완료본은 바꾸지 않는다", 409)
     check = completion_conditions(doc)
     if not check["met"]:
         raise PrerequisiteError(
@@ -1651,7 +1654,7 @@ def complete_scene(doc: dict, *, memo: str, by: str) -> str:
     연결이다.
     """
     check_complete(doc)
-    _require(by, FIN, "장면 종료")
+    _require(by, FIN, "업무 종료")
     rep = frozen_report(doc)
     mins = max(doc["minutes"].values(), key=lambda m: m["seq"])
     dec = doc["decision"]

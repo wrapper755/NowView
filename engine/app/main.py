@@ -44,7 +44,8 @@ app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
     description=(
-        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)~장면 5(SC05)와 조회 장면 6(SC06). "
+        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 고객 생산계획 변경 대응(SC01)~결정 실행·계획 "
+        "갱신(SC05)와 조회 완료·성과 검토(SC06). "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )

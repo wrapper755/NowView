@@ -24,7 +24,7 @@ const STAGES: { id: string; label: string; done: (v: Sc03View) => boolean; href:
   { id: "S38", label: "자료 확정 · 배포", done: (v) => v.meetings.some((m) => m.meeting_id === "MT31"), href: "/sc03/meeting" },
   { id: "S39~41", label: "수시회의 · 결론", done: (v) => v.decision !== null && v.decision.outcome !== "REWORK_REQUIRED", href: "/sc03/meeting" },
   { id: "S42·43", label: "회의록 · 과제 인수", done: (v) => v.acceptance.assigned > 0 && v.acceptance.accepted === v.acceptance.assigned, href: "/sc03/tasks" },
-  { id: "S44", label: "장면 종료 · MT41 연결", done: (v) => v.handoff !== null, href: "/sc03/handoff" },
+  { id: "S44", label: "업무 종료 · MT41 연결", done: (v) => v.handoff !== null, href: "/sc03/handoff" },
 ];
 
 /**
@@ -59,7 +59,7 @@ function StartButton({ view }: { view: Sc03View }) {
     <Card>
       <CardHeader>
         <CardTitle>지금 할 일 — 분석 시작</CardTitle>
-        <CardDescription>담당 경영관리 담당 · 장면 2 인수 근거를 확인하고 기존 검토건에 두 사건을 잇는다.</CardDescription>
+        <CardDescription>담당 경영관리 담당 · 외주 단가 인상 검토 인수 근거를 확인하고 기존 검토건에 두 사건을 잇는다.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <Button size="sm" onClick={() => void start()} disabled={busy || actor !== "u-fin"}>
@@ -93,7 +93,7 @@ function Inbox({ view }: { view: Sc03View }) {
           <CardDescription>
             {view.review.started_at
               ? `${formatClock(view.review.started_at)} ${name(view.review.started_by)} 착수`
-              : "미착수 — 장면 2 인수 완료"}
+              : "미착수 — 외주 단가 인상 검토 인수 완료"}
             {year ? (
               <>
                 {" "}
@@ -108,7 +108,7 @@ function Inbox({ view }: { view: Sc03View }) {
               <li key={i.issue_id} className="space-y-1 rounded-md border px-3 py-2 text-sm">
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-mono">{i.issue_id}</span>
-                  <span className="text-xs text-muted-foreground">{i.type === "VOLUME" ? "장면 1 물량" : "장면 2 원가"}</span>
+                  <span className="text-xs text-muted-foreground">{i.type === "VOLUME" ? "고객 생산계획 변경 대응 물량" : "외주 단가 인상 검토 원가"}</span>
                   <RiskTag risk={i.risk as Risk} />
                 </p>
                 <p>{i.summary}</p>
@@ -124,7 +124,7 @@ function Inbox({ view }: { view: Sc03View }) {
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>장면 2 인수 근거</CardTitle>
+            <CardTitle>외주 단가 인상 검토 인수 근거</CardTitle>
             <CardDescription>승인 단가만 반영한다 — 요청가·협상가는 이력 조회용이다(CT31).</CardDescription>
           </CardHeader>
           <CardContent>
@@ -214,7 +214,7 @@ function Inbox({ view }: { view: Sc03View }) {
           )}
           <Commentary>
             <p className="mt-2 text-xs text-muted-foreground">
-              장면 3은 분석 결과를 검토하고 대응안 분석의 책임·기한을 정한다. 대안 선택·실행 승인은 장면 4(대표 주재 월간회의)다.
+              수익성 통합 분석은 분석 결과를 검토하고 대응안 분석의 책임·기한을 정한다. 대안 선택·실행 승인은 다음 업무인 개선안 검토·실행 승인(대표 주재 월간회의)에서 한다.
             </p>
           </Commentary>
         </CardContent>

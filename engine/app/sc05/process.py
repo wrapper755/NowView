@@ -180,7 +180,7 @@ class Sc05Process:
     def _load(self, demo_run_id: str) -> tuple[dict, int]:
         found = self.store.load(demo_run_id)
         if found is None:
-            raise DomainError(f"장면 5가 시작되지 않은 데모 실행: {demo_run_id}", 404)
+            raise DomainError(f"결정 실행·계획 갱신이 시작되지 않은 데모 실행: {demo_run_id}", 404)
         return found
 
     def _env(self, calls: _InProcessCalls, doc: dict) -> RunEnv:
@@ -272,7 +272,8 @@ class Sc05Process:
         if executor_of(doc) == "studio":
             raise DomainError(
                 (
-                    "장면 4가 Studio 시험 실행이다 — Studio에서 장면 4 완료까지 진행한 뒤 장면 5를 "
+                    "개선안 검토·실행 승인이 Studio 시험 실행이다 — Studio에서 개선안 검토·실행 "
+                    "승인 완료까지 진행한 뒤 결정 실행·계획 갱신을 "
                     "시작한다"
                 ),
                 409,
@@ -285,7 +286,8 @@ class Sc05Process:
                     self.sc04.sync_center(rid)
         except DomainError as exc:
             raise DomainError(
-                f"장면 4를 각본으로 완료까지 끝낼 수 없다 — {exc}. 장면 4를 초기화한 뒤 다시 한다",
+                f"개선안 검토·실행 승인을 각본으로 완료까지 끝낼 수 없다 — {exc}. 개선안 검토·실행 "
+                "승인을 초기화한 뒤 다시 한다",
                 409,
             ) from exc
         deadline = time.monotonic() + self.center_wait_s
@@ -295,7 +297,8 @@ class Sc05Process:
             doc = self.sc04.get(rid)
         if doc["review"]["state"] != "SC04_COMPLETED":
             raise DomainError(
-                "장면 4 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — 바깥 실행이 완료 "
+                "개선안 검토·실행 승인 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — 바깥 "
+                "실행이 완료 "
                 "기록을 부를 때까지 "
                 "기다린 뒤 다시 시작한다",
                 409,
@@ -322,7 +325,7 @@ class Sc05Process:
             if existing is not None:
                 if existing[0]["case_id"] != case_id:
                     raise DomainError(
-                        f"이 데모 실행의 장면 5는 이미 {existing[0]['case_id']}다 — "
+                        f"이 데모 실행의 결정 실행·계획 갱신은 이미 {existing[0]['case_id']}다 — "
                         "다른 사례는 새 실행으로",
                         409,
                     )
@@ -731,7 +734,7 @@ class Sc05Process:
             time.sleep(min(1.0, self.center_wait_s))
         if not ext:
             raise DomainError(
-                "Center 실행이 아직 NowView를 부르지 않았다 — 장면이 열리면 결재가 열린다", 409
+                "Center 실행이 아직 NowView를 부르지 않았다 — 업무가 열리면 결재가 열린다", 409
             )
         raise DomainError(
             f"{node_id}는 지금 Center에서 {name}의 결재로 열려 있지 않다 "

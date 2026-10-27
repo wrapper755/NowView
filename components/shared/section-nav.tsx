@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 /**
- * 화면 안 섹션 이동 (앵커 네비게이션) — GNB 바로 아래 한 줄.
+ * 화면 안 섹션 이동 (앵커 네비게이션) — 머리의 화면 메뉴 아래 한 줄.
  *
  * **왼쪽 레일로 먼저 만들었다가 걷어냈다.** 화면 위(GNB)와 왼쪽(목차)으로 시선 축이
  * 둘로 갈려 오히려 찾기 어려웠고, 펼치면 본문을 밀어내 레이아웃까지 움직였다. 같은
@@ -17,13 +17,14 @@ import { usePathname } from "next/navigation";
  */
 
 /** 헤더를 못 읽었을 때 쓸 값. 평소에는 실제 헤더 높이를 잰다. */
-const FALLBACK_HEADER_OFFSET = 88;
+const FALLBACK_HEADER_OFFSET = 176;
 
 type IndexItem = { id: string; label: string };
 
 function headerOffset(): number {
   const header = document.querySelector("header");
-  return header ? header.getBoundingClientRect().height + 12 : FALLBACK_HEADER_OFFSET;
+  // 높이가 아니라 아래 끝이다 — 머리가 공통 줄(3rem) 아래 붙어 있다.
+  return header ? header.getBoundingClientRect().bottom + 12 : FALLBACK_HEADER_OFFSET;
 }
 
 /**
@@ -189,9 +190,12 @@ export function SectionNav() {
   return (
     <nav
       aria-label="이 화면의 섹션"
-      className="border-t border-foreground/5 bg-background/60"
+      className="border-t border-border/70 bg-card"
     >
-      <ul className="mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
+      {/* 세로는 숨긴다 — 밑줄이 1px 넘쳐 세로 스크롤 화살표가 생겼다(업무 화면 메뉴와 같은 원인). 화면 메뉴(알약) 아래의
+          소메뉴라 흰 띠로 층을 가르고, 글자는 본문 보조 글 수준(12px·진한 회색)으로 둔다 — 11px 옅은 회색은 거의 안 보였다. */}
+      <ul className="mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto overflow-y-hidden px-4 sm:px-6 lg:px-8">
+        <li aria-hidden className="mr-1 shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">이 화면</li>
         {items.map((item) => {
           const active = item.id === activeId;
           return (
@@ -202,8 +206,8 @@ export function SectionNav() {
                 aria-current={active ? "location" : undefined}
                 className={
                   active
-                    ? "-mb-px inline-block border-b-2 border-foreground px-1.5 py-1.5 text-[11px] font-medium text-foreground"
-                    : "-mb-px inline-block border-b-2 border-transparent px-1.5 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                    ? "inline-block border-b-2 border-brand px-2 py-2 text-xs font-semibold text-brand"
+                    : "inline-block border-b-2 border-transparent px-2 py-2 text-xs font-medium text-foreground/70 hover:border-border hover:text-foreground"
                 }
               >
                 {item.label}

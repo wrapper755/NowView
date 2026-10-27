@@ -20,7 +20,7 @@ export const REVIEW_STATE_LABEL: Record<string, string> = {
   REWORK_REQUIRED: "보완 후 재검토",
   REVIEWED: "검토 결론 확정",
   TASKS_ASSIGNED: "과제 인수 대기",
-  SC03_COMPLETED: "장면 3 완료",
+  SC03_COMPLETED: "수익성 통합 분석 완료",
 };
 
 export const OUTCOME_LABEL: Record<string, string> = {

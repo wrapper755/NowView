@@ -39,7 +39,7 @@ const hm = (m: number) => `${Math.floor(m / 60)}시간 ${m % 60}분`;
 export function Sc03HandoffScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <Sc03Header id="U37" title="검토 완료 · 월간회의 연결" question="장면 3을 끝내고 장면 4로 무엇을 넘기는가?" />
+      <Sc03Header id="U37" title="검토 완료 · 월간회의 연결" question="수익성 통합 분석을 끝내고 개선안 검토·실행 승인으로 무엇을 넘기는가?" />
       <Sc03Body>{(view) => <HandoffView view={view} />}</Sc03Body>
     </main>
   );
@@ -51,7 +51,7 @@ function HandoffView({ view }: { view: Sc03View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "장면 3 완료" }} />
+      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "수익성 통합 분석 완료" }} />
 
       <Card>
         <CardHeader>
@@ -81,7 +81,7 @@ function HandoffView({ view }: { view: Sc03View }) {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>장면 4 인계 {h.handoff_id}</CardTitle>
+              <CardTitle>개선안 검토·실행 승인 인계 {h.handoff_id}</CardTitle>
               <CardDescription>
                 {formatClock(h.as_of)} 기준 · 착수부터 경과 {hm(h.elapsed_minutes)} · 영업시간 {hm(h.business_minutes)} (투입시간이 아니다)
               </CardDescription>
@@ -122,7 +122,7 @@ function HandoffView({ view }: { view: Sc03View }) {
           <Card>
             <CardHeader>
               <CardTitle>다음 일정</CardTitle>
-              <CardDescription>제출·취합·월간회의는 장면 3 이후다 — 상세 분석 자료 제출·성과 개선은 아직 없다.</CardDescription>
+              <CardDescription>제출·취합·월간회의는 수익성 통합 분석 이후다 — 상세 분석 자료 제출·성과 개선은 아직 없다.</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1 text-sm">
@@ -134,7 +134,7 @@ function HandoffView({ view }: { view: Sc03View }) {
               </ul>
               {view.delayed.length ? (
                 <p className="mt-2 text-xs" style={{ color: "var(--viz-status-serious)" }}>
-                  제출 지연: {view.delayed.join(" · ")} — 과거 장면 3 완료는 그대로다
+                  제출 지연: {view.delayed.join(" · ")} — 과거 수익성 통합 분석 완료는 그대로다
                 </p>
               ) : null}
             </CardContent>

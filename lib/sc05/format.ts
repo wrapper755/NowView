@@ -56,7 +56,7 @@ export const SCENE_STATE_LABEL: Record<string, string> = {
   OPERATING: "운영 적용 중",
   ROLLING_REVIEW: "월간 Rolling 검토",
   FORECAST_PUBLISHED: "새 공식 전망 게시",
-  SC05_COMPLETED: "장면 5 완료",
+  SC05_COMPLETED: "결정 실행·계획 갱신 완료",
 };
 
 export const PLAN_STATE_LABEL: Record<string, string> = {

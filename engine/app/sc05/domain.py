@@ -281,10 +281,12 @@ def baseline_from_sc04(sc04_doc: dict) -> dict[str, Any]:
     """
     h = sc04_doc.get("handoff") or {}
     if sc04_doc["review"].get("state") != "SC04_COMPLETED" or h.get("handoff_id") != SOURCE_HANDOFF:
-        raise DomainError("장면 4가 아직 완료 전이다 — 장면 5는 HANDOFF41에서 시작한다", 409)
+        raise DomainError("개선안 검토·실행 승인이 아직 완료 전이다 — 결정 실행·계획 갱신은 "
+                          "HANDOFF41에서 시작한다", 409)
     if sc04_doc.get("case_id") != "BASE":
         raise DomainError(
-            f"장면 4가 기본 시연이 아니다({sc04_doc.get('case_id')}) — 장면 5 기대값은 기본 경로 "
+            f"개선안 검토·실행 승인이 기본 시연이 아니다({sc04_doc.get('case_id')}) — 결정 "
+            "실행·계획 갱신 기대값은 기본 경로 "
             "기준이다",
             409,
         )
@@ -295,7 +297,7 @@ def baseline_from_sc04(sc04_doc: dict) -> dict[str, Any]:
     }
     missing = [t for t in (*calc.TASKS, "SUP41", "TOTAL") if t not in accepted]
     if missing:
-        raise DomainError(f"장면 4 인수가 끝나지 않았다: {', '.join(missing)}", 409)
+        raise DomainError(f"개선안 검토·실행 승인 인수가 끝나지 않았다: {', '.join(missing)}", 409)
     dec = sc04_doc["decision"]
     run = sc04_doc["runs"][dec["run_id"]]
     assumptions = {
@@ -795,7 +797,8 @@ def _load(doc: dict, seed: Seed, item: dict[str, Any]) -> bool:
             "approved_by": CEO,
             "evidence": "DOC60",
             "note": (
-                "8월 마감 기준 가상 중간 월간 전망 — 장면 4 판단본(DEC41-v2)과 수치는 같지만 별도 "
+                "8월 마감 기준 가상 중간 월간 전망 — 개선안 검토·실행 승인 판단본(DEC41-v2)과 "
+                "수치는 같지만 별도 "
                 "승인이다"
             ),
         }
@@ -992,7 +995,7 @@ def start_scene(doc: dict, *, by: str) -> bool:
     **재착수는 기존 결과를 돌려준다**(장면 중복 생성 금지). 인수 완료를 조건 충족으로 처리하지
     않는다.
     """
-    _require(by, FIN, "장면 5 착수")
+    _require(by, FIN, "결정 실행·계획 갱신 착수")
     s = doc["scene"]
     if s["started_at"] is not None:
         return False
@@ -1012,7 +1015,7 @@ def start_scene(doc: dict, *, by: str) -> bool:
 def open_scene(doc: dict) -> dict[str, Any]:
     """BPM 첫 작업 — 착수된 장면인지 본다. 바깥 실행은 착수 뒤에 Studio·Center에서 시작한다."""
     if doc["scene"]["started_at"] is None:
-        raise DomainError("아직 착수하지 않은 장면이다 — 화면에서 착수를 먼저 누른다", 409)
+        raise DomainError("아직 착수하지 않은 업무다 — 화면에서 착수를 먼저 누른다", 409)
     a = doc["sc04"]["actions"][TASK_ID]
     return {
         "review_id": REVIEW_ID,
@@ -1243,7 +1246,7 @@ def _cite_agent(doc: dict, ref: str, *, by: str, modified: bool) -> None:
 
 def check_draft_plan(doc: dict, args: dict[str, Any]) -> None:
     if doc["scene"]["started_at"] is None:
-        raise DomainError("장면 5를 착수하지 않았다", 409)
+        raise DomainError("결정 실행·계획 갱신을 착수하지 않았다", 409)
     plan = current_plan(doc)
     if plan is not None and (
         plan["parent"] is not None or plan["state"] not in ("DRAFT", "REWORK_REQUIRED")
@@ -2412,7 +2415,7 @@ def observation(doc: dict) -> dict[str, Any]:
     obs["period"] = "2027-09"
     obs["scope"] = "A-b · P-COM01 · 주문 ID 단위(취소 제외)"
     obs["comparison_basis"] = (
-        f"장면 4 판단 가정 — 동일 물량 정규화 월 {a42['emergency_before']}건 × 건당 "
+        f"개선안 검토·실행 승인 판단 가정 — 동일 물량 정규화 월 {a42['emergency_before']}건 × 건당 "
         f"{int(Decimal(a42['per_event_cost'])):,}원. "
         "과거 실제 비용이나 인과적으로 입증된 절감이 아니다"
     )
@@ -3154,7 +3157,7 @@ def completion_conditions(
 
 def check_complete(doc: dict, args: dict[str, Any] | None = None) -> None:
     if doc["handoff"] is not None:
-        raise DomainError("이미 완료된 장면이다 — 완료본은 바꾸지 않는다", 409)
+        raise DomainError("이미 완료된 업무다 — 완료본은 바꾸지 않는다", 409)
     fups = (
         parse_followups(_text(args or {}, "followups")) if args and args.get("followups") else None
     )
@@ -3176,7 +3179,7 @@ def complete_scene(
     추적 중이고 Risk는 OPEN, Target은 그대로다. 장면 6의 범위를 여기서 정의하지 않는다.
     """
     check_complete(doc, args)
-    _require(by, CFO, "장면 인계", strict=strict)
+    _require(by, CFO, "업무 인계", strict=strict)
     fups = parse_followups(_text(args, "followups"))
     for f in fups:
         f.update(

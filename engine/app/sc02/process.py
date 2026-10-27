@@ -263,7 +263,7 @@ class Sc02Process:
     def _load(self, demo_run_id: str) -> tuple[dict, int]:
         found = self.store.load(demo_run_id)
         if found is None:
-            raise DomainError(f"장면 2가 시작되지 않은 데모 실행: {demo_run_id}", 404)
+            raise DomainError(f"외주 단가 인상 검토가 시작되지 않은 데모 실행: {demo_run_id}", 404)
         return found
 
     def _env(self, calls: _InProcessCalls, doc: dict) -> RunEnv:
@@ -336,7 +336,8 @@ class Sc02Process:
             return doc
         if executor_of(doc) == "studio":
             raise DomainError(
-                "장면 1이 Studio 시험 실행이다 — Studio에서 인계까지 진행한 뒤 장면 2를 시작한다",
+                "고객 생산계획 변경 대응이 Studio 시험 실행이다 — Studio에서 인계까지 진행한 뒤 "
+                "외주 단가 인상 검토를 시작한다",
                 409,
             )
         try:
@@ -346,7 +347,8 @@ class Sc02Process:
                     self.sc01.sync_center(sc01_id)
         except DomainError as exc:
             raise DomainError(
-                f"장면 1을 각본으로 인계까지 끝낼 수 없다 — {exc}. 장면 1을 초기화한 뒤 다시 한다",
+                f"고객 생산계획 변경 대응을 각본으로 인계까지 끝낼 수 없다 — {exc}. 고객 생산계획 "
+                "변경 대응을 초기화한 뒤 다시 한다",
                 409,
             ) from exc
         # 바깥 실행은 마지막 인수 뒤에 인계 작업을 따로 부른다 — 잠깐 기다린다.
@@ -357,7 +359,7 @@ class Sc02Process:
             doc = self.sc01.get(sc01_id)
         if doc["scene"] != "HANDED_OFF":
             raise DomainError(
-                "장면 1 각본을 다 돌렸지만 아직 인계가 기록되지 않았다 — "
+                "고객 생산계획 변경 대응 각본을 다 돌렸지만 아직 인계가 기록되지 않았다 — "
                 "바깥 실행이 인계 작업을 부를 때까지 "
                 "기다린 뒤 다시 시작한다",
                 409,
@@ -384,7 +386,7 @@ class Sc02Process:
         if existing is not None:
             if existing[0]["case_id"] != case_id:
                 raise DomainError(
-                    f"이 데모 실행의 장면 2는 이미 {existing[0]['case_id']}다 — "
+                    f"이 데모 실행의 외주 단가 인상 검토는 이미 {existing[0]['case_id']}다 — "
                     "다른 사례는 새 실행으로",
                     409,
                 )

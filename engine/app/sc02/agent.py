@@ -146,7 +146,8 @@ def mock(payload: dict[str, Any]) -> dict[str, Any]:
     if kind == "AG24":
         draft = (
             f"승인 단가 {_won(c['new_price'])} 기준 2027년 원가 영향 {_won(c['year_cost'])}, "
-            f"물량 영향 {_won(c['year_volume'])}. 장면 3에서 통합 손익과 대응 필요성 검토 바람."
+            f"물량 영향 {_won(c['year_volume'])}. 수익성 통합 분석에서 통합 손익과 대응 필요성 "
+            "검토 바람."
         )
     return {"summary": summary, "findings": findings, "questions": questions, "draft_text": draft}
 

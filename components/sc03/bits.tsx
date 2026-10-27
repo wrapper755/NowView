@@ -162,19 +162,19 @@ export function Sc03StartCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 3 시작</CardTitle>
+        <CardTitle>수익성 통합 분석 시작</CardTitle>
         <CardDescription>
-          장면 3은 장면 2의 승인 원가 등록·경영관리 인수에서 시작한다. 같은 데모 실행
+          수익성 통합 분석은 외주 단가 인상 검토의 승인 원가 등록·경영관리 인수에서 시작한다. 같은 데모 실행
           {demoRunId ? <span className="font-mono"> {demoRunId}</span> : null}을 잇는다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-xs text-muted-foreground">
-          장면 2가 아직 인수 전이면 장면 2 각본의 남은 단계를 인수까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
+          외주 단가 인상 검토가 아직 인수 전이면 외주 단가 인상 검토 각본의 남은 단계를 인수까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
         </p>
         <Button size="sm" onClick={() => void start()} disabled={busy || !demoRunId}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "준비하는 중…" : "장면 3 시작"}
+          {busy ? "준비하는 중…" : "수익성 통합 분석 시작"}
         </Button>
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
@@ -192,7 +192,7 @@ export function Sc03Body({ children }: { children: (view: Sc03View) => React.Rea
   const missing = useSc03((s) => s.missing);
   if (view) return <>{children(view)}</>;
   if (missing) return <Sc03StartCard />;
-  return <p className="text-sm text-muted-foreground">장면 3을 불러오는 중…</p>;
+  return <p className="text-sm text-muted-foreground">수익성 통합 분석을 불러오는 중…</p>;
 }
 
 /**

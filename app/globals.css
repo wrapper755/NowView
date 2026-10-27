@@ -6,6 +6,11 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-ink: var(--ink);
+  --color-demo-surface: var(--demo-surface);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
@@ -52,14 +57,22 @@
   /* 카드(--card)는 #ffffff 그대로 둔다 — 차트 팔레트가 그 값을 서피스로 검증했다.
      대신 페이지를 한 단 낮춰 박스가 떠 보이게 한다. 둘 다 oklch(1 0 0)이던 동안은
      카드 경계가 ring 하나뿐이어서 "박스가 분간되지 않는다"가 맞았다. */
-  --background: oklch(0.967 0 0);
+  --background: oklch(0.967 0.004 270);
   --foreground: oklch(0.145 0 0);
+  /* 화면 틀(chrome)의 색 — 남색 틀(공통 줄·업무 사이드바) + 남보라 강조. 차트 계열색(파랑 255°·주황)·상태색(초록·
+     노랑·주황·빨강)과 색상(hue)을 비켜 잡았다(278°) — 틀의 강조가 차트에서 계열이나 상태로 읽히지 않게 한다(4.4).
+     차트에는 쓰지 않는다. */
+  --brand: oklch(0.5 0.17 278);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-soft: oklch(0.94 0.03 278);
+  --ink: oklch(0.255 0.05 272);
+  --demo-surface: oklch(0.98 0.008 278);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.935 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   /* 페이지가 0.967이 되었으므로 muted도 함께 내린다 — 같이 두면 카드 밖의 칩·배지가
@@ -71,7 +84,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.872 0 0);
   --input: oklch(0.872 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.62 0.13 278);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -89,14 +102,19 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.145 0.005 270);
   --foreground: oklch(0.985 0 0);
+  --brand: oklch(0.7 0.14 278);
+  --brand-foreground: oklch(0.17 0.03 278);
+  --brand-soft: oklch(0.28 0.06 278);
+  --ink: oklch(0.19 0.03 272);
+  --demo-surface: oklch(0.175 0.015 278);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -108,7 +126,7 @@
      배경을 더 내릴 여지가 없으므로(이미 거의 검정) 경계를 세운다. */
   --border: oklch(1 0 0 / 16%);
   --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.6 0.12 278);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -122,6 +140,22 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* 남색 틀 — 그 안의 토큰을 어두운 판으로 바꾼다. `.dark`를 붙이지 않는 것은 테마 버튼의 아이콘이 `dark:` 변형으로
+   갈리기 때문이다(붙이면 라이트에서도 해 아이콘이 보인다). 토큰만 바꾸므로 역할 선택·해설·테마 버튼은 고치지 않는다. */
+.chrome-ink {
+  --background: var(--ink);
+  --foreground: oklch(0.97 0.005 272);
+  --muted: oklch(1 0 0 / 11%);
+  --accent: oklch(1 0 0 / 11%);
+  --accent-foreground: oklch(0.97 0.005 272);
+  --muted-foreground: oklch(0.76 0.03 272);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 22%);
+  background-color: var(--ink);
+  color: var(--foreground);
+  color-scheme: dark;
 }
 
 @layer base {
@@ -139,7 +173,7 @@
      JS 스크롤과 브라우저의 hash 이동(새로고침·링크 붙여넣기) 양쪽에 걸려야 하는데,
      앞의 것은 헤더 높이를 실측하고 여기는 리터럴이므로 헤더 구성이 바뀌면 함께 본다. */
   [data-index-target] {
-    scroll-margin-top: 96px;
+    scroll-margin-top: 184px;
   }
 
   /* 데모 플레이어는 화면 하단에 고정되어 있다. 그만큼 본문 아래에 자리를 비워 둬야
@@ -148,6 +182,14 @@
      폴백(7rem)은 ResizeObserver가 발화하지 않는 숨겨진 탭용이며 넉넉히 잡았다. */
   body {
     padding-bottom: calc(var(--demo-player-h, 7rem) + 1rem);
+  }
+  /* 넓은 화면(xl)에서는 펼친 플레이어가 오른쪽 단(20rem, 높이 전체)이다 — 아래가 아니라 오른쪽을 비운다.
+     접으면 오른쪽 아래 알약이라 아래 여백(재서 넣은 높이)만 남는다. */
+  @media (width >= 80rem) {
+    body:has([data-demo-player="expanded"]) {
+      padding-bottom: 1rem;
+      padding-right: 20rem;
+    }
   }
 }
 

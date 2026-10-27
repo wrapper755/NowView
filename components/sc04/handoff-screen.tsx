@@ -18,7 +18,7 @@ import type { Sc04View } from "@/lib/sc04/types";
 export function Sc04HandoffScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <Sc04Header id="U408" title="장면 5 인계·종료" question="실행 준비를 마쳤는가 — 성과는 아직 확인되지 않았다는 것까지 넘기는가?" />
+      <Sc04Header id="U408" title="인계·종료 — 결정 실행·계획 갱신으로" question="실행 준비를 마쳤는가 — 성과는 아직 확인되지 않았다는 것까지 넘기는가?" />
       <Sc04Body>{(view) => <Handoff view={view} />}</Sc04Body>
     </main>
   );
@@ -30,7 +30,7 @@ function Handoff({ view }: { view: Sc04View }) {
   const c = view.completion;
   return (
     <>
-      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "장면 4 완료" }} />
+      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "개선안 검토·실행 승인 완료" }} />
       <StatusPills view={view} />
       <Card>
         <CardHeader>
@@ -108,7 +108,7 @@ function Handoff({ view }: { view: Sc04View }) {
                 </tbody>
               </table>
               <p className="text-xs text-muted-foreground">
-                총괄 한도 <Mn value={h.budget.total} /> · 예정 <Mn value={h.budget.planned} /> · 여력 <Mn value={h.budget.headroom} /> · 상세 계획 {h.detail_plan === "PLAN_PENDING" ? "장면 5 수립 대기(빈 계획은 완료가 아니다)" : h.detail_plan}
+                총괄 한도 <Mn value={h.budget.total} /> · 예정 <Mn value={h.budget.planned} /> · 여력 <Mn value={h.budget.headroom} /> · 상세 계획 {h.detail_plan === "PLAN_PENDING" ? "결정 실행·계획 갱신 수립 대기(빈 계획은 완료가 아니다)" : h.detail_plan}
               </p>
               {h.excluded.length ? (
                 <p className="text-xs text-muted-foreground">
@@ -119,13 +119,13 @@ function Handoff({ view }: { view: Sc04View }) {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>다음 장면</CardTitle>
-              <CardDescription>장면 5 — 세부 활동·일정·자원 배치의 상세 실행계획 수립</CardDescription>
+              <CardTitle>다음 업무</CardTitle>
+              <CardDescription>결정 실행·계획 갱신 — 세부 활동·일정·자원 배치의 상세 실행계획 수립</CardDescription>
             </CardHeader>
             <CardContent className="space-y-1 text-xs text-muted-foreground">
-              <p>장면 5 이후(상세 계획 · 실행 품의 · 효과 검증 · Rolling)는 기획안에 이야기만 있다 — 설계표·데이터가 나오면 만든다. 수치를 지어내지 않는다.</p>
+              <p>결정 실행·계획 갱신 이후(상세 계획 · 실행 품의 · 효과 검증 · Rolling)는 기획안에 이야기만 있다 — 설계표·데이터가 나오면 만든다. 수치를 지어내지 않는다.</p>
               <Commentary>
-                <p>승인 이후 범위·책임·한도·기한이 바뀌면 새 판단·승인 버전과 대표 재확인으로 잇고, 원 인계는 그대로 둔 채 장면 5에 다시 알린다.</p>
+                <p>승인 이후 범위·책임·한도·기한이 바뀌면 새 판단·승인 버전과 대표 재확인으로 잇고, 원 인계는 그대로 둔 채 결정 실행·계획 갱신에 다시 알린다.</p>
               </Commentary>
             </CardContent>
           </Card>

@@ -239,7 +239,7 @@ function TaskDetail({ task }: { task: Task }) {
 
         {task.type === "FIN" && task.status === "IN_PROGRESS" ? (
           <p className="text-xs text-muted-foreground">
-            장면 1에서는 인수까지다 — 통합 손익분석 보고는 다음 장면의 업무로 진행 중이다.
+            고객 생산계획 변경 대응에서는 인수까지다 — 통합 손익분석 보고는 다음 업무로 진행 중이다.
           </p>
         ) : null}
 

@@ -81,7 +81,7 @@ export const SC01_SCENES: Sc01Scene[] = [
     stage: "Management Review 연결",
     title: "Management Review 요청",
     narration:
-      "경영관리담당에게 통합 손익분석 보고를 요청한다. 기한은 두 번째 영업일 18시. 단가·운영비용 반영은 다음 장면의 일이다.",
+      "경영관리담당에게 통합 손익분석 보고를 요청한다. 기한은 두 번째 영업일 18시. 단가·운영비용 반영은 다음 업무의 일이다.",
   },
   {
     id: "accept-prod",
@@ -97,7 +97,7 @@ export const SC01_SCENES: Sc01Scene[] = [
     route: "/tasks",
     stage: "Operation Control",
     title: "자재 담당 인수",
-    narration: "자재담당도 인수한다. 경영관리 인수 전이라 장면은 아직 인계되지 않았다.",
+    narration: "자재담당도 인수한다. 경영관리 인수 전이라 업무는 아직 인계되지 않았다.",
   },
   {
     id: "handoff",
@@ -106,7 +106,7 @@ export const SC01_SCENES: Sc01Scene[] = [
     stage: "Management Review 연결",
     title: "인계 결과 확인",
     narration:
-      "경영관리담당이 인수하자 장면 1이 인계된다. 위험이 해소된 것도, 전망이 승인된 것도 아니다 — F02는 검토 중, ISSUE-B07은 열린 중요, 후속 업무는 진행 중이다.",
+      "경영관리담당이 인수하자 고객 생산계획 변경 대응이 인계된다. 위험이 해소된 것도, 전망이 승인된 것도 아니다 — F02는 검토 중, ISSUE-B07은 열린 중요, 후속 업무는 진행 중이다.",
   },
   {
     id: "overview-after",

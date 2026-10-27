@@ -54,13 +54,13 @@ function Body({ view }: { view: Sc05View }) {
         </Tile>
       </div>
 
-      <WaitingForms view={view} nodes={["Complete_Scene"]} initial={{ Complete_Scene: { 후속목록: TEMPLATE } }} labels={{ Complete_Scene: "장면 5 인계 완료" }} />
+      <WaitingForms view={view} nodes={["Complete_Scene"]} initial={{ Complete_Scene: { 후속목록: TEMPLATE } }} labels={{ Complete_Scene: "결정 실행·계획 갱신 인계 완료" }} />
       <AgentCard view={view} kind="AG58" canRequest={waiting.has("Complete_Scene")} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>장면 완료 요건</CardTitle>
+            <CardTitle>업무 완료 요건</CardTitle>
             <CardDescription>{h ? `${h.handoff_id} — ${nameOf(h.completed_by)} ${formatClock(h.completed_at)}` : "확정 계획부터 공식 전망·후속 책임까지 연결돼야 마친다."}</CardDescription>
           </CardHeader>
           <CardContent>{view.completion ? <Requirements items={view.completion.items} /> : <p className="text-sm text-muted-foreground">착수 전이다.</p>}</CardContent>
@@ -92,7 +92,7 @@ function Body({ view }: { view: Sc05View }) {
         </CardHeader>
         <CardContent>
           {followups.length === 0 ? (
-            <p className="text-sm text-muted-foreground">아직 확정 전이다 — 장면 인계 때 경영관리 임원이 확정한다.</p>
+            <p className="text-sm text-muted-foreground">아직 확정 전이다 — 업무 인계 때 경영관리 임원이 확정한다.</p>
           ) : (
             <ul className="divide-y text-sm">
               {followups.map((f) => (
@@ -138,8 +138,8 @@ function Body({ view }: { view: Sc05View }) {
           </Disclosure>
           <Commentary>
             <p className="text-xs text-muted-foreground">
-              장면 완료 · 개별 실행과제 완료 · 연간 목표 달성 · 위험 해소는 서로 다른 상태다. Management Evolution(프레임워크·프로세스·Agent 개선 확정)은 후속
-              장면이다.
+              업무 완료 · 개별 실행과제 완료 · 연간 목표 달성 · 위험 해소는 서로 다른 상태다. Management Evolution(프레임워크·프로세스·Agent 개선 확정)은 후속
+              업무다.
             </p>
           </Commentary>
         </CardContent>

@@ -60,7 +60,7 @@ function Body({ summary: s }: { summary: Summary }) {
               {shortClock(s.report_date)}
             </p>
             <p>
-              비교 기준 <span className="font-medium">{s.basis_version}</span>(장면 5 공식 전망의 Q4 기대, 소급 수정 없음) · 산정{" "}
+              비교 기준 <span className="font-medium">{s.basis_version}</span>(결정 실행·계획 갱신 공식 전망의 Q4 기대, 소급 수정 없음) · 산정{" "}
               <span className="font-mono text-xs">{s.calculation_version}</span>
             </p>
             <p className="text-xs text-muted-foreground">
