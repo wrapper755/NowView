@@ -186,6 +186,8 @@ def test_d06_to_d09_sequential_approval_with_ceo(proc: Sc02Process) -> None:
         ("EXEC", "승인", "PROP01-v1"),
         ("CEO", "승인", "PROP01-v1"),
     ]
+    # 결재 단계별 순번 — 시드 근거 id와 같다
+    assert [d["decision_id"] for d in doc["decisions"]] == ["APP-T01", "APP-E01", "APP-C01"]
     assert prop["authority"]["required"] is True and prop["authority"]["amount"] == "18817440"
     assert "PV-APP01" in doc["price_versions"] and "RUN-APP01" in doc["runs"]
     assert waiting(doc) == ["Register_Cost"]
@@ -435,6 +437,8 @@ def test_x07r_return_creates_a_new_version_from_team_lead(proc: Sc02Process) -> 
         ("PROP01-v2", "EXEC", "승인"),
         ("PROP01-v2", "CEO", "승인"),
     ]
+    ids = [d["decision_id"] for d in doc["decisions"]]
+    assert ids == ["APP-T01", "APP-T02", "APP-E01", "APP-C01"]
     # 만든 순서(seq) — Postgres JSONB는 키 순서를 바꾼다(CLAUDE.md 4.5)
     proposal_tasks = domain.tasks_of(doc, "PROPOSAL")
     assert [t["task_id"] for t in proposal_tasks] == ["TASK-PROPOSAL", "TASK-PROPOSAL-2"]
@@ -542,6 +546,23 @@ def test_script_cannot_skip_and_rerun_is_harmless(proc: Sc02Process) -> None:
     demo.run_step(proc, rid, 0)
     again = demo.run_step(proc, rid, 0)
     assert again["request"]["revision"] == 1
+
+
+def test_manual_answers_move_the_script_point_and_the_script_continues(proc: Sc02Process) -> None:
+    """
+    화면에서 직접 답해도 각본의 다음 단계와 같은 결재면 `step`·`script_index`가 따라간다 — 그래서
+    플레이어가 그 단계를 보이고, 이어서 각본 「다음」을 눌러도 409가 아니다.
+    """
+    doc = proc.create()
+    rid = doc["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    doc = proc.receive(rid, "REQ-2706-01", actor="u-buy")
+    assert (doc["step"], doc["script_index"]) == ("D01", 0)
+    for i in (1, 2, 3):
+        doc = proc.act(rid, steps[i].node_id, steps[i].answer, actor=steps[i].actor)
+        assert (doc["step"], doc["script_index"]) == (steps[i].code, i)
+    doc = demo.run_step(proc, rid, 4)  # 각본으로 이어 간다
+    assert (doc["step"], doc["script_index"]) == ("D04", 4)
 
 
 def test_changes_are_published_on_the_sc02_channel(proc: Sc02Process) -> None:

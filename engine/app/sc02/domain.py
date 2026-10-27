@@ -812,7 +812,8 @@ def record_decision(doc: dict, seed: Seed, node_id: str, args: dict[str, Any], *
         return  # 이미 처리된 결정 — 중복 저장하지 않는다(U25-03)
     decision = args["decision"]
     record = {
-        "decision_id": f"APP-{step[0]}{len(doc['decisions']) + 1:02d}",
+        # 결재 단계별 순번 — 근거 id(APP-T01·APP-E01·APP-C01)와 같다. 보완 뒤 재상신은 APP-T02다.
+        "decision_id": f"APP-{step[0]}{sum(d['step'] == step for d in doc['decisions']) + 1:02d}",
         "proposal_key": prop["proposal_key"],
         "step": step,
         "actor": by,
