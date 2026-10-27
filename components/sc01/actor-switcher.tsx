@@ -22,11 +22,12 @@ export function ActorSwitcher() {
       <UserRound aria-hidden className="hidden size-3.5 text-muted-foreground sm:block" />
       <span className="sr-only">시연 역할</span>
       {/* 좁을 때 5rem — 장면 칩 5를 더하자 화면 메뉴(최소 2.5rem)가 nav 밖으로 8px 넘쳤다(375px 실측). 역할 선택을
-          8px 줄여 nav에 돌려줬다. 선택 상자라 이름이 잘려도 펼치면 전부 보인다. */}
+          8px 줄여 nav에 돌려줬다. 선택 상자라 이름이 잘려도 펼치면 전부 보인다. 장면 칩 6을 더하자 메뉴가 nav 밖으로
+          5px 넘쳐 4.5rem으로 한 번 더 줄이고 그만큼 nav 최소 폭을 올렸다. */}
       <select
         value={actor}
         onChange={(e) => setActor(e.target.value)}
-        className="max-w-[5rem] rounded-md border bg-transparent px-1 py-1 text-xs sm:max-w-none sm:px-1.5"
+        className="max-w-[4.5rem] rounded-md border bg-transparent px-1 py-1 text-xs sm:max-w-none sm:px-1.5"
       >
         {users.length === 0 ? <option value={actor}>{actor}</option> : null}
         {users

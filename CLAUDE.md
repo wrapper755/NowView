@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (647개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (696개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -135,6 +135,10 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   CON41·SUP41 이행 확인과 품의(REQ51·OP51) 뒤 9/1 운영 적용, 생산 변경 공유·구매 대응(정상 CH51 · 긴급 CH52), 9월 초기 결과,
   월간 Rolling 운영계획(OPL51~53)과 공식 Forecast(FC50 → FC51) 작성·부서 확인·대표 승인·게시를 거쳐 후속 책임을 넘기기까지
   (HANDOFF51, 4.19). ACT41·43은 요약만 한다. 같은 데모 실행을 잇고 **Studio·Center 실행**에서 돈다(외부 확장 `nowview-sc05`).
+  **장면 6(SC06)** — 과제 완료 후 차 분기(2027 Q4)의 완료·성과 검토. 확인된 보고본 RPT61-v1을 2028-01-14 11:00에 **조회**한다
+  (U601 요약 → ACT42 차이 상세 → U602 보고 요약, 두 화면·세 동작). Q4 기대 91.8 → 확인 87.0백만원(−4.8), ACT42 30.6 → 25.8,
+  운영 보완 FUP61·추가 검토 발의 PROP61까지(4.20). 같은 데모 실행을 잇는다. **이 장면이 돌리는 BPM이 없다** — 구현명세가 결재 재연 없이
+  확인본 조회로 정했다(4.20).
   **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
@@ -155,6 +159,8 @@ SC01_SC02 통합가상데이터 v0.2(→ `engine/seed/SYN-SC02-v0.2.xlsx`).
 SC01_SC02_SC03_SC04 통합가상데이터 v0.4 2026-10-23 수정본(→ `engine/seed/SYN-SC04-v0.4.xlsx`).
 장면 5(Downloads/장면5): 경영이야기·장면범위 v0.2 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
 SC01~SC05 통합가상데이터 v0.5(→ `engine/seed/SYN-SC05-v0.5.xlsx`).
+장면 6(Downloads/장면6): 경영이야기·장면범위 v0.2 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
+SC01~SC06 통합가상데이터 v0.6(→ `engine/seed/SYN-SC06-v0.6.xlsx`).
 **문서의 요구사항 ID(UI01-xx, CALC-xx, WF-xx, AT-xx, EX-xx, D-xx, T4xx·T5xx, CT4xx·CT5xx, X5xx)를 코드 주석·테스트 이름에 그대로 쓴다.**
 
 ### 2.1 가상 고객사와 범위
@@ -183,7 +189,9 @@ SC01~SC05 통합가상데이터 v0.5(→ `engine/seed/SYN-SC05-v0.5.xlsx`).
 Rolling은 하지 않고 장면 4(대표 주재 월간회의 MT41)로 넘긴다. **SC04**는 3단계의 대안 결정과 4단계(Management Action)의 **실행 승인·
 책임 인수**까지다 — 상세 실행계획은 장면 5이고, 승인 효과는 예상치일 뿐 Rolling·공식 Forecast 갱신을 하지 않는다. **SC05**는 4단계의
 상세 계획·착수·초기 실행과 5단계(Rolling Plan Update)의 운영계획·**공식 Forecast 갱신**까지다 — 연간 효과의 최종 실현 검증과
-Management Evolution(6단계 공식 개선)은 하지 않는다. 장면 6~7은 설계표·데이터가 없다 — 화면은 수치를 지어내지 않는다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
+Management Evolution(6단계 공식 개선)은 하지 않는다. **SC06**은 4·5단계의 **실현 검증**(과제 완료 후 차 분기의 기대 대비
+확인 효과)과 그 결과를 운영 보완·추가 과제 발의로 잇는 데까지다 — 발의의 효과·예산은 미산정이고, Target·공식 Forecast를 바꾸지 않으며,
+Management Evolution 상세는 범위 밖이다. 장면 7은 설계표·데이터가 없다 — 화면은 수치를 지어내지 않는다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
 (공장관리손익 목표 34.77억)과 다르다(D18).
 
 ---
@@ -228,7 +236,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01~sc05, 로컬은 Center가 주소를 덮어쓴다, 4.3)
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01~sc05 — 장면 6은 BPM이 없어 정의가 없다, 로컬은 Center가 주소를 덮어쓴다, 4.3)
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
@@ -247,7 +255,8 @@ NowView/
 │   │                             #   · meeting(U405) · approval(U406) · actions(U407) · handoff(U408) · process(BPM)
 │   ├── sc05/                     # 장면 5 — page(과제 현황 U501) · plan(U502) · ready(U503 조건·품의·착수) · changes(U504)
 │   │                             #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
-│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01~sc05만 중계)
+│   ├── sc06/                     # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · report(U602 보고 요약)
+│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01~sc06만 중계)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
 │   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
@@ -259,6 +268,7 @@ NowView/
 │   ├── sc03/                     # SC03 화면들 + bits · action-form · bridge-chart(손익 브리지) · agent-card · session-sync · demo-player
 │   ├── sc04/                     # SC04 화면들 + bits · action-form · agent-card(AG41~43) · session-sync · demo-player
 │   ├── sc05/                     # SC05 화면들 + bits(Tile·Requirements) · action-form · agent-card(AG51~58) · session-sync · demo-player
+│   ├── sc06/                     # SC06 화면 둘 + bits(LoadGate·EvidenceChip) · session-sync(조회만, SSE 없음) · demo-player(엔진 각본 없음)
 │   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2·3도 같은 캔버스 — `maxColumns`만 다르다)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
@@ -269,8 +279,9 @@ NowView/
 │   ├── sc03/                     # types · client(완료 실패의 blockingItems) · format(백만원) · scenes
 │   ├── sc04/                     # types · client(예산 위임 조회) · format(목표 초과 표기) · scenes
 │   ├── sc05/                     # types · client(Agent 검토 기록) · format(미확인·비해당·활동 목록 글) · scenes
-│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02~sc05(장면 사본·플레이어), ui-prefs(해설)
-├── tests/                        # Vitest — sc01~sc05.test.ts, fixtures/sc0{1,2,3,4,5}-process.json
+│   ├── sc06/                     # types · client(조회 4개) · format(미확인·산정 보류·미산정·부호) · scenes(세 동작 고정)
+│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02~sc05(장면 사본·플레이어), sc06(조회·펼침), ui-prefs(해설)
+├── tests/                        # Vitest — sc01~sc06.test.ts, fixtures/sc0{1,2,3,4,5}-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
@@ -283,6 +294,7 @@ NowView/
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
     ├── seed/SYN-SC03-v0.3.xlsx   # SC01_SC02_SC03 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 종료 시점 완성 레코드(기대값)
     ├── seed/SYN-SC04-v0.4.xlsx   # SC01~SC04 v0.4 수정본 — 숫자·SC03 시트는 v0.3과 같다, SC04가정이 원천, 나머지 SC04 시트는 기대값
+    ├── seed/SYN-SC06-v0.6.xlsx   # SC01~SC06 v0.6 — 기존 71개 시트는 v0.5와 같다, SC06 원천(기준·실적·거래 180·변경·판단·후속·근거·Agent·보고)을 한 번에 적재
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc05 라우터
@@ -294,9 +306,11 @@ NowView/
     │   └── sc03/                 # seed · calc(장면 2 월별 계산 재사용) · domain · agent · process · demo · view · api (`sc03_*`)
     │   └── sc04/                 # seed · calc(효과·중복·검증·잔여 부족, 기준은 장면 3 계산) · domain · agent · process · demo · view · api (`sc04_*`)
     │   └── sc05/                 # seed · calc(관측·예산·과제 효과·월 손익·FC50 대비 대사) · domain(배경 원천 catch_up) · agent · process · demo · view · api (`sc05_*`)
+    │   └── sc06/                 # seed · calc(Q4 기대 대비 확인 효과·원인·운영지표·보조 손익) · domain(적재 검증·판단·조회·재적재) · process · api (`sc06_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _intake,
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
+                                  #   test_sc06_calc · _process,
                                   #   test_events · _notify
 ```
 
@@ -411,6 +425,16 @@ POST /sc05/demo-runs/{id}/actions/{nodeId} {answer, expect}  → 사람 대기�
 POST /sc05/demo-runs/{id}/agent-drafts {kind} · /agent-outputs/{oid}/review {note}  → AG51~AG58 초안·제안 검토 기록(업무 역할)
 POST /sc05/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}   → 시계 이동이 그 시각까지의 배경 원천을 들인다
 POST /sc05/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 27개(외부 확장 nowview-sc05, 키 검사)
+
+     장면 6(4.20) — 데모 실행 id는 장면 1~5와 같다. 조회만 있다(쓰기는 적재 하나)
+POST /sc06/demo-runs  {sc01DemoRunId?, executor=center|studio}  → RV61 적재. 장면 5가 완료 전이면 각본으로 HANDOFF51까지. 이미 있으면 그대로
+GET  /sc06/demo-runs/{id}                                 → 머리(보고본·산정 버전·FC51·적재 묶음). 없으면 404
+GET  /sc06/demo-runs/{id}/reviews/RV61/summary?report_version=          → U601 요약(3과제·합계·완료 판단·Agent)
+GET  /sc06/demo-runs/{id}/reviews/RV61/tasks/ACT42/variance?report_version=  → 원인별 건수·실제 긴급비, PO61-1103, AG62
+GET  /sc06/demo-runs/{id}/evidence/{evidenceId}?report_version=           → 근거 본문·작성/확인 이력(가상 증빙)
+GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61·PROP61·FUP62·RISK61·확인 다섯 단계·다음 보고
+     모든 조회 응답: review_id · report_version · calculation_version · as_of · data_status. X-Demo-Actor가 검토건 참여자가 아니면
+     403 ACCESS_DENIED · 다른 보고 버전 409 VERSION_MISMATCH · 없음 404 NOT_FOUND(`detail.error_code`)
 ```
 
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
@@ -476,7 +500,7 @@ POST /sc05/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, 
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
-* **BFF는 장면(`sc01`~`sc05`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 목록 밖의 장면은 404 —
+* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 목록 밖의 장면은 404 —
   엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 부르는 `/api/engine/sc01/…` 주소는 그대로다. 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
   `X-Demo-Actor`·`Idempotency-Key`·`Authorization`(시스템 작업 키, N6)이다. 키 검사도 엔진이 한다.
@@ -780,15 +804,18 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc05_calc.py` | **통합가상데이터 v0.5 파생 시트와 대조** — v0.4 45개 시트 그대로, 기초 손익 = SC05모델손익 60행, FC50 = 장면 4 판단 가정 손익, SC05월효과 18행, SC05월손익 월·연간·마감·전망·Q3, 모델별 효과, 변경 대사(9월 −1.2M · 11~12월 +2.4M · 차이 0), X506 재가산 대사 실패, X508 3,427,786,680, SC05초기지표, 임계값 같으면 정상·NULL 미확인, X509 중복·비용 NULL, 납기·품질 미수집, SC05예산(정산 이중 차감 없음), 고객계획 a~e 월합계 0 |
 | `engine/tests/test_sc05_process.py` | Chaeksas 위의 기본 시연 D501~D518 — **끝난 문서 = SC05 시트**(계획·활동·조건품의·예산원장·변경공유·구매표본 60건·운영계획·전망버전·인계·이벤트 시각·사람·Agent 상태), SC05착수조건 GT51~55, T501~T532(X501 착수 422·T506 9/1 전 READY·T502 권한·T503 누락 저장·확정 422·T504 v1 유지·T507/X502 범위 이탈·T509 예산 초과·T512/X504·T513 전결 경계·대행 확인·T516/X509·T518·T521/X506·T522·T523/X505·T524/X507·T525/X508·T526 새 RUN·T527 게시 멱등·T528 시계만으로 승인 없음·T530 Agent 실패·T531), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc05_external.py` | 확장 정의 `nowview-sc05` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·구매 확인 대행 담당자), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc06_calc.py` | **통합가상데이터 v0.6 파생 시트와 대조** — 기존 71개 시트 = v0.5, BASE61 = 장면 5 FC51 산정본(어긋나면 409), 과제성과·월효과 9행·원인집계·운영지표·분기손익·SC06요약·검증 17항목(계산값), 보고 결론 숫자 ↔ 산정, X61-01 비용 null 산정 보류·확인 소계, X61-02 판단 보류, X61-03 중복 대사 대기, X61-04 Agent 후보, AT61-06/X61-05 재적재 새 산정·확인 재수행 대상·같은 입력 되돌림, X61-06 미산정 ≠ 0, X61-07 원인 비용 + 미달 대사 오류, X61-08 검토 가능, 오류값 422·쉼표 문자열, 연결 누락·승인 전 발주, 고정비 절감 거절, AT61-12·14 |
+| `engine/tests/test_sc06_process.py` | 장면 5 완료까지 각본 실행 후 적재(새 실행·도중 실행), 다시 열어도 재적재 없음, 조회 계약 4개(문맥 칸·3과제·원인·PO61-1103·AG62·근거·확인 다섯 단계·후속·연간 FC51 그대로), 403 ACCESS_DENIED(오류에 금액·근거 없음)·409 VERSION_MISMATCH·404, **조회가 문서·이력·감사를 바꾸지 않는다**, Studio 장면 5 409 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
 | `tests/sc05.test.ts` | 장면 5 배치(기록 태스크·오류 경계 접기, 보완·범위 이탈·반려·대표 변경 고리·대사 실패 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·단계 코드별 화면), 사람 노드 41개 전부 화면, 미확인·비해당 표기, Agent 활동 → 폼 글(빈칸을 0으로 메우지 않는다) |
+| `tests/sc06.test.ts` | 장면 6 표기(null ≠ 0 — 미확인·산정 보류·미산정·비해당, 차이 부호), 세 동작 210초, 화면·펼침 → 장면 |
 | `tests/sc04.test.ts` | 장면 4 배치(기록 태스크·오류 경계 접기, 보완 요청·검증 보완·승인 보완·반려 보완 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·종류·조회 코드별 화면), 모든 사람 노드의 화면, 목표 초과 표기 |
 | `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(460개 / 647개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 696개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc0{1,2,3,4,5}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
@@ -1321,11 +1348,72 @@ ACT42 36.8M · ACT43 6.2M) · 새 공식 전망 3,428,986,680 · Target 3,477,29
 * 브라우저 검수에서 localStorage의 데모 실행 id를 바꾼 뒤 `location.reload()`를 하면 앱이 언로드 전에 옛 id를 다시 쓴다 — 다른 경로로
   이동한 뒤 바꾸고 돌아온다.
 
+### 4.20 SC06 — 과제 완료와 성과 실현 검토 (장면 6)
+
+대표 과제 완료 후 차 분기(2027 Q4, 측정 12/31 · 자료 마감 2028-01-07 18:00)에 세 과제의 완료와 성과를 검토한 보고본 RPT61-v1을
+**2028-01-14 11:00에 조회한다**. 시연은 두 화면·세 동작(210초)이다 — ① U601 요약 → ② ACT42 주요 차이 한 건(PO61-1103) 펼침 → ③ U602
+보고 요약. 끝나도 RISK61 OPEN · PROP61 PROPOSED · FUP61 IN_PROGRESS이고 FC51 연간 전망·Target은 그대로다 — 보고 확정 ≠ 과제 실행
+승인 ≠ 위험 종결.
+
+```
+장면 5 문서(FC51 산정본·HANDOFF51) ─┐
+seed/SYN-SC06-v0.6.xlsx 원천 ───────┴─▶ domain.load_batch(검증) → calculate(거래 → 월 → 과제 → 합계) → sc06_demo_run(문서 1개)
+                                                                                      │ 조회만(멱등)
+                                       summary · variance · evidence · report ◀───────┘
+```
+
+**숫자** — Q4 기대 91,800,000(BASE61 = FC51 Q4 과제 효과) · 확인 87,000,000 · 차이 −4,800,000 · ACT41 54.0 = 54.0 · ACT42 30.6 → 25.8
+(기준 12건 × 120만원 × 3 − 실제 긴급비 16,800,000 − 운영지원 600,000) · ACT43 7.2 = 7.2 · 주문 180건 중 긴급 14건(INTERNAL 4·SUPPLY 9·
+MIXED 1) · 확인 지연 5건(복합 포함) · Q4 관리손익(보조) 902,868,880 = FC51 907,668,880 + 효과 차이 −4,800,000, 목표 대비 +31,878,880.
+
+**경계·범위에서 정한 것**
+
+* **장면 6에는 이 장면이 돌리는 BPM이 없다 — 구현명세의 결정이다.** 11장 「SC06은 이미 확인된 1/14 보고본을 조회하는 시점으로
+  시작한다. SC05처럼 단계별 결재를 재연할 필요가 없다」, 13장 BPM 몫 「기존 확인 이력과 완료 판단·후속 상태 연결. 이 장면의 조회를
+  결재 트리거와 분리」, 업무설계표 「확인·보고 확정은 배경 처리」. 담당 임원 확인 → 경영관리 종합 → 보고본 확정 → 대표 보고(CF61-*)는
+  **끝난 업무 기록으로 적재한다**(장면 5의 배경 원천과 같은 성격). 그래서 BPMN·외부 확장·Center 패키지가 없고, 조회가 Center를 부르지
+  않는다. 「BPM은 Studio·Center에서」 원칙을 버린 것이 아니라 돌릴 흐름이 없는 것이다 — 확인 절차를 BPM으로 다시 돌리려면 그림을
+  새로 만들어야 하고, 그것은 이 명세의 시연 범위 밖이다(5.10).
+* **장면 5 FC51에 잇는다.** 데모 실행 id가 같고, 장면 5가 완료 전이면 각본을 끝까지 실제로 실행한다(Studio 실행이면 409). FC51 산정본의
+  Q4 과제·월 효과가 BASE61과 원 단위로 다르면 적재를 409로 막는다(CK61-14 — 기준을 실적에 맞춰 고치지 않는다).
+* **원천만 읽고 기대값 시트는 시험이 대조한다.** 원천 = 설정·기준·실행실적·운영비·구매거래·변경근거·완료판단·후속조치·근거·Agent·보고.
+  `SC06과제성과`는 과제명·완료일·근거·후속 글만 읽는다(TOTAL은 엔터티가 아니다). 요약·월효과·원인집계·운영지표·분기손익·검증은 계산 결과와
+  대조하는 기대값이다 — 검증표의 PASS 글을 옮기지 않는다. `SC06예외`(X61-*)는 시험 fixture로만 쓴다(사례 선택에 없다).
+* **적재 검증**(구현명세 8장): 숫자 칸 오류값·필수 열 누락은 적재 전체를 422로 거절한다(일부 적재 상태를 내보내지 않는다). 쉼표 문자열은
+  읽는다. 긴급 주문의 연결(변경근거·승인자·승인시각·근거) 누락, 승인 전 발주, 같은 키 중복은 **대사 대기**로 두고 그 달 효과를 산정 보류로
+  만든다(중복은 뒤의 행만 빼서 이중 합산을 막는다). 미확인 금액(null)은 0이 아니라 산정 보류다 — 확인된 과제만의 소계는 따로 내고 「전체
+  확정 합계」라 부르지 않는다(X61-01). `data_status`는 대사 대기·보류가 하나라도 있으면 INCOMPLETE다.
+* **수집 상태와 업무 판단을 나눈다**(J601~605, M602 검토 의견). JDG61은 「일부 보완 중」이지만 대체 근거 3건·영향 판단·판단자가 있어 검토
+  가능이고, 미비(서명 PDF)·보완 담당·1/18 기한은 지우지 않는다. 대체 근거가 없으면 판단 보류(X61-02). 판단 기록 없는 자동 완료는 없다.
+* **보고본은 산정 버전에 묶인다.** 보고 결론(TXT61)의 「…백만원」 숫자를 묶인 산정과 대조한다(어긋나면 `report.problems`). 확정 뒤 수치가
+  바뀌면 `domain.reimport`가 새 산정(CALC61-v2)을 만들고 RPT61-v1·그 숫자는 그대로다 — 바뀐 과제에 걸린 확인(CF61-B)부터 종합·확정·보고를
+  다시 해야 한다고 조회 응답(`newer_calculation`)이 알린다(X61-05·AT61-06: 운송비 +100,000 → 25.7 · 86.9). 같은 입력을 다시 적재하면 새
+  버전을 만들지 않는다. **변경 저장 API는 열지 않았다**(9장 「기본 시연에는 변경 저장 API나 결재 버튼을 노출하지 않는다」, 11장 재적재는
+  개발용 별도 권한).
+* **원인별 비용과 기대 미달은 다른 지표다.** 원인별 합계는 긴급 14건 전체(16.8백만원)와 대사하고, 기대 미달(−4.8)을 원인에 배분하지
+  않는다 — 섞은 표는 잔차가 미달액만큼 생겨 따로 짚는다(X61-07). 대표 주문 한 건으로 전체 원인을 추정하지 않는다.
+* **Agent는 고정 기록 재현이다**(REPLAY). 사람 보정이 없는 초안은 후보(CANDIDATE)이고(X61-04), AG62의 후보 원인(INTERNAL)은 표시만 한다 —
+  원인 집계는 거래마다의 최종원인(사람 확인)으로만 한다.
+* **조회는 아무것도 적지 않는다**(AT61-09) — 문서·이력·감사가 그대로다. 그래서 SSE가 없고 화면은 행위자·데모 실행·보고본이 바뀔 때만 다시
+  받는다. **초기화가 없다** — 플레이어의 초기화는 화면 선택·펼침만 되돌린다(구현명세 11장).
+* **권한은 검토건 참여 조직만**(구현명세 9장) — 경영관리·구매·생산·품질·대표 계정과 시연관리자. 영업 등은 403이고 오류에 근거·금액을
+  싣지 않는다. 화면은 403이면 「경영관리 담당으로 보기」를 묻고, 플레이어는 장면 이동 때 경영관리 담당 시점으로 바꾼다(역할 선택은 신뢰
+  경계가 아니다, 5.4).
+* **새 엔진 계정 대응은 없다** — 장면 5 `ACCOUNTS`를 그대로 쓴다(USR-BUY = 구매팀장, USR-BUY2 = 구매담당 대행).
+
+**만들며 드러난 것**
+
+* **장면 칩 6을 더하자 375px에서 화면 메뉴가 nav를 5px 넘었다**(역할 선택과 겹치지는 않았다). nav 최소 폭 6.25rem, 역할 선택 4.5rem
+  (메뉴 146~189px가 nav 안 · 역할 선택 201px부터 · 테마 버튼 끝 359px · 문서 375px).
+* **v0.6의 수식 칸**(원인집계·분기손익 등)은 `data_only=True`로 캐시값을 읽는다 — 엔진은 그 시트를 입력으로 쓰지 않고 시험만 대조한다.
+* 대표 주문의 「대행 확인」은 거래·변경근거 칸에 없고 근거 본문(E61-1103 작성자 USR-BUY2)과 AG62 보정 글에만 있다 — 화면이 글자로 지어
+  붙이지 않고 근거·보정 글을 보인다.
+
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9)는 끝났다(장면 2~5는
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10)은 끝났다(장면 2~5는
 Center 등록이 남았다). 운영계(5.4)는 아직 이전 구현이 떠 있다.
 
 ### 5.1 CI — 완료
@@ -1631,4 +1719,20 @@ v0.5의 파생 시트(모델손익 60행·월효과 18행·월손익·초기지�
 * **예산 전용·총괄 초과의 실제 처리**(경영관리 임원 전용 승인·대표 별도 승인) — 범위 이탈은 시행 보류로 표시까지만 한다(X502).
 * **Agent LLM 러너** — 고정 초안 재생(REPLAY)·실패뿐이다(장면 2~4와 같다).
 * 화면 검수는 내장 BASE만 했다. X 사례는 엔진 시험으로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
-* **장면 6** — 설계표·데이터가 나오면 시작한다. HANDOFF51이 출발점이다(FUP51~53 10/29 확인, DIR41 후속 검토, RISK51 OPEN).
+* 장면 6은 5.10 — HANDOFF51·FC51에서 이어진다.
+
+### 5.10 장면 6(SC06) — 완료 (확인본 조회, BPM 없음)
+
+2026-10-27. 설계·데이터는 4.20. 엔진 시험(SQLite·Postgres)으로 v0.6 파생 시트(과제성과·월효과 9행·원인집계·운영지표·분기손익·검증 17항목)
+대조, 기존 71개 시트 = v0.5, FC51 ↔ BASE61 대사, X61-01~08·AT61-06·적재 검증(오류값·연결 누락·승인 전 발주·고정비 절감), 조회 계약·403·
+409·404·조회 멱등을 잠갔다. 브라우저에서 기존 데모 실행(장면 5 미완료)으로 「장면 6 열기」 → 장면 5 각본 완료 → 적재, U601 요약 → 상세 →
+U602 → U601 복귀(펼침 보존), 403 → 경영관리 담당 전환, 375px를 확인했다.
+
+**남은 것**
+
+* **확인 절차(S11~S13)를 BPM으로 돌릴지** — 지금은 끝난 기록으로 적재한다(구현명세 11·13장). 실제 운영에서 담당 임원 확인 → 종합 →
+  확정을 Center 결재로 돌리려면 SC06 BPMN·외부 확장(`nowview-sc06`)·기록 작업이 새로 필요하다 — 명세 밖이라 만들지 않았다.
+* **새 보고 버전(RPT61-v2) 흐름** — 재적재가 새 산정과 재확인 대상을 알리는 데까지다. 새 보고본 작성·확인은 없다.
+* **Agent LLM 러너** — AG61~63은 고정 기록 재현뿐이다(장면 2~5와 같다).
+* 운영계 배포는 5.4와 같이 남았다.
+

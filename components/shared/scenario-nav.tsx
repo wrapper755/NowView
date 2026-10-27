@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BadgeCheck,
+  ClipboardCheck,
   CalendarCheck,
   ChartLine,
   Calculator,
   ClipboardList,
+  FileText,
   FileInput,
   FilePen,
   GaugeCircle,
@@ -32,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * GNB — 장면 선택 + 그 장면의 화면(시연 순서대로). 장면 1은 UI01~UI06, 장면 2는 U21~U27, 장면 3은 U31~U37, 장면 4는
- * U401~U408, 장면 5는 U501~U508이다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
+ * U401~U408, 장면 5는 U501~U508, 장면 6은 U601·U602다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
  */
 const SC01_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "경영 현황", icon: GaugeCircle, href: "/" },
@@ -89,8 +91,15 @@ const SC05_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "BPM 흐름", icon: GitBranch, href: "/sc05/process" },
 ];
 
+/** 장면 6은 두 화면뿐이다(두 화면·세 동작) — 이 장면이 돌리는 BPM이 없어 「BPM 흐름」도 없다. */
+const SC06_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
+  { label: "완료·성과 검토", icon: ClipboardCheck, href: "/sc06" },
+  { label: "보고 요약", icon: FileText, href: "/sc06/report" },
+];
+
 /** 경로 → 장면 번호. */
-export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 {
+export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
+  if (pathname === "/sc06" || pathname.startsWith("/sc06/")) return 6;
   if (pathname === "/sc05" || pathname.startsWith("/sc05/")) return 5;
   if (pathname === "/sc04" || pathname.startsWith("/sc04/")) return 4;
   if (pathname === "/sc03" || pathname.startsWith("/sc03/")) return 3;
@@ -101,9 +110,9 @@ export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 {
 export function ScenarioNav() {
   const pathname = usePathname();
   const scene = sceneOf(pathname);
-  const items = scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
+  const items = scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
   return (
-    <nav aria-label="주요 화면" className="flex min-w-[5.75rem] flex-1 items-center gap-1 sm:gap-2">
+    <nav aria-label="주요 화면" className="flex min-w-[6.25rem] flex-1 items-center gap-1 sm:gap-2">
       <div role="group" aria-label="장면" className="flex shrink-0 rounded-md border p-0 text-[11px] sm:p-0.5">
         {[
           { n: "1", href: "/", on: scene === 1 },
@@ -111,6 +120,7 @@ export function ScenarioNav() {
           { n: "3", href: "/sc03", on: scene === 3 },
           { n: "4", href: "/sc04", on: scene === 4 },
           { n: "5", href: "/sc05", on: scene === 5 },
+          { n: "6", href: "/sc06", on: scene === 6 },
         ].map((s) => (
           <Link
             key={s.n}
@@ -124,7 +134,8 @@ export function ScenarioNav() {
                 메뉴가 역할 선택에 다시 닿았다 — nav 최소 폭을 올리면 테마 버튼이 화면 밖(386px)으로 밀려서, 좁을 때 칩 여백을
                 px-0.5로 줄였다. 장면 5 칩을 더하자 칩 묶음(59px)+메뉴 최소 폭이 nav를 8px 넘고 헤더 전체가 오른쪽 여백을 침범했다
                 (테마 버튼 오른쪽 끝 370px, 375px 실측) — 좁을 때 칩 여백을 1px·묶음 안쪽 여백을 0으로, nav 최소 폭을 5.75rem으로,
-                역할 선택을 5rem으로 줄였다. */}
+                역할 선택을 5rem으로 줄였다. 장면 6 칩(묶음 54px)에서 메뉴가 nav를 5px 넘었다 — nav 최소 폭 6.25rem, 역할 선택
+                4.5rem. */}
             <span className="sr-only sm:not-sr-only">장면 </span>
             {s.n}
           </Link>
