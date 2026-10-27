@@ -16,6 +16,7 @@ event_at_KST다. 이벤트가 없는 중간 단계(판단 초안·승인서 초�
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
@@ -551,8 +552,9 @@ def run_step(process: Sc04Process, demo_run_id: str, index: int) -> dict:
             lambda: process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark),
         )
     node_id = step.node_id or ""
+    since = max((a["seq"] for a in doc["audit"]), default=0)
     # 화면이 보는 버전은 시도마다 다시 읽는다 — 앞 기록이 들어오기 전에 읽으면 낡은 버전이다.
-    return _after_record(
+    done_doc = _after_record(
         process,
         center,
         lambda: process.act(
@@ -564,6 +566,7 @@ def run_step(process: Sc04Process, demo_run_id: str, index: int) -> dict:
             **mark,
         ),
     )
+    return _await_own_record(process, demo_run_id, node_id, since) if center else done_doc
 
 
 def _after_record(process: Sc04Process, center: bool, run: Callable[[], dict]) -> dict:
@@ -575,6 +578,30 @@ def _after_record(process: Sc04Process, center: bool, run: Callable[[], dict]) -
     """
     wait_s = process.center_wait_s * 3
     return after_record(wait_s, center, run, gated=(domain.PrerequisiteError,))
+
+
+def _await_own_record(process: Sc04Process, demo_run_id: str, node_id: str, since: int) -> dict:
+    """
+    Center 실행이면 이 단계 결재의 기록 작업이 들어올 때까지 기다린다(기록 또는 거절).
+
+    대리 답은 결재만 닫는다 — 기다리지 않으면 다음 단계가 시계를 먼저 옮겨 기록이 뒤 시각으로
+    적히고, 지난 시점을 되감으면 그 단계의 효과가 없다(TOTAL 인수 단계에 인수 0/3, 인수 시각이
+    전부 완료 시각 — 2026-10-28 로컬 Center 실측). 끝내 오지 않으면 지금 문서를 돌려준다 — 다음
+    단계의 대기가 거절 사유를 낸다.
+    """
+    deadline = time.monotonic() + process.center_wait_s * 3
+    while True:
+        doc = process.get(demo_run_id)
+        if any(
+            a["seq"] > since
+            and a["action"] in ("answer_via", "answer_rejected")
+            and (a.get("detail") or {}).get("node_id") == node_id
+            for a in doc["audit"]
+        ):
+            return doc
+        if time.monotonic() >= deadline:
+            return doc
+        time.sleep(min(1.0, process.center_wait_s))
 
 
 def _expect(doc: dict, node_id: str) -> dict[str, Any] | None:

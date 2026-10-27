@@ -643,6 +643,20 @@ def test_agent_drafts_cite_only_inputs(proc: Sc04Process) -> None:
     assert adopted["agent_outputs"][outs[2]["output_id"]]["draft"] == outs[2]["draft"]
 
 
+def test_minutes_draft_before_decision_is_a_conflict_not_a_failed_draft(proc: Sc04Process) -> None:
+    """
+    대표 결정 전의 AG43 요청은 상태 충돌(409)이고 실패 초안을 남기지 않는다 — Center 실행의 각본이
+    결정 기록 작업을 기다린다. 실패 초안으로 남기면 대기 없이 FAILED가 됐다
+    (2026-10-28 로컬 Center 실측).
+    """
+    doc = play(proc, until="Confirm_Decision")
+    before = len(doc["agent_outputs"])
+    with pytest.raises(DomainError) as exc:
+        proc.agent(doc["demo_run_id"], "AG43", actor="u-fin")
+    assert exc.value.status == 409
+    assert len(proc.get(doc["demo_run_id"])["agent_outputs"]) == before
+
+
 def test_t413_idempotency_key_replays_and_conflicts(proc: Sc04Process) -> None:
     """T413 — 같은 키·같은 본문은 최초 결과, 같은 키·다른 본문은 409."""
     doc = play(proc, until="Register_Actions")

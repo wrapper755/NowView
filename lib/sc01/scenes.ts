@@ -139,7 +139,14 @@ export function nextBusinessEvening(clock: string, days = 1): string {
  *
  * 마지막 기록을 쓰면 안 된다: 다음 단계를 실행하기 전에 가상시계를 먼저 옮기는데, 그 기록은
  * 아직 지점이 그대로라 "이 장면의 상태 + 다음 장면의 시각"이 보인다.
+ *
+ * **마지막 초기화 이후에서만 찾는다.** 초기화는 이력을 지우지 않아 같은 지점 번호가 앞 진행에도 있다 —
+ * 처음 것을 고르면 초기화 전 진행을 보였다(2026-10-28, 장면 4 Center 재실행 뒤 되감기).
  */
 export function historySeqFor(history: HistoryEntry[], script: number): number | null {
-  return history.find((h) => h.scriptIndex === script)?.seq ?? null;
+  let from = 0;
+  history.forEach((h, i) => {
+    if (h.event === "reset") from = i;
+  });
+  return history.slice(from).find((h) => h.scriptIndex === script)?.seq ?? null;
 }
