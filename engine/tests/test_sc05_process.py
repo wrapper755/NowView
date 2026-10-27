@@ -989,3 +989,54 @@ def test_request_approval_before_submission_is_a_conflict_not_missing() -> None:
     with pytest.raises(DomainError) as unknown:
         domain.check_approve_request(doc, {"request_id": "REQ99", "stage": "function"})
     assert unknown.value.status == 404
+
+
+# ─────────────────────── 화면 직접 진행에서 드러난 것(2026-10-28) ───────────────────────
+
+
+def test_customer_original_cannot_be_received_before_it_arrives(proc: Sc05Process) -> None:
+    """
+    대표 원문은 그 접수 시각(CP51 9/2 09:00 · CP52 9/10 09:00)이 지나야 접수된다 — 예전에는 9/2에
+    9/10 원문 CP52가 CH52로 접수됐다(화면 직접 진행 실측). 시각이 지나야 보인다(구현명세 16장).
+    """
+    doc = play(proc, until="Start_Operation")
+    rid = doc["demo_run_id"]
+    for src in ("CP51", "CP52"):
+        with pytest.raises(DomainError) as exc:
+            domain.check(proc.get(rid), "receive_change", {"source": src})
+        assert exc.value.status == 409 and "아직 수신되지 않았다" in str(exc.value)
+    doc = proc.set_clock(rid, "2027-09-02T09:00:00+09:00", actor="u-demo")
+    domain.check(doc, "receive_change", {"source": "CP51"})
+    with pytest.raises(DomainError):
+        domain.check(doc, "receive_change", {"source": "CP52"})
+
+
+def test_screen_answers_move_the_script_marker_even_out_of_order(proc: Sc05Process) -> None:
+    """
+    화면에서 직접 답해도 플레이어의 단계(`step`·`script_index`)가 따라온다 — 예전에는 착수·계획
+    확정을 손으로 해도 D500에 머물렀고, 「다음 단계」가 「단계를 건너뛸 수 없다 — 다음은 0번이다」
+    였다(화면 직접 진행 실측). 사이의 Agent 요청은 건너뛰고, 병렬 조건 결재는 순서가 바뀌어도 된다.
+    따라온 뒤에는 각본이 남은 단계부터 잇는다.
+    """
+    rid = proc.create()["demo_run_id"]
+    steps = demo.steps_for("BASE")
+
+    def act(index: int) -> dict:
+        s = steps[index]
+        given = {k: ("" if str(v).startswith("@") else v) for k, v in s.answer.items()}
+        proc.set_clock(rid, max(s.at, proc.get(rid)["clock"]), actor="u-demo")
+        return proc.act(rid, s.node_id or "", given, actor=s.actor)
+
+    proc.set_clock(rid, steps[0].at, actor="u-demo")
+    doc = proc.start(rid, actor="u-fin")
+    assert (doc["step"], doc["script_index"]) == ("D501", 0)
+    assert act(2)["script_index"] == 2  # 1번 Agent 요청을 건너뛴다
+    for index in (3, 4, 5, 8, 9, 10, 11):
+        assert act(index)["script_index"] == index
+    assert act(13)["script_index"] == 11  # SUP41 등록이 CON41 근거보다 먼저 — 아직
+    doc = act(12)
+    assert (doc["step"], doc["script_index"]) == ("D507", 13)  # 둘을 함께 지나간다
+    assert doc["script_follow"]["ahead"] == []
+    for index in range(14, len(steps)):
+        doc = demo.run_step(proc, rid, index)
+    assert doc["handoff"]["state_snapshot"]["scene"] == "SC05_COMPLETED"

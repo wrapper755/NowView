@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, Clock, Pause, Play, PlayCircle, R
 import { Button } from "@/components/ui/button";
 import { Narration } from "@/components/shared/narration";
 import { cn } from "@/lib/utils";
+import { formatClock } from "@/lib/sc01/format";
 import { historySeqFor, nextBusinessEvening } from "@/lib/sc01/scenes";
 import { sc05Api, type Sc05Executor } from "@/lib/sc05/client";
 import { scenesFor } from "@/lib/sc05/scenes";
@@ -89,6 +90,11 @@ export function Sc05DemoPlayer() {
             if (mine !== requestSeq.current) return "ok";
             if (!r.ok) {
               setError(r.error);
+              // 실패한 단계로 표시가 넘어가 있지 않게 — 엔진이 실제로 간 지점으로 되돌린다(화면 직접 진행 실측:
+              // 실패 문구 옆에 「단계 4/62」가 보였다)
+              const reached = useSc05.getState().live?.scriptIndex ?? -1;
+              const at = scenes.findIndex((s) => s.script === reached);
+              setScene(at < 0 ? 0 : at);
               return "failed";
             }
             useSc05.getState().setLive(r.data);
@@ -124,6 +130,40 @@ export function Sc05DemoPlayer() {
   useEffect(() => {
     jumpRef.current = jump;
   }, [jump]);
+
+  /**
+   * 플레이어 위치가 엔진의 각본 지점(`scriptIndex`)을 따라간다 — 화면에서 직접 답해 앞으로 갔을 때(엔진이 화면의
+   * 결정도 각본 지점으로 옮긴다, `process._follow_script`). 장면 3 플레이어와 같다 — 위치만 옮기고 라우팅은 하지
+   * 않는다(4.1).
+   */
+  const liveScript = useSc05((s) => s.live?.scriptIndex ?? null);
+  const liveRun = useSc05((s) => s.live?.demoRunId ?? null);
+  const seenScript = useRef<{ run: string; index: number } | null>(null);
+  useEffect(() => {
+    if (liveRun === null || liveScript === null) return;
+    const seen = seenScript.current;
+    if (seen?.run === liveRun && liveScript <= seen.index) {
+      seen.index = liveScript; // 초기화로 되돌아갔다 — 위치는 초기화 핸들러가 이미 정했다
+      return;
+    }
+    const at = scenes.findIndex((s) => s.script === liveScript);
+    if (at < 0) return; // 각본이 아직 오지 않았다 — 오면 다시 본다
+    setScene(at);
+    seenScript.current = { run: liveRun, index: liveScript };
+  }, [liveRun, liveScript, scenes, setScene]);
+
+  /**
+   * 다음 각본 단계의 시각 — 손으로 진행할 때 시계를 그 단계 시각으로 옮긴다. 「다음 영업일 18:30」만 있으면 7/13 →
+   * 8/19에 27번을 눌러야 했고, 8/20 아침에 들어오는 근거를 쓰려면 18:30(기한 18:00 뒤)까지 가야 했다(화면 직접 진행
+   * 실측). 시각만 옮긴다 — 그 단계를 실행하지 않는다. 지금보다 늦은 첫 단계를 고른다.
+   */
+  const liveClock = useSc05((s) => s.live?.clock ?? null);
+  const nextAt = useMemo(() => {
+    if (liveClock === null || liveScript === null) return null;
+    const now = Date.parse(liveClock);
+    const step = script.find((s) => s.index > liveScript && Date.parse(s.at) > now);
+    return step?.at ?? null;
+  }, [liveClock, liveScript, script]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -209,11 +249,11 @@ export function Sc05DemoPlayer() {
     if (pathname !== "/sc05") router.push("/sc05");
   };
 
-  const moveClock = async () => {
+  const moveClock = async (to?: string) => {
     const live = useSc05.getState().live;
     if (!demoRunId || !live) return;
     setPending(true);
-    const r = await sc05Api.clock(demoRunId, nextBusinessEvening(live.clock));
+    const r = await sc05Api.clock(demoRunId, to ?? nextBusinessEvening(live.clock));
     setPending(false);
     if (r.ok) {
       useSc05.getState().setLive(r.data);
@@ -306,6 +346,17 @@ export function Sc05DemoPlayer() {
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void moveClock()} disabled={!hasDoc} title="가상시계를 다음 영업일 18:30으로 — 기한을 넘긴 업무에 알림이 생기고, 그 사이의 배경 원천이 들어온다. 승인·착수는 생기지 않는다">
               <Clock aria-hidden className="size-3" />
               <span className="sr-only sm:not-sr-only">다음 영업일 18:30</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-[11px]"
+              onClick={() => nextAt && void moveClock(nextAt)}
+              disabled={!hasDoc || nextAt === null || pending}
+              title="가상시계를 다음 시연 단계의 시각으로 — 손으로 진행할 때 쓴다. 그 단계를 실행하지 않고, 그 사이의 배경 원천만 들어온다"
+            >
+              <Clock aria-hidden className="size-3" />
+              <span className="sr-only sm:not-sr-only">{nextAt ? `다음 단계 시각 ${formatClock(nextAt)}` : "다음 단계 시각"}</span>
             </Button>
             <select
               value={caseId}

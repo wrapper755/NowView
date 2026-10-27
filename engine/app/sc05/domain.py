@@ -613,6 +613,9 @@ def background_items(seed: Seed, case_id: str) -> list[dict[str, Any]]:
     ]
     for c in seed.rows("SC05변경공유"):
         if c["change_id"] in REPRESENTATIVE.values():
+            # 대표 원문은 접수를 사람이 하지만, 원문 자체는 그 시각에 도착한다 — 오기 전에는
+            # 접수할 수 없다(화면 직접 진행 실측: 9/2에 9/10 원문 CP52가 접수됐다)
+            items.append({"kind": "original", "id": str(c["plan_ref"]), "at": kst(c["접수_KST"])})
             continue
         for stage, col in (
             ("received_at", "접수_KST"),
@@ -803,6 +806,9 @@ def _load(doc: dict, seed: Seed, item: dict[str, Any]) -> bool:
             ),
         }
         doc["official"] = "FC50"
+        return True
+    if kind == "original":
+        doc.setdefault("originals", {})[item["id"]] = item["at"]
         return True
     if kind == "change":
         c = next(x for x in seed.rows("SC05변경공유") if str(x["change_id"]) == item["id"])
@@ -2058,6 +2064,8 @@ def check_receive(doc: dict, args: dict[str, Any]) -> None:
         raise DomainError(f"모르는 고객 원문: {src}", 404)
     if REPRESENTATIVE[src] in doc["changes"]:
         raise DomainError(f"{src}는 이미 접수했다({REPRESENTATIVE[src]})", 409)
+    if src not in doc.get("originals", {}):
+        raise DomainError(f"{src}는 아직 수신되지 않았다 — 원문이 도착한 뒤에 접수한다", 409)
 
 
 def receive_change(
