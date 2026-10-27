@@ -143,7 +143,7 @@ Chaeksas `run_id`(`{{run_id}}`), 그리고 **답한 사람**이 들어간다. �
   * 앞 작업이 아직 첫 호출 전인데 새 원천이 오면 409 — 늦게 깨어난 앞 실행이 데모 실행을 가로채지 않게.
 * **대리 답**: 화면 → 엔진 사전 검사(`check_actor` 403, `check_answer` 409·422 — **Center에 묻기 전에**, 입력을
   지우지 않는다) → `GET /approvals?state=open&assignee=<이름>`에서 이 실행·이 노드의 결재를 찾는다(서버 실행기가
-  결재를 올리기까지 최대 10초 기다린다 — 각본이 수신 직후 원천 확인으로 넘어가도 끊기지 않게) → 결재가 보인
+  결재를 올리기까지 최대 30초 기다린다 — 각본이 수신 직후 원천 확인으로 넘어가도 끊기지 않게) → 결재가 보인
   값(`review`)으로 한 번 더 검사 → `POST /approvals/{id}/answer {answer, if_review_digest}`(`X-CHK-On-Behalf-Of`
   = 행위자 이름). Center 거절은 사유를 그대로 낸다(`not_assignee` 403, `already_answered`·`review_changed` 409,
   `answer_invalid` 422). 키가 받아들여지지 않거나 닿지 못하면 503. **업무 효과는 여전히 기록 작업이 낸다** —
