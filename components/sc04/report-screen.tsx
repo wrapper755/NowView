@@ -93,7 +93,7 @@ function Report({ view }: { view: Sc04View }) {
 function Kpis({ run }: { run: EffectRun }) {
   const y = run.result.periods.year;
   const tiles: Array<[string, string, string]> = [
-    ["대응 전 목표 부족", y.gap_before, "Target − 장면 3 기준 전망"],
+    ["대응 전 목표 부족", y.gap_before, "Target − 수익성 통합 분석 기준 전망"],
     ["보고 개선효과", y.effect, "3개 실행안 · 중복 조정 후"],
     [`보고 후 ${gapWord(y.gap)}`, y.gap, "목표 미달 가능성이 남는다"],
   ];
@@ -143,7 +143,7 @@ function Periods({ run }: { run: EffectRun }) {
         <table className="w-full max-w-xl text-sm" aria-label={`${p.label} 손익 증감`}>
           <tbody className="divide-y">
             <Row label="Target" value={p.target} />
-            <Row label="장면 3 기준 관리손익" value={p.base} />
+            <Row label="수익성 통합 분석 기준 관리손익" value={p.base} />
             <Row label={`대응 전 ${gapWord(p.gap_before)}`} value={p.gap_before} />
             <Row label="추천안 순효과(예상)" value={p.effect} signed />
             <Row label="추천안 반영 전망" value={p.forecast} strong />
@@ -189,7 +189,7 @@ function Periods({ run }: { run: EffectRun }) {
         </Disclosure>
         <Commentary>
           <p className="text-xs text-muted-foreground">
-            기존 부족(사건 이전)과 이번 사건 악화는 장면 3에서 나눴다 — 대응안은 둘 다를 줄이지만 상반기 부족은 되돌리지 못한다.
+            기존 부족(사건 이전)과 이번 사건 악화는 수익성 통합 분석에서 나눴다 — 대응안은 둘 다를 줄이지만 상반기 부족은 되돌리지 못한다.
           </p>
         </Commentary>
       </CardContent>

@@ -18,6 +18,7 @@ import {
 } from "@/lib/sc01/format";
 import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
 import { historySeqFor, SC01_SCENES } from "@/lib/sc01/scenes";
+import { splitNarration } from "@/components/shared/narration";
 import type { DemoRunView, HistoryEntry, ProcessTopology } from "@/lib/sc01/types";
 
 const process = topology as ProcessTopology;
@@ -171,5 +172,31 @@ describe("문서 순서", () => {
     expect(useSc01.getState().live?.agentOutputs[0].status).toBe("SUCCEEDED");
     s.setLive(doc(13, "SUCCEEDED"));
     expect(useSc01.getState().live?.audit).toHaveLength(13);
+  });
+});
+
+describe("플레이어 단계 설명 나누기", () => {
+  it("맨 앞 시점은 칩, 「…다.」 문장은 하나씩, 「 — 」 뒤는 부연이다", () => {
+    const r = splitNarration(
+      "6/17 아침. 장면에서 b모델 7월 700대분 감소를 확인했다. 검토 전망 F02는 승인 전이다 — 원가 상승 요청이 들어온다.",
+    );
+    expect(r.when).toBe("6/17 아침");
+    expect(r.points).toEqual([
+      { head: "장면에서 b모델 7월 700대분 감소를 확인했다.", tail: null },
+      { head: "검토 전망 F02는 승인 전이다", tail: "원가 상승 요청이 들어온다." },
+    ]);
+  });
+
+  it("「…다.」로 끝나는 첫 문장이나 소수점은 시점으로 떼지 않는다", () => {
+    expect(splitNarration("흐름이 끝났다. 인계가 기록됐다.").when).toBeNull();
+    expect(splitNarration("승인효과 127.8백만원을 다시 더하지 않는다.").when).toBeNull();
+  });
+
+  it("모든 장면 1 각본 설명이 빈 문장 없이 나뉜다", () => {
+    for (const s of SC01_SCENES) {
+      const r = splitNarration(s.narration);
+      expect(r.points.length).toBeGreaterThan(0);
+      for (const p of r.points) expect(p.head.trim()).not.toBe("");
+    }
   });
 });

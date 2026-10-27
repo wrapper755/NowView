@@ -41,7 +41,7 @@ export const HANDOFF_STATUS_LABEL: Record<string, string> = {
 export const SCENE2_LABEL: Record<string, string> = {
   READY: "요청 접수 전",
   ACTIVE: "진행 중",
-  HANDED_OFF: "인계 완료 · 장면 3 손익 검토 대기",
+  HANDED_OFF: "인계 완료 · 수익성 통합 분석 손익 검토 대기",
   CLOSED: "검토 종결",
   UNRESOLVED: "협상 미합의 — 팀장 협의",
   REJECTED: "반려 종결",
@@ -73,7 +73,7 @@ export const TASK2_LABEL: Record<string, string> = {
   APPROVE_EXEC: "구매임원 승인",
   APPROVE_CEO: "대표이사 승인",
   COST: "원가 적용 등록",
-  HANDOFF: "장면 3 인계 요청",
+  HANDOFF: "수익성 통합 분석 인계 요청",
   ACCEPT: "경영관리 인수",
   RENEG: "추가 협상(2차) — 후속 범위",
 };

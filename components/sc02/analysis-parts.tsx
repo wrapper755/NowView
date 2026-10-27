@@ -178,13 +178,13 @@ export function BridgeTable({ periods, kinds }: { periods: PeriodPnl[]; kinds: P
   const rows = periods.filter((p) => kinds.includes(p.kind));
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[46rem] text-sm" aria-label="장면 1·2 통합 손익 연결">
+      <table className="w-full min-w-[46rem] text-sm" aria-label="고객 생산계획 변경 대응·외주 단가 인상 검토 통합 손익 연결">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
             <th scope="col" className="py-2 pr-3 font-medium">기간</th>
             <th scope="col" className="py-2 pr-3 text-right font-medium">기준 손익 F01</th>
-            <th scope="col" className="py-2 pr-3 text-right font-medium">장면 1 물량</th>
-            <th scope="col" className="py-2 pr-3 text-right font-medium">장면 2 단가</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">고객 생산계획 변경 대응 물량</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">외주 단가 인상 검토 단가</th>
             <th scope="col" className="py-2 pr-3 text-right font-medium">통합 손익</th>
             <th scope="col" className="py-2 text-right font-medium">Target 대비 부족</th>
           </tr>

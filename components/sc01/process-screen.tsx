@@ -74,7 +74,7 @@ export function ProcessScreen() {
             {waiting.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {view?.bpm?.state === "done"
-                  ? "흐름이 끝났다 — 장면 1 인계 완료."
+                  ? "흐름이 끝났다 — 고객 생산계획 변경 대응 인계 완료."
                   : view?.executor === "studio"
                     ? "바깥 실행의 사람 대기는 NowView가 모른다 — 작업 호출이 알려 준 곳까지만 칠한다."
                     : view?.executor === "center"

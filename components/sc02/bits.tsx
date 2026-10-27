@@ -34,7 +34,7 @@ export function Sc02Header({ id, title, question }: { id: string; title: string;
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
         <span>{view ? formatClock(view.clock) : "—"}</span>
         <span aria-hidden>·</span>
-        <span>장면 2 {view ? SCENE2_LABEL[view.status.scene] ?? view.status.scene : "—"}</span>
+        <span>외주 단가 인상 검토 {view ? SCENE2_LABEL[view.status.scene] ?? view.status.scene : "—"}</span>
         {view && view.caseId !== "BASE" ? (
           <span className="rounded border px-1.5 py-0.5 text-[10px] font-medium text-foreground">{view.caseLabel}</span>
         ) : null}
@@ -179,22 +179,22 @@ export function Sc02StartCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 2 시작</CardTitle>
+        <CardTitle>외주 단가 인상 검토 시작</CardTitle>
         <CardDescription>
-          장면 2는 장면 1의 인계 결과(ISSUE-B07 · 검토 전망 F02)에서 시작한다. 같은 데모 실행
+          외주 단가 인상 검토는 고객 생산계획 변경 대응의 인계 결과(ISSUE-B07 · 검토 전망 F02)에서 시작한다. 같은 데모 실행
           {demoRunId ? <span className="font-mono"> {demoRunId}</span> : null}을 잇는다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {sc01Scene !== "HANDED_OFF" ? (
           <p className="text-xs text-muted-foreground">
-            장면 1이 아직 인계 전이다 — 시작하면 장면 1 각본의 남은 단계를 인계까지 실제로 실행한다(역할 검사·업무 규칙
+            고객 생산계획 변경 대응이 아직 인계 전이다 — 시작하면 고객 생산계획 변경 대응 각본의 남은 단계를 인계까지 실제로 실행한다(역할 검사·업무 규칙
             그대로).
           </p>
         ) : null}
         <Button size="sm" onClick={() => void start()} disabled={busy || !demoRunId}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "준비하는 중…" : "장면 2 시작"}
+          {busy ? "준비하는 중…" : "외주 단가 인상 검토 시작"}
         </Button>
         {error ? (
           <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
@@ -212,7 +212,7 @@ export function Sc02Body({ children }: { children: (view: Sc02View) => React.Rea
   const missing = useSc02((s) => s.missing);
   if (view) return <>{children(view)}</>;
   if (missing) return <Sc02StartCard />;
-  return <p className="text-sm text-muted-foreground">장면 2를 불러오는 중…</p>;
+  return <p className="text-sm text-muted-foreground">외주 단가 인상 검토를 불러오는 중…</p>;
 }
 
 /** 상태 칩 — 축마다 따로(구현명세 10장). 단가안 승인 완료 ≠ 위험 해소 ≠ 전망 승인. */

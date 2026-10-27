@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BadgeCheck,
   ClipboardCheck,
@@ -33,7 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * GNB — 장면 선택 + 그 장면의 화면(시연 순서대로). 장면 1은 UI01~UI06, 장면 2는 U21~U27, 장면 3은 U31~U37, 장면 4는
+ * 업무(장면) 선택 + 그 업무의 화면(시연 순서대로). 업무는 왼쪽 사이드바, 화면은 머리 줄 아래 한 줄이다. 장면 1은 UI01~UI06, 장면 2는 U21~U27, 장면 3은 U31~U37, 장면 4는
  * U401~U408, 장면 5는 U501~U508, 장면 6은 U601·U602다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
  */
 const SC01_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
@@ -107,56 +107,124 @@ export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
   return 1;
 }
 
-export function ScenarioNav() {
-  const pathname = usePathname();
-  const scene = sceneOf(pathname);
-  const items = scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
+/**
+ * 장면 = 그 장면이 수행하는 업무. 「장면 1~6」은 시연 순서일 뿐 업무가 무엇인지 말하지 않는다 — 사이드바·좁은 화면의
+ * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다.
+ */
+export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = [
+  { scene: 1, label: "고객 생산계획 변경 대응", detail: "위험 감지 · 현업 통제 · 인계", href: "/" },
+  { scene: 2, label: "외주 단가 인상 검토", detail: "협상 · 순차 승인 · 원가 등록", href: "/sc02" },
+  { scene: 3, label: "수익성 통합 분석", detail: "부서 확인 · 수시회의 · 분석과제", href: "/sc03" },
+  { scene: 4, label: "개선안 검토·실행 승인", detail: "월간회의 · 대표 승인 · 책임 인수", href: "/sc04" },
+  { scene: 5, label: "결정 실행·계획 갱신", detail: "실행계획 · 착수 · 공식 전망", href: "/sc05" },
+  { scene: 6, label: "완료·성과 검토", detail: "Q4 실현 효과 · 보고", href: "/sc06" },
+];
+
+function itemsOf(scene: number) {
+  return scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
+}
+
+/** 왼쪽 사이드바(넓은 화면) — 업무 목록. 로고는 그 위 공통 줄에 있다. */
+export function WorkSidebar() {
+  const scene = sceneOf(usePathname());
   return (
-    <nav aria-label="주요 화면" className="flex min-w-[6.25rem] flex-1 items-center gap-1 sm:gap-2">
-      <div role="group" aria-label="장면" className="flex shrink-0 rounded-md border p-0 text-[11px] sm:p-0.5">
-        {[
-          { n: "1", href: "/", on: scene === 1 },
-          { n: "2", href: "/sc02", on: scene === 2 },
-          { n: "3", href: "/sc03", on: scene === 3 },
-          { n: "4", href: "/sc04", on: scene === 4 },
-          { n: "5", href: "/sc05", on: scene === 5 },
-          { n: "6", href: "/sc06", on: scene === 6 },
-        ].map((s) => (
-          <Link
-            key={s.n}
-            href={s.href}
-            aria-current={s.on ? "page" : undefined}
-            className={cn("rounded px-px py-0.5 font-medium sm:px-1.5", s.on ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground")}
-          >
-            {/* 좁은 화면에서는 숫자만 — 「장면」 두 번이 화면 메뉴 자리를 0px로 눌렀다(375px 실측). 장면 3을 더하자
-                칩 묶음(62px)+메뉴 최소 폭이 nav 최소 폭(88px)을 넘어 메뉴가 역할 선택 위로 겹쳤다 — 칩 여백·간격과 메뉴 최소 폭을
-                줄이고 nav 최소 폭을 6rem으로 맞췄다(375px에서 테마 버튼까지 들어간다). 장면 4 칩을 더하자 칩 묶음이 65px가 되어
-                메뉴가 역할 선택에 다시 닿았다 — nav 최소 폭을 올리면 테마 버튼이 화면 밖(386px)으로 밀려서, 좁을 때 칩 여백을
-                px-0.5로 줄였다. 장면 5 칩을 더하자 칩 묶음(59px)+메뉴 최소 폭이 nav를 8px 넘고 헤더 전체가 오른쪽 여백을 침범했다
-                (테마 버튼 오른쪽 끝 370px, 375px 실측) — 좁을 때 칩 여백을 1px·묶음 안쪽 여백을 0으로, nav 최소 폭을 5.75rem으로,
-                역할 선택을 5rem으로 줄였다. 장면 6 칩(묶음 54px)에서 메뉴가 nav를 5px 넘었다 — nav 최소 폭 6.25rem, 역할 선택
-                4.5rem. */}
-            <span className="sr-only sm:not-sr-only">장면 </span>
-            {s.n}
-          </Link>
-        ))}
-      </div>
-      <ul className="flex min-w-[2.5rem] flex-1 items-center gap-1 overflow-x-auto">
-        {items.map(({ label, icon: Icon, href }) => (
-          <li key={label} className="shrink-0">
-            <Link
-              href={href}
-              aria-current={pathname === href ? "page" : undefined}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted",
-                pathname === href && "bg-muted",
-              )}
-            >
-              <Icon aria-hidden className="size-3.5" />
-              {label}
-            </Link>
-          </li>
-        ))}
+    <aside className="chrome-ink fixed top-12 bottom-0 left-0 z-40 hidden w-56 flex-col border-r lg:flex">
+      <nav aria-label="업무" className="flex-1 overflow-y-auto px-2 pt-2 pb-4">
+        <p className="px-2 pt-2 pb-1.5 text-[11px] font-medium text-muted-foreground">업무</p>
+        <ol className="flex flex-col gap-0.5">
+          {WORKS.map((w) => {
+            const on = w.scene === scene;
+            return (
+              <li key={w.scene}>
+                <Link
+                  href={w.href}
+                  aria-current={on ? "page" : undefined}
+                  className={cn("flex gap-2 rounded-md px-2 py-2", on ? "bg-brand text-brand-foreground" : "hover:bg-muted")}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "mt-px flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px] tabular-nums",
+                      on ? "border-brand-foreground bg-brand-foreground text-brand" : "border-current text-muted-foreground",
+                    )}
+                  >
+                    {w.scene}
+                  </span>
+                  <span className="min-w-0">
+                    <span className={cn("block text-xs leading-snug", on ? "font-semibold" : "font-medium text-foreground/85")}>{w.label}</span>
+                    <span className={cn("block text-[11px] leading-snug", on ? "opacity-80" : "text-muted-foreground")}>{w.detail}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    </aside>
+  );
+}
+
+/** 머리 줄의 지금 업무 — 넓을 때는 이름, 좁을 때(사이드바가 없을 때)는 업무 선택이다. */
+export function WorkHeading() {
+  const router = useRouter();
+  const scene = sceneOf(usePathname());
+  const work = WORKS.find((w) => w.scene === scene) ?? WORKS[0];
+  return (
+    <div className="min-w-0 flex-1">
+      <p className="hidden min-w-0 items-baseline gap-2 lg:flex">
+        <span className="shrink-0 self-center rounded bg-brand px-1.5 py-0.5 text-[11px] font-semibold text-brand-foreground tabular-nums">
+          업무 {work.scene}
+        </span>
+        <span className="truncate text-base font-semibold">{work.label}</span>
+        <span className="hidden truncate text-xs text-muted-foreground xl:inline">{work.detail}</span>
+      </p>
+      <label className="lg:hidden">
+        <span className="sr-only">업무</span>
+        <select
+          value={work.href}
+          onChange={(e) => router.push(e.target.value)}
+          className="w-full max-w-[14rem] truncate rounded-md border bg-transparent px-1.5 py-1 text-xs font-medium"
+        >
+          {WORKS.map((w) => (
+            <option key={w.scene} value={w.href}>
+              {w.scene}. {w.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+/**
+ * 지금 업무의 화면들(시연 순서) — 왼쪽에서 고른 업무의 하위 메뉴다. 업무 이름 바로 아래에 알약 탭으로 두어 섹션 탭(밑줄)과
+ * 층을 가른다. 가로로만 넘친다 — `overflow-x-auto`는 세로도 auto로 만들어, 밑줄의 `-mb-px` 1px 때문에 세로 스크롤 화살표가
+ * 생겼다(1280px 실측). 세로는 숨긴다.
+ */
+export function ScreenNav() {
+  const pathname = usePathname();
+  const items = itemsOf(sceneOf(pathname));
+  return (
+    <nav aria-label="업무 화면" className="border-t border-brand/15 bg-brand-soft/50">
+      <ul className="mx-auto flex w-full max-w-7xl items-center gap-1 overflow-x-auto overflow-y-hidden px-4 py-2 sm:px-6 lg:px-8">
+        {items.map(({ label, icon: Icon, href }) => {
+          const on = pathname === href;
+          return (
+            <li key={label} className="shrink-0">
+              <Link
+                href={href}
+                aria-current={on ? "page" : undefined}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                  on ? "bg-brand text-brand-foreground shadow-sm" : "text-foreground/80 hover:bg-card hover:text-foreground",
+                )}
+              >
+                <Icon aria-hidden className={cn("size-4", on ? "opacity-100" : "text-muted-foreground")} />
+                {label}
+              </Link>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

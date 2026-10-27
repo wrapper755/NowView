@@ -151,7 +151,7 @@ function Analysis({ view }: { view: Sc03View }) {
             <Card>
               <CardHeader>
                 <CardTitle>근거 · 가정</CardTitle>
-                <CardDescription>승인 단가·적용일은 장면 2 승인 기록에서 읽는다.</CardDescription>
+                <CardDescription>승인 단가·적용일은 외주 단가 인상 검토 승인 기록에서 읽는다.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">

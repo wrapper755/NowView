@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Narration } from "@/components/shared/narration";
 import { cn } from "@/lib/utils";
 import { sc01Api } from "@/lib/sc01/client";
 import { historySeqFor, nextBusinessEvening, SC01_SCENES } from "@/lib/sc01/scenes";
@@ -121,7 +122,7 @@ export function Sc01DemoPlayer() {
           if (mine !== requestSeq.current) return "ok";
           const seq = h.ok ? historySeqFor(h.data, target.script) : null;
           if (seq === null) {
-            setError("그 장면의 이력이 없다 — 초기화 후 다시 진행한다");
+            setError("그 단계의 이력이 없다 — 초기화 후 다시 진행한다");
             return "failed";
           }
           const past = await sc01Api.at(demoRunId, seq);
@@ -210,7 +211,8 @@ export function Sc01DemoPlayer() {
       <aside
         ref={barRef}
         aria-label="데모 시나리오 플레이어"
-        className="fixed inset-x-0 bottom-0 z-50 flex justify-center border-t bg-background/95 py-2 backdrop-blur"
+        data-demo-player="collapsed"
+        className="fixed inset-x-0 bottom-0 z-50 lg:left-56 flex justify-center border-t-2 border-t-brand bg-demo-surface/95 py-2 backdrop-blur xl:inset-x-auto xl:right-4 xl:bottom-4 xl:rounded-full xl:border xl:py-1 xl:shadow-sm"
       >
         <button
           type="button"
@@ -233,51 +235,60 @@ export function Sc01DemoPlayer() {
     <aside
       ref={barRef}
       aria-label="데모 시나리오 플레이어"
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur"
+      data-demo-player="expanded"
+      className="fixed inset-x-0 bottom-0 z-50 lg:left-56 border-t-2 border-t-brand bg-demo-surface/95 backdrop-blur xl:inset-x-auto xl:top-12 xl:bottom-0 xl:right-0 xl:w-80 xl:overflow-y-auto xl:border-t-0 xl:border-l xl:border-l-brand/40"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:flex xl:max-w-none xl:flex-col xl:px-4 xl:pt-4">
         {/* 좁은 화면에서는 스크러버를 감춘다(4.14). */}
-        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex">
+        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex xl:order-last xl:flex-col xl:gap-0.5 xl:border-t xl:px-0 xl:pt-3 xl:pb-4">
           {SC01_SCENES.map((s, i) => (
-            <li key={s.id} className="flex-1">
+            <li key={s.id} className="flex-1 xl:flex-none">
               <button
                 type="button"
                 onClick={() => void jump(i)}
                 title={`${i + 1}. ${s.title}`}
-                aria-label={`장면 ${i + 1}: ${s.title}`}
+                aria-label={`단계 ${i + 1}: ${s.title}`}
                 aria-current={i === sceneIndex ? "step" : undefined}
-                className="group w-full py-1.5"
+                className={cn("group w-full py-1.5 xl:rounded-md xl:px-2 xl:text-left xl:hover:bg-muted", i === sceneIndex && "xl:bg-brand-soft")}
               >
                 <span
                   className={cn(
-                    "block h-1 rounded-full transition-colors",
-                    i === sceneIndex ? "bg-foreground" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
+                    "block h-1 rounded-full transition-colors xl:hidden",
+                    i === sceneIndex ? "bg-brand" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
                   )}
                 />
+                <span className={cn("hidden text-xs leading-snug xl:block", i === sceneIndex ? "font-semibold text-brand" : i < sceneIndex ? "text-muted-foreground" : "text-foreground/80")}>
+                  <span className="mr-1.5 tabular-nums text-muted-foreground">{i + 1}</span>
+                  {s.title}
+                </span>
               </button>
             </li>
           ))}
         </ol>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2.5">
-          <div className="min-w-0 flex-1 basis-80">
+          <div className="min-w-0 flex-1 basis-80 xl:rounded-lg xl:border xl:border-brand/25 xl:bg-card xl:p-3 xl:shadow-sm">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[10px] text-muted-foreground tabular-nums">
-                장면 {sceneIndex + 1} / {SC01_SCENES.length}
+                단계 {sceneIndex + 1} / {SC01_SCENES.length}
               </span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{scene.stage}</span>
-              <span className="text-sm font-semibold text-foreground">{scene.title}</span>
+              <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[10px] text-brand">{scene.stage}</span>
+              <span className="text-sm font-semibold text-foreground xl:w-full xl:text-base xl:leading-snug">{scene.title}</span>
             </div>
-            <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:line-clamp-2">{scene.narration}</p>
-            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 장면을 반영하는 중…</p> : null}
+            <Narration
+              text={
+                scene.narration
+              }
+            />
+            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 단계를 반영하는 중…</p> : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
-                장면 이동 실패 — {error}
+                단계 이동 실패 — {error}
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap xl:w-full xl:shrink xl:flex-wrap">
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void jump(0)} disabled={sceneIndex === 0}>
               <Undo2 aria-hidden className="size-3" />
               처음으로
@@ -322,7 +333,7 @@ export function Sc01DemoPlayer() {
               <RotateCcw aria-hidden className="size-3" />
               초기화
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0} aria-label="이전 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0} aria-label="이전 단계">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
             <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={external || (sceneIndex >= LAST && !isPlaying)} title={external ? "이 실행 위치에서는 각본이 결재에 답할 수 없다 — 결재는 바깥에서 답한다" : undefined}>
@@ -338,7 +349,7 @@ export function Sc01DemoPlayer() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={external || sceneIndex >= LAST} aria-label="다음 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={external || sceneIndex >= LAST} aria-label="다음 단계">
               <ChevronRight aria-hidden className="size-3" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7" onClick={togglePlayer} aria-label="플레이어 접기">

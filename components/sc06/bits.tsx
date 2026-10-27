@@ -49,9 +49,9 @@ export function Sc06Body({ children }: { children: React.ReactNode }) {
   const missing = useSc06((s) => s.missing);
   const error = useSc06((s) => s.metaError);
   const demoRunId = useSc01((s) => s.demoRunId);
-  if (error) return <Problem text={`장면 6 문서를 받지 못했다 — ${error}`} />;
+  if (error) return <Problem text={`완료·성과 검토 문서를 받지 못했다 — ${error}`} />;
   if (missing || (!meta && !demoRunId)) return <OpenCard />;
-  if (!meta) return <p className="text-sm text-muted-foreground">장면 6 문서를 불러오는 중…</p>;
+  if (!meta) return <p className="text-sm text-muted-foreground">완료·성과 검토 문서를 불러오는 중…</p>;
   return <>{children}</>;
 }
 
@@ -74,16 +74,16 @@ function OpenCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>장면 6이 아직 열리지 않았다</CardTitle>
+        <CardTitle>완료·성과 검토가 아직 열리지 않았다</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <p>
-          장면 6은 장면 5 인계(HANDOFF51)와 공식 전망 FC51에서 이어진다. 열면 장면 5가 완료 전일 때 장면 5 각본을 끝까지 실제로
+          완료·성과 검토는 결정 실행·계획 갱신 인계(HANDOFF51)와 공식 전망 FC51에서 이어진다. 열면 결정 실행·계획 갱신이 완료 전일 때 결정 실행·계획 갱신 각본을 끝까지 실제로
           실행하고, 2027 Q4 검토 자료(RV61)와 확인된 보고본 RPT61-v1을 적재한다.
         </p>
         <Button size="sm" onClick={() => void open()} disabled={pending}>
           <PlayCircle aria-hidden className="size-3.5" />
-          {pending ? "여는 중…" : "장면 6 열기"}
+          {pending ? "여는 중…" : "완료·성과 검토 열기"}
         </Button>
         {error ? <Problem text={error} /> : null}
       </CardContent>

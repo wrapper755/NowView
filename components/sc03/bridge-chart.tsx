@@ -38,8 +38,8 @@ function steps(p: Period): Step[] {
   }
   const afterVolume = n(p.f01) + n(p.volume_effect);
   out.push({ key: "f01", label: "사건 전 F01", kind: "total", value: p.f01!, from: 0, to: n(p.f01) });
-  out.push({ key: "volume", label: "물량(장면 1)", kind: "delta", value: p.volume_effect!, from: n(p.f01), to: afterVolume });
-  out.push({ key: "cost", label: "승인 단가(장면 2)", kind: "delta", value: p.cost_effect!, from: afterVolume, to: n(p.combined) });
+  out.push({ key: "volume", label: "물량(고객 생산계획 변경 대응)", kind: "delta", value: p.volume_effect!, from: n(p.f01), to: afterVolume });
+  out.push({ key: "cost", label: "승인 단가(외주 단가 인상 검토)", kind: "delta", value: p.cost_effect!, from: afterVolume, to: n(p.combined) });
   out.push({ key: "combined", label: "통합 전망", kind: "total", value: p.combined!, from: 0, to: n(p.combined) });
   return out;
 }

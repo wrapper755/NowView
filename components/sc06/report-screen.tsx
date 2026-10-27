@@ -204,7 +204,7 @@ function Body({ r }: { r: Report }) {
           </p>
           <p>
             연간 공식 전망 {r.annual.official} {million(Number(r.annual.annual))} · Target {million(Number(r.annual.target))} · {gapWord(r.annual.gap)}{" "}
-            {million(Math.abs(Number(r.annual.gap)))}백만원 — 장면 6은 자동으로 바꾸지 않는다(새 Forecast 승인 아님).
+            {million(Math.abs(Number(r.annual.gap)))}백만원 — 완료·성과 검토는 자동으로 바꾸지 않는다(새 Forecast 승인 아님).
           </p>
           {r.monitoring ? (
             <p className="text-muted-foreground">

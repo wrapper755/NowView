@@ -20,7 +20,7 @@ import { useSc01 } from "@/lib/store/sc01";
 export function Sc02OverviewScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <Sc02Header id="SC02" title="장면 2 — 단가 인상 검토 현황" question="물량 감소 대응 중에 원가 상승이 들어오면 무엇을 보고 누가 판단하는가?" />
+      <Sc02Header id="SC02" title="단가 인상 검토 현황" question="물량 감소 대응 중에 원가 상승이 들어오면 무엇을 보고 누가 판단하는가?" />
       <Sc02Body>{(view) => <Overview view={view} />}</Sc02Body>
     </main>
   );
@@ -39,7 +39,7 @@ function Overview({ view }: { view: Sc02View }) {
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>장면 1 결과</CardTitle>
+            <CardTitle>고객 생산계획 변경 대응 결과</CardTitle>
             <CardDescription>
               {formatClock(view.sc01.handed_off_at)} 인계 · <span className="font-mono">{view.sc01.run_id}</span>
             </CardDescription>
@@ -49,16 +49,16 @@ function Overview({ view }: { view: Sc02View }) {
               <span className="font-mono">{issue.issue_id}</span> b모델 7월 물량 감소 <RiskTag risk={issue.risk} /> · 열림
             </p>
             <p>
-              검토 전망 {view.sc01.forecast} — <span className="font-medium">승인 전</span>. 2027 물량 영향 −1,400만원은 장면 1의
+              검토 전망 {view.sc01.forecast} — <span className="font-medium">승인 전</span>. 2027 물량 영향 −1,400만원은 고객 생산계획 변경 대응의
               계산이다.
             </p>
             <Commentary block>
               <p className="text-xs text-muted-foreground">
-                장면 2는 장면 1 인계 시점의 결과를 근거로 쓴다(스냅샷). 장면 1을 초기화해도 장면 2의 근거는 바뀌지 않는다.
+                외주 단가 인상 검토는 고객 생산계획 변경 대응 인계 시점의 결과를 근거로 쓴다(스냅샷). 고객 생산계획 변경 대응을 초기화해도 외주 단가 인상 검토의 근거는 바뀌지 않는다.
               </p>
             </Commentary>
             <Link href="/handoff" className="text-xs underline">
-              장면 1 인계 화면
+              고객 생산계획 변경 대응 인계 화면
             </Link>
           </CardContent>
         </Card>

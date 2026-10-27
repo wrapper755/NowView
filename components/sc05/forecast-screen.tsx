@@ -191,7 +191,7 @@ function Body({ view }: { view: Sc05View }) {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p className="text-xs text-muted-foreground">
-              참고(공식본 아님): 장면 4 판단 검토안 {view.sc04.handoff.decision} — 예상효과 <Mn value={view.sc04.handoff.financial_snapshot.effect} /> 백만원
+              참고(공식본 아님): 개선안 검토·실행 승인 판단 검토안 {view.sc04.handoff.decision} — 예상효과 <Mn value={view.sc04.handoff.financial_snapshot.effect} /> 백만원
             </p>
             {view.forecasts.map((f) => (
               <div key={f.forecast_id} className="text-xs">

@@ -102,7 +102,7 @@ function Approval({ view }: { view: Sc02View }) {
               담당 {name(view.instruction.assignee)} · 기한 {formatClock(view.instruction.due_at)}
             </p>
             <p className="text-xs text-muted-foreground">
-              원가 등록과 장면 2 완료는 막혀 있다. 2차 협상·재기안·재승인은 후속 범위다 — 장면 3에는 미확정 자료로만 보인다.
+              원가 등록과 외주 단가 인상 검토 완료는 막혀 있다. 2차 협상·재기안·재승인은 후속 범위다 — 수익성 통합 분석에는 미확정 자료로만 보인다.
             </p>
           </CardContent>
         </Card>

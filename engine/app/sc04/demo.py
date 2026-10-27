@@ -188,7 +188,7 @@ def base_steps(seed: Seed) -> list[Step]:
             at("EV41-01"),
             domain.FIN,
             "start",
-            label="장면 4 착수 — HANDOFF31·AT31~34 연결",
+            label="개선안 검토·실행 승인 착수 — HANDOFF31·AT31~34 연결",
             event="EV41-01",
         ),
         *submit("AT31", "RES41", "EV41-02"),
@@ -330,7 +330,8 @@ def base_steps(seed: Seed) -> list[Step]:
             "Register_Actions",
             {
                 "등록확인": "등록",
-                "등록메모": "ACT41~43 · CON41 · SUP41 · DIR41 등록 — 상세 계획은 장면 5",
+                "등록메모": "ACT41~43 · CON41 · SUP41 · DIR41 등록 — 상세 계획은 결정 실행·계획 "
+                            "갱신",
             },
             "실행과제·조건·지시 등록",
             "EV41-17",
@@ -347,10 +348,11 @@ def base_steps(seed: Seed) -> list[Step]:
             "act",
             "Complete_Scene",
             {
-                "완료메모": "승인·인수 완료 — 장면 5 상세 실행계획 대기. CON41 미충족·위험 미해소 "
+                "완료메모": "승인·인수 완료 — 결정 실행·계획 갱신 상세 실행계획 대기. CON41 "
+                            "미충족·위험 미해소 "
                 "유지"
             },
-            "장면 4 완료 · HANDOFF41",
+            "개선안 검토·실행 승인 완료 · HANDOFF41",
             "EV41-23",
         ),
     ]

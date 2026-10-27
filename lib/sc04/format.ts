@@ -20,7 +20,7 @@ export const SCENE_STATE_LABEL: Record<string, string> = {
   DECIDED: "대표 결정 · 승인서 대기",
   APPROVED: "승인서 확정 · 과제 등록 대기",
   AWAITING_ACCEPTANCE: "책임 인수 대기",
-  SC04_COMPLETED: "장면 4 완료",
+  SC04_COMPLETED: "개선안 검토·실행 승인 완료",
 };
 
 export const RESULT_STATE_LABEL: Record<string, string> = {

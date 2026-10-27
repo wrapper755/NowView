@@ -317,17 +317,20 @@ def baseline_from_sc03(sc03_doc: dict) -> dict[str, Any]:
     """
     h = sc03_doc.get("handoff") or {}
     if sc03_doc["review"].get("state") != "SC03_COMPLETED" or h.get("handoff_id") != SOURCE_HANDOFF:
-        raise DomainError("장면 3이 아직 완료 전이다 — 장면 4는 HANDOFF31에서 시작한다", 409)
+        raise DomainError("수익성 통합 분석이 아직 완료 전이다 — 개선안 검토·실행 승인은 "
+                          "HANDOFF31에서 시작한다", 409)
     if sc03_doc.get("case_id") != "BASE":
         raise DomainError(
-            f"장면 3이 기본 시연이 아니다({sc03_doc.get('case_id')}) — 장면 4 기대값은 기본 경로 "
+            f"수익성 통합 분석이 기본 시연이 아니다({sc03_doc.get('case_id')}) — 개선안 검토·실행 "
+            "승인 기대값은 기본 경로 "
             "기준이다",
             409,
         )
     tasks = []
     for a in ordered(sc03_doc["assignments"]):
         if a["state"] != "ACCEPTED" or a["accepted_version"] != a["assignment_version"]:
-            raise DomainError(f"장면 3 {a['task_id']}가 현재 배정버전으로 인수되지 않았다", 409)
+            raise DomainError(f"수익성 통합 분석 {a['task_id']}가 현재 배정버전으로 인수되지 "
+                              "않았다", 409)
         tasks.append(
             {
                 k: a.get(k)
@@ -346,7 +349,8 @@ def baseline_from_sc03(sc03_doc: dict) -> dict[str, Any]:
             }
         )
     if sorted(t["task_id"] for t in tasks) != sorted(RESULTS):
-        raise DomainError("장면 3 분석과제가 AT31~AT34가 아니다 — 장면 4 연결을 지을 수 없다", 409)
+        raise DomainError("수익성 통합 분석 분석과제가 AT31~AT34가 아니다 — 개선안 검토·실행 승인 "
+                          "연결을 지을 수 없다", 409)
     frozen = max(
         (r for r in sc03_doc["reports"].values() if r["kind"] == "FROZEN"), key=lambda r: r["seq"]
     )
@@ -439,7 +443,8 @@ def new_demo_run(
         "followups": [
             {
                 **q,
-                "history": [{"at": baseline["handoff"]["as_of"], "note": "장면 3 인계 시점 상태"}],
+                "history": [{"at": baseline["handoff"]["as_of"], "note": "수익성 통합 분석 인계 "
+                                                                         "시점 상태"}],
             }
             for q in baseline["questions"]
         ],
@@ -475,7 +480,7 @@ def start_review(doc: dict, *, by: str) -> bool:
     **재착수는 기존
     결과를 돌려준다**(T401 — 중복 업무·이벤트 없음). 돌려주는 값은 새로 착수했는가다.
     """
-    _require(by, FIN, "장면 4 착수")
+    _require(by, FIN, "개선안 검토·실행 승인 착수")
     r = doc["review"]
     if r["started_at"] is not None:
         return False
@@ -505,7 +510,7 @@ def start_review(doc: dict, *, by: str) -> bool:
 def open_review(doc: dict) -> dict[str, Any]:
     """BPM 첫 작업 — 착수된 검토건인지 본다. 바깥 실행은 착수 뒤에 Studio·Center에서 시작한다."""
     if doc["review"]["started_at"] is None:
-        raise DomainError("아직 착수하지 않은 장면이다 — 화면에서 착수를 먼저 누른다", 409)
+        raise DomainError("아직 착수하지 않은 업무다 — 화면에서 착수를 먼저 누른다", 409)
     return {"review_id": REVIEW_ID, "assignee_name": name_of(FIN)}
 
 
@@ -1347,7 +1352,7 @@ def check_decide(doc: dict, args: dict[str, Any]) -> None:
             if problems:
                 raise DomainError(", ".join(problems), 422)
     if not any(items[a]["outcome"] in ("승인", "조건부승인") for a in recommended(doc)):
-        raise DomainError("승인·조건부 승인이 하나도 없다 — 실행 승인 장면이 아니다", 422)
+        raise DomainError("승인·조건부 승인이 하나도 없다 — 실행 승인 업무가 아니다", 422)
     disc = args.get("discovery") or {}
     if not str(disc.get("content") or "").strip():
         raise DomainError("잔여 부족분 추가 발굴 지시를 적는다(M409)", 422)
@@ -1990,7 +1995,7 @@ def completion_conditions(doc: dict) -> dict[str, Any]:
 
 def check_complete(doc: dict) -> None:
     if doc["handoff"] is not None:
-        raise DomainError("이미 완료된 장면이다 — 완료본은 바꾸지 않는다", 409)
+        raise DomainError("이미 완료된 업무다 — 완료본은 바꾸지 않는다", 409)
     check = completion_conditions(doc)
     if not check["met"]:
         raise PrerequisiteError(
@@ -2007,7 +2012,7 @@ def complete_scene(doc: dict, *, memo: str, by: str) -> str:
     UI 요약이 아니라 승인본·계산본·배정·인수 버전의 연결이다. Risk·Forecast·Target은 그대로다.
     """
     check_complete(doc)
-    _require(by, FIN, "장면 종료")
+    _require(by, FIN, "업무 종료")
     apr = valid_approval(doc)
     dec = doc["decision"]
     run = doc["runs"][dec["run_id"]]

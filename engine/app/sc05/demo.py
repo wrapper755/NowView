@@ -59,7 +59,7 @@ COOPERATION = {
 COSTS = {"01": "0", "02": "0", "03": "0", "04": "0", "05": "2000000", "06": "0"}
 EFFECT_RULE = (
     "9월부터 A-b·P-COM01 긴급구매 건수와 추가비(운송·할증)를 주문 ID 단위로 월별 확인 — 비교 "
-    "기준은 장면 4 정규화 "
+    "기준은 개선안 검토·실행 승인 정규화 "
     "월 12건×건당 비용. 원천: 구매 주문·긴급 승인·운영지원 집행. 연간 효과는 별도 검증"
 )
 
@@ -235,7 +235,7 @@ def base_steps(seed: Seed) -> list[Step]:
             at("EV51-01"),
             domain.FIN,
             "start",
-            label="장면 5 착수 — HANDOFF41·APR41-v1·ACT41~43 연결",
+            label="결정 실행·계획 갱신 착수 — HANDOFF41·APR41-v1·ACT41~43 연결",
             event="EV51-01",
         ),
         agent("AG51", "D502", domain.BUY_LEAD),
@@ -661,7 +661,7 @@ def base_steps(seed: Seed) -> list[Step]:
                     "지속"
                 ),
             },
-            "장면 5 인계 완료 · HANDOFF51",
+            "결정 실행·계획 갱신 인계 완료 · HANDOFF51",
         ),
     ]
 

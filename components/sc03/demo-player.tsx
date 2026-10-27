@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ChevronUp, Clock, Pause, Play, PlayCircle, RotateCcw, Undo2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Narration } from "@/components/shared/narration";
 import { cn } from "@/lib/utils";
 import { historySeqFor, nextBusinessEvening } from "@/lib/sc01/scenes";
 import { sc03Api, type Sc03Executor } from "@/lib/sc03/client";
@@ -96,7 +97,7 @@ export function Sc03DemoPlayer() {
           if (mine !== requestSeq.current) return "ok";
           const seq = h.ok ? historySeqFor(h.data, target.script) : null;
           if (seq === null) {
-            setError("그 장면의 이력이 없다 — 초기화 후 다시 진행한다");
+            setError("그 단계의 이력이 없다 — 초기화 후 다시 진행한다");
             return "failed";
           }
           const past = await sc03Api.at(demoRunId, seq);
@@ -217,7 +218,8 @@ export function Sc03DemoPlayer() {
 
   if (!isExpanded) {
     return (
-      <aside ref={barRef} aria-label="장면 3 데모 플레이어" className="fixed inset-x-0 bottom-0 z-50 flex justify-center border-t bg-background/95 py-2 backdrop-blur">
+      <aside ref={barRef} aria-label="수익성 통합 분석 데모 플레이어" data-demo-player="collapsed"
+        className="fixed inset-x-0 bottom-0 z-50 lg:left-56 flex justify-center border-t-2 border-t-brand bg-demo-surface/95 py-2 backdrop-blur xl:inset-x-auto xl:right-4 xl:bottom-4 xl:rounded-full xl:border xl:py-1 xl:shadow-sm">
         <button type="button" onClick={togglePlayer} className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-muted" aria-expanded={false}>
           <PlayCircle aria-hidden className="size-3.5" />
           SC03 시연
@@ -231,56 +233,63 @@ export function Sc03DemoPlayer() {
   }
 
   return (
-    <aside ref={barRef} aria-label="장면 3 데모 플레이어" className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex">
+    <aside ref={barRef} aria-label="수익성 통합 분석 데모 플레이어" data-demo-player="expanded"
+      className="fixed inset-x-0 bottom-0 z-50 lg:left-56 border-t-2 border-t-brand bg-demo-surface/95 backdrop-blur xl:inset-x-auto xl:top-12 xl:bottom-0 xl:right-0 xl:w-80 xl:overflow-y-auto xl:border-t-0 xl:border-l xl:border-l-brand/40">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:flex xl:max-w-none xl:flex-col xl:px-4 xl:pt-4">
+        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex xl:order-last xl:flex-col xl:gap-0.5 xl:border-t xl:px-0 xl:pt-3 xl:pb-4">
           {scenes.map((s, i) => (
-            <li key={s.id} className="flex-1">
+            <li key={s.id} className="flex-1 xl:flex-none">
               <button
                 type="button"
                 onClick={() => void jump(i)}
                 title={`${i + 1}. ${s.title}`}
-                aria-label={`장면 ${i + 1}: ${s.title}`}
+                aria-label={`단계 ${i + 1}: ${s.title}`}
                 aria-current={i === sceneIndex ? "step" : undefined}
                 disabled={!hasDoc}
-                className="group w-full py-1.5"
+                className={cn("group w-full py-1.5 xl:rounded-md xl:px-2 xl:text-left xl:hover:bg-muted", i === sceneIndex && "xl:bg-brand-soft")}
               >
                 <span
                   className={cn(
-                    "block h-1 rounded-full transition-colors",
-                    i === sceneIndex ? "bg-foreground" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
+                    "block h-1 rounded-full transition-colors xl:hidden",
+                    i === sceneIndex ? "bg-brand" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
                   )}
                 />
+                <span className={cn("hidden text-xs leading-snug xl:block", i === sceneIndex ? "font-semibold text-brand" : i < sceneIndex ? "text-muted-foreground" : "text-foreground/80")}>
+                  <span className="mr-1.5 tabular-nums text-muted-foreground">{i + 1}</span>
+                  {s.title}
+                </span>
               </button>
             </li>
           ))}
         </ol>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2.5">
-          <div className="min-w-0 flex-1 basis-80">
+          <div className="min-w-0 flex-1 basis-80 xl:rounded-lg xl:border xl:border-brand/25 xl:bg-card xl:p-3 xl:shadow-sm">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[10px] text-muted-foreground tabular-nums">
-                장면 3 · {sceneIndex + 1} / {scenes.length}
+                단계 {sceneIndex + 1} / {scenes.length}
               </span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{scene.stage}</span>
-              <span className="text-sm font-semibold text-foreground">{scene.title}</span>
+              <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[10px] text-brand">{scene.stage}</span>
+              <span className="text-sm font-semibold text-foreground xl:w-full xl:text-base xl:leading-snug">{scene.title}</span>
             </div>
-            <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:line-clamp-2">
-              {missing ? "이 데모 실행에는 장면 3이 없다 — 「장면 3 시작」을 누르면 장면 2를 경영관리 인수까지 진행한 뒤 시작한다." : scene.narration}
-            </p>
-            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 장면을 반영하는 중…</p> : null}
+            <Narration
+              text={
+                missing ? "이 데모 실행에는 수익성 통합 분석이 없다 — 「수익성 통합 분석 시작」을 누르면 외주 단가 인상 검토를 경영관리 인수까지 진행한 뒤 시작한다." : scene.narration
+              }
+            />
+            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 단계를 반영하는 중…</p> : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
-                장면 이동 실패 — {error}
+                단계 이동 실패 — {error}
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap xl:w-full xl:shrink xl:flex-wrap">
             {missing ? (
               <Button size="sm" className="h-7 text-[11px]" onClick={() => void startCase(caseId)} disabled={pending}>
                 <PlayCircle aria-hidden className="size-3" />
-                장면 3 시작
+                수익성 통합 분석 시작
               </Button>
             ) : null}
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void jump(0)} disabled={sceneIndex === 0 || !hasDoc}>
@@ -295,7 +304,7 @@ export function Sc03DemoPlayer() {
               value={caseId}
               onChange={(e) => void startCase(e.target.value)}
               aria-label="시연 사례"
-              title="사례를 바꾸면 새 데모 실행을 만든다(장면 1부터) — 기본 시연 결과를 덮지 않는다"
+              title="사례를 바꾸면 새 데모 실행을 만든다(고객 생산계획 변경 대응부터) — 기본 시연 결과를 덮지 않는다"
               className="h-7 max-w-[8rem] rounded-md border bg-transparent px-1 text-[11px] sm:max-w-[11rem]"
             >
               {(cases.length ? cases : [{ caseId: "BASE", label: "기본 시연" }]).map((c) => (
@@ -308,18 +317,18 @@ export function Sc03DemoPlayer() {
               value={executor}
               onChange={(e) => void switchExecutor(e.target.value as Sc03Executor)}
               aria-label="실행 위치"
-              title="BPM을 누가 돌 것인가 — 바꾸면 이 데모 실행의 장면 3을 D30부터 다시 시작한다"
+              title="BPM을 누가 돌 것인가 — 바꾸면 이 데모 실행의 수익성 통합 분석을 D30부터 다시 시작한다"
               disabled={!hasDoc}
               className="hidden h-7 rounded-md border bg-transparent px-1 text-[11px] sm:block"
             >
               <option value="center">Center 서버 실행</option>
               <option value="studio">Studio 시험 실행</option>
             </select>
-            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void reset()} disabled={!hasDoc} title="이 데모 실행의 장면 3만 D30으로 되돌린다">
+            <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void reset()} disabled={!hasDoc} title="이 데모 실행의 수익성 통합 분석만 D30으로 되돌린다">
               <RotateCcw aria-hidden className="size-3" />
               <span className="sr-only sm:not-sr-only">초기화</span>
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0 || !hasDoc} aria-label="이전 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex - 1)} disabled={sceneIndex === 0 || !hasDoc} aria-label="이전 단계">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
             <Button
@@ -341,7 +350,7 @@ export function Sc03DemoPlayer() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={!hasDoc || external || sceneIndex >= last} aria-label="다음 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => void jump(sceneIndex + 1)} disabled={!hasDoc || external || sceneIndex >= last} aria-label="다음 단계">
               <ChevronRight aria-hidden className="size-3" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7" onClick={togglePlayer} aria-label="플레이어 접기">

@@ -176,7 +176,7 @@ class Sc03Process:
     def _load(self, demo_run_id: str) -> tuple[dict, int]:
         found = self.store.load(demo_run_id)
         if found is None:
-            raise DomainError(f"장면 3이 시작되지 않은 데모 실행: {demo_run_id}", 404)
+            raise DomainError(f"수익성 통합 분석이 시작되지 않은 데모 실행: {demo_run_id}", 404)
         return found
 
     def _env(self, calls: _InProcessCalls, doc: dict) -> RunEnv:
@@ -267,8 +267,9 @@ class Sc03Process:
             return doc
         if executor_of(doc) == "studio":
             raise DomainError(
-                "장면 2가 Studio 시험 실행이다 — Studio에서 경영관리 인수까지 진행한 뒤 "
-                "장면 3을 시작한다",
+                "외주 단가 인상 검토가 Studio 시험 실행이다 — Studio에서 경영관리 인수까지 진행한 "
+                "뒤 "
+                "수익성 통합 분석을 시작한다",
                 409,
             )
         steps = sc02_demo.steps_for(doc["case_id"], self.sc02.seed)
@@ -279,7 +280,8 @@ class Sc03Process:
                     self.sc02.sync_center(rid)
         except DomainError as exc:
             raise DomainError(
-                f"장면 2를 각본으로 인수까지 끝낼 수 없다 — {exc}. 장면 2를 초기화한 뒤 다시 한다",
+                f"외주 단가 인상 검토를 각본으로 인수까지 끝낼 수 없다 — {exc}. 외주 단가 인상 "
+                "검토를 초기화한 뒤 다시 한다",
                 409,
             ) from exc
         deadline = time.monotonic() + self.center_wait_s
@@ -289,7 +291,8 @@ class Sc03Process:
             doc = self.sc02.get(rid)
         if doc["scene"] != "HANDED_OFF":
             raise DomainError(
-                "장면 2 각본을 다 돌렸지만 아직 인수가 기록되지 않았다 — 바깥 실행이 인수 기록을 "
+                "외주 단가 인상 검토 각본을 다 돌렸지만 아직 인수가 기록되지 않았다 — 바깥 실행이 "
+                "인수 기록을 "
                 "부를 때까지 기다린 뒤 다시 시작한다",
                 409,
             )
@@ -315,7 +318,7 @@ class Sc03Process:
             if existing is not None:
                 if existing[0]["case_id"] != case_id:
                     raise DomainError(
-                        f"이 데모 실행의 장면 3은 이미 {existing[0]['case_id']}다 — "
+                        f"이 데모 실행의 수익성 통합 분석은 이미 {existing[0]['case_id']}다 — "
                         "다른 사례는 새 실행으로",
                         409,
                     )

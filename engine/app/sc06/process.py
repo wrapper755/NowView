@@ -68,8 +68,8 @@ class Sc06Process:
             return doc
         if executor_of(doc) == "studio":
             raise DomainError(
-                "장면 5가 Studio 시험 실행이다 — "
-                "Studio에서 장면 5 완료까지 진행한 뒤 장면 6을 연다",
+                "결정 실행·계획 갱신이 Studio 시험 실행이다 — "
+                "Studio에서 결정 실행·계획 갱신 완료까지 진행한 뒤 완료·성과 검토를 연다",
                 409,
             )
         steps = sc05_demo.steps_for(doc["case_id"], self.sc05.seed)
@@ -80,7 +80,8 @@ class Sc06Process:
                     self.sc05.sync_center(rid)
         except DomainError as exc:
             raise DomainError(
-                f"장면 5를 각본으로 완료까지 끝낼 수 없다 — {exc}. 장면 5를 초기화한 뒤 다시 한다",
+                f"결정 실행·계획 갱신을 각본으로 완료까지 끝낼 수 없다 — {exc}. 결정 실행·계획 "
+                "갱신을 초기화한 뒤 다시 한다",
                 409,
             ) from exc
         deadline = time.monotonic() + self.center_wait_s
@@ -90,7 +91,7 @@ class Sc06Process:
             doc = self.sc05.get(rid)
         if doc["handoff"] is None:
             raise DomainError(
-                "장면 5 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — "
+                "결정 실행·계획 갱신 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — "
                 "바깥 실행이 완료 기록을 부를 때까지 "
                 "기다린 뒤 다시 연다",
                 409,
@@ -112,7 +113,8 @@ class Sc06Process:
         """
         if case_id not in domain.CASES:
             raise DomainError(
-                f"모르는 시연 사례: {case_id} — 장면 6 예외(X61-*)는 시험 fixture로만 적재한다", 422
+                f"모르는 시연 사례: {case_id} — 완료·성과 검토 예외(X61-*)는 시험 fixture로만 "
+                "적재한다", 422
             )
         if sc01_demo_run_id is not None:
             existing = self.store.load(sc01_demo_run_id)
@@ -129,6 +131,6 @@ class Sc06Process:
         found = self.store.load(demo_run_id)
         if found is None:
             raise domain.ReadError(
-                f"장면 6이 열리지 않은 데모 실행: {demo_run_id}", 404, "NOT_FOUND"
+                f"완료·성과 검토가 열리지 않은 데모 실행: {demo_run_id}", 404, "NOT_FOUND"
             )
         return found[0]

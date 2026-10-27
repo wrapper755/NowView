@@ -17,7 +17,7 @@ const CONDITION_LABEL: Record<string, string> = {
   approved: "필요 승인 완료",
   cost_registered: "C02 원가 등록",
   run_matches_approval: "승인 조건 = 분석 run = 원가",
-  sc01_run_valid: "장면 1 run 유효(F02 검토 중)",
+  sc01_run_valid: "고객 생산계획 변경 대응 run 유효(F02 검토 중)",
   evidence_complete: "원천·보고·협상·기안·승인 근거",
   no_renegotiation: "추가 협상지시 없음",
 };
@@ -29,7 +29,7 @@ const CONDITION_LABEL: Record<string, string> = {
 export function Sc02HandoffScreen() {
   return (
     <main className="viz-root mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <Sc02Header id="U27" title="통합 영향 · 장면 3 인계" question="물량 감소와 단가 인상의 영향을 중복 없이 연결해 넘겼는가?" />
+      <Sc02Header id="U27" title="통합 영향 · 수익성 통합 분석 인계" question="물량 감소와 단가 인상의 영향을 중복 없이 연결해 넘겼는가?" />
       <Sc02Body>{(view) => <Handoff view={view} />}</Sc02Body>
     </main>
   );
@@ -62,7 +62,7 @@ function Handoff({ view }: { view: Sc02View }) {
               <li key={l.issue_id} className="rounded-md border px-3 py-2 text-sm">
                 <p className="flex flex-wrap items-center gap-2">
                   <span className="font-mono">{l.issue_id}</span>
-                  <span className="text-xs text-muted-foreground">{l.issue_type === "VOLUME" ? "장면 1 물량" : "장면 2 원가"}</span>
+                  <span className="text-xs text-muted-foreground">{l.issue_type === "VOLUME" ? "고객 생산계획 변경 대응 물량" : "외주 단가 인상 검토 원가"}</span>
                   <RiskTag risk={l.issue_type === "VOLUME" ? view.sc01.issue.risk : (view.issue?.risk ?? null)} />
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -100,7 +100,7 @@ function Handoff({ view }: { view: Sc02View }) {
             <BridgeTable periods={run.result.periods} kinds={["quarter", "remaining", "year", "next12"]} />
             <Commentary block>
               <p className="text-xs text-muted-foreground">
-                장면 1의 2027 물량효과 −1,400만원은 2027 영역에서만 그대로 쓴다. 12개월 값은 월별로 다시 모은 결과이고, 2028 물량은
+                고객 생산계획 변경 대응의 2027 물량효과 −1,400만원은 2027 영역에서만 그대로 쓴다. 12개월 값은 월별로 다시 모은 결과이고, 2028 물량은
                 내부가정(F01 × 97%)이며 2028 Target이 없어 12개월 Target 차이는 미산출이다.
               </p>
             </Commentary>
@@ -161,7 +161,7 @@ function Handoff({ view }: { view: Sc02View }) {
                   <p>
                     인수 {name(h.accepted_by)} · {formatClock(h.accepted_at)} — {h.opinion}
                     <span className="block text-xs font-medium">
-                      장면 2 인계 완료, 장면 3 손익 검토 대기 (분석 기한 {formatClock(h.sc03_due_at)}) — 위험은 열려 있고 F02는 검토 중이다.
+                      외주 단가 인상 검토 인계 완료, 수익성 통합 분석 손익 검토 대기 (분석 기한 {formatClock(h.sc03_due_at)}) — 위험은 열려 있고 F02는 검토 중이다.
                     </span>
                   </p>
                 ) : null}
@@ -197,11 +197,11 @@ function Handoff({ view }: { view: Sc02View }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>다음 장면</CardTitle>
-          <CardDescription>장면 3 통합 손익 검토 — 설계표·데이터가 나온 뒤 만든다. 이야기만 있다.</CardDescription>
+          <CardTitle>다음 업무</CardTitle>
+          <CardDescription>수익성 통합 분석 통합 손익 검토 — 설계표·데이터가 나온 뒤 만든다. 이야기만 있다.</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          경영관리 담당이 장면 1 물량 감소와 장면 2 원가 상승을 합산·검증하고 목표 차이를 분석한다. 대안의 숫자는 아직 없다 — 지어내지 않는다.
+          경영관리 담당이 고객 생산계획 변경 대응 물량 감소와 외주 단가 인상 검토 원가 상승을 합산·검증하고 목표 차이를 분석한다. 대안의 숫자는 아직 없다 — 지어내지 않는다.
         </CardContent>
       </Card>
     </>

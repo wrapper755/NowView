@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, ChevronUp, Pause, Play, PlayCircle, RotateCcw, Undo2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Narration } from "@/components/shared/narration";
 import { cn } from "@/lib/utils";
 import { sc06Api } from "@/lib/sc06/client";
 import { SC06_SCENES, sceneFor } from "@/lib/sc06/scenes";
@@ -108,7 +109,8 @@ export function Sc06DemoPlayer() {
 
   if (!isExpanded) {
     return (
-      <aside ref={barRef} aria-label="장면 6 데모 플레이어" className="fixed inset-x-0 bottom-0 z-50 flex justify-center border-t bg-background/95 py-2 backdrop-blur">
+      <aside ref={barRef} aria-label="완료·성과 검토 데모 플레이어" data-demo-player="collapsed"
+        className="fixed inset-x-0 bottom-0 z-50 lg:left-56 flex justify-center border-t-2 border-t-brand bg-demo-surface/95 py-2 backdrop-blur xl:inset-x-auto xl:right-4 xl:bottom-4 xl:rounded-full xl:border xl:py-1 xl:shadow-sm">
         <button type="button" onClick={togglePlayer} className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium hover:bg-muted" aria-expanded={false}>
           <PlayCircle aria-hidden className="size-3.5" />
           SC06 시연
@@ -122,60 +124,67 @@ export function Sc06DemoPlayer() {
   }
 
   return (
-    <aside ref={barRef} aria-label="장면 6 데모 플레이어" className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur">
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex">
+    <aside ref={barRef} aria-label="완료·성과 검토 데모 플레이어" data-demo-player="expanded"
+      className="fixed inset-x-0 bottom-0 z-50 lg:left-56 border-t-2 border-t-brand bg-demo-surface/95 backdrop-blur xl:inset-x-auto xl:top-12 xl:bottom-0 xl:right-0 xl:w-80 xl:overflow-y-auto xl:border-t-0 xl:border-l xl:border-l-brand/40">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:flex xl:max-w-none xl:flex-col xl:px-4 xl:pt-4">
+        <ol className="hidden gap-1 px-3.5 pb-1 sm:flex xl:order-last xl:flex-col xl:gap-0.5 xl:border-t xl:px-0 xl:pt-3 xl:pb-4">
           {SC06_SCENES.map((s, i) => (
-            <li key={s.id} style={{ flexGrow: s.seconds }} className="basis-0">
+            <li key={s.id} style={{ flexGrow: s.seconds }} className="basis-0 xl:flex-none xl:basis-auto">
               <button
                 type="button"
                 onClick={() => jump(i)}
                 title={`${s.title} · ${s.seconds}초`}
-                aria-label={`장면 ${i + 1}: ${s.title}`}
+                aria-label={`단계 ${i + 1}: ${s.title}`}
                 aria-current={i === sceneIndex ? "step" : undefined}
                 disabled={!hasDoc}
-                className="group w-full py-1.5"
+                className={cn("group w-full py-1.5 xl:rounded-md xl:px-2 xl:text-left xl:hover:bg-muted", i === sceneIndex && "xl:bg-brand-soft")}
               >
                 <span
                   className={cn(
-                    "block h-1 rounded-full transition-colors",
-                    i === sceneIndex ? "bg-foreground" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
+                    "block h-1 rounded-full transition-colors xl:hidden",
+                    i === sceneIndex ? "bg-brand" : i < sceneIndex ? "bg-muted-foreground/50" : "bg-muted group-hover:bg-muted-foreground/30",
                   )}
                 />
+                <span className={cn("hidden text-xs leading-snug xl:block", i === sceneIndex ? "font-semibold text-brand" : i < sceneIndex ? "text-muted-foreground" : "text-foreground/80")}>
+                  <span className="mr-1.5 tabular-nums text-muted-foreground">{i + 1}</span>
+                  {s.title}
+                </span>
               </button>
             </li>
           ))}
         </ol>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2.5">
-          <div className="min-w-0 flex-1 basis-80">
+          <div className="min-w-0 flex-1 basis-80 xl:rounded-lg xl:border xl:border-brand/25 xl:bg-card xl:p-3 xl:shadow-sm">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-[10px] text-muted-foreground tabular-nums">
-                장면 6 · {sceneIndex + 1} / {SC06_SCENES.length}
+                단계 {sceneIndex + 1} / {SC06_SCENES.length}
               </span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{scene.seconds}초</span>
-              <span className="text-sm font-semibold text-foreground">{scene.title}</span>
+              <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[10px] text-brand">{scene.seconds}초</span>
+              <span className="text-sm font-semibold text-foreground xl:w-full xl:text-base xl:leading-snug">{scene.title}</span>
             </div>
-            <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground sm:line-clamp-2">
-              {missing
-                ? "이 데모 실행에는 장면 6이 없다 — 「장면 6 열기」를 누르면 장면 5를 완료(HANDOFF51)까지 진행한 뒤 Q4 검토 자료와 보고본을 적재한다."
-                : denied
-                  ? "지금 역할은 이 검토건을 볼 수 없다 — 장면 이동이 경영관리 담당 시점으로 바꾼다."
-                  : scene.narration}
-            </p>
-            {pending ? <p className="text-[11px] text-muted-foreground">장면 5를 끝내고 장면 6을 적재하는 중…</p> : null}
+            <Narration
+              text={
+                missing
+                  ? "이 데모 실행에는 완료·성과 검토가 없다 — 「완료·성과 검토 열기」를 누르면 결정 실행·계획 갱신을 완료(HANDOFF51)까지 진행한 뒤 Q4 검토 자료와 보고본을 적재한다."
+                  : denied
+                    ? "지금 역할은 이 검토건을 볼 수 없다 — 단계 이동이 경영관리 담당 시점으로 바꾼다."
+                    : scene.narration
+              }
+            />
+            {pending ? <p className="text-[11px] text-muted-foreground">결정 실행·계획 갱신을 끝내고 완료·성과 검토를 적재하는 중…</p> : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
-                장면 6 열기 실패 — {error}
+                완료·성과 검토 열기 실패 — {error}
               </p>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap xl:w-full xl:shrink xl:flex-wrap">
             {missing ? (
               <Button size="sm" className="h-7 text-[11px]" onClick={() => void open()} disabled={pending}>
                 <PlayCircle aria-hidden className="size-3" />
-                장면 6 열기
+                완료·성과 검토 열기
               </Button>
             ) : null}
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => jump(0)} disabled={sceneIndex === 0 || !hasDoc}>
@@ -186,7 +195,7 @@ export function Sc06DemoPlayer() {
               <RotateCcw aria-hidden className="size-3" />
               <span className="sr-only sm:not-sr-only">초기화</span>
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => jump(sceneIndex - 1)} disabled={sceneIndex === 0 || !hasDoc} aria-label="이전 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => jump(sceneIndex - 1)} disabled={sceneIndex === 0 || !hasDoc} aria-label="이전 단계">
               <ChevronLeft aria-hidden className="size-3" />
             </Button>
             <Button size="sm" className="h-7 text-[11px]" onClick={() => setPlaying(!isPlaying)} disabled={!hasDoc || (sceneIndex >= last && !isPlaying)}>
@@ -202,7 +211,7 @@ export function Sc06DemoPlayer() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="icon" className="size-7" onClick={() => jump(sceneIndex + 1)} disabled={!hasDoc || sceneIndex >= last} aria-label="다음 장면">
+            <Button variant="outline" size="icon" className="size-7" onClick={() => jump(sceneIndex + 1)} disabled={!hasDoc || sceneIndex >= last} aria-label="다음 단계">
               <ChevronRight aria-hidden className="size-3" />
             </Button>
             <Button variant="ghost" size="icon" className="size-7" onClick={togglePlayer} aria-label="플레이어 접기">

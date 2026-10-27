@@ -178,7 +178,8 @@ class Sc04Process:
     def _load(self, demo_run_id: str) -> tuple[dict, int]:
         found = self.store.load(demo_run_id)
         if found is None:
-            raise DomainError(f"장면 4가 시작되지 않은 데모 실행: {demo_run_id}", 404)
+            raise DomainError("개선안 검토·실행 승인이 시작되지 않은 데모 실행: "
+                              f"{demo_run_id}", 404)
         return found
 
     def _env(self, calls: _InProcessCalls, doc: dict) -> RunEnv:
@@ -269,7 +270,8 @@ class Sc04Process:
             return doc
         if executor_of(doc) == "studio":
             raise DomainError(
-                "장면 3이 Studio 시험 실행이다 — Studio에서 장면 3 완료까지 진행한 뒤 장면 4를 "
+                "수익성 통합 분석이 Studio 시험 실행이다 — Studio에서 수익성 통합 분석 완료까지 "
+                "진행한 뒤 개선안 검토·실행 승인을 "
                 "시작한다",
                 409,
             )
@@ -281,7 +283,8 @@ class Sc04Process:
                     self.sc03.sync_center(rid)
         except DomainError as exc:
             raise DomainError(
-                f"장면 3을 각본으로 완료까지 끝낼 수 없다 — {exc}. 장면 3을 초기화한 뒤 다시 한다",
+                f"수익성 통합 분석을 각본으로 완료까지 끝낼 수 없다 — {exc}. 수익성 통합 분석을 "
+                "초기화한 뒤 다시 한다",
                 409,
             ) from exc
         deadline = time.monotonic() + self.center_wait_s
@@ -291,7 +294,8 @@ class Sc04Process:
             doc = self.sc03.get(rid)
         if doc["review"]["state"] != "SC03_COMPLETED":
             raise DomainError(
-                "장면 3 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — 바깥 실행이 완료 기록을 "
+                "수익성 통합 분석 각본을 다 돌렸지만 아직 완료가 기록되지 않았다 — 바깥 실행이 "
+                "완료 기록을 "
                 "부를 때까지 기다린 뒤 다시 시작한다",
                 409,
             )
@@ -317,7 +321,7 @@ class Sc04Process:
             if existing is not None:
                 if existing[0]["case_id"] != case_id:
                     raise DomainError(
-                        f"이 데모 실행의 장면 4는 이미 {existing[0]['case_id']}다 — "
+                        f"이 데모 실행의 개선안 검토·실행 승인은 이미 {existing[0]['case_id']}다 — "
                         "다른 사례는 새 실행으로",
                         409,
                     )

@@ -92,7 +92,7 @@ export function ScreenHeader({ id, title, question }: { id: string; title: strin
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
         <span>{view ? formatClock(view.clock) : "—"}</span>
         <span aria-hidden>·</span>
-        <span>장면 1 {view ? SCENE_LABEL[view.scene] : "—"}</span>
+        <span>고객 생산계획 변경 대응 {view ? SCENE_LABEL[view.scene] : "—"}</span>
         <span className="rounded border px-1.5 py-0.5 text-[10px]">시연 데이터</span>
         <MyAlerts />
       </div>

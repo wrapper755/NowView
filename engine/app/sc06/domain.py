@@ -509,7 +509,8 @@ def sc05_link(sc05_doc: dict) -> dict[str, Any]:
     """
     if sc05_doc.get("handoff") is None:
         raise DomainError(
-            "장면 5가 완료(HANDOFF51)되지 않았다 — 장면 6은 장면 5 인계에서 시작한다", 409
+            "결정 실행·계획 갱신이 완료(HANDOFF51)되지 않았다 — 완료·성과 검토는 결정 실행·계획 "
+            "갱신 인계에서 시작한다", 409
         )
     official = sc05_doc["forecasts"][sc05_doc["official"]]
     run = sc05_doc["runs"][official["run_id"]]
@@ -686,9 +687,11 @@ def new_review(
     first = calculate(batch, sc05, "CALC61-v1")
     if first["snapshot_residual"] != 0:
         raise DomainError(
-            "장면 5 공식본 FC51의 Q4 과제 효과가 장면 6 기준(BASE61)과 다르다 — "
-            "기본 시연의 FC51에서만 장면 6을 "
-            f"연다(차이 {first['snapshot_residual']:,}원, 장면 5 사례 {sc05['case_id']})",
+            "결정 실행·계획 갱신 공식본 FC51의 Q4 과제 효과가 완료·성과 검토 기준(BASE61)과 다르다 "
+            "— "
+            "기본 시연의 FC51에서만 완료·성과 검토를 "
+            f"연다(차이 {first['snapshot_residual']:,}원, 결정 실행·계획 갱신 사례 "
+            f"{sc05['case_id']})",
             409,
         )
     s = batch["settings"]
