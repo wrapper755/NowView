@@ -974,3 +974,18 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc05Process) -> None:
     """
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc05-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
+
+
+def test_request_approval_before_submission_is_a_conflict_not_missing() -> None:
+    """
+    상신 기록 전의 현업·예산 승인은 상태 충돌(409)이다 — Center 실행의 각본이 그것을 기다린다.
+    404로 내면 대기 없이 멈췄다(Func_REQ51, 2026-10-28 로컬 Center 실측). 모르는 품의는
+    그대로 404다.
+    """
+    doc = {"requests": {}}
+    with pytest.raises(DomainError) as early:
+        domain.check_approve_request(doc, {"request_id": "REQ51", "stage": "function"})
+    assert early.value.status == 409
+    with pytest.raises(DomainError) as unknown:
+        domain.check_approve_request(doc, {"request_id": "REQ99", "stage": "function"})
+    assert unknown.value.status == 404

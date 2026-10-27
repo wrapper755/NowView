@@ -1823,6 +1823,9 @@ def submit_request(
 def check_approve_request(doc: dict, args: dict[str, Any]) -> None:
     rid = _text(args, "request_id")
     r = doc["requests"].get(rid)
+    if r is None and rid in REQUESTS:
+        # 아는 품의인데 기록이 없다 = 상신 기록 전이다(Center 실행의 기록 작업이 늦다 — 상태 충돌)
+        raise DomainError(f"{rid}는 아직 상신되지 않았다", 409)
     if r is None:
         raise DomainError(f"없는 품의: {rid}", 404)
     stage = _text(args, "stage")
