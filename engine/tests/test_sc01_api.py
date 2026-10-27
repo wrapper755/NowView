@@ -411,11 +411,12 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
-    # 장면마다 한 벌 — 장면 2·3은 `nowview-sc02`·`nowview-sc03`(test_sc02·sc03_external.py가 잠근다)
+    # 장면마다 한 벌 — 장면 2~4는 `nowview-sc02`~`sc04`(test_sc02~sc04_external.py가 잠근다)
     assert sorted(p.name for p in root.glob("*.extension.json")) == [
         "nowview-sc01.extension.json",
         "nowview-sc02.extension.json",
         "nowview-sc03.extension.json",
+        "nowview-sc04.extension.json",
     ]
     raw = (root / "nowview-sc01.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))

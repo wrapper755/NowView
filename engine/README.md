@@ -1,17 +1,18 @@
 # NowView BPM Engine
 
-**Chaeksas BPM**(`chaeksas-core`, BPMN 2.0 해석기) 위의 시나리오 1 — 장면 1(SC01)·장면 2(SC02)·장면 3(SC03). Next 앱의
-`/api/engine/{sc01|sc02|sc03}/*`가 이것을 프록시한다. 설계와 함정은 루트 `CLAUDE.md` 4.5(장면 1)·4.16(장면 2)·4.17(장면 3).
+**Chaeksas BPM**(`chaeksas-core`, BPMN 2.0 해석기) 위의 시나리오 1 — 장면 1(SC01)~장면 4(SC04). Next 앱의
+`/api/engine/{sc01|sc02|sc03|sc04}/*`가 이것을 프록시한다. 설계와 함정은 루트 `CLAUDE.md` 4.5(장면 1)·4.16(장면 2)·4.17(장면 3)·
+4.18(장면 4).
 
 ```bash
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs
-uv run pytest                                      # 275개 (SQLite만, LLM 제외)
+uv run pytest                                      # 397개 (SQLite만, LLM 제외)
 OLLAMA_URL=http://localhost:11434 uv run pytest -m llm   # Agent 실호출 계약 (약 100초)
 uv run ruff check .
 
 # 두 백엔드 모두 검증 (Postgres가 떠 있을 때 — 루트에서 npm run stack:start db)
-TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 356개
+TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest   # 540개
 ```
 
 `--reload` 없이 띄우면 코드를 고쳐도 반영되지 않는다.
@@ -22,11 +23,14 @@ TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run py
 processes/sc01.bpmn     업무 흐름 — 유일한 원천. Chaeksas Studio(bpmn-js)로 열린다
 processes/sc02.bpmn     장면 2 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc02)
 processes/sc03.bpmn     장면 3 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc03)
+processes/sc04.bpmn     장면 4 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc04)
 seed/SYN-SC01-v0.2.xlsx 통합 가상 데이터 설계. 원천 시트 = 시드, 파생 시트 = 테스트 기대값
 seed/SYN-SC02-v0.2.xlsx SC01_SC02 통합가상데이터 v0.2 — 같은 원칙
 seed/SYN-SC03-v0.3.xlsx SC01_SC02_SC03 통합가상데이터 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 기대값·각본 입력
+seed/SYN-SC04-v0.4.xlsx SC01~SC04 통합가상데이터 v0.4(2026-10-23 수정본) — 숫자·SC03 시트는 v0.3과 같다, SC04가정이 원천
 app/sc02/               장면 2 — seed · calc(구매 증가·위험·승인선·손익 연결) · domain · agent · process · demo · view · api
 app/sc03/               장면 3 — seed · calc(통합 손익·부족 분리·정합 검증) · domain · agent · process · demo · view · api
+app/sc04/               장면 4 — seed · calc(대응안 효과·중복 제거·검증·잔여 부족) · domain · agent · process · demo · view · api
 app/sc01/
   seed.py      원천 시트 적재 (행 번호가 아니라 영문 헤더로 읽는다)
   calc.py      지표·위험 판정·손익 집계 — 규칙 계산. Agent·BPM은 숫자를 만들지 않는다
