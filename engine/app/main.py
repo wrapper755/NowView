@@ -34,6 +34,8 @@ from .sc04.api import build_router as build_sc04_router
 from .sc04.process import Sc04Process
 from .sc05.api import build_router as build_sc05_router
 from .sc05.process import Sc05Process
+from .sc06.api import build_router as build_sc06_router
+from .sc06.process import Sc06Process
 from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -42,7 +44,7 @@ app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
     description=(
-        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)~장면 5(SC05). "
+        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)~장면 5(SC05)와 조회 장면 6(SC06). "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -72,6 +74,12 @@ app.include_router(build_sc04_router(sc04, hub, system_auth))
 # 장면 5 — 장면 4 인계(HANDOFF41)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc05_*`).
 sc05 = Sc05Process(build_sc01_store(backend, "sc05"), sc04, publish=notifier.publish)
 app.include_router(build_sc05_router(sc05, hub, system_auth))
+# 장면 6 — 장면 5 인계(HANDOFF51)에서 RV61 검토 문서를 적재한다. 조회만 한다 — 이 장면이 돌리는
+# BPM이 없다
+# (구현명세 11장: 이미 확인된 1/14 보고본을 조회하는 시점에서 시작). 같은 데모 실행 id, 다른
+# 테이블(`sc06_*`).
+sc06 = Sc06Process(build_sc01_store(backend, "sc06"), sc05, publish=notifier.publish)
+app.include_router(build_sc06_router(sc06))
 # 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 다섯 장면
 # 모두.
 poller = CenterPoller(sc01, sc02, sc03, sc04, sc05)
