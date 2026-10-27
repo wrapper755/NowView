@@ -14,6 +14,7 @@ EV31-01~22),
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
@@ -465,7 +466,7 @@ def run_step(process: Sc03Process, demo_run_id: str, index: int) -> dict:
     node_id = step.node_id or ""
     # 화면이 보는 버전은 시도마다 다시 읽는다 — 배정 기록이 들어오기 전에 읽으면
     # 버전 0을 싣는다(실측).
-    return _after_record(
+    done_doc = _after_record(
         process,
         center,
         lambda: process.act(
@@ -477,6 +478,25 @@ def run_step(process: Sc03Process, demo_run_id: str, index: int) -> dict:
             **mark,
         ),
     )
+    return _await_landed(process, demo_run_id, node_id) if center else done_doc
+
+
+def _await_landed(process: Sc03Process, demo_run_id: str, node_id: str) -> dict:
+    """
+    Center 실행이면 이 단계 결재의 기록이 들어올 때까지(「반영 중」에서 빠질 때까지) 기다린다.
+
+    대리 답은 결재만 닫고 기록 작업은 서버 실행기가 따로 부른다 — 기다리지 않으면 다음 단계가
+    시계를 먼저 옮겨 기록이 뒤 시각으로 적혔다(업무 18건 중 17건의 완료 시각이 다음 단계 시각,
+    2026-10-28 로컬 Center 실측). 끝내 오지 않으면 지금 문서를 돌려준다 — 다음 단계의 대기가
+    거절 사유를 낸다.
+    """
+    deadline = time.monotonic() + process.center_wait_s
+    while True:
+        doc = process.get(demo_run_id)
+        inflight = ((doc.get("bpm") or {}).get("center") or {}).get("inflight") or []
+        if node_id not in inflight or time.monotonic() >= deadline:
+            return doc
+        time.sleep(min(1.0, process.center_wait_s))
 
 
 def _after_record(process: Sc03Process, center: bool, run: Callable[[], dict]) -> dict:
