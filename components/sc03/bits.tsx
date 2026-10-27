@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BellRing, ExternalLink, History, PlayCircle, WifiOff } from "lucide-react";
+import { AlertTriangle, BellRing, ExternalLink, History, Loader2, PlayCircle, WifiOff } from "lucide-react";
 
 import { StatePill } from "@/components/sc01/bits";
 import { Sc03ActionForm } from "@/components/sc03/action-form";
@@ -48,6 +48,7 @@ export function Sc03Header({ id, title, question }: { id: string; title: string;
       </Commentary>
       <Banner />
       <ExecutorBanner />
+      <InflightBanner />
     </header>
   );
 }
@@ -101,6 +102,28 @@ function ExecutorBanner() {
             · 작업 <span className="font-mono">{view.bpm.center.job.job_id}</span>
           </>
         ) : null}
+      </span>
+    </p>
+  );
+}
+
+/**
+ * Center 반영 중 — 대리 답은 결재를 닫을 뿐이고 그 뒤의 기록·다음 결재는 실행기가 따로 올린다(10~25초, 화면 직접
+ * 진행 실측). 그동안 폼은 사라지고 다음 업무는 아직이라 화면이 비어 「안 된 것인가」로 보였다. 엔진이 센 「보냈는데
+ * 기록이 아직 안 온 결재」(`inflight`)가 있을 때만 보인다 — SSE로 반영되면 저절로 걷힌다.
+ */
+function InflightBanner() {
+  const view = useSc03(selectView3);
+  const topology = useSc03((s) => s.topology);
+  const inflight = view?.historical ? [] : (view?.bpm?.center?.inflight ?? []);
+  if (inflight.length === 0) return null;
+  const titles = inflight.map((n) => topology?.nodes.find((x) => x.id === n)?.name ?? n).join(" · ");
+  return (
+    <p role="status" className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs">
+      <Loader2 aria-hidden className="size-3.5 animate-spin" />
+      <span>
+        <span className="font-medium">Center 반영 중</span> — {titles}의 답을 Center 결재함에 보냈다. 실행기가 기록하고
+        다음 업무를 올리면(보통 10~25초) 이 화면에 저절로 보인다. 다시 누르지 않아도 된다.
       </span>
     </p>
   );

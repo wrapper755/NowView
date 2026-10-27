@@ -640,3 +640,35 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc03Process) -> None:
     """
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc03-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
+
+
+# ─────────────────────── 화면 직접 진행의 단계 추적(2026-10-28) ───────────────────────
+
+
+def test_screen_answers_move_the_script_marker_even_out_of_order(proc: Sc03Process) -> None:
+    """
+    화면에서 직접 답해도 플레이어의 단계(`step`·`script_index`)가 따라온다 — 예전에는 끝까지
+    「단계 1/26 D30」에 머물렀다. 병렬 확인은 순서가 바뀌어도 되고(생산 → 영업 → 구매), 사이의
+    조회(D33)는 건너뛴다. 따라온 뒤에는 각본(「다음 단계」)이 남은 단계부터 잇는다.
+    """
+    rid = proc.create()["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    answer = {s.node_id: dict(s.answer) for s in steps if s.node_id}
+    actor = {s.node_id: s.actor for s in steps if s.node_id}
+
+    def act(node: str) -> dict:
+        return proc.act(rid, node, answer[node], actor=actor[node])
+
+    proc.set_clock(rid, steps[0].at, actor="u-demo")
+    doc = proc.start(rid, actor="u-fin")
+    assert (doc["step"], doc["script_index"]) == ("D31", 0)
+    assert act("Save_Analysis")["script_index"] == 1
+    assert act("Request_Confirm")["script_index"] == 3  # D33 조회를 건너뛴다
+    assert act("Confirm_Prod")["script_index"] == 3  # 영업·구매가 먼저인 각본 — 아직
+    assert act("Confirm_Sales")["script_index"] == 4
+    doc = act("Confirm_Buy")
+    assert (doc["step"], doc["script_index"]) == ("D35", 6)  # 구매·생산을 함께 지나간다
+    assert doc["script_follow"]["ahead"] == []
+    for index in range(7, len(steps)):
+        doc = demo.run_step(proc, rid, index)
+    assert doc["review"]["state"] == "SC03_COMPLETED"

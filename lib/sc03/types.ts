@@ -13,6 +13,8 @@ export interface Sc03Waiting {
   review: Record<string, unknown>;
   fields: FormField[];
   taskId: string | null;
+  /** 직전 답이 기록 작업에서 거절됐으면 그 사유 — 그림이 같은 결재로 돌아와도 사유는 싣지 않는다(4.5). */
+  rejected?: { at: string; status: number; reason: string } | null;
 }
 
 export interface Check {
@@ -265,7 +267,13 @@ export interface Sc03View {
     runId: string | null;
     state: string;
     waiting: Sc03Waiting[];
-    center: { job: { job_id: string } | null; problem: string | null; package: string | null } | null;
+    center: {
+      job: { job_id: string } | null;
+      problem: string | null;
+      package: string | null;
+      /** 대리 답을 보냈는데 아직 기록이 오지 않은 결재(실행기가 따로 부른다). */
+      inflight?: string[];
+    } | null;
     position: string[];
     visited: string[];
   } | null;

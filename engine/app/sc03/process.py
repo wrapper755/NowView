@@ -116,6 +116,8 @@ def run_operation(
         domain.audit(doc, actor=by, action="answer_via", node_id=node_id, via=args["answered_via"])
     domain.ensure_task(doc, node_id)
     domain.complete_task(doc, node_id, actor=effective)
+    _follow_script(doc, seed, node_id)
+    _landed(doc, node_id)
     return {**out, "error_message": None}
 
 
@@ -431,6 +433,8 @@ class Sc03Process:
                 if executor == "center":
                     self._center_start(doc, actor=actor)
                 _mark(doc, event_code, script_index)
+                if script_index is None:
+                    _follow_script(doc, self.seed, "start")
                 return self._commit(doc, version, None, event_code or "start")
             calls = _InProcessCalls(doc, self.seed, actor)
             run_id = new_run_id(now=parse_at(doc["clock"]))
@@ -445,6 +449,8 @@ class Sc03Process:
             )
             self._advance(run, calls)
             _mark(doc, event_code, script_index)
+            if script_index is None:
+                _follow_script(doc, self.seed, "start")
             return self._commit(doc, version, run, event_code or "start")
 
     def act(
@@ -549,6 +555,11 @@ class Sc03Process:
                     status=exc.status,
                     reason=str(exc),
                 )
+                if args.get("node_id"):
+                    domain.note_rejection(
+                        doc, str(args["node_id"]), status=exc.status, reason=str(exc)
+                    )
+                    _landed(doc, str(args["node_id"]))
                 self._commit(doc, version, None, f"{operation}:rejected")
                 raise
             decided = args.get("node_id") if operation in RECORDS else None
@@ -732,6 +743,9 @@ class Sc03Process:
                 raise exc.as_domain("대리 답") from exc
             bpm = doc["bpm"]
             bpm["center"]["relayed"].append(approval["request_id"])
+            # 이 결재의 기록 작업은 실행기가 따로 부른다(10~25초 — 화면 직접 진행 실측). 그동안
+            # 폼은 사라지고 다음 업무는 아직이라 화면이 비었다 — 「반영 중」으로 보인다.
+            bpm["center"].setdefault("inflight", []).append(node_id)
             bpm["waiting"] = [
                 w for w in bpm.get("waiting", []) if w["request_id"] != approval["request_id"]
             ]
@@ -743,6 +757,10 @@ class Sc03Process:
                 request_id=approval["request_id"],
             )
             _mark(doc, event_code, script_index)
+            if script_index is not None:
+                # 각본이 대리 답했다 — 실행기가 나중에 부르는 이 결재의 기록은 각본 몫이다
+                _script_follow(doc)["pending"].append(node_id)
+                _follow_script(doc, self.seed, None)
             return self._commit(doc, version, None, event_code or node_id)
 
     def _await_approval(self, demo_run_id: str, node_id: str, name: str) -> tuple[str, dict]:
@@ -885,6 +903,55 @@ def _check_expect(doc: dict, node_id: str, expect: dict[str, Any]) -> None:
                 "새 버전을 인수한다",
                 409,
             )
+
+
+def _landed(doc: dict, node_id: str) -> None:
+    """대리 답한 결재의 기록이 왔다(적혔든 거절됐든) — 「반영 중」에서 뺀다."""
+    inflight = ((doc.get("bpm") or {}).get("center") or {}).get("inflight")
+    if inflight and node_id in inflight:
+        inflight.remove(node_id)
+
+
+def _script_follow(doc: dict) -> dict[str, list[str]]:
+    return doc.setdefault("script_follow", {"ahead": [], "pending": []})
+
+
+def _follow_script(doc: dict, seed: Seed, done: str | None) -> None:
+    """
+    화면에서 직접 한 일도 각본의 진행 표시(`step`·`script_index`)를 옮긴다 — 안 그러면 손으로
+    D41까지 가도 플레이어가 「단계 1/26 D30」에 머물고(화면 직접 진행 실측), 「다음」이 지나간
+    단계를 다시 하려다 409다. 효과가 난 자리(기록 작업)에서 부르므로 내장·Studio·Center가 같다.
+
+    장면 2처럼 「바로 다음 결재만」으로는 안 된다 — 영업·구매·생산 확인과 AT31~34 인수는 병렬이라
+    순서가 바뀌고, 사이의 조회·회의 기록·AG31은 화면에서 건너뛰어도 된다. 그래서 화면이 한 결정을
+    `ahead`에 모으고, 각본의 다음 결재가 거기 있으면 그것과 그 앞의 비결재 단계를 함께 지나간다.
+    `done`은 결재 노드 id 또는 `"start"`(착수). Center 각본이 대리 답한 결재의 기록은 `pending`에
+    있어 각본 몫으로 지운다(나중에 와도 두 번 세지 않는다). 같은 결재가 각본에 두 번 나오는
+    사례(E31 재확인·E32 재인수)도 결정마다 하나씩 쓰므로 순서대로 맞는다.
+    """
+    from app.sc03.demo import steps_for  # demo가 이 모듈을 가져온다
+
+    follow = _script_follow(doc)
+    if done is not None:
+        if done in follow["pending"]:
+            follow["pending"].remove(done)
+        else:
+            follow["ahead"].append(done)
+    steps = steps_for(doc["case_id"], seed)
+    i = doc.get("script_index", -1) + 1
+    moved = None
+    while i < len(steps):
+        step = steps[i]
+        key = "start" if step.kind == "start" else step.node_id if step.kind == "act" else None
+        if key is not None:
+            if key not in follow["ahead"]:
+                break
+            follow["ahead"].remove(key)
+            moved = i
+        i += 1
+    if moved is not None:
+        doc["step"] = steps[moved].code
+        doc["script_index"] = moved
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:
