@@ -18,9 +18,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel, Field
 
+from app.preparation import Preparations, begin_scene, preparing
 from app.sc01.domain import DomainError
 from app.sc06 import domain
 from app.sc06.process import Sc06Process
@@ -36,8 +37,9 @@ class CreateBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-def build_router(process: Sc06Process) -> APIRouter:
+def build_router(process: Sc06Process, preparations: Preparations | None = None) -> APIRouter:
     r = APIRouter(prefix="/sc06", tags=["sc06"])
+    prep = preparations or Preparations()
 
     def guard(fn, *args, **kwargs):
         try:
@@ -73,15 +75,41 @@ def build_router(process: Sc06Process) -> APIRouter:
         return [{"caseId": k, "label": v} for k, v in domain.CASES.items()]
 
     @r.post("/demo-runs", status_code=201)
-    def create(body: CreateBody) -> dict[str, Any]:
-        return meta(
-            guard(
-                process.create,
-                sc01_demo_run_id=body.sc01_demo_run_id,
+    def create(body: CreateBody, response: Response) -> dict[str, Any]:
+        """
+        시작 — 앞 장면이 끝나 있지 않으면 각본으로 끝까지 실행한다. 오래 걸리면 202와 준비
+        상태를 돌려주고 배경에서 잇는다(`app.preparation`). 화면은 `…/preparation`을 읽는다.
+        """
+        actor = "u-demo"
+
+        def make(rid: str) -> dict:
+            return process.create(
+                sc01_demo_run_id=rid,
                 case_id=body.case_id,
                 executor=body.executor,
             )
+
+        doc, rid = guard(
+            begin_scene,
+            prep,
+            "sc06",
+            process,
+            demo_run_id=body.sc01_demo_run_id,
+            case_id=body.case_id,
+            cases=domain.CASES,
+            actor=actor,
+            executor=body.executor,
+            create=make,
         )
+        if doc is None:
+            response.status_code = 202
+            return guard(preparing, prep, "sc06", process, rid)
+        return meta(doc)
+
+    @r.get("/demo-runs/{demo_run_id}/preparation")
+    def preparation(demo_run_id: str) -> dict[str, Any]:
+        """시작 준비 상태 — 진행 중(앞 장면들의 지금 단계)·끝남·실패(사유·상태 코드)."""
+        return guard(preparing, prep, "sc06", process, demo_run_id)
 
     @r.get("/demo-runs/{demo_run_id}")
     def get(demo_run_id: str) -> dict[str, Any]:

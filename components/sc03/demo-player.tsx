@@ -12,6 +12,8 @@ import { sc03Api, type Sc03Executor } from "@/lib/sc03/client";
 import { scenesFor } from "@/lib/sc03/scenes";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc03 } from "@/lib/store/sc03";
+import { preparationText } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 const DWELL_MS = 7_000;
 
@@ -45,6 +47,7 @@ export function Sc03DemoPlayer() {
   const external = useSc03((s) => s.live !== null && !s.live.answerHere);
   const { setScene, setPlaying, togglePlayer } = useSc03.getState();
   const [pending, setPending] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const scene = scenes[sceneIndex];
 
@@ -172,8 +175,9 @@ export function Sc03DemoPlayer() {
     setPending(true);
     setError(null);
     const fresh = next !== caseId || !hasDoc;
-    const r = await sc03Api.create(fresh && hasDoc ? null : demoRunId, next, executor);
+    const r = await sc03Api.create(fresh && hasDoc ? null : demoRunId, next, executor, setPrep);
     setPending(false);
+    setPrep(null);
     if (!r.ok) {
       setError(r.error);
       return;
@@ -277,7 +281,9 @@ export function Sc03DemoPlayer() {
                 missing ? "이 데모 실행에는 수익성 통합 분석이 없다 — 「수익성 통합 분석 시작」을 누르면 외주 단가 인상 검토를 경영관리 인수까지 진행한 뒤 시작한다." : scene.narration
               }
             />
-            {pending ? <p className="text-[11px] text-muted-foreground">엔진에 단계를 반영하는 중…</p> : null}
+            {pending ? (
+              <p className="text-[11px] text-muted-foreground">{prep ? preparationText(prep) : "엔진에 단계를 반영하는 중…"}</p>
+            ) : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
                 단계 이동 실패 — {error}

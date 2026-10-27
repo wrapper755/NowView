@@ -11,6 +11,8 @@ import { sc06Api } from "@/lib/sc06/client";
 import { SC06_SCENES, sceneFor } from "@/lib/sc06/scenes";
 import { useSc01 } from "@/lib/store/sc01";
 import { useSc06 } from "@/lib/store/sc06";
+import { preparationText } from "@/components/shared/preparation-note";
+import type { Preparation } from "@/lib/preparation";
 
 /**
  * SC06 데모 플레이어 — 세 동작(210초). 장면 1~5 플레이어와 모양이 같지만 **엔진을 실행하지 않는다**: 장면 6은 이미 확인된
@@ -32,6 +34,7 @@ export function Sc06DemoPlayer() {
   const isExpanded = useSc06((s) => s.isPlayerExpanded);
   const { setPlaying, togglePlayer } = useSc06.getState();
   const [pending, setPending] = useState(false);
+  const [prep, setPrep] = useState<Preparation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const last = SC06_SCENES.length - 1;
   // 플레이어 밖(GNB·화면 버튼)으로 움직여도 지금 화면이 곧 장면이다
@@ -90,8 +93,9 @@ export function Sc06DemoPlayer() {
   const open = async () => {
     setPending(true);
     setError(null);
-    const r = await sc06Api.open(demoRunId);
+    const r = await sc06Api.open(demoRunId, "center", setPrep);
     setPending(false);
+    setPrep(null);
     if (!r.ok) {
       setError(r.error);
       return;
@@ -172,7 +176,11 @@ export function Sc06DemoPlayer() {
                     : scene.narration
               }
             />
-            {pending ? <p className="text-[11px] text-muted-foreground">결정 실행·계획 갱신을 끝내고 완료·성과 검토를 적재하는 중…</p> : null}
+            {pending ? (
+              <p className="text-[11px] text-muted-foreground">
+                {prep ? preparationText(prep) : "결정 실행·계획 갱신을 끝내고 완료·성과 검토를 적재하는 중…"}
+              </p>
+            ) : null}
             {error ? (
               <p role="alert" className="text-[11px]" style={{ color: "var(--viz-status-serious)" }}>
                 완료·성과 검토 열기 실패 — {error}

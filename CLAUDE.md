@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 460개 (SQLite만, LLM 제외)
+uv run pytest                                      # 508개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (696개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (706개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -260,7 +260,8 @@ NowView/
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
 │   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
-│   │                             #   scenario-nav(업무 사이드바 · 머리의 업무 · 화면 메뉴), demo-player-switch(장면별 플레이어)
+│   │                             #   scenario-nav(업무 사이드바 · 머리의 업무 · 화면 메뉴), demo-player-switch(장면별 플레이어),
+│   │                             #   preparation-note(장면 시작 준비 중 — 앞 업무 진행 표시)
 │   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
 │   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
 │   │                             #   intake-card — 접수 가상 직원, N5)
@@ -274,6 +275,7 @@ NowView/
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
+│   ├── preparation.ts            # 장면 시작 202(준비 중) → 준비 상태를 읽다가 문서를 받는다(4.3)
 │   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
 │   ├── sc02/                     # types · client · format · scenes(엔진 각본 → 장면)
 │   ├── sc03/                     # types · client(완료 실패의 blockingItems) · format(백만원) · scenes
@@ -300,6 +302,8 @@ NowView/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc05 라우터
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
+    │   ├── preparation.py        # 장면 2~6 시작의 배경 진행 · 준비 상태(4.3)
+    │   ├── script_wait.py        # Center 실행의 각본이 앞 결재의 기록 작업을 기다린다(장면 3~5, 4.17)
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
     │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
     │   └── sc02/                 # seed · calc · domain · agent · process(내장·Studio·Center) · demo · view · api (저장은 sc01/store의 `sc02_*`)
@@ -311,7 +315,7 @@ NowView/
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process,
-                                  #   test_events · _notify
+                                  #   test_events · _notify · test_preparation
 ```
 
 **디렉토리 규칙**
@@ -437,6 +441,19 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
      403 ACCESS_DENIED · 다른 보고 버전 409 VERSION_MISMATCH · 없음 404 NOT_FOUND(`detail.error_code`)
 ```
 
+* **장면 2~6 시작은 오래 걸리면 202다**(`app/preparation.py`, 2026-10-27). 시작은 앞 장면을 각본으로 끝까지 실제로 실행한다 —
+  Center 실행이면 장면 3 시작이 약 7분이라 BFF의 `fetch`(undici 응답 헤더 기본 300초)가 503을 냈다(엔진은 끝까지 갔다). 운영계는
+  Cloudflare가 약 100초에 끊는다(4.15) — 시간 늘리기로는 안 된다.
+  * `POST /scN/demo-runs`는 **20초**(`NOWVIEW_PREPARE_WAIT_S`)까지 기다린다. 그 안에 끝나면(문서가 이미 있거나 내장) 지금처럼 201,
+    거절이면 그 상태 코드 그대로다. 아니면 **202 `{preparing, demoRunId, state, startedAt, progress}`**를 돌려주고 배경 스레드가 잇는다.
+    `GET /scN/demo-runs/{id}/preparation` → `running`(앞 장면들의 지금 단계 `progress`) · `done` · `failed`(사유·상태 코드).
+  * 데모 실행 id가 없으면 **장면 1 실행을 먼저 만든다** — 화면이 준비를 물을 id가 있어야 한다. 같은 장면·실행의 시작이 겹치면
+    진행 중인 것을 함께 기다린다(두 번 돌리지 않는다).
+  * **준비 상태는 엔진 메모리에만 있다** — 운영 엔진은 워커 하나다. 엔진이 다시 뜨면 조회가 404이고 배경 진행도 멈춘다. 다시
+    시작하면 앞 장면의 남은 단계부터 잇는다(각본은 지난 단계를 건너뛴다). 개발 중 `--reload`가 진행 중인 준비를 끊는다.
+  * 화면: 각 클라이언트의 `create`(장면 6은 `open`)가 202면 `lib/preparation.ts`로 3초마다 읽다가 문서를 받는다 — 시작 카드·
+    플레이어는 그대로 결과를 기다리고, 준비 중에는 「앞 업무를 끝까지 진행하는 중 — 고객 생산계획 변경 대응 EV07 · 외주 단가 인상
+    검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
   내장 BPM의 `_InProcessCalls`와 HTTP가 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다 —
   BPMN의 `output` 대응이 두 길 모두에서 맞는다. 내장 BPM을 걷어내기 전까지 두 길이 함께 있다.
@@ -808,6 +825,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc06_process.py` | 장면 5 완료까지 각본 실행 후 적재(새 실행·도중 실행), 다시 열어도 재적재 없음, 조회 계약 4개(문맥 칸·3과제·원인·PO61-1103·AG62·근거·확인 다섯 단계·후속·연간 FC51 그대로), 403 ACCESS_DENIED(오류에 금액·근거 없음)·409 VERSION_MISMATCH·404, **조회가 문서·이력·감사를 바꾸지 않는다**, Studio 장면 5 409 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
+| `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
 | `tests/sc05.test.ts` | 장면 5 배치(기록 태스크·오류 경계 접기, 보완·범위 이탈·반려·대표 변경 고리·대사 실패 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·단계 코드별 화면), 사람 노드 41개 전부 화면, 미확인·비해당 표기, Agent 활동 → 폼 글(빈칸을 0으로 메우지 않는다) |
 | `tests/sc06.test.ts` | 장면 6 표기(null ≠ 0 — 미확인·산정 보류·미산정·비해당, 차이 부호), 세 동작 210초, 화면·펼침 → 장면 |
@@ -815,7 +833,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 696개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 706개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc0{1,2,3,4,5}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
@@ -1725,9 +1743,10 @@ v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 
     미충족을 `center_wait_s`까지 다시 해 보고(`demo._after_record`), 화면이 보는 버전은 시도마다 다시 읽는다. 화면에서 사람이 누를
     때는 그대로 거절 사유를 보인다.
   * **장면 3 시작(`POST /sc03/demo-runs`)이 BFF에서 300초에 503이었다** — 장면 1·2를 Center로 인계까지 돌리는 데 약 7분이 걸리고,
-    Node `fetch`(undici)의 응답 헤더 대기 기본값이 300초다. 엔진은 끝까지 진행해 장면 3 문서가 생겼다(새로 고치면 보인다).
-    **고치지 않았다** — 운영계는 Cloudflare가 약 100초에 끊으므로(4.15) 시간 늘리기로는 안 되고, 시작을 배경 진행 + SSE로 바꿔야
-    한다(장면 2~6 시작이 모두 같은 모양이다).
+    Node `fetch`(undici)의 응답 헤더 대기 기본값이 300초다. 엔진은 끝까지 진행해 장면 3 문서가 생겼다. **장면 2~6 시작을 배경
+    진행 + 준비 상태 조회로 바꿨다**(4.3 「장면 2~6 시작은 오래 걸리면 202다」). SSE가 아니라 폴링(3초)인 것은 문서가 아직 없어
+    장면 채널을 구독할 대상이 없어서다. 같은 날 장면 4·5의 대리 답 대기·사전 검사 재시도·각본 대기(`app/script_wait.py`)와
+    장면 6의 완료 기록 대기도 같은 값으로 맞췄다 — 장면 4·5는 Center에 배포 전이라 실측하지 않았다.
 * **E34 재확인 흐름** — 새 전망 버전은 기록·비교까지다. 임원 재확인 뒤 새 버전으로 회의 자료를 바꾸는 길은 없다(확정본으로 간다).
 * **Agent LLM 러너** — mock·fail뿐이다(장면 2와 같다).
 * 화면 검수는 내장 BASE만 했다. E 사례는 엔진 시험으로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
@@ -1744,7 +1763,9 @@ v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 
 
 * **Center에 올릴 것**(사람이 한다): ① CON-07에 `chaeksas/nowview-sc04.extension.json` 0.1.0 서명·등록, 외부 앱 키·시험용 키
   (장면 1~3과 같은 값), 로컬 Center 「서버 주소」 덮어쓰기. ② Studio에서 `engine/processes/sc04.bpmn`을 내보내 `nowview.sc04`
-  승인·배포. 그 전에는 Center 실행의 착수가 Center 거절(배포 없음)로 막힌다. **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.**
+  승인·배포. 그 전에는 Center 실행의 착수가 Center 거절(배포 없음)로 막힌다(2026-10-27 로컬 Center에서 장면 6 열기가
+  `no_deployment` 409로 멈춘 것을 봤다). **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.** 대리 답 대기(30초)·사전 검사 재시도·
+  각본의 기록 작업 대기는 장면 3 실측대로 미리 맞춰 두었다(4.17).
 * **승인 이후 수정**(구현명세 11장 — 새 판단·승인 버전, 대표 재확인, 영향받은 인수 STALE) — 반려 보완(승인 범위 안의 명확화)만 있다.
 * **Agent LLM 러너** — mock·fail뿐이다(장면 2·3과 같다).
 * 화면 검수는 내장 BASE만 했다. E 사례는 엔진 시험으로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
@@ -1762,7 +1783,8 @@ v0.5의 파생 시트(모델손익 60행·월효과 18행·월손익·초기지�
 
 * **Center에 올릴 것**(사람이 한다): ① CON-07에 `chaeksas/nowview-sc05.extension.json` 0.1.0 서명·등록, 외부 앱 키·시험용 키(장면 1~4와
   같은 값), 로컬 Center 「서버 주소」 덮어쓰기. ② Studio에서 `engine/processes/sc05.bpmn`을 내보내 `nowview.sc05` 승인·배포. 그 전에는
-  Center 실행의 착수가 Center 거절(배포 없음)로 막힌다. **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.**
+  Center 실행의 착수가 Center 거절(배포 없음)로 막힌다. **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.** 대리 답 대기·사전 검사
+  재시도·각본의 기록 작업 대기는 장면 3 실측대로 미리 맞춰 두었다(4.17).
 * **승인 후 입력 변경의 재승인 흐름** — 게시 뒤 새 RUN·검토본(FC52-D)은 도메인에서 만들 수 있지만(T526) 그림에는 장면 완료 뒤 다시 도는
   길이 없다.
 * **예산 전용·총괄 초과의 실제 처리**(경영관리 임원 전용 승인·대표 별도 승인) — 범위 이탈은 시행 보류로 표시까지만 한다(X502).
