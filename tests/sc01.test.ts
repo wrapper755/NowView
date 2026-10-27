@@ -120,6 +120,17 @@ describe("되감기 지점", () => {
     expect(historySeqFor(history, 5)).toBeNull();
   });
 
+  it("초기화 뒤에는 초기화 이후의 기록만 본다 — 앞 진행의 같은 지점을 고르지 않는다", () => {
+    const again: HistoryEntry[] = [
+      ...history,
+      { seq: 6, event: "reset", clock: "2027-06-15T18:00:00+09:00", scriptIndex: -1 },
+      { seq: 7, event: "EV01", clock: "2027-06-16T09:00:00+09:00", scriptIndex: 0 },
+    ];
+    expect(historySeqFor(again, 0)).toBe(7);
+    expect(historySeqFor(again, -1)).toBe(6);
+    expect(historySeqFor(again, 1)).toBeNull();
+  });
+
   it("장면은 각본 순서를 거스르지 않는다", () => {
     const scripts = SC01_SCENES.map((s) => s.script);
     expect(scripts).toEqual([...scripts].sort((a, b) => a - b));
