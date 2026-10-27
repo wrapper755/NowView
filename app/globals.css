@@ -157,6 +157,12 @@
   color: var(--foreground);
   color-scheme: dark;
 }
+/* 펼침 목록(역할 선택)의 항목 — `color-scheme: dark`만으로는 리눅스 Chrome이 목록을 흰 바탕으로 그리고 글자는 틀의
+   밝은 글자를 물려받아 흰 바탕에 흰 글자가 됐다(실측). 바탕·글자를 둘 다 적는다. */
+.chrome-ink option {
+  background-color: var(--ink);
+  color: var(--foreground);
+}
 
 @layer base {
   * {
