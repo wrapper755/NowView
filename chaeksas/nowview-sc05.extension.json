@@ -1,0 +1,2265 @@
+{
+  "schema": 2,
+  "id": "nowview-sc05",
+  "version": "0.1.0",
+  "name": "NowView SC05 결정 실행·계획 갱신 시스템",
+  "description": "가상 부품사 NowView의 장면 5(SC05) 시스템 작업 — ACT42 상세 실행계획 초안·생산 협조·확정·경영관리 확인, 승인 범위 내 변경, CON41·SUP41 근거·확인, 실행 품의와 예산 약정, 운영 적용 착수, 생산 변경 공유·구매 확인·정상 대응·긴급 예외, 9월 초기 결과, 월간 운영계획, 공식 Forecast 작성·부서 확인·대표 승인·게시, 장면 인계(HANDOFF51). 숫자는 NowView 규칙 계산이 만든다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio(nowview-sc01~sc04와 같은 키). 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 덮어쓴다(ADR-0097) — 실행기가 호스트에서 돌면 http://localhost:3000, docker 컨테이너에서 돌면 http://host.docker.internal:3000. 기록 작업은 결재에 답한 사람(answered_by)을 받는다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "requires_keys": [
+    {
+      "purpose": "run"
+    }
+  ],
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "https://www.nowview.work",
+    "adapter": {
+      "allowed_hosts": [
+        "www.nowview.work",
+        "localhost",
+        "host.docker.internal"
+      ],
+      "allow_private_network": true,
+      "auth": {
+        "type": "bearer"
+      },
+      "limits": {
+        "timeout_s": 30,
+        "max_response_kb": 256
+      },
+      "operations": [
+        {
+          "name": "open_scene",
+          "description": "장면 열기 (S01·CT501) — 착수된 MR-2706-01인지 확인한다. 착수는 NowView 화면 명령이다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "budget": {
+                "type": "string"
+              },
+              "owner_name": {
+                "type": "string"
+              },
+              "review_id": {
+                "type": "string"
+              },
+              "task_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/open_scene",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "budget": "$.budget",
+              "owner_name": "$.owner_name",
+              "review_id": "$.review_id",
+              "task_id": "$.task_id"
+            }
+          }
+        },
+        {
+          "name": "draft_plan",
+          "description": "상세 계획 초안 (S02·CT502) — 활동·담당·일정·선행·협조·비용·완료 근거. 누락은 저장되고 확정에서 막힌다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "activities",
+              "answered_by",
+              "demo_run_id",
+              "effect_rule",
+              "node_id",
+              "task_id"
+            ],
+            "properties": {
+              "activities": {
+                "type": "string"
+              },
+              "agent_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "effect_rule": {
+                "type": "string"
+              },
+              "memo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "task_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "missing": {
+                "type": "integer"
+              },
+              "plan_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/draft_plan",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "activities": "{{input.activities}}",
+              "agent_ref": "{{input.agent_ref}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "effect_rule": "{{input.effect_rule}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}",
+              "task_id": "{{input.task_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "missing": "$.missing",
+              "plan_id": "$.plan_id"
+            }
+          }
+        },
+        {
+          "name": "coordinate_plan",
+          "description": "생산 협조 확인 (S03·CT503) — 생산 임원이 현재 계획 버전의 실행 가능성을 확인한다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "phase"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "contact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "plan_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/coordinate_plan",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "contact": "{{input.contact}}",
+              "content": "{{input.content}}",
+              "decision": "{{input.decision}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}",
+              "phase": "{{input.phase}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "plan_id": "$.plan_id"
+            }
+          }
+        },
+        {
+          "name": "confirm_plan",
+          "description": "계획 확정 (S04·S06·CT504) — 과제 담당 임원. 필수·순환·승인 범위 검사(PLAN_INCOMPLETE)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "phase"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "impact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "plan_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/confirm_plan",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "impact": "{{input.impact}}",
+              "node_id": "{{input.node_id}}",
+              "phase": "{{input.phase}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "plan_id": "$.plan_id"
+            }
+          }
+        },
+        {
+          "name": "verify_plan",
+          "description": "경영관리 확인 (S04·S06·CT504) — 정합성 확인 뒤 유효 계획 포인터 교체. 이견은 보완 필요",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "phase"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "plan_id": {
+                "type": "string"
+              },
+              "pointer": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/verify_plan",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "phase": "{{input.phase}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "plan_id": "$.plan_id",
+              "pointer": "$.pointer"
+            }
+          }
+        },
+        {
+          "name": "request_change",
+          "description": "계획 변경 요청 (S05·CT503) — 확정본 복제 새 버전. 승인 범위 이탈이면 시행 보류",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "activities": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "agent_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "budget": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effect_start": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "impact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "plan_id": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/request_change",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "activities": "{{input.activities}}",
+              "agent_ref": "{{input.agent_ref}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "budget": "{{input.budget}}",
+              "decision": "{{input.decision}}",
+              "due_at": "{{input.due_at}}",
+              "effect_start": "{{input.effect_start}}",
+              "impact": "{{input.impact}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "plan_id": "$.plan_id",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "condition_evidence",
+          "description": "조건·지원 근거 등록 (S07·S08·CT505) — 등록만 한다. 첨부로 충족되지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "details",
+              "evidence",
+              "node_id",
+              "target"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "details": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "evidence_version": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/condition_evidence",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "details": "{{input.details}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}",
+              "target": "{{input.target}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "evidence_version": "$.evidence_version"
+            }
+          }
+        },
+        {
+          "name": "condition_coordinate",
+          "description": "CON41 양 부서 준비 확인 (S07·CT505) — 생산 임원",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "comment",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/condition_coordinate",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "condition_confirm",
+          "description": "CON41 충족 확인(구매 임원) · SUP41 이행 확인(경영관리 임원) (CT505)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "target"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/condition_confirm",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "target": "{{input.target}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "submit_request",
+          "description": "실행 품의 상신 (S09·CT506) — 계획·대표 승인·예산 범위 검사(BUDGET_EXCEEDED)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "amount",
+              "answered_by",
+              "demo_run_id",
+              "node_id",
+              "reason",
+              "request_id"
+            ],
+            "properties": {
+              "amount": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "request_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/submit_request",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "amount": "{{input.amount}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}",
+              "request_id": "{{input.request_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "request_id": "$.request_id",
+              "version": "$.version"
+            }
+          }
+        },
+        {
+          "name": "approve_request",
+          "description": "품의 승인 (S09·CT506) — 현업 임원 → 예산 임원. 최종 승인과 약정을 함께 저장",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "request_id",
+              "stage"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "stage": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/approve_request",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}",
+              "request_id": "{{input.request_id}}",
+              "stage": "{{input.stage}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "start_operation",
+          "description": "운영 적용 착수 (S10·CT507) — 요건 재검사(START_BLOCKED), START51 한 번",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "plan_version": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "start_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/start_operation",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "node_id": "{{input.node_id}}",
+              "plan_version": "{{input.plan_version}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "start_id": "$.start_id"
+            }
+          }
+        },
+        {
+          "name": "receive_change",
+          "description": "고객 변경 접수 (S11·CT508) — 원문 버전 보존, 변경 건 열기",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id",
+              "source"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "memo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "change_id": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/receive_change",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}",
+              "source": "{{input.source}}"
+            }
+          },
+          "response": {
+            "output": {
+              "change_id": "$.change_id",
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "share_change",
+          "description": "생산 공유 (S11·CT508) — 정해진 창구, 공유 시각",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_id",
+              "demo_run_id",
+              "node_id",
+              "summary"
+            ],
+            "properties": {
+              "agent_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "recipients": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/share_change",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "agent_ref": "{{input.agent_ref}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_id": "{{input.change_id}}",
+              "node_id": "{{input.node_id}}",
+              "recipients": "{{input.recipients}}",
+              "summary": "{{input.summary}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "ack_change",
+          "description": "구매 확인 (S11·CT508) — 구매 담당 또는 지정 대행",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_id",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_id": {
+                "type": "string"
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/ack_change",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_id": "{{input.change_id}}",
+              "comment": "{{input.comment}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "respond_change",
+          "description": "구매 대응 (S12·CT508·CT509) — 정상 대응 또는 긴급 기안",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_id",
+              "decision",
+              "demo_run_id",
+              "inventory",
+              "need_date",
+              "node_id",
+              "normal_date",
+              "open_orders",
+              "order_id",
+              "qty",
+              "rationale"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "inventory": {
+                "type": "string"
+              },
+              "need_date": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "normal_date": {
+                "type": "string"
+              },
+              "open_orders": {
+                "type": "string"
+              },
+              "order_id": {
+                "type": "string"
+              },
+              "premium": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "qty": {
+                "type": "string"
+              },
+              "rationale": {
+                "type": "string"
+              },
+              "transport": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "decision": {
+                "type": "string"
+              },
+              "error_message": {},
+              "order_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/respond_change",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_id": "{{input.change_id}}",
+              "decision": "{{input.decision}}",
+              "inventory": "{{input.inventory}}",
+              "need_date": "{{input.need_date}}",
+              "node_id": "{{input.node_id}}",
+              "normal_date": "{{input.normal_date}}",
+              "open_orders": "{{input.open_orders}}",
+              "order_id": "{{input.order_id}}",
+              "premium": "{{input.premium}}",
+              "qty": "{{input.qty}}",
+              "rationale": "{{input.rationale}}",
+              "transport": "{{input.transport}}"
+            }
+          },
+          "response": {
+            "output": {
+              "decision": "$.decision",
+              "error_message": "$.error_message",
+              "order_id": "$.order_id"
+            }
+          }
+        },
+        {
+          "name": "approve_urgent",
+          "description": "긴급 예외 승인 (S12·CT509) — 기존 구매 전결(추가비 200만원 이하 구매 임원)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_id",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "additional_cost": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "impacts": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/approve_urgent",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "additional_cost": "{{input.additional_cost}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_id": "{{input.change_id}}",
+              "decision": "{{input.decision}}",
+              "impacts": "{{input.impacts}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "execute_order",
+          "description": "발주·처리 기록 (S12·CT509) — 긴급 미승인 차단, 발주·처리 시각 구분",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_id",
+              "demo_run_id",
+              "node_id",
+              "ordered_at"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "ordered_at": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "next_source": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/execute_order",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_id": "{{input.change_id}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}",
+              "ordered_at": "{{input.ordered_at}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "next_source": "$.next_source"
+            }
+          }
+        },
+        {
+          "name": "confirm_observation",
+          "description": "초기 결과 확인 (S13·CT509·CT510) — 범위·비용·납기·품질(RESULT_INCOMPLETE)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "net": {
+                "type": "string"
+              },
+              "observation_id": {
+                "type": "string"
+              },
+              "urgent": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/confirm_observation",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "net": "$.net",
+              "observation_id": "$.observation_id",
+              "urgent": "$.urgent"
+            }
+          }
+        },
+        {
+          "name": "confirm_opl",
+          "description": "운영계획 확정 (S14·S15·CT510·CT511) — 잔여 10~12월 가정만. 고정비 절감 금지",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "plan_id",
+              "remaining_plan"
+            ],
+            "properties": {
+              "agent_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "assumption": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "dec": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "fixed_saving": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "nov": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "oct": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "plan_id": {
+                "type": "string"
+              },
+              "progress": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "qty": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "remaining_plan": {
+                "type": "string"
+              },
+              "stabilize_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "plan_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/confirm_opl",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "agent_ref": "{{input.agent_ref}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "assumption": "{{input.assumption}}",
+              "dec": "{{input.dec}}",
+              "decision": "{{input.decision}}",
+              "fixed_saving": "{{input.fixed_saving}}",
+              "node_id": "{{input.node_id}}",
+              "nov": "{{input.nov}}",
+              "oct": "{{input.oct}}",
+              "plan_id": "{{input.plan_id}}",
+              "progress": "{{input.progress}}",
+              "qty": "{{input.qty}}",
+              "remaining_plan": "{{input.remaining_plan}}",
+              "stabilize_due": "{{input.stabilize_due}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "plan_id": "$.plan_id"
+            }
+          }
+        },
+        {
+          "name": "verify_opl",
+          "description": "운영계획 경영관리 확인 (S14·CT511)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "plan_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "plan_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/verify_opl",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "plan_id": "{{input.plan_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "draft_forecast",
+          "description": "전망 작성·대사 (S16·CT511) — 새 RUN과 검토안. 공식본을 덮지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "method",
+              "node_id",
+              "reasons"
+            ],
+            "properties": {
+              "agent_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reasons": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "forecast_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              },
+              "valid": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/draft_forecast",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "agent_ref": "{{input.agent_ref}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "method": "{{input.method}}",
+              "node_id": "{{input.node_id}}",
+              "reasons": "{{input.reasons}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "forecast_id": "$.forecast_id",
+              "run_id": "$.run_id",
+              "valid": "$.valid"
+            }
+          }
+        },
+        {
+          "name": "confirm_forecast",
+          "description": "부서 가정 확인 (S16·CT512) — 자기 부서만, 산정본 해시 고정",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "comment",
+              "decision",
+              "demo_run_id",
+              "department",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "department": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "run_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/confirm_forecast",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "decision": "{{input.decision}}",
+              "department": "{{input.department}}",
+              "node_id": "{{input.node_id}}",
+              "run_ref": "{{input.run_ref}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "submit_forecast",
+          "description": "대표 승인 요청 (S16·CT512) — 마감·대사·최신 확인 검사(FORECAST_INVALID)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "forecast_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/submit_forecast",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "comment": "{{input.comment}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "forecast_id": "$.forecast_id"
+            }
+          }
+        },
+        {
+          "name": "approve_forecast",
+          "description": "공식 Forecast 승인·반려 (S17·CT512) — 대표이사. 반려면 FC50 유지",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/approve_forecast",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "publish_forecast",
+          "description": "공식본 게시·공유 (S17·CT512) — 승인본·공식 포인터·공유 기록을 함께",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id",
+              "recipients"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "recipients": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "official": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/publish_forecast",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "node_id": "{{input.node_id}}",
+              "recipients": "{{input.recipients}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "official": "$.official"
+            }
+          }
+        },
+        {
+          "name": "complete_scene",
+          "description": "장면 5 완료 (S18·CT513) — HANDOFF51과 SC05_COMPLETED를 함께(COMPLETION_BLOCKED)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "followups",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "followups": {
+                "type": "string"
+              },
+              "memo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "handoff_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc05/demo-runs/{{input.demo_run_id}}/operations/complete_scene",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "followups": "{{input.followups}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "handoff_id": "$.handoff_id"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
