@@ -170,6 +170,7 @@ def run_operation(
             out = {"run_id": run["run_id"], "risk": run["result"]["risk"] or ""}
         domain.ensure_task(doc, node_id)
         domain.complete_task(doc, node_id, actor=by)
+        _follow_script(doc, seed, node_id)
         return out
 
     node_id = str(args.get("node_id") or "")
@@ -205,6 +206,7 @@ def run_operation(
         domain.audit(doc, actor=by, action="answer_via", node_id=node_id, via=args["answered_via"])
     domain.ensure_task(doc, node_id)
     domain.complete_task(doc, node_id, actor=by)
+    _follow_script(doc, seed, node_id)
     return {**out, "error_message": None}
 
 
@@ -494,6 +496,7 @@ class Sc02Process:
             request_id, created = domain.receive_request(doc, self.seed, fixture_id, actor=actor)
             if not created:
                 return doc
+            _follow_script(doc, self.seed, None)
             executor = executor_of(doc)
             if executor != "embedded":
                 if executor == "center":
@@ -926,6 +929,23 @@ def _check_expect(doc: dict, expect: dict[str, Any]) -> None:
     bundle = expect.get("bundle")
     if bundle is not None and (doc["handoff"] or {}).get("bundle_hash") != bundle:
         raise DomainError("본 인계 자료가 최신이 아니다 — 새로 고친 뒤 다시 인수한다", 409)
+
+
+def _follow_script(doc: dict, seed: Seed, node_id: str | None) -> None:
+    """
+    화면에서 직접 답해도 그것이 각본의 **바로 다음** 단계의 결재면 진행 표시
+    (`step`·`script_index`)를 옮긴다 — 안 그러면 손으로 D12까지 가도 D01에 머물고, 플레이어
+    「다음」이 지나간 단계를 다시 하려다 409다. 효과가 난 자리(기록 작업)에서 하므로 내장·Studio·
+    Center가 같다. 바로 다음만 본다 — 각본이 대리 답한 단계는 `_mark`가 이미 옮겼고, 같은 결재가
+    뒤에 또 있는 사례(X07R)를 건너뛰지 않는다.
+    """
+    from app.sc02.demo import steps_for  # demo가 이 모듈을 가져온다
+
+    steps = steps_for(doc["case_id"], seed)
+    nxt = doc.get("script_index", -1) + 1
+    if nxt < len(steps) and steps[nxt].node_id == node_id:
+        doc["step"] = steps[nxt].code
+        doc["script_index"] = nxt
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:

@@ -121,6 +121,28 @@ export function Sc02DemoPlayer() {
     jumpRef.current = jump;
   }, [jump]);
 
+  /**
+   * 플레이어 위치가 엔진의 각본 지점(`scriptIndex`)을 따라간다 — 화면에서 직접 답해 앞으로 갔을 때(안 그러면 손으로
+   * D12까지 가도 D00에 머문다), 그리고 데모 실행을 처음 받았을 때(저장된 위치는 실행과 무관해서 D00인 새 실행에 D12가
+   * 보였다 — 지난 시점 보기는 저장되지 않으니 새로고침 뒤에는 지금 지점이 맞다). 위치만 옮기고 라우팅은 하지 않는다
+   * (4.1 — 상태를 감시해 라우팅하면 화면 메뉴로 이동할 때 플레이어가 되돌린다). 뒤로 가는 것은 각자의 핸들러가 정한다.
+   */
+  const liveScript = useSc02((s) => s.live?.scriptIndex ?? null);
+  const liveRun = useSc02((s) => s.live?.demoRunId ?? null);
+  const seenScript = useRef<{ run: string; index: number } | null>(null);
+  useEffect(() => {
+    if (liveRun === null || liveScript === null) return;
+    const seen = seenScript.current;
+    if (seen?.run === liveRun && liveScript <= seen.index) {
+      seen.index = liveScript; // 초기화로 되돌아갔다 — 위치는 초기화 핸들러가 이미 정했다
+      return;
+    }
+    const at = scenes.findIndex((s) => s.script === liveScript);
+    if (at < 0) return; // 각본이 아직 오지 않았다 — 오면 다시 본다
+    setScene(at);
+    seenScript.current = { run: liveRun, index: liveScript };
+  }, [liveRun, liveScript, scenes, setScene]);
+
   useEffect(() => {
     if (!isPlaying) return;
     let cancelled = false;
