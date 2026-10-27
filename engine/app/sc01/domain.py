@@ -41,6 +41,12 @@ USERS: dict[str, dict[str, str]] = {
     "u-buy-lead": {"name": "서도현", "role": "구매팀장"},
     "u-buy-exec": {"name": "문지후", "role": "구매임원"},
     "u-ceo": {"name": "임하준", "role": "대표이사"},
+    # 장면 3(SC03) — 수시 경영검토회의. 주재는 경영관리 임원, 부서 확인·과제 인수는 각 부서 책임자다
+    # (영업·구매 책임자는 장면 1·2의 팀장). 품질은 후속 협조만 — MT31 참석자로 넣지 않는다.
+    "u-fin-exec": {"name": "강민서", "role": "경영관리임원"},
+    "u-fin-lead": {"name": "오세린", "role": "경영관리팀장"},
+    "u-prod-lead": {"name": "배정훈", "role": "생산팀장"},
+    "u-qa-lead": {"name": "신예준", "role": "품질팀장"},
     "u-demo": {"name": "시연관리자", "role": "시연관리자"},
 }
 

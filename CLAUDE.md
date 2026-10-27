@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 275개 (SQLite만, LLM 제외)
+uv run pytest                                      # 329개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -74,7 +74,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (356개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (443개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -124,6 +124,9 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **Description**: 매출 약 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 AI Agent가 협업하는 경영 운영 플랫폼 프로토타입.
 * **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). Center 실행에서는 고객계획 접수를 **가상 직원**(접수 Bot)이 맡고 감독자가 승인한 건만 SC01이 된다(4.5 N5).
   **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. **Studio 시험 실행·Center 서버 실행**에서 돈다(외부 확장 `nowview-sc02`).
+  **장면 3(SC03)** — 장면 1 물량 감소와 장면 2 승인 단가를 한 수익성 검토건(MR-2706-01)에 잇고, 통합 분석 → 영업·구매·생산
+  확인 → 쟁점 판단 → 자료 확정 → 경영관리 임원 주재 수시회의(결론·후보 포함/제외) → 분석과제 AT31~34 배정·인수 → 장면 4 인계
+  (HANDOFF31)까지(4.17). 같은 데모 실행을 잇고 **Studio·Center 실행**에서 돈다(외부 확장 `nowview-sc03`).
   **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
@@ -138,6 +141,8 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 통합 가상 데이터 설계 v0.2(→ `engine/seed/`) · 설계 Template v0.5. 기획안 v0.1은 v0.5의 1~4장과 같다.
 장면 2(Downloads/INNONOW_S02): SC02 설계서 v0.5 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
 SC01_SC02 통합가상데이터 v0.2(→ `engine/seed/SYN-SC02-v0.2.xlsx`).
+장면 3(Downloads/장면3): SC03 설계서(자료 목록) · 경영이야기와장면범위 v0.2 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 ·
+구현명세 v0.2 · SC01_SC02_SC03 통합가상데이터 v0.3(→ `engine/seed/SYN-SC03-v0.3.xlsx`).
 **문서의 요구사항 ID(UI01-xx, CALC-xx, WF-xx, AT-xx, EX-xx, D-xx)를 코드 주석·테스트 이름에 그대로 쓴다.**
 
 ### 2.1 가상 고객사와 범위
@@ -162,7 +167,8 @@ SC01_SC02 통합가상데이터 v0.2(→ `engine/seed/SYN-SC02-v0.2.xlsx`).
 6. **Management Evolution** — Framework · Process · Agent 개선.
 
 **SC01은 1·2단계와 3단계 "연결"까지다.** **SC02**(단가 인상 검토)도 같은 범위다 — 위험을 해소하지 않고
-장면 3 손익 검토로 넘긴다. 장면 3~7(통합 손익 · 대안 결정 · 실행·Rolling · 효과 검증 · Evolution)은 기획안
+장면 3 손익 검토로 넘긴다. **SC03**은 3단계(Management Review)의 **분석 검토와 분석 지시**까지다 — 대안 선택·실행 승인·
+Rolling은 하지 않고 장면 4(대표 주재 월간회의 MT41)로 넘긴다. 장면 4~7(대안 결정 · 실행·Rolling · 효과 검증 · Evolution)은 기획안
 6장에 이야기만 있고 설계표·데이터가 없다 — 화면은 수치를 지어내지 않고 "다음 장면"으로만 보인다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
 (공장관리손익 목표 34.77억)과 다르다(D18).
 
@@ -208,7 +214,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01·nowview-sc02, 로컬은 Center가 주소를 덮어쓴다, 4.3)
+├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01·sc02·sc03, 로컬은 Center가 주소를 덮어쓴다, 4.3)
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # GNB · 역할 전환 · 테마 · 세션 동기화 · 데모 플레이어
@@ -221,7 +227,9 @@ NowView/
 │   ├── process/page.tsx          # BPM 흐름 (BPMN 캔버스)
 │   ├── sc02/                     # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
 │   │                             #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
-│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01·sc02만 중계)
+│   ├── sc03/                     # 장면 3 — page(업무함 U31) · analysis(U32) · confirm(U33) · meeting(U34·U35)
+│   │                             #   · tasks(U36) · handoff(U37) · process(BPM)
+│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01·sc02·sc03만 중계)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
 │   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
@@ -230,38 +238,44 @@ NowView/
 │   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
 │   │                             #   intake-card — 접수 가상 직원, N5)
 │   ├── sc02/                     # SC02 화면들 + bits · action-form · analysis-parts · session-sync · demo-player
-│   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2도 같은 캔버스 — `maxColumns`만 다르다)
+│   ├── sc03/                     # SC03 화면들 + bits · action-form · bridge-chart(손익 브리지) · agent-card · session-sync · demo-player
+│   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2·3도 같은 캔버스 — `maxColumns`만 다르다)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
 │   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
 │   ├── sc02/                     # types · client · format · scenes(엔진 각본 → 장면)
-│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02(장면 2 사본·플레이어), ui-prefs(해설)
-├── tests/                        # Vitest — sc01·sc02.test.ts, fixtures/sc01·sc02-process.json
+│   ├── sc03/                     # types · client(완료 실패의 blockingItems) · format(백만원) · scenes
+│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02·sc03(장면 사본·플레이어), ui-prefs(해설)
+├── tests/                        # Vitest — sc01·sc02·sc03.test.ts, fixtures/sc0{1,2,3}-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
     ├── processes/sc01-intake.bpmn # 고객계획 접수 Bot(가상 직원, N5) — Center 서버 Bot으로만 돈다
     ├── processes/sc02.bpmn       # SC02 업무 흐름 — Studio·Center 실행(4.16)
+    ├── processes/sc03.bpmn       # SC03 업무 흐름 — Studio·Center 실행(4.17)
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
+    ├── seed/SYN-SC03-v0.3.xlsx   # SC01_SC02_SC03 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 종료 시점 완성 레코드(기대값)
     ├── app/
-    │   ├── main.py               # FastAPI — health + /sc01 · /sc02 라우터
+    │   ├── main.py               # FastAPI — health + /sc01 · /sc02 · /sc03 라우터
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
     │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
     │   └── sc02/                 # seed · calc · domain · agent · process(내장·Studio·Center) · demo · view · api (저장은 sc01/store의 `sc02_*`)
+    │   └── sc03/                 # seed · calc(장면 2 월별 계산 재사용) · domain · agent · process · demo · view · api (`sc03_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _intake,
-                                  #   test_sc02_calc · _process, test_events · _notify
+                                  #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
+                                  #   test_events · _notify
 ```
 
 **디렉토리 규칙**
-* `components/sc01/`·`components/sc02/` — 장면별 화면 전용. 장면 3 이후도 같은 원칙으로 나눈다.
+* `components/sc01/`·`sc02/`·`sc03/` — 장면별 화면 전용. 장면 4 이후도 같은 원칙으로 나눈다.
 * `components/flow/` — React Flow 노드·엣지·캔버스 **전용**.
 * `components/shared/` — 두 화면 이상이 쓰는 조각 중 SC01에 묶이지 않은 것만 둔다.
-* `engine/app/sc01/`·`sc02/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
+* `engine/app/sc01/`·`sc02/`·`sc03/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
 
 ### 4.1 데모 플레이어
 
@@ -328,6 +342,20 @@ POST /sc02/demo-runs/{id}/actions/{nodeId} {answer, expect}   → 사람 대기�
 POST /sc02/demo-runs/{id}/negotiation-due {due, reason}        → 외부 협상기한 변경(이력 보존)
 POST /sc02/demo-runs/{id}/agent-outputs/{oid}/adopt · /clock {at} · /script/{i} · /reset {executor?}
 POST /sc02/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 13개(외부 확장 nowview-sc02, 키 검사)
+
+     장면 3(4.17) — 데모 실행 id는 장면 1·2와 같다
+GET  /sc03/process · /cases · /script?case_id=
+POST /sc03/demo-runs  {sc01DemoRunId?, caseId, executor=center|studio}  → 장면 3 시작(D30). 장면 2가 인수 전이면 각본으로 인수까지
+GET  /sc03/demo-runs/{id} · /history · /history/{seq} · /events(SSE, 채널 sc03:{id})
+POST /sc03/demo-runs/{id}/start                         → S31 착수 = BPM 시작(내장)·SC03 기동(Center)·착수만(Studio). 재착수는 같은 결과
+POST /sc03/demo-runs/{id}/actions/{nodeId} {answer, expect}  → 사람 대기에 응답. expect = {report}·{assignment}
+                                                          Complete_Scene 조건 미충족 → 422 {message, error_code, blocking_items}
+POST /sc03/demo-runs/{id}/meetings/MT31/records {type, subject, content, related}  → 회의 질의·답변·설명(참석자만)
+POST /sc03/demo-runs/{id}/agent-drafts {kind}  · /agent-outputs/{oid}/adopt          → AG31 회의 요약(경영관리 담당)
+POST /sc03/demo-runs/{id}/tasks/{taskId}/draft {changes, reason}                      → 배정 전 과제 초안 수정(전후값)
+POST /sc03/demo-runs/{id}/forecast-revisions {reason}   → E34 새 전망 버전(E34 사례 실행에서만)
+POST /sc03/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}
+POST /sc03/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 18개(외부 확장 nowview-sc03, 키 검사)
 ```
 
 * **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
@@ -689,14 +717,18 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_external.py` | 확장 정의 `nowview-sc02` ↔ BPMN(본문 입력·답한 사람·오류 경계·확장 선언), Studio 흉내(진짜 엔진 + 시험용 키)로 인계까지, 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·폴링·도달한 종료), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc03_calc.py` | **통합가상데이터 v0.3 파생 시트와 대조** — 통합손익(연간·Q3·잔여·12개월), 통합모델손익 a~e, SC03검증 V31·V32·V39·V40, 숫자 원천 = v0.2, 구매 증가 156,812개·18,817,440원, E33 정합 실패, E34 −1,988,000원, 엑셀 시각 KST·초 반올림 |
+| `engine/tests/test_sc03_process.py` | Chaeksas 위의 기본 시연 D30~D41 — **끝난 문서 = SC03 시트**(사실확인·쟁점·후보·과제·인계·이벤트 시각), T31 재착수, T33 무응답 차단, T34 담당·기한 필수, 차단 → 재분석, T35 제외 사유 누락 시 전체 미저장, T36 C32·C33 → AT32, T37 3/4 완료 422·타부서 403, E35-M 책임자 NULL 전건 보류, T38 구버전 인수 409, 멱등, E31·E33·E34·E36·E37, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
+| `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(275개 / 356개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(329개 / 443개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
-* `tests/fixtures/sc01-process.json`·`sc02-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
+* `tests/fixtures/sc0{1,2,3}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
   실패하며 다시 만드는 명령을 알려 준다.
 * 렌더링 테스트는 두지 않는다 — 레이아웃·가독성은 브라우저에서 본다(4.10~4.14의 실측들).
 
@@ -1028,12 +1060,74 @@ engine/processes/sc02.bpmn ──▶ Chaeksas Engine ── chk:serviceCall nowv
 * **GNB에 장면 칩을 더하자 375px에서 화면 메뉴가 0px로 눌렸다**(4.14와 같은 종류). 좁을 때 「장면」 글자를 숨기고
   메뉴에 최소 폭을 줬다. 플레이어도 좁을 때 버튼 라벨을 숨긴다 — 154px → 120px.
 
+### 4.17 SC03 — 수익성 변동의 통합 분석과 수시 경영검토 (장면 3)
+
+장면 1 물량 감소(b 7월 −700대분, ISSUE-B07)와 장면 2 승인 단가(2,000 → 2,120원 7/1, ISSUE-COST01)를 기존 검토건
+MR-2706-01에서 같은 기준으로 계산하고, 영업·구매·생산이 확인하고, 경영관리 임원이 수시회의(MT31 6/29 10시)에서 검토
+결론과 상세 분석 대상을 정하고, 담당자가 분석과제 AT31~34를 인수하면 끝난다(HANDOFF31 → 장면 4 MT41 7/12).
+**끝나도 Risk OPEN · Forecast REVIEW_PENDING · Target UNCHANGED다**(P37) — 「장면 3 완료」 ≠ 위험 해소 ≠ 전망 승인.
+
+```
+engine/processes/sc03.bpmn ──▶ Studio·Center(또는 시험용 내장) ── 서비스 태스크 nowview-sc03 ──▶ app/sc03/process.run_operation
+                                                                                                │ domain.check → domain.apply
+                                                                                                ▼   (calc는 sc02 월별 계산 재사용)
+                       sc03_demo_run(id = 장면 1·2 데모 실행 id) · sc03_history → notifier("sc03:{id}") → SSE
+```
+
+**숫자** — 연간 Target 3,477,290,000 · F01 3,323,351,000 · 물량 −14,000,000 · 승인 단가 −9,364,320 · 통합 3,299,986,680 ·
+**기존 부족 153,939,000**(Target − F01) · 전체 부족 177,303,320. Q3 788,967,800 · 잔여 1,604,836,680 · 12개월 3,173,163,560
+(Target 미설정 → 부족 NULL) · 12개월 구매 증가 18,817,440(손익과 다른 지표). 화면 기본 단위는 **백만원 소수 둘째 자리**다
+(`lib/sc03/format.ts`, 장면 1·2의 억·만 표기와 다르다 — 구현명세 2장).
+
+**경계·범위에서 정한 것**
+
+* **착수(S31)는 BPM 밖의 화면 명령이다** — 경영관리 담당이 「분석 시작」을 누르면 검토건을 열고 내장이면 BPM을 시작,
+  Center면 SC03 패키지를 기동(`POST /jobs`, `CHAEKSAS_SC03_PACKAGE` 기본 `nowview.sc03`), Studio면 착수만 적는다. 그림의
+  첫 작업(`open_review`)은 착수된 검토건인지만 본다. 재착수는 같은 결과다(T31).
+* **사전 검사는 그림에서 읽는다**(`Sc03Process.answer_args`) — 결재 뒤 기록 작업의 `input` 대응으로 답을 작업 입력으로 바꿔
+  `domain.check`를 부른다. 장면 2처럼 「칸 이름 ↔ 입력」 표(`_ANSWER_OF`)를 따로 적지 않았다 — 규칙이 한 벌이고 그림을
+  고치면 따라온다. 기록 작업은 같은 `check`를 다시 한다(Studio·콘솔 답).
+* **병렬 갈래의 폼 칸에 부서·과제를 붙였다**(영업회신·구매회신·AT31결정…). Chaeksas 변수는 실행 하나에 전역이라 세 부서가
+  같은 칸 이름을 쓰면 서로 덮는다. 과제 인수는 **포함 게이트웨이**로 배정된 과제만 갈래가 열린다(`AT31배정`).
+* **인수 결재의 담당은 과제 책임자다**(`assignees: "AT31책임자"`, 배정·재배정 기록이 이름을 돌려준다). 역할표의 역할과 별개로
+  그 사람만 답한다(`NODE_ROLES.owner_of`) — 타부서 403, 임원도 대신 못 한다(E35).
+* **완료는 대기가 아니어도 조건부터 본다**(`act`의 `Complete_Scene`) — 3/4 인수에서 누르면 「대기가 아니다」(409)가 아니라
+  422 `COMPLETION_PREREQUISITE_FAILED`와 `blocking_items`다(T37). API는 `detail`을 객체로 싣고 화면이 목록으로 보인다.
+* **결론과 후보 판단은 한 결재·한 명령이다**(Decide_Review 칸 15개) — 제외 사유 하나가 빠지면 결론까지 저장하지 않는다.
+  포함 후보는 과제 초안(SC03과제 시트 원문)에 묶인다 — C32·C33 → AT32 한 건, AT34는 후보 없는 원인분석(Q32가 있으면).
+* **쟁점 번호는 종류별로 센다** — 미확인은 Q31·Q32(데이터 그대로), 부서 이견은 QD31(E31). 판단 폼은 Q31·Q32 칸만 있다 —
+  다른 미확인이 생기면 409로 막는다(그림을 고쳐야 한다).
+* **확정본·회의록·인계는 고치지 않는다.** 초안 수정은 새 버전(REP31-v0 → v0.1), 이 버전이 바꾼 부서 확인은 STALE(재확인),
+  재검토 뒤 확정은 v2. E34 새 전망은 **별도 실행·별도 보고버전**(REP31-v2-E34, REVISION_PENDING)이고 E34 사례에서만 받는다.
+* **회의 기록(QA31~)·AG31 회의 요약·과제 초안 수정은 BPM 밖 명령이다** — 실행 위치와 무관하게 NowView 화면에서 한다.
+* **시연 사례**: BASE · E31(구매 이견 → 보완 → 재확인) · E32(AT31 반려 → 재배정 v2 → 재인수) · E33(고정비 계수 2 → 계산 차단 →
+  정정) · E34(확정 뒤 새 전망) · E36(Agent 실패 → 수동) · E37(완료 뒤 7/6 18:01 제출 지연 알림). E35는 엔진 시험으로 잠근다.
+* **기한은 데이터의 일정이다**(`domain.SCHEDULE` — 회신 6/28 18시, 확정 6/29 9시, 회의 10시, 인수 6/30 12시, 제출 7/6 18시,
+  취합 7/8 18시, MT41 7/12 10시). 정해진 시각이 지난 뒤 되돌아온 업무는 다음 영업일 18시다. 경과·영업시간(M40)은 분 단위다
+  (145시간 25분 · 37시간 25분 — 투입시간이 아니다).
+* **각본 입력은 시드에서 읽는다**(회신 문장·쟁점 처리·질의·후보 사유). 끝난 문서를 SC03 시트와 대조한다(`test_sc03_process`).
+  예외: 한 명령으로 한 일(EV31-08 쟁점 판단 17:05)의 두 기록 시각이 시트에서 다르다(Q31 17:00) — 명령 시각을 따른다.
+* **expected_version은 문서 행 버전으로 받지 않았다** — 장면 1·2처럼 낙관적 잠금(`row_version`, 409)과 객체 버전(`expect`의
+  `report`·`assignment`)으로 막는다(구현명세 10장의 의도는 같다).
+
+**만들며 드러난 것**
+
+* **GNB에 장면 칩 3을 더하자 375px에서 화면 메뉴가 역할 선택 위로 겹쳤다** — 칩 묶음(62px) + 메뉴 최소 폭(48px)이 nav 최소
+  폭(88px)을 넘었다. 겹침은 넘침 검사로 안 잡힌다(4.14) — 요소 좌표로 쟀다. 칩 여백을 줄이고 nav 6rem·메뉴 2.5rem.
+* **KPI 카드 제목이 섹션 탭이 된다**(4.10) — 숫자 타일 카드에 `data-index-skip`을 단다.
+* **SC03 BPMN은 크다**(사람 노드 26 · 기록 태스크 22 · 오류 경계 22). 캔버스는 `maxColumns={12}`로 펴도 한 화면에서 작다 —
+  확대해서 본다. 기록 태스크·오류 경계는 결재 노드에 접힌다.
+* **BPMN·확장 정의는 생성기로 처음 만들었다**(남기지 않았다) — 이후로는 파일을 손으로 고친다. 정의 ↔ 그림은
+  `test_sc03_external.py`가 잠근다(본문 `{{input.x}}` ⊆ 그림 입력, 출력 대응, 답한 사람, 오류 경계).
+* **장면 2 계산의 월별 함수를 공개 이름으로 바꿨다**(`sc02.calc.monthly_rows`) — 장면 3이 같은 월별 공헌이익·원가 효과를
+  쓴다. 다시 계산하지 않는다.
+
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6, 내장 실행)는 끝났다. 운영계(5.4)는 아직
-이전 구현이 떠 있다.
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7)은 끝났다(장면 2·3은 Center
+등록이 남았다). 운영계(5.4)는 아직 이전 구현이 떠 있다.
 
 ### 5.1 CI — 완료
 
@@ -1241,7 +1335,7 @@ scripts/deploy.sh --logs engine 80
 
   **화면 데이터가 새는 것은 근거가 아니다.** 5.1이 리포를 private으로 둔 이유로 든
   실제 회사명(SJG세종·인팩)과 실명은 **이 문서에만 있고 앱 코드에는 없다.** 화면의
-  회사·인물(이도윤·박서진·김태오·최유나·정하윤·한준호)은 가상이다. 공개되는
+  회사·인물(이도윤·박서진·김태오·최유나·정하윤·한준호·윤채원·서도현·문지후·임하준·강민서·오세린·배정훈·신예준)은 가상이다. 공개되는
   것은 방법론 이름(`INNONOW Management Reference Model`, `app/layout.tsx`의 설명)이다.
 * **서버에 방화벽이 아예 없다**(`ufw inactive`, iptables 정책 ACCEPT). 지금은 웹·엔진이
   둘 다 127.0.0.1이라 닫혀 있지만, 앞으로 무엇이든 0.0.0.0에 바인딩하면 **그 순간
@@ -1286,3 +1380,19 @@ scripts/deploy.sh --logs engine 80
 * **요청 정정 버전**(U21-03) — 같은 문서 키·다른 내용은 BPM 시작 전에만 받는다.
 * 화면 검수는 BASE·X01만 했다. 나머지 X 사례는 엔진 테스트로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
 
+### 5.7 장면 3(SC03) — 완료 (Studio·Center 실행)
+
+2026-10-27. 설계·데이터는 4.17. 엔진 시험(SQLite·Postgres)으로 기본 시연 D30 → D41과 E31~E37을 잠갔고, 숫자는 통합가상데이터
+v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 Studio 흉내(진짜 엔진 + 시험용 키)·가짜 Center + 실행기 흉내로
+완료까지 갔다. 브라우저에서는 **내장 실행(시험용, API로 만든 데모 실행)**으로 U31~U37·BPM 화면, 플레이어 진행, 3/4 완료 거절(422
+남은 항목), 화면 폼 인수(4/4) → 완료, 375px를 확인했다.
+
+**남은 것**
+
+* **Center에 올릴 것**(사람이 한다): ① CON-07에 `chaeksas/nowview-sc03.extension.json` 0.1.0 서명·등록, 외부 앱 키·시험용 키
+  (장면 1·2와 같은 값), 로컬 Center 「서버 주소」 덮어쓰기. ② Studio에서 `engine/processes/sc03.bpmn`을 내보내 `nowview.sc03`
+  승인·배포. 그 전에는 Center 실행의 착수가 Center 거절(배포 없음)로 막힌다. **진짜 서버 실행기·Studio로는 아직 돌려 보지 않았다.**
+* **E34 재확인 흐름** — 새 전망 버전은 기록·비교까지다. 임원 재확인 뒤 새 버전으로 회의 자료를 바꾸는 길은 없다(확정본으로 간다).
+* **Agent LLM 러너** — mock·fail뿐이다(장면 2와 같다).
+* 화면 검수는 내장 BASE만 했다. E 사례는 엔진 시험으로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.
+* **장면 4(MT41 대안 비교·선택)** — 설계표·데이터가 나오면 시작한다. HANDOFF31이 출발점이다.

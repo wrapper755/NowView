@@ -368,7 +368,7 @@ def comparison(
 # ─────────────────────────── 손익 연결 (M27 · CALC-22·23) ───────────────────────────
 
 
-def _monthly(rows: list[MonthRow], seed: Seed, option: Option) -> list[dict[str, Any]]:
+def monthly_rows(rows: list[MonthRow], seed: Seed, option: Option) -> list[dict[str, Any]]:
     """
     월·모델별 — F01+C01(기준) · F02+C01(물량 후) · F02+선택 원가안(단가 후).
     물량 효과 = (F02 − F01) × C01 단위 CM, 단가 효과 = −F02 × 소요량 × 단가 차이(적용일 이전 0).
@@ -531,7 +531,7 @@ def analyze(
     rate_risk = None if new is None else rate_level(option.old_price, new, seed.settings)
     amt_risk = amount_level(inc12, seed.settings)
     rate = None if new is None else ratio(option.old_price, new)
-    monthly = _monthly(rows, seed, option) if new is not None else []
+    monthly = monthly_rows(rows, seed, option) if new is not None else []
     window_monthly = [
         m for m in monthly if start.isoformat() <= m["period"] < next12_end.isoformat()
     ]
