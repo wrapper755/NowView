@@ -1,49 +1,81 @@
 """
 SC06 HTTP 경계 — `/sc06/*`. Next의 `/api/engine/sc06/*`가 그대로 중계한다(BFF).
 
-기본 시연 서비스는 **읽기 전용이고 멱등이다**(구현명세 10장) — 조회가 확인·승인·과제 등록 이력을
-만들지 않는다.
-모든 응답에 `review_id`·`report_version`·`calculation_version`·`as_of`·`data_status`를 싣는다.
-오류는 `error_code`를
-함께 낸다: 403 ACCESS_DENIED(근거·금액을 싣지 않는다) · 404 NOT_FOUND · 409 VERSION_MISMATCH.
-행위자는 `X-Demo-Actor`
-헤더다 — 신뢰 경계가 아니다(5.4).
+**조회 서비스는 읽기 전용이고 멱등이다**(구현명세 10장) — 조회가 확인·승인·과제 등록 이력을 만들지
+않는다. 모든 조회 응답에 `review_id`·`report_version`·`calculation_version`·`as_of`·`data_status`를
+싣는다. 오류는 `error_code`를 함께 낸다: 403 ACCESS_DENIED(근거·금액을 싣지 않는다) · 404 NOT_FOUND
+· 409 VERSION_MISMATCH.
+
+**확인 절차는 BPM이다**(`processes/sc06.bpmn`) — 착수·결재 답·각본·초기화는 장면 1~5와 같은
+경로이고, 시스템 작업 (`/operations/{이름}`)은 바깥 Chaeksas(외부 확장 `nowview-sc06`)가 부르고 키를
+검사한다(N6). 확정의 요건 미충족은 422 `REPORT_INVALID`에 `blocking_items`를 싣는다. 행위자는
+`X-Demo-Actor` 헤더다 — 신뢰 경계가 아니다(5.4).
 
 경로는 구현명세 10장의 제안에 데모 실행을 앞에 붙였다(`/demo-runs/{id}/reviews/RV61/summary` …) —
-데모 실행끼리는 서로
-보지 않는다(DATA-05).
+데모 실행끼리는 서로 보지 않는다(DATA-05).
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Response
+from fastapi import APIRouter, Body, Header, HTTPException, Response
+from fastapi.requests import Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
+from app.events import KEEPALIVE_SECONDS, Hub
 from app.preparation import Preparations, begin_scene, preparing
+from app.sc01.auth import SystemAuth
 from app.sc01.domain import DomainError
-from app.sc06 import domain
+from app.sc06 import confirm, demo, domain
 from app.sc06.process import Sc06Process
+from app.sc06.view import topology
+from app.sc06.view import view as render
+
+_BODY = Body(default_factory=dict)
 
 
 class CreateBody(BaseModel):
     #: 이어 갈 데모 실행(장면 1~5와 같은 id). 없으면 장면 1부터 새로 만들어 장면 5 완료까지 돌린다.
     sc01_demo_run_id: str | None = Field(default=None, alias="sc01DemoRunId")
     case_id: str = Field(default="BASE", alias="caseId")
-    #: 장면 1~5를 새로 돌려야 할 때의 실행 위치 — center(기본) | studio. 장면 6 자신은 BPM을 돌지
-    # 않는다.
+    #: 확인 절차를 돌릴 곳(장면 1~5가 아직 없으면 그 장면들도) — center(기본) | studio. 화면은
+    #: 내장을 고르지 않는다(2026-10-27 결정).
     executor: str = "center"
     model_config = {"populate_by_name": True}
 
 
-def build_router(process: Sc06Process, preparations: Preparations | None = None) -> APIRouter:
+class ResetBody(BaseModel):
+    executor: str | None = None
+
+
+class ActBody(BaseModel):
+    answer: dict[str, Any] = Field(default_factory=dict)
+
+
+def build_router(
+    process: Sc06Process,
+    hub: Hub | None = None,
+    auth: SystemAuth | None = None,
+    preparations: Preparations | None = None,
+) -> APIRouter:
     r = APIRouter(prefix="/sc06", tags=["sc06"])
     prep = preparations or Preparations()
+    system_auth = auth or SystemAuth.from_env()
+    events_hub = hub or Hub()
 
     def guard(fn, *args, **kwargs):
         try:
             return fn(*args, **kwargs)
+        except confirm.PrerequisiteError as exc:
+            raise HTTPException(
+                status_code=exc.status,
+                detail={"message": str(exc), "error_code": exc.code, "blocking_items": exc.items},
+            ) from exc
         except domain.ReadError as exc:
             raise HTTPException(
                 status_code=exc.status, detail={"message": str(exc), "error_code": exc.code}
@@ -51,24 +83,37 @@ def build_router(process: Sc06Process, preparations: Preparations | None = None)
         except DomainError as exc:
             raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
-    def meta(doc: dict) -> dict[str, Any]:
+    def meta(doc: dict, **kwargs: Any) -> dict[str, Any]:
         """
-        문서 머리 — 화면이 장면 6이 열렸는지·어느 보고본인지를 안다. 숫자는 조회 서비스로 받는다.
+        문서 머리 — 보고본·산정 버전·확인 절차(대기·결재 폼·기록). 숫자는 조회 서비스로 받는다.
         """
-        return {
-            "scene": "SC06",
-            "demoRunId": doc["demo_run_id"],
-            "caseId": doc["case_id"],
-            "clock": doc["clock"],
-            "reviewId": domain.REVIEW_ID,
-            "reportVersion": doc["report"]["report_version"],
-            "calculationVersion": doc["report"]["calculation_version"],
-            "reportState": doc["report"]["state"],
-            "sc05": {
-                k: doc["sc05"][k] for k in ("handoff_id", "official", "annual", "target", "gap")
-            },
-            "batch": doc["batch"],
-        }
+        return render(doc, center=process.center.config, **kwargs)
+
+    def actor_of(value: str | None) -> str:
+        if not value:
+            raise HTTPException(status_code=403, detail="X-Demo-Actor 헤더가 필요하다")
+        return value
+
+    @r.get("/process")
+    def get_process() -> dict[str, Any]:
+        return topology(process.process)
+
+    @r.get("/script")
+    def script(case_id: str = "BASE") -> list[dict[str, Any]]:
+        if case_id not in domain.CASES:
+            raise HTTPException(422, f"모르는 시연 사례: {case_id}")
+        return [
+            {
+                "index": i,
+                "code": s.code,
+                "actor": s.actor,
+                "kind": s.kind,
+                "nodeId": s.node_id,
+                "label": s.label,
+                "record": s.record,
+            }
+            for i, s in enumerate(demo.steps_for(case_id, process.seed))
+        ]
 
     @r.get("/cases")
     def cases() -> list[dict[str, str]]:
@@ -77,8 +122,8 @@ def build_router(process: Sc06Process, preparations: Preparations | None = None)
     @r.post("/demo-runs", status_code=201)
     def create(body: CreateBody, response: Response) -> dict[str, Any]:
         """
-        시작 — 앞 장면이 끝나 있지 않으면 각본으로 끝까지 실행한다. 오래 걸리면 202와 준비
-        상태를 돌려주고 배경에서 잇는다(`app.preparation`). 화면은 `…/preparation`을 읽는다.
+        시작 — 앞 장면이 끝나 있지 않으면 각본으로 끝까지 실행한다. 오래 걸리면 202와 준비 상태를
+        돌려주고 배경에서 잇는다(`app.preparation`). 화면은 `…/preparation`을 읽는다.
         """
         actor = "u-demo"
 
@@ -158,5 +203,133 @@ def build_router(process: Sc06Process, preparations: Preparations | None = None)
     ) -> dict[str, Any]:
         doc = guard(process.get, demo_run_id)
         return guard(domain.report, doc, report_version, actor=x_demo_actor)
+
+    @r.get("/demo-runs/{demo_run_id}/history")
+    def history(demo_run_id: str) -> list[dict[str, Any]]:
+        guard(process.get, demo_run_id)
+        return process.store.history(demo_run_id)
+
+    @r.get("/demo-runs/{demo_run_id}/history/{seq}")
+    def at(demo_run_id: str, seq: int) -> dict[str, Any]:
+        doc = process.store.at(demo_run_id, seq)
+        if doc is None:
+            raise HTTPException(status_code=404, detail=f"없는 시점: {seq}")
+        return meta(doc, historical=True)
+
+    @r.post("/demo-runs/{demo_run_id}/start")
+    def start(
+        demo_run_id: str,
+        x_demo_actor: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """확인 착수 — 재착수는 기존 결과를 돌려준다(두 번째 절차를 만들지 않는다)."""
+        return meta(
+            guard(
+                process.start,
+                demo_run_id,
+                actor=actor_of(x_demo_actor),
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    @r.post("/demo-runs/{demo_run_id}/actions/{node_id}")
+    def act(
+        demo_run_id: str,
+        node_id: str,
+        body: ActBody,
+        x_demo_actor: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        return meta(
+            guard(
+                process.act,
+                demo_run_id,
+                node_id,
+                body.answer,
+                actor=actor_of(x_demo_actor),
+                idempotency_key=idempotency_key,
+            )
+        )
+
+    @r.post("/demo-runs/{demo_run_id}/script/{index}")
+    def step(demo_run_id: str, index: int) -> dict[str, Any]:
+        """시연 단계 실행 — 각본의 행위자로 실제 전환을 실행한다. 지난 단계 재실행은 무해하다."""
+        return meta(guard(demo.run_step, process, demo_run_id, index))
+
+    @r.post("/demo-runs/{demo_run_id}/reset")
+    def reset(
+        demo_run_id: str,
+        body: ResetBody | None = None,
+        x_demo_actor: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """확인 절차만 확인 전으로 — 적재(숫자·근거)는 그대로다. 실행 위치를 바꿀 수 있다."""
+        return meta(
+            guard(
+                process.reset,
+                demo_run_id,
+                actor=actor_of(x_demo_actor),
+                executor=body.executor if body else None,
+            )
+        )
+
+    @r.post("/demo-runs/{demo_run_id}/operations/{operation}")
+    def operate(
+        demo_run_id: str,
+        operation: str,
+        body: dict[str, Any] = _BODY,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """
+        시스템 작업 — 바깥 BPM(외부 확장 `nowview-sc06`)이 서비스 태스크에서 부른다. 행위자 헤더가
+        없다. `chaeksas_run_id`가 데모 실행을 그 실행에 묶고, 키가 실행 위치를 말한다(N6).
+        """
+        via = guard(system_auth.executor_of, authorization)
+        rest = dict(body)
+        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
+        return guard(
+            process.operate,
+            demo_run_id,
+            operation,
+            rest,
+            external_run_id=run_id,
+            node_id=node_id,
+            via=via,
+        )
+
+    @r.get("/demo-runs/{demo_run_id}/events")
+    async def events(request: Request, demo_run_id: str) -> StreamingResponse:
+        """변경을 SSE로 민다 — 장면 1~5와 같은 모양(snapshot → ready → snapshot…).
+        조회는 변경이 아니다."""
+        await run_in_threadpool(guard, process.get, demo_run_id)
+        channel = f"sc06:{demo_run_id}"
+
+        async def emit() -> str:
+            doc = await run_in_threadpool(process.get, demo_run_id)
+            return f"event: snapshot\ndata: {json.dumps(meta(doc), ensure_ascii=False)}\n\n"
+
+        async def generate():
+            yield await emit()
+            yield f"event: ready\ndata: {json.dumps({'demoRunId': demo_run_id})}\n\n"
+            last = asyncio.get_running_loop().time()
+            async with events_hub.subscribe([channel]) as queue:
+                while True:
+                    await events_hub.wait(queue)
+                    if await request.is_disconnected():
+                        break
+                    yield await emit()
+                    now = asyncio.get_running_loop().time()
+                    if now - last >= KEEPALIVE_SECONDS:
+                        yield ": keepalive\n\n"
+                        last = now
+
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-transform",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     return r

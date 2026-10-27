@@ -1,0 +1,445 @@
+{
+  "schema": 2,
+  "id": "nowview-sc06",
+  "version": "0.1.0",
+  "name": "NowView SC06 완료·성과 검토 확인 시스템",
+  "description": "가상 부품사 NowView의 장면 6(SC06) 시스템 작업 — 2027 Q4 과제 완료·성과 검토(RV61)의 확인 절차: 담당 임원 성과 근거 확인(생산·구매), 경영관리 종합 확인, 보고 결론, 대표 월간 보고본 확정(RPT61-v1), 대표 보고. 숫자는 NowView 규칙 계산이 적재 때 만들고 확정이 보고본에 묶는다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio(nowview-sc01~sc05와 같은 키). 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 덮어쓴다(ADR-0097) — 실행기가 호스트에서 돌면 http://localhost:3000, docker 컨테이너에서 돌면 http://host.docker.internal:3000. 기록 작업은 결재에 답한 사람(answered_by)을 받는다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "requires_keys": [
+    {
+      "purpose": "run"
+    }
+  ],
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "https://www.nowview.work",
+    "adapter": {
+      "allowed_hosts": [
+        "www.nowview.work",
+        "localhost",
+        "host.docker.internal"
+      ],
+      "allow_private_network": true,
+      "auth": {
+        "type": "bearer"
+      },
+      "limits": {
+        "timeout_s": 30,
+        "max_response_kb": 256
+      },
+      "operations": [
+        {
+          "name": "open_review",
+          "description": "검토건 열기 — 착수된 RV61인지 확인하고 보고 버전·산정 버전을 돌려준다. 착수는 NowView 화면 명령이다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "calculation_version": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": "string"
+              },
+              "review_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/open_review",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "calculation_version": "$.calculation_version",
+              "report_version": "$.report_version",
+              "review_id": "$.review_id"
+            }
+          }
+        },
+        {
+          "name": "confirm_owner",
+          "description": "담당 임원 성과 근거 확인 (S11·CF61-P·CF61-B) — 그 과제의 근거·효과·판단을 이 보고 버전 기준으로 확인한다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "node_id",
+              "record_id",
+              "refs"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "record_id": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/confirm_owner",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "node_id": "{{input.node_id}}",
+              "record_id": "{{input.record_id}}",
+              "refs": "{{input.refs}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "review_finance",
+          "description": "경영관리 종합 확인 (S12·CF61-F) — 분기 기준·중복·합계·잔여 위험·후속 책임. 재확인 요청이면 두 담당 임원 확인을 다시 받는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "refs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/review_finance",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "refs": "{{input.refs}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "draft_conclusion",
+          "description": "보고 결론 (TXT61) — 성과·남는 차이·후속 대응 문장. 숫자는 확정에서 묶일 산정과 대조된다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "refs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/draft_conclusion",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "node_id": "{{input.node_id}}",
+              "refs": "{{input.refs}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "finalize_report",
+          "description": "보고본 확정 (S13·CF61-R·NOTE61) — 확인 세 단계·결론 숫자가 산정과 맞아야 확정된다(422 REPORT_INVALID). 확정이 산정을 보고본에 묶는다. 과제 실행·예산 승인이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/finalize_report",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "note": "{{input.note}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        },
+        {
+          "name": "report_ceo",
+          "description": "대표 월간 보고 (CF61-M) — 확정본을 보고받았음을 남긴다. PROP61 실행·예산 승인이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "directive": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc06/demo-runs/{{input.demo_run_id}}/operations/report_ceo",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "directive": "{{input.directive}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "state": "$.state"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

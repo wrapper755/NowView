@@ -50,6 +50,7 @@ export const FOLLOWUP_STATE_LABEL: Record<string, string> = {
 };
 
 export const RECORD_STATE_LABEL: Record<string, string> = {
+  DRAFT: "초안",
   CONFIRMED: "확인",
   FINALIZED: "확정",
   REPORTED: "보고",

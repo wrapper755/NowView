@@ -75,15 +75,14 @@ app.include_router(build_sc04_router(sc04, hub, system_auth))
 # 장면 5 — 장면 4 인계(HANDOFF41)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc05_*`).
 sc05 = Sc05Process(build_sc01_store(backend, "sc05"), sc04, publish=notifier.publish)
 app.include_router(build_sc05_router(sc05, hub, system_auth))
-# 장면 6 — 장면 5 인계(HANDOFF51)에서 RV61 검토 문서를 적재한다. 조회만 한다 — 이 장면이 돌리는
-# BPM이 없다
-# (구현명세 11장: 이미 확인된 1/14 보고본을 조회하는 시점에서 시작). 같은 데모 실행 id, 다른
-# 테이블(`sc06_*`).
+# 장면 6 — 장면 5 인계(HANDOFF51)에서 RV61 검토 문서를 적재하고, 확인 절차(담당 임원 확인 → 종합 →
+# 확정 →
+# 대표 보고)를 BPM으로 돈다. 같은 데모 실행 id, 다른 테이블(`sc06_*`).
 sc06 = Sc06Process(build_sc01_store(backend, "sc06"), sc05, publish=notifier.publish)
-app.include_router(build_sc06_router(sc06))
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 다섯 장면
+app.include_router(build_sc06_router(sc06, hub, system_auth))
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 여섯 장면
 # 모두.
-poller = CenterPoller(sc01, sc02, sc03, sc04, sc05)
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
 
 
 @app.on_event("startup")
@@ -118,6 +117,7 @@ def health() -> dict[str, Any]:
                 sc03.process.id,
                 sc04.process.id,
                 sc05.process.id,
+                sc06.process.id,
             ],
         },
         "demoRuns": len(sc01.store.list()),

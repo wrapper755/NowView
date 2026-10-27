@@ -510,7 +510,8 @@ def sc05_link(sc05_doc: dict) -> dict[str, Any]:
     if sc05_doc.get("handoff") is None:
         raise DomainError(
             "결정 실행·계획 갱신이 완료(HANDOFF51)되지 않았다 — 완료·성과 검토는 결정 실행·계획 "
-            "갱신 인계에서 시작한다", 409
+            "갱신 인계에서 시작한다",
+            409,
         )
     official = sc05_doc["forecasts"][sc05_doc["official"]]
     run = sc05_doc["runs"][official["run_id"]]
@@ -676,13 +677,24 @@ def report_problems(
 
 
 def new_review(
-    seed: Seed, demo_run_id: str, sc05_doc: dict, *, created_at: datetime, batch=None
+    seed: Seed,
+    demo_run_id: str,
+    sc05_doc: dict,
+    *,
+    created_at: datetime,
+    batch=None,
+    sc05: dict[str, Any] | None = None,
 ) -> dict:
     """
     RV61 검토 문서 — 장면 5 결과와 v0.6 장면 6 원천을 한 번에 적재한다. FC51과 BASE61이 어긋나면
-    409(소급 보정 금지).
+    409(소급 보정 금지). `sc05`는 이미 떠 둔 장면 5 스냅샷이다(초기화 — 장면 5 문서를 다시 읽지
+    않는다).
+
+    여기서는 확인 기록(SC06보고)을 **끝난 것으로** 싣는다 — 기대값 시트와 대조하는 시험이 그대로
+    쓴다. 실행은 `confirm.pending_state`로 확인 전으로 돌린 뒤 확인 절차(BPM)가 기록을 다시
+    남긴다.
     """
-    sc05 = sc05_link(sc05_doc)
+    sc05 = sc05 or sc05_link(sc05_doc)
     batch = batch or load_batch(seed)
     first = calculate(batch, sc05, "CALC61-v1")
     if first["snapshot_residual"] != 0:

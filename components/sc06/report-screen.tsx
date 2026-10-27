@@ -60,6 +60,11 @@ function Body({ r }: { r: Report }) {
       {r.problems.map((p) => (
         <Problem key={p} text={p} />
       ))}
+      {r.state !== "REPORTED" ? (
+        <Problem
+          text={`보고본 ${r.report_version}은 아직 ${r.state === "FINALIZED" ? "확정 뒤 대표 보고 전" : "확인 중(확정 전)"}이다 — 확인 ${r.confirmations.length}/5 단계. 아래 숫자는 적재 때 계산된 산정 ${r.calculation_version}이고, 확인 절차 화면에서 남은 결재를 진행한다.`}
+        />
+      ) : null}
 
       {/* U602-01 — 보고 결론 */}
       <Card>
@@ -84,8 +89,10 @@ function Body({ r }: { r: Report }) {
             <blockquote className="border-l-2 pl-3 text-sm leading-relaxed">
               {r.conclusion.content}
               <footer className="mt-1 text-xs text-muted-foreground">
-                {personName(r.conclusion.actor)} 작성 · {RECORD_STATE_LABEL[r.conclusion.state] ?? r.conclusion.state} {shortClock(r.conclusion.at)} · 확인된 문구다
-                (숫자는 산정 {r.calculation_version}과 대조됨)
+                {personName(r.conclusion.actor)} 작성 · {RECORD_STATE_LABEL[r.conclusion.state] ?? r.conclusion.state} {shortClock(r.conclusion.at)} ·{" "}
+                {r.conclusion.state === "FINALIZED"
+                  ? `확인된 문구다 (숫자는 산정 ${r.calculation_version}과 대조됨)`
+                  : "초안이다 — 숫자는 확정 때 산정과 대조된다"}
               </footer>
             </blockquote>
           ) : null}
@@ -145,7 +152,10 @@ function Body({ r }: { r: Report }) {
         <Card>
           <CardHeader>
             <CardTitle>확인 상태</CardTitle>
-            <CardDescription>같은 {r.report_version} · 결재 버튼 없음 · 보고본 확정은 추가 과제의 실행·예산 승인이 아니다</CardDescription>
+            <CardDescription>
+              같은 {r.report_version} · {r.confirmations.length}/5 단계 · 결재는 확인 절차 화면에서 한다 · 보고본 확정은 추가 과제의 실행·예산
+              승인이 아니다
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ol className="space-y-1.5 text-sm">
