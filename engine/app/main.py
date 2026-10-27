@@ -32,6 +32,8 @@ from .sc03.api import build_router as build_sc03_router
 from .sc03.process import Sc03Process
 from .sc04.api import build_router as build_sc04_router
 from .sc04.process import Sc04Process
+from .sc05.api import build_router as build_sc05_router
+from .sc05.process import Sc05Process
 from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -40,7 +42,7 @@ app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
     description=(
-        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)~장면 4(SC04). "
+        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)~장면 5(SC05). "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -67,9 +69,12 @@ app.include_router(build_sc03_router(sc03, hub, system_auth))
 # 장면 4 — 장면 3 인계(HANDOFF31)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc04_*`).
 sc04 = Sc04Process(build_sc01_store(backend, "sc04"), sc03, publish=notifier.publish)
 app.include_router(build_sc04_router(sc04, hub, system_auth))
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 네 장면
+# 장면 5 — 장면 4 인계(HANDOFF41)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc05_*`).
+sc05 = Sc05Process(build_sc01_store(backend, "sc05"), sc04, publish=notifier.publish)
+app.include_router(build_sc05_router(sc05, hub, system_auth))
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 다섯 장면
 # 모두.
-poller = CenterPoller(sc01, sc02, sc03, sc04)
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05)
 
 
 @app.on_event("startup")
@@ -98,7 +103,13 @@ def health() -> dict[str, Any]:
             "engine": "chaeksas-core",
             "version": version("chaeksas-core"),
             "process": sc01.process.id,
-            "processes": [sc01.process.id, sc02.process.id, sc03.process.id, sc04.process.id],
+            "processes": [
+                sc01.process.id,
+                sc02.process.id,
+                sc03.process.id,
+                sc04.process.id,
+                sc05.process.id,
+            ],
         },
         "demoRuns": len(sc01.store.list()),
         # 시스템 작업 인증 — 「키 없이 꺼 둔 채 운영」을 눈치챌 수 있어야 한다. 값은 싣지 않는다.

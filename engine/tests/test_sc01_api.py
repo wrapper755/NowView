@@ -411,12 +411,13 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
-    # 장면마다 한 벌 — 장면 2~4는 `nowview-sc02`~`sc04`(test_sc02~sc04_external.py가 잠근다)
+    # 장면마다 한 벌 — 장면 2~5는 `nowview-sc02`~`sc05`(test_sc02~sc05_external.py가 잠근다)
     assert sorted(p.name for p in root.glob("*.extension.json")) == [
         "nowview-sc01.extension.json",
         "nowview-sc02.extension.json",
         "nowview-sc03.extension.json",
         "nowview-sc04.extension.json",
+        "nowview-sc05.extension.json",
     ]
     raw = (root / "nowview-sc01.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
@@ -708,4 +709,3 @@ def test_the_default_executor_is_center(client) -> None:
     """화면은 내장 실행을 쓰지 않는다(2026-10-27) — 실행 위치를 주지 않으면 Center 서버 실행이다."""
     r = client.post("/sc01/demo-runs", json={})
     assert r.status_code == 201 and r.json()["executor"] == "center"
-
