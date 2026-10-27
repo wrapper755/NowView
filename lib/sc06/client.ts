@@ -3,29 +3,43 @@
  * 돌려 화면이 상태로 말한다. 조회 오류는 `code`(ACCESS_DENIED·NOT_FOUND·VERSION_MISMATCH·DATA_INCOMPLETE)를 싣는다 —
  * 로딩·빈 결과·조회 실패를 갈라 보이고, 실패를 0이나 이전 합계로 보이지 않는다(구현명세 2장).
  *
- * **조회만 있다.** 장면 6 화면은 승인·확인·발의를 하지 않는다 — 「장면 6 열기」(적재)만 쓰기다.
+ * 조회는 멱등이다 — 쓰기는 「장면 6 열기」(적재)와 **확인 절차**(착수·결재 답·각본·초기화)뿐이다. 확인 절차는 BPM이다
+ * (`engine/processes/sc06.bpmn`) — 장면 1~5와 같은 경로를 쓴다. 확정의 요건 미충족은 남은 항목(`blockingItems`)을 준다.
  */
 
 import { afterPreparation, type Preparation } from "@/lib/preparation";
-import type { Evidence, Report, Sc06Meta, Summary, Variance } from "@/lib/sc06/types";
+import type { ProcessTopology } from "@/lib/sc01/types";
+import type { Evidence, Report, Sc06Executor, Sc06Meta, Sc06ScriptStep, Summary, Variance } from "@/lib/sc06/types";
 
 export const SC06_BASE = "/api/engine/sc06";
 
-export type Result<T> = { ok: true; data: T } | { ok: false; status: number; error: string; code?: string };
+export type Result<T> =
+  | { ok: true; data: T }
+  | { ok: false; status: number; error: string; code?: string; blockingItems?: string[] };
 
-async function call<T>(path: string, init?: RequestInit & { actor?: string }): Promise<Result<T>> {
-  const { actor, ...rest } = init ?? {};
+async function call<T>(path: string, init?: RequestInit & { actor?: string; key?: string }): Promise<Result<T>> {
+  const { actor, key, ...rest } = init ?? {};
   try {
     const response = await fetch(`${SC06_BASE}${path}`, {
       ...rest,
       cache: "no-store",
-      headers: { "content-type": "application/json", ...(actor ? { "x-demo-actor": actor } : {}) },
+      headers: {
+        "content-type": "application/json",
+        ...(actor ? { "x-demo-actor": actor } : {}),
+        ...(key ? { "idempotency-key": key } : {}),
+      },
     });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = body?.detail ?? body?.error;
       if (detail && typeof detail === "object") {
-        return { ok: false, status: response.status, error: String(detail.message ?? `엔진 오류 (${response.status})`), code: detail.error_code };
+        return {
+          ok: false,
+          status: response.status,
+          error: String(detail.message ?? `엔진 오류 (${response.status})`),
+          code: detail.error_code,
+          blockingItems: detail.blocking_items,
+        };
       }
       return { ok: false, status: response.status, error: typeof detail === "string" ? detail : `엔진 오류 (${response.status})` };
     }
@@ -63,4 +77,13 @@ export const sc06Api = {
   evidence: (id: string, evidenceId: string, version: string, actor: string) =>
     call<Evidence>(`/demo-runs/${id}/evidence/${encodeURIComponent(evidenceId)}${q(version)}`, { actor }),
   report: (id: string, version: string, actor: string) => call<Report>(`/demo-runs/${id}/reports/${version}`, { actor }),
+  process: () => call<ProcessTopology>("/process"),
+  script: () => call<Sc06ScriptStep[]>("/script"),
+  start: (id: string, actor: string, key?: string) => call<Sc06Meta>(`/demo-runs/${id}/start`, { method: "POST", body: "{}", actor, key }),
+  act: (id: string, nodeId: string, answer: Record<string, unknown>, actor: string, key?: string) =>
+    call<Sc06Meta>(`/demo-runs/${id}/actions/${nodeId}`, { method: "POST", body: JSON.stringify({ answer }), actor, key }),
+  step: (id: string, index: number) => call<Sc06Meta>(`/demo-runs/${id}/script/${index}`, { method: "POST", body: "{}" }),
+  reset: (id: string, executor?: Sc06Executor) =>
+    call<Sc06Meta>(`/demo-runs/${id}/reset`, { method: "POST", body: JSON.stringify(executor ? { executor } : {}), actor: "u-demo" }),
+  eventsUrl: (id: string) => `${SC06_BASE}/demo-runs/${id}/events`,
 };

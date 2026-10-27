@@ -91,10 +91,12 @@ const SC05_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "BPM 흐름", icon: GitBranch, href: "/sc05/process" },
 ];
 
-/** 장면 6은 두 화면뿐이다(두 화면·세 동작) — 이 장면이 돌리는 BPM이 없어 「BPM 흐름」도 없다. */
+/** 장면 6 — 확인 절차(BPM) 뒤 두 화면·세 동작의 조회. */
 const SC06_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "완료·성과 검토", icon: ClipboardCheck, href: "/sc06" },
+  { label: "확인 절차", icon: ShieldCheck, href: "/sc06/confirm" },
   { label: "보고 요약", icon: FileText, href: "/sc06/report" },
+  { label: "BPM 흐름", icon: GitBranch, href: "/sc06/process" },
 ];
 
 /** 경로 → 장면 번호. */

@@ -1,0 +1,386 @@
+{
+ "processId": "nowview.sc06",
+ "name": "SC06 과제 완료·성과 실현 검토 확인",
+ "nodes": [
+  {
+   "id": "Start",
+   "kind": "startEvent",
+   "name": "확인 착수",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Open",
+   "kind": "serviceTask",
+   "name": "검토건 열기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Confirm_Prod",
+   "kind": "userTask",
+   "name": "생산 임원 성과 근거 확인",
+   "role": "생산임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_Prod",
+   "kind": "serviceTask",
+   "name": "생산 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_Prod"
+  },
+  {
+   "id": "Confirm_Buy",
+   "kind": "userTask",
+   "name": "구매 임원 성과 근거 확인",
+   "role": "구매임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_Buy",
+   "kind": "serviceTask",
+   "name": "구매 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_Buy"
+  },
+  {
+   "id": "Review_Finance",
+   "kind": "userTask",
+   "name": "경영관리 종합 확인",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Review_Finance",
+   "kind": "serviceTask",
+   "name": "경영관리 종합 확인 기록",
+   "role": null,
+   "recordOf": "Review_Finance"
+  },
+  {
+   "id": "Draft_Conclusion",
+   "kind": "userTask",
+   "name": "보고 결론 작성",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Draft_Conclusion",
+   "kind": "serviceTask",
+   "name": "보고 결론 기록",
+   "role": null,
+   "recordOf": "Draft_Conclusion"
+  },
+  {
+   "id": "Finalize_Report",
+   "kind": "userTask",
+   "name": "보고본 확정",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Finalize_Report",
+   "kind": "serviceTask",
+   "name": "보고본 확정 기록",
+   "role": null,
+   "recordOf": "Finalize_Report"
+  },
+  {
+   "id": "Report_CEO",
+   "kind": "userTask",
+   "name": "대표 월간 보고",
+   "role": "대표이사",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Report_CEO",
+   "kind": "serviceTask",
+   "name": "대표 보고 기록",
+   "role": null,
+   "recordOf": "Report_CEO"
+  },
+  {
+   "id": "Gw_Confirm_Merge",
+   "kind": "exclusiveGateway",
+   "name": "담당 임원 확인(처음·재확인)",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Confirm_Split",
+   "kind": "parallelGateway",
+   "name": "생산 ∥ 구매 임원 확인",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Confirm_Join",
+   "kind": "parallelGateway",
+   "name": "담당 임원 확인 모으기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Review_Finance",
+   "kind": "exclusiveGateway",
+   "name": "종합 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Finalize",
+   "kind": "exclusiveGateway",
+   "name": "확정 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End",
+   "kind": "endEvent",
+   "name": "대표 보고 완료(RPT61-v1 REPORTED) — RISK61 OPEN",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Bnd_Record_Confirm_Prod",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_Prod"
+  },
+  {
+   "id": "Bnd_Record_Confirm_Buy",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_Buy"
+  },
+  {
+   "id": "Bnd_Record_Review_Finance",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Review_Finance"
+  },
+  {
+   "id": "Bnd_Record_Draft_Conclusion",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Draft_Conclusion"
+  },
+  {
+   "id": "Bnd_Record_Finalize_Report",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Finalize_Report"
+  },
+  {
+   "id": "Bnd_Record_Report_CEO",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Report_CEO"
+  }
+ ],
+ "flows": [
+  {
+   "id": "Flow_start",
+   "source": "Start",
+   "target": "Task_Open",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_open",
+   "source": "Task_Open",
+   "target": "Gw_Confirm_Merge",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_confirm_merged",
+   "source": "Gw_Confirm_Merge",
+   "target": "Gw_Confirm_Split",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_split_prod",
+   "source": "Gw_Confirm_Split",
+   "target": "Confirm_Prod",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_split_buy",
+   "source": "Gw_Confirm_Split",
+   "target": "Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_Prod_answered",
+   "source": "Confirm_Prod",
+   "target": "Record_Confirm_Prod",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_Buy_answered",
+   "source": "Confirm_Buy",
+   "target": "Record_Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_prod_recorded",
+   "source": "Record_Confirm_Prod",
+   "target": "Gw_Confirm_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_buy_recorded",
+   "source": "Record_Confirm_Buy",
+   "target": "Gw_Confirm_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_confirmed",
+   "source": "Gw_Confirm_Join",
+   "target": "Review_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Review_Finance_answered",
+   "source": "Review_Finance",
+   "target": "Record_Review_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_review_recorded",
+   "source": "Record_Review_Finance",
+   "target": "Gw_Review_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_reconfirm",
+   "source": "Gw_Review_Finance",
+   "target": "Gw_Confirm_Merge",
+   "condition": "종합결정 == '재확인요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_reviewed",
+   "source": "Gw_Review_Finance",
+   "target": "Draft_Conclusion",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Draft_Conclusion_answered",
+   "source": "Draft_Conclusion",
+   "target": "Record_Draft_Conclusion",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_conclusion_recorded",
+   "source": "Record_Draft_Conclusion",
+   "target": "Finalize_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Finalize_Report_answered",
+   "source": "Finalize_Report",
+   "target": "Record_Finalize_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_finalize_recorded",
+   "source": "Record_Finalize_Report",
+   "target": "Gw_Finalize",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_rework",
+   "source": "Gw_Finalize",
+   "target": "Draft_Conclusion",
+   "condition": "확정결정 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_finalized",
+   "source": "Gw_Finalize",
+   "target": "Report_CEO",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Report_CEO_answered",
+   "source": "Report_CEO",
+   "target": "Record_Report_CEO",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_reported",
+   "source": "Record_Report_CEO",
+   "target": "End",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_Prod_rejected",
+   "source": "Bnd_Record_Confirm_Prod",
+   "target": "Confirm_Prod",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_Buy_rejected",
+   "source": "Bnd_Record_Confirm_Buy",
+   "target": "Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Review_Finance_rejected",
+   "source": "Bnd_Record_Review_Finance",
+   "target": "Review_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Draft_Conclusion_rejected",
+   "source": "Bnd_Record_Draft_Conclusion",
+   "target": "Draft_Conclusion",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Finalize_Report_rejected",
+   "source": "Bnd_Record_Finalize_Report",
+   "target": "Finalize_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Report_CEO_rejected",
+   "source": "Bnd_Record_Report_CEO",
+   "target": "Report_CEO",
+   "condition": null,
+   "default": false
+  }
+ ]
+}

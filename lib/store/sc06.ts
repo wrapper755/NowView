@@ -10,6 +10,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { ProcessTopology } from "@/lib/sc01/types";
 import type { Result } from "@/lib/sc06/client";
 import type { Report, Sc06Meta, Summary, Variance } from "@/lib/sc06/types";
 
@@ -25,6 +26,10 @@ export const toLoad = <T>(r: Result<T>): Load<T> =>
 
 interface Sc06State {
   meta: Sc06Meta | null;
+  /** BPMN 토폴로지(확인 절차) — BPM 흐름 화면 */
+  topology: ProcessTopology | null;
+  /** 변경 수신 — SSE가 서 있나(서 있지 않은 동안만 폴링) */
+  connection: "connecting" | "live" | "polling" | "offline";
   /** 이 데모 실행에 장면 6이 아직 없다(404) — 화면이 「장면 6 열기」를 보인다. */
   missing: boolean;
   metaError: string | null;
@@ -37,6 +42,8 @@ interface Sc06State {
   isPlayerExpanded: boolean;
 
   setMeta: (meta: Sc06Meta | null, missing?: boolean, error?: string | null) => void;
+  setTopology: (topology: ProcessTopology | null) => void;
+  setConnection: (connection: Sc06State["connection"]) => void;
   setSummary: (s: Load<Summary>) => void;
   setReport: (s: Load<Report>) => void;
   setVariance: (s: Load<Variance>) => void;
@@ -52,6 +59,8 @@ export const useSc06 = create<Sc06State>()(
   persist(
     (set) => ({
       meta: null,
+      topology: null,
+      connection: "connecting",
       missing: false,
       metaError: null,
       summary: { state: "idle" },
@@ -72,6 +81,8 @@ export const useSc06 = create<Sc06State>()(
             ? { summary: { state: "idle" }, report: { state: "idle" }, variance: { state: "idle" } }
             : {}),
         })),
+      setTopology: (topology) => set({ topology }),
+      setConnection: (connection) => set({ connection }),
       setSummary: (summary) => set({ summary }),
       setReport: (report) => set({ report }),
       setVariance: (variance) => set({ variance }),

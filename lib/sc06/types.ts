@@ -1,3 +1,5 @@
+import type { FormField as FormFieldSpec } from "@/lib/sc01/types";
+
 /**
  * SC06 응답 모양 — 엔진 `app/sc06/domain.py`의 조회 서비스(구현명세 10장)를 그대로 옮긴 것이다. 금액은 **원 정수**이고
  * 미확인·미산정은 `null`이다(0이 아니다). 모든 조회 응답에 문맥(`ReadContext`)이 붙는다.
@@ -276,16 +278,93 @@ export interface Report extends ReadContext {
   agent: AgentRun | null;
 }
 
-/** 문서 머리 — 장면 6이 열렸는지·어느 보고본인지. 숫자는 조회 서비스로 받는다. */
+/** 결재 대기 하나 — 폼 칸은 BPMN(`sc06.bpmn`의 `chk:approval.fields`)에서 온다. 기본값은 데이터의 확인 기록이다. */
+export interface Sc06Waiting {
+  nodeId: string;
+  title: string;
+  role: string | null;
+  assignee: string | null;
+  review: Record<string, unknown>;
+  fields: FormFieldSpec[];
+  taskId: string | null;
+}
+
+/** 확인 절차의 한 단계 — 결재 · 남길 기록 · 담당 · 데이터 일정. 기록은 끝난 것만 온다. */
+export interface ProcedureStep {
+  nodeId: string;
+  recordId: string;
+  role: string;
+  assignee: string;
+  assigneeName: string;
+  step: string | null;
+  plannedAt: string | null;
+  record: ReportRecord | null;
+}
+
+export interface Sc06Task {
+  task_id: string;
+  node_id: string;
+  assigned_to: string;
+  assignedName: string | null;
+  assigned_at: string;
+  due_at: string | null;
+  status: "ASSIGNED" | "COMPLETED";
+  completed_at: string | null;
+  opened_late: boolean;
+  reopens: string | null;
+}
+
+export type Sc06Executor = "embedded" | "studio" | "center";
+
+/**
+ * 문서 머리 — 장면 6이 열렸는지·어느 보고본인지·확인 절차가 어디까지 왔는지. 숫자는 조회 서비스로 받는다.
+ * 2026-10-28 전에 만든 문서는 확인 기록을 끝난 것으로 적재했다 — `procedure`가 `null`이다(초기화하면 확인 전으로).
+ */
 export interface Sc06Meta {
   scene: "SC06";
   demoRunId: string;
   caseId: string;
   clock: string;
+  step: string | null;
+  /** 상태로 본 각본 위치 — 화면에서 직접 답해도 따라간다 */
+  scriptIndex: number;
+  historical: boolean;
   reviewId: string;
   reportVersion: string;
   calculationVersion: string;
-  reportState: string;
+  reportState: "DRAFT" | "FINALIZED" | "REPORTED" | string;
   sc05: { handoff_id: string; official: string; annual: string; target: string; gap: string };
   batch: { batch_id: string; seed_id: string; sha256: string; problems: string[] };
+  status: { procedure: "LOADED" | "PENDING" | "CONFIRMING" | "REPORTED"; report: string; confirmed: string[]; risk: string };
+  executor: Sc06Executor | null;
+  answerHere: boolean;
+  procedure: {
+    startedAt: string | null;
+    steps: ProcedureStep[];
+    note: ReportRecord | null;
+    history: Array<ReportRecord & { retired?: string; retired_at?: string }>;
+    finalizeBlocking: string[];
+    lastRejection: { node_id: string; status: number; reason: string; blocking_items?: string[] | null } | null;
+  } | null;
+  tasks?: Sc06Task[];
+  bpm: {
+    executor: Sc06Executor;
+    externalRunId: string | null;
+    runId: string | null;
+    state: string;
+    waiting: Sc06Waiting[];
+    center: { job: { job_id: string; at: string } | null; problem: string | null; package: string | null } | null;
+    position: string[];
+    visited: string[];
+  } | null;
+}
+
+export interface Sc06ScriptStep {
+  index: number;
+  code: string;
+  actor: string;
+  kind: "start" | "act";
+  nodeId: string | null;
+  label: string;
+  record: string | null;
 }

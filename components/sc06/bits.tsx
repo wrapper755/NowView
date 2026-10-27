@@ -83,7 +83,7 @@ function OpenCard() {
       <CardContent className="space-y-3 text-sm">
         <p>
           완료·성과 검토는 결정 실행·계획 갱신 인계(HANDOFF51)와 공식 전망 FC51에서 이어진다. 열면 결정 실행·계획 갱신이 완료 전일 때 결정 실행·계획 갱신 각본을 끝까지 실제로
-          실행하고, 2027 Q4 검토 자료(RV61)와 확인된 보고본 RPT61-v1을 적재한다.
+          실행하고, 2027 Q4 검토 자료(RV61)를 적재한다. 그 뒤 확인 절차(담당 임원 확인 → 종합 → 확정 → 대표 보고)를 BPM으로 돈다.
         </p>
         <Button size="sm" onClick={() => void open()} disabled={pending}>
           <PlayCircle aria-hidden className="size-3.5" />
