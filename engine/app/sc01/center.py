@@ -63,6 +63,8 @@ class CenterConfig:
     intake_worker: str | None = None
     #: 장면 2 패키지(`processes/sc02.bpmn`을 Studio로 내보낸 서버 Bot)
     sc02_package: str = "nowview.sc02"
+    #: 장면 3 패키지(`processes/sc03.bpmn`)
+    sc03_package: str = "nowview.sc03"
 
     @classmethod
     def from_env(cls) -> CenterConfig:
@@ -73,6 +75,7 @@ class CenterConfig:
             package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "nowview.sc01",
             intake_worker=os.getenv("CHAEKSAS_INTAKE_WORKER") or None,
             sc02_package=os.getenv("CHAEKSAS_SC02_PACKAGE") or "nowview.sc02",
+            sc03_package=os.getenv("CHAEKSAS_SC03_PACKAGE") or "nowview.sc03",
         )
 
     def missing(self, *, relay: bool = False, integration: bool = False) -> str | None:
@@ -98,6 +101,7 @@ class CenterConfig:
             "relay": bool(self.relay_key),
             "package": self.package,
             "sc02Package": self.sc02_package,
+            "sc03Package": self.sc03_package,
             "intakeWorker": self.intake_worker,
         }
 

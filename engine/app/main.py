@@ -28,6 +28,8 @@ from .sc01.process import Sc01Process
 from .sc01.store import build_sc01_store
 from .sc02.api import build_router as build_sc02_router
 from .sc02.process import Sc02Process
+from .sc03.api import build_router as build_sc03_router
+from .sc03.process import Sc03Process
 from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -36,7 +38,7 @@ app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
     description=(
-        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)·장면 2(SC02). "
+        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 장면 1(SC01)·장면 2(SC02)·장면 3(SC03). "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -57,9 +59,12 @@ app.include_router(build_sc01_router(sc01, hub, system_auth))
 # 장면 2 — 장면 1 인계 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc02_*`). 내장 실행만.
 sc02 = Sc02Process(build_sc01_store(backend, "sc02"), sc01, publish=notifier.publish)
 app.include_router(build_sc02_router(sc02, hub, system_auth))
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 두 장면
+# 장면 3 — 장면 2 인수 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc03_*`).
+sc03 = Sc03Process(build_sc01_store(backend, "sc03"), sc02, publish=notifier.publish)
+app.include_router(build_sc03_router(sc03, hub, system_auth))
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 세 장면
 # 모두.
-poller = CenterPoller(sc01, sc02)
+poller = CenterPoller(sc01, sc02, sc03)
 
 
 @app.on_event("startup")
@@ -88,7 +93,7 @@ def health() -> dict[str, Any]:
             "engine": "chaeksas-core",
             "version": version("chaeksas-core"),
             "process": sc01.process.id,
-            "processes": [sc01.process.id, sc02.process.id],
+            "processes": [sc01.process.id, sc02.process.id, sc03.process.id],
         },
         "demoRuns": len(sc01.store.list()),
         # 시스템 작업 인증 — 「키 없이 꺼 둔 채 운영」을 눈치챌 수 있어야 한다. 값은 싣지 않는다.

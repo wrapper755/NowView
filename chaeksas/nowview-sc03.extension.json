@@ -1,0 +1,1451 @@
+{
+ "schema": 2,
+ "id": "nowview-sc03",
+ "version": "0.1.0",
+ "name": "NowView SC03 통합 손익영향 검토 시스템",
+ "description": "가상 부품사 NowView의 장면 3(SC03) 시스템 작업 — 장면 1 물량 감소와 장면 2 승인 단가의 통합 손익 계산·정합 검증, 부서 확인·쟁점 판단, 보고자료 확정, 수시 경영검토회의 결론·후보 포함/제외, 분석과제 배정·인수, 장면 4 인계. 숫자는 NowView 규칙 계산이 만든다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio(nowview-sc01·sc02와 같은 키). 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 덮어쓴다(ADR-0097) — 실행기가 호스트에서 돌면 http://localhost:3000, docker 컨테이너에서 돌면 http://host.docker.internal:3000. 기록 작업은 결재에 답한 사람(answered_by)을 받는다.",
+ "publisher": "NowView",
+ "tier": "external",
+ "requires_keys": [
+  {
+   "purpose": "run"
+  }
+ ],
+ "service": {
+  "protocol": "http-adapter",
+  "base_url": "https://www.nowview.work",
+  "adapter": {
+   "allowed_hosts": [
+    "www.nowview.work",
+    "localhost",
+    "host.docker.internal"
+   ],
+   "allow_private_network": true,
+   "auth": {
+    "type": "bearer"
+   },
+   "limits": {
+    "timeout_s": 30,
+    "max_response_kb": 256
+   },
+   "operations": [
+    {
+     "name": "open_review",
+     "description": "검토건 열기 (S31·CT31) — 착수된 MR-2706-01인지 확인한다. 착수는 NowView 화면 명령이다",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": true,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "demo_run_id"
+      ],
+      "properties": {
+       "demo_run_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "assignee_name": {
+        "type": "string"
+       },
+       "review_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/open_review",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "assignee_name": "$.assignee_name",
+       "review_id": "$.review_id"
+      }
+     }
+    },
+    {
+     "name": "run_analysis",
+     "description": "통합 분석 실행·저장 (S32·S33·CT31~CT33) — 승인 단가만 반영, 정합 검증 통과 시 보고 초안",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "basis",
+       "demo_run_id",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "basis": {
+        "type": "string"
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "memo": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "passed": {
+        "type": "boolean"
+       },
+       "run_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/run_analysis",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "basis": "{{input.basis}}",
+       "memo": "{{input.memo}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "passed": "$.passed",
+       "run_id": "$.run_id"
+      }
+     }
+    },
+    {
+     "name": "fix_calc",
+     "description": "계산 정정 (E33) — 고정비 입력을 바로잡고 다시 계산한다. 실패 실행은 보존한다",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id",
+       "note"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "note": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "passed": {
+        "type": "boolean"
+       },
+       "run_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/fix_calc",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "node_id": "{{input.node_id}}",
+       "note": "{{input.note}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "passed": "$.passed",
+       "run_id": "$.run_id"
+      }
+     }
+    },
+    {
+     "name": "agent_draft",
+     "description": "Agent 초안 (AG30 통합 손익 설명) — 규칙 결과만 인용한다. 실패해도 흐름은 계속된다",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "demo_run_id",
+       "kind"
+      ],
+      "properties": {
+       "demo_run_id": {
+        "type": "string"
+       },
+       "kind": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "output_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/agent_draft",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "kind": "{{input.kind}}"
+      }
+     },
+     "response": {
+      "output": {
+       "output_id": "$.output_id"
+      }
+     }
+    },
+    {
+     "name": "request_confirmation",
+     "description": "부서 확인 요청 (S34~S36) — 정합한 초안·회신기한·영업/구매/생산 수신",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "due",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "due": {
+        "type": "string"
+       },
+       "memo": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "report_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/request_confirmation",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "due": "{{input.due}}",
+       "memo": "{{input.memo}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "report_id": "$.report_id"
+      }
+     }
+    },
+    {
+     "name": "record_confirmation",
+     "description": "부서 회신 기록 (CT34) — 사실·가정·미확인 분리, 자기 부서만, 이견이면 차단 쟁점",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "dept",
+       "evidence",
+       "fact",
+       "node_id",
+       "reply"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "assumption": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "dept": {
+        "type": "string"
+       },
+       "evidence": {
+        "type": "string"
+       },
+       "fact": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "opinion": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "question": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "reply": {
+        "type": "string"
+       },
+       "unconfirmed": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/record_confirmation",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "assumption": "{{input.assumption}}",
+       "dept": "{{input.dept}}",
+       "evidence": "{{input.evidence}}",
+       "fact": "{{input.fact}}",
+       "node_id": "{{input.node_id}}",
+       "opinion": "{{input.opinion}}",
+       "question": "{{input.question}}",
+       "reply": "{{input.reply}}",
+       "unconfirmed": "{{input.unconfirmed}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "record_revision",
+     "description": "이견 보완 (E31) — 초안 새 버전, 이견 부서 확인은 재확인 필요",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "change",
+       "demo_run_id",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "change": {
+        "type": "string"
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "report_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/record_revision",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "change": "{{input.change}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "report_id": "$.report_id"
+      }
+     }
+    },
+    {
+     "name": "record_gap",
+     "description": "기존 목표 부족 쟁점 (S37) — 원인 미확인을 등록한다(신규 사건으로 설명하지 않는다)",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "content",
+       "demo_run_id",
+       "evidence",
+       "node_id",
+       "result"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "content": {
+        "type": "string"
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "evidence": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "question": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "result": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/record_gap",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "content": "{{input.content}}",
+       "evidence": "{{input.evidence}}",
+       "node_id": "{{input.node_id}}",
+       "question": "{{input.question}}",
+       "result": "{{input.result}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "judge_questions",
+     "description": "쟁점 차단 판단 (CT35) — 비차단은 담당·기한·처리방향, 차단이면 재분석",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "q31_blocking": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q31_due": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q31_owner": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q31_treatment": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q32_blocking": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q32_due": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q32_owner": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "q32_treatment": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "blocked": {
+        "type": "boolean"
+       },
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/judge_questions",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "node_id": "{{input.node_id}}",
+       "q31_blocking": "{{input.q31_blocking}}",
+       "q31_due": "{{input.q31_due}}",
+       "q31_owner": "{{input.q31_owner}}",
+       "q31_treatment": "{{input.q31_treatment}}",
+       "q32_blocking": "{{input.q32_blocking}}",
+       "q32_due": "{{input.q32_due}}",
+       "q32_owner": "{{input.q32_owner}}",
+       "q32_treatment": "{{input.q32_treatment}}"
+      }
+     },
+     "response": {
+      "output": {
+       "blocked": "$.blocked",
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "freeze_report",
+     "description": "보고자료 확정 (S38·CT36) — 확인·쟁점·계산 검증 뒤 불변 스냅샷",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id",
+       "opinion"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "opinion": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "report_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/freeze_report",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "node_id": "{{input.node_id}}",
+       "opinion": "{{input.opinion}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "report_id": "$.report_id"
+      }
+     }
+    },
+    {
+     "name": "distribute_report",
+     "description": "회의자료 내부 배포 (S38) — MEETING_READY",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "memo",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "memo": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/distribute_report",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "memo": "{{input.memo}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "open_meeting",
+     "description": "MT31 개회·통합 영향 보고 (S39) — 확정본 고정, 참석 기록, 탐색 후보",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id",
+       "summary"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "summary": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/open_meeting",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "node_id": "{{input.node_id}}",
+       "summary": "{{input.summary}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "decide_review",
+     "description": "검토 결론·후보 포함/제외 (S40·S41·CT37) — 한 명령으로 검증, 제외 사유 필수",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "c31_decision",
+       "c31_reason",
+       "c32_decision",
+       "c32_reason",
+       "c33_decision",
+       "c33_reason",
+       "c34_decision",
+       "c34_reason",
+       "c35_decision",
+       "c35_reason",
+       "c36_decision",
+       "c36_reason",
+       "content",
+       "demo_run_id",
+       "node_id",
+       "outcome"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "c31_decision": {
+        "type": "string"
+       },
+       "c31_reason": {
+        "type": "string"
+       },
+       "c32_decision": {
+        "type": "string"
+       },
+       "c32_reason": {
+        "type": "string"
+       },
+       "c33_decision": {
+        "type": "string"
+       },
+       "c33_reason": {
+        "type": "string"
+       },
+       "c34_decision": {
+        "type": "string"
+       },
+       "c34_reason": {
+        "type": "string"
+       },
+       "c35_decision": {
+        "type": "string"
+       },
+       "c35_reason": {
+        "type": "string"
+       },
+       "c36_decision": {
+        "type": "string"
+       },
+       "c36_reason": {
+        "type": "string"
+       },
+       "conditions": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "content": {
+        "type": "string"
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "outcome": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "rework": {
+        "type": "boolean"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/decide_review",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "c31_decision": "{{input.c31_decision}}",
+       "c31_reason": "{{input.c31_reason}}",
+       "c32_decision": "{{input.c32_decision}}",
+       "c32_reason": "{{input.c32_reason}}",
+       "c33_decision": "{{input.c33_decision}}",
+       "c33_reason": "{{input.c33_reason}}",
+       "c34_decision": "{{input.c34_decision}}",
+       "c34_reason": "{{input.c34_reason}}",
+       "c35_decision": "{{input.c35_decision}}",
+       "c35_reason": "{{input.c35_reason}}",
+       "c36_decision": "{{input.c36_decision}}",
+       "c36_reason": "{{input.c36_reason}}",
+       "conditions": "{{input.conditions}}",
+       "content": "{{input.content}}",
+       "node_id": "{{input.node_id}}",
+       "outcome": "{{input.outcome}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "rework": "$.rework"
+      }
+     }
+    },
+    {
+     "name": "confirm_minutes",
+     "description": "회의록 확인 (S42·CT36) — MIN31, MT41 보고 계획 등록",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id",
+       "opinion"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "opinion": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "minutes_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/confirm_minutes",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "node_id": "{{input.node_id}}",
+       "opinion": "{{input.opinion}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "minutes_id": "$.minutes_id"
+      }
+     }
+    },
+    {
+     "name": "assign_tasks",
+     "description": "분석과제 일괄 배정 (S41·CT38) — 필수 항목 전건 검증",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "memo",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "memo": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "at31_assigned": {
+        "type": "boolean"
+       },
+       "at31_owner": {
+        "type": "string"
+       },
+       "at31_version": {
+        "type": "integer"
+       },
+       "at32_assigned": {
+        "type": "boolean"
+       },
+       "at32_owner": {
+        "type": "string"
+       },
+       "at32_version": {
+        "type": "integer"
+       },
+       "at33_assigned": {
+        "type": "boolean"
+       },
+       "at33_owner": {
+        "type": "string"
+       },
+       "at33_version": {
+        "type": "integer"
+       },
+       "at34_assigned": {
+        "type": "boolean"
+       },
+       "at34_owner": {
+        "type": "string"
+       },
+       "at34_version": {
+        "type": "integer"
+       },
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/assign_tasks",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "memo": "{{input.memo}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "at31_assigned": "$.at31_assigned",
+       "at31_owner": "$.at31_owner",
+       "at31_version": "$.at31_version",
+       "at32_assigned": "$.at32_assigned",
+       "at32_owner": "$.at32_owner",
+       "at32_version": "$.at32_version",
+       "at33_assigned": "$.at33_assigned",
+       "at33_owner": "$.at33_owner",
+       "at33_version": "$.at33_version",
+       "at34_assigned": "$.at34_assigned",
+       "at34_owner": "$.at34_owner",
+       "at34_version": "$.at34_version",
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "accept_task",
+     "description": "과제 인수·반려 (S43·CT39) — 그 과제 책임자만, 현재 배정버전만",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "decision",
+       "demo_run_id",
+       "node_id",
+       "task_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "decision": {
+        "type": "string"
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "reason": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "task_id": {
+        "type": "string"
+       },
+       "version": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {}
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/accept_task",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "decision": "{{input.decision}}",
+       "node_id": "{{input.node_id}}",
+       "reason": "{{input.reason}}",
+       "task_id": "{{input.task_id}}",
+       "version": "{{input.version}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message"
+      }
+     }
+    },
+    {
+     "name": "reassign_task",
+     "description": "반려 과제 재배정 (S43) — 변경 사유·전후값, 배정버전 증가",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "node_id",
+       "reason",
+       "task_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "collaborators": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "deliverable": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "dependency": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "node_id": {
+        "type": "string"
+       },
+       "owner": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "reason": {
+        "type": "string"
+       },
+       "task_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "owner": {
+        "type": "string"
+       },
+       "version": {
+        "type": "integer"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/reassign_task",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "collaborators": "{{input.collaborators}}",
+       "deliverable": "{{input.deliverable}}",
+       "dependency": "{{input.dependency}}",
+       "node_id": "{{input.node_id}}",
+       "owner": "{{input.owner}}",
+       "reason": "{{input.reason}}",
+       "task_id": "{{input.task_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "owner": "$.owner",
+       "version": "$.version"
+      }
+     }
+    },
+    {
+     "name": "complete_scene",
+     "description": "장면 3 종료 (S44·CT39·CT40) — 전체 조건 재검증, HANDOFF31. 위험·전망·목표는 그대로",
+     "modes": [
+      "autonomous",
+      "deterministic"
+     ],
+     "idempotent": false,
+     "input_schema": {
+      "type": "object",
+      "required": [
+       "answered_by",
+       "demo_run_id",
+       "memo",
+       "node_id"
+      ],
+      "properties": {
+       "answered_by": {
+        "type": "string"
+       },
+       "answered_via": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "demo_run_id": {
+        "type": "string"
+       },
+       "memo": {
+        "type": "string"
+       },
+       "node_id": {
+        "type": "string"
+       }
+      }
+     },
+     "output_schema": {
+      "type": "object",
+      "properties": {
+       "error_message": {},
+       "handoff_id": {
+        "type": "string"
+       }
+      }
+     },
+     "request": {
+      "method": "POST",
+      "path": "/api/engine/sc03/demo-runs/{{input.demo_run_id}}/operations/complete_scene",
+      "body": {
+       "chaeksas_run_id": "{{run_id}}",
+       "chaeksas_node_id": "{{node_id}}",
+       "answered_by": "{{input.answered_by}}",
+       "answered_via": "{{input.answered_via}}",
+       "memo": "{{input.memo}}",
+       "node_id": "{{input.node_id}}"
+      }
+     },
+     "response": {
+      "output": {
+       "error_message": "$.error_message",
+       "handoff_id": "$.handoff_id"
+      }
+     }
+    }
+   ]
+  }
+ }
+}
