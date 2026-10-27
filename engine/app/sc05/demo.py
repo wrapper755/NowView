@@ -21,6 +21,7 @@ EV51-01~49), 그리고 X
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import date
@@ -817,7 +818,34 @@ def run_step(process: Sc05Process, demo_run_id: str, index: int) -> dict:
             **mark,
         )
 
-    return _after_record(process, center, act)
+    since = max((a["seq"] for a in doc["audit"]), default=0)
+    done_doc = _after_record(process, center, act)
+    if not center:
+        return done_doc
+    return _await_own_record(process, demo_run_id, step.node_id or "", since)
+
+
+def _await_own_record(process: Sc05Process, demo_run_id: str, node_id: str, since: int) -> dict:
+    """
+    Center 실행이면 이 단계 결재의 기록 작업이 들어올 때까지 기다린다(기록 또는 거절).
+
+    대리 답은 결재만 닫는다 — 기다리지 않으면 다음 단계가 먼저 간다. 상신 기록 전의 현업 승인이
+    「없는 품의」였다(2026-10-28 로컬 Center 실측). 장면 4의 같은 이름 함수와 같다. 끝내 오지
+    않으면 지금 문서를 돌려준다 — 다음 단계의 대기가 거절 사유를 낸다.
+    """
+    deadline = time.monotonic() + process.center_wait_s * 3
+    while True:
+        doc = process.get(demo_run_id)
+        if any(
+            a["seq"] > since
+            and a["action"] in ("answer_via", "answer_rejected")
+            and (a.get("detail") or {}).get("node_id") == node_id
+            for a in doc["audit"]
+        ):
+            return doc
+        if time.monotonic() >= deadline:
+            return doc
+        time.sleep(min(1.0, process.center_wait_s))
 
 
 def _after_record(process: Sc05Process, center: bool, run: Callable[[], dict]) -> dict:
