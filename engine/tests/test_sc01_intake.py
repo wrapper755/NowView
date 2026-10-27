@@ -328,6 +328,38 @@ def test_receive_wakes_the_intake_bot_and_approval_delegates_sc01(
     assert "End_Started" in {e.node_id for e in intake.run.log.events if e.node_id}
 
 
+def test_script_approves_the_batch_as_the_supervisor(
+    proc: Sc01Process, center: FakeIntakeCenter
+) -> None:
+    """
+    장면 2 시작이 장면 1을 각본으로 인계까지 끝낼 때 — 일괄을 감독자(가상 직원 등록의 이름)로
+    대리 승인한다. 화면의 대리 답과 같은 길이다. 기다리는 일괄이 없으면 아무것도 하지 않는다.
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    assert proc.approve_intake_for_script(rid, opinion="각본") is False  # 수신 전
+    demo.run_step(proc, rid, 0)
+    run_id = "run_20270616_090000_c3c3c3"
+    center.job_states[center.jobs[0]["job_id"]] = {"run_id": run_id}
+    intake = _intake(proc, center, center.jobs[0], run_id)
+    [batch] = [a for a in center.approvals.values() if a["node_id"] == "Approve_Batch"]
+
+    child_bound: dict[str, FakeRunner] = {}
+
+    def bind() -> None:  # 위임된 SC01의 첫 호출 — 승인 뒤 실행기가 한다
+        intake.step()
+        [call] = intake.run.env.delegate.calls
+        child_bound["runner"] = FakeRunner(
+            proc, center, {"inputs": dict(call.inputs)}, "run_20270616_090100_d4d4d4",
+            sourced={"처리자": WORKER["name"]},
+        )  # fmt: skip
+
+    center.on_answer = bind  # 대리 답을 받으면 실행기가 움직인다
+    assert proc.approve_intake_for_script(rid, opinion="각본") is True
+    assert batch["state"] != "open" and batch["answered_by"] == "이도윤"
+    assert proc.get(rid)["bpm"]["center"]["job"]["decision"] == "승인"
+    assert proc.get(rid)["bpm"]["external_run_id"] == "run_20270616_090100_d4d4d4"
+
+
 def test_rejected_batch_does_not_start_sc01_and_asks_for_a_fix(
     proc: Sc01Process, center: FakeIntakeCenter
 ) -> None:

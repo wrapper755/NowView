@@ -32,6 +32,7 @@ from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
 from app.sc01 import demo as sc01_demo
+from app.sc01 import process as sc01_process
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     EXECUTOR_LABEL,
@@ -77,7 +78,7 @@ OPERATIONS = (
 #: 결재 뒤의 계산 작업 — 기록 작업처럼 그 결재를 지나왔고 그 업무를 닫는다.
 DECIDED_BY = {"analyze_request": "Confirm_Analysis", "analyze_negotiation": "Confirm_Reanalysis"}
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — SC01과 같다.
-CENTER_WAIT_S = 10.0
+CENTER_WAIT_S = sc01_process.CENTER_WAIT_S
 
 log = logging.getLogger(__name__)
 
@@ -344,7 +345,15 @@ class Sc02Process:
             for i in range(doc.get("script_index", -1) + 1, len(sc01_demo.BASE)):
                 doc = sc01_demo.run_step(self.sc01, sc01_id, i)
                 if executor_of(doc) == "center":
-                    self.sc01.sync_center(sc01_id)
+                    # 접수 가상 직원이 있으면 수신 뒤 감독자 일괄 승인이 먼저다(SC01 N5)
+                    self.sc01.approve_intake_for_script(
+                        sc01_id, opinion="장면 2 시작 — 각본이 장면 1을 인계까지 진행"
+                    )
+                    try:
+                        self.sc01.sync_center(sc01_id)
+                    except CenterError as exc:
+                        # 실행 기록은 첫 호출보다 늦게 생긴다(실측 404) — 폴러가 따라잡는다
+                        log.info("장면 1 진행을 아직 못 읽었다: %s", exc)
         except DomainError as exc:
             raise DomainError(
                 f"고객 생산계획 변경 대응을 각본으로 인계까지 끝낼 수 없다 — {exc}. 고객 생산계획 "
@@ -676,6 +685,13 @@ class Sc02Process:
             doc, actor="system", action="center_job_cancelled", job_id=job_id, outcome=outcome
         )
 
+    def _precheck(
+        self, doc: dict, node_id: str, actor: str, answer: dict, expect: dict | None
+    ) -> None:
+        domain.check_actor(doc, node_id, actor)
+        _check_expect(doc, expect or {})
+        domain.check_answer(doc, self.seed, node_id, answer)
+
     def _relay(
         self,
         demo_run_id: str,
@@ -704,10 +720,19 @@ class Sc02Process:
         doc = self.get(demo_run_id)
         if check_idempotency(doc, idempotency_key, body):
             return doc
-        domain.check_actor(doc, node_id, actor)
-        _check_expect(doc, expect or {})
-        domain.check_answer(doc, self.seed, node_id, answer)
         name = name_of(actor)
+        try:
+            self._precheck(doc, node_id, actor, answer, expect)
+        except DomainError as exc:
+            if exc.status != 409:
+                raise
+            # 앞 결재 뒤의 계산·기록 작업을 실행기가 아직 부르지 않았을 수 있다(실측 — 재분석 확인
+            # 직후 상신이 「재분석이 최신이 아니다」). 결재가 열렸으면 앞 작업은 끝났다 — 다시 본다.
+            try:
+                self._await_approval(demo_run_id, node_id, name)
+            except DomainError:
+                raise exc from None  # 결재가 열리지 않는다 — 처음 사유가 맞다
+            self._precheck(self.get(demo_run_id), node_id, actor, answer, expect)
         ext, approval = self._await_approval(demo_run_id, node_id, name)
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)

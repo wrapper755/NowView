@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote
 
@@ -43,6 +44,8 @@ class FakeCenter:
         self.approvals: dict[str, dict] = {}
         self.events: dict[str, list[dict]] = {}
         self.calls: list[tuple[str, str]] = []
+        #: 대리 답을 받은 뒤 — 서버 실행기가 그 답을 집어 진행하는 것을 흉내 낼 때 쓴다.
+        self.on_answer: Callable[[], None] | None = None
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         path = request.url.path.removeprefix("/api/v1")
@@ -101,6 +104,8 @@ class FakeCenter:
         if body.get("if_review_digest") not in (None, found["review_digest"]):
             return _err(409, "review_changed", "본 검토 자료가 지금 결재와 다르다")
         found.update(state="answered", answer=body["answer"], answered_by=who, answered_via="nv")
+        if self.on_answer is not None:
+            self.on_answer()
         return httpx.Response(200, json=found)
 
 

@@ -47,8 +47,10 @@ APP_ID = "nowview-sc01"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
 SAVE_RETRIES = 5
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초). 서버 실행기가 앞 작업을 끝내고 결재를
-#: 올리기까지 걸린다 — 각본이 수신 직후 원천 확인으로 넘어가도 409로 끊기지 않게 한다.
-CENTER_WAIT_S = 10.0
+#: 올리기까지 걸린다 — 각본이 수신 직후 원천 확인으로 넘어가도 409로 끊기지 않게 한다. 로컬
+#: Center 실측(2026-10-27): 작업 배정 약 8초, 대리 답을 실행기가 집어 다음 결재를 올리기까지 약
+#: 10초 — 10초로는 각본이 연달아 답할 때 끊겼다. 찾으면 바로 돌아오므로 넉넉하게 둔다.
+CENTER_WAIT_S = 30.0
 
 log = logging.getLogger(__name__)
 
@@ -1040,6 +1042,58 @@ class Sc01Process:
             )
         except CenterError as exc:
             raise exc.as_domain("일괄 결재 대리 답") from exc
+
+    def approve_intake_for_script(self, demo_run_id: str, *, opinion: str) -> bool:
+        """
+        각본이 장면 1을 인계까지 끝낼 때(장면 2 시작) 접수 일괄을 **감독자로** 승인한다 — 화면의
+        대리 답(`answer_intake`)과 같은 길이고 감독자인지는 Center가 대조한다. 기다리는 일괄이
+        없으면 `False`. 실행기가 작업을 받아 검증하고 결재를 올리기까지, 또 승인 뒤 위임된 SC01이
+        첫 호출로 데모 실행을 묶기까지 각각 `center_wait_s`까지 기다린다.
+        """
+        job = (((self.get(demo_run_id)["bpm"] or {}).get("center")) or {}).get("job") or {}
+        if job.get("via") != "intake" or job.get("decision") is not None:
+            return False
+        wait_s = self.center_wait_s
+        deadline = time.monotonic() + wait_s
+        while True:
+            try:
+                run_id = self.center.job(job["job_id"]).get("run_id")
+                worker = job.get("worker") or self.center.config.intake_worker
+                info = self.center.virtual_worker(worker)
+            except CenterError as exc:
+                raise exc.as_domain("접수 일괄 찾기") from exc
+            opened = [
+                rid
+                for b in info.get("batches") or []
+                if run_id and b.get("run_id") == run_id
+                for rid in b.get("open_approvals") or []
+            ]
+            if opened or time.monotonic() >= deadline:
+                break
+            time.sleep(min(1.0, self.center_wait_s))
+        if not opened:
+            raise DomainError(
+                f"접수 가상 직원의 일괄({job['job_id']})에 아직 감독자 결재가 열리지 않았다", 409
+            )
+        names = {u["name"]: uid for uid, u in USERS.items()}
+        supervisor = next((names[n] for n in info.get("supervisors") or [] if n in names), None)
+        if supervisor is None:
+            raise DomainError(
+                "접수 가상 직원의 감독자가 사용자 마스터에 없다 — 고객계획 화면의 "
+                "「접수 가상 직원」에서 승인한다",
+                409,
+            )
+        self.answer_intake(opened[0], {"결정": "승인", "의견": opinion}, actor=supervisor)
+        deadline = time.monotonic() + wait_s
+        while not (self.get(demo_run_id)["bpm"] or {}).get("external_run_id"):
+            if time.monotonic() >= deadline:
+                raise DomainError(
+                    "접수 일괄을 승인했지만 위임된 SC01이 아직 NowView를 부르지 않았다 — 잠시 뒤 "
+                    "다시 한다",
+                    409,
+                )
+            time.sleep(min(1.0, wait_s))
+        return True
 
     def _cancel_center_job(self, doc: dict, job_id: str) -> None:
         """대체된 작업을 거둔다 — 실패해도 조작을 막지 않고 감사 이력에 남긴다."""
