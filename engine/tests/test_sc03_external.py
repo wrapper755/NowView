@@ -334,3 +334,81 @@ def test_reset_on_center_cancels_the_started_job(proc: Sc03Process, center: Fake
     proc.start(rid, actor="u-fin")
     jobs = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
+
+
+# ─────────────────────── 화면 직접 진행에서 드러난 것(2026-10-28) ───────────────────────
+
+
+def test_console_rejection_on_center_reopens_the_same_task_with_its_reason(
+    proc: Sc03Process, center: FakeCenter
+) -> None:
+    """
+    Center 콘솔 답은 NowView 사전 검사를 거치지 않는다 — 기록이 거절되면 그림은 같은 결재를
+    **새 결재 id로** 다시 연다. 예전에는 그때 새 업무(TASK-REQUEST-2)를 열어 앞 업무가 영영
+    「진행」으로 남았고, 다시 열린 폼에는 사유가 없었다(화면 직접 진행 실측). 이제 같은 업무에
+    잇고, 사유가 폼에 보인다.
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    runner = FakeRunner(proc, center, job, "run_20270624_100500_e7f7a7")
+    proc.sync_center(rid)
+    for index in (1, 2):
+        demo.run_step(proc, rid, index)
+        runner.step()
+        proc.sync_center(rid)
+    [req] = [a for a in center.approvals.values() if a["node_id"] == "Request_Confirm"]
+    good = dict(demo.steps_for("BASE")[3].answer)
+    req.update(
+        state="answered",
+        answer={**good, "회신기한": good["회신기한"] + "6/28 18:00"},  # 기본값에 이어 친 것
+        answered_by="정하윤",
+    )
+    runner.step()
+    proc.sync_center(rid)
+
+    doc = proc.get(rid)
+    requests = [t for t in doc["tasks"].values() if t["type"] == "REQUEST"]
+    assert [t["task_id"] for t in requests] == ["TASK-REQUEST"]
+    assert requests[0]["status"] == "ASSIGNED"
+    assert "회신기한" in requests[0]["rejected"]["reason"]
+    assert requests[0]["history"][-1]["note"] == "기록이 거절되어 같은 결재가 다시 열렸다"
+    [shown] = [
+        w for w in view(doc, center=CONFIG)["bpm"]["waiting"] if w["nodeId"] == "Request_Confirm"
+    ]
+    assert shown["rejected"]["status"] == 422 and "회신기한" in shown["rejected"]["reason"]
+
+    # 화면에서 고쳐 다시 내면 같은 업무가 끝나고 사유는 걷힌다 — 화면 답도 각본 단계를 옮긴다
+    relayed = proc.act(rid, "Request_Confirm", good, actor="u-fin")
+    # 기록이 오기 전에는 「반영 중」이다 — 폼은 사라졌고 다음 업무는 아직이다
+    assert view(relayed, center=CONFIG)["bpm"]["center"]["inflight"] == ["Request_Confirm"]
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    assert view(doc, center=CONFIG)["bpm"]["center"]["inflight"] == []
+    [task] = [t for t in doc["tasks"].values() if t["type"] == "REQUEST"]
+    assert task["status"] == "COMPLETED" and "rejected" not in task
+    assert (doc["step"], doc["script_index"]) == ("D34", 3)
+
+
+def test_relay_precheck_refuses_a_malformed_reply_due(
+    proc: Sc03Process, center: FakeCenter
+) -> None:
+    """회신기한 형식은 사전 검사가 본다 — Center에 답하기 전에 422(입력 보존)."""
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    runner = FakeRunner(proc, center, job, "run_20270624_100500_e8f8a8")
+    proc.sync_center(rid)
+    demo.run_step(proc, rid, 1)
+    runner.step()
+    proc.sync_center(rid)
+    answer = {"회신기한": "2027-06-28T18:00:00+09:006/28 18:00", "요청메모": ""}
+    with pytest.raises(DomainError) as exc:
+        proc.act(rid, "Request_Confirm", answer, actor="u-fin")
+    assert exc.value.status == 422 and "회신기한" in str(exc.value)
+    assert not [
+        a
+        for a in center.approvals.values()
+        if a.get("state") == "answered" and a["node_id"] == "Request_Confirm"
+    ]

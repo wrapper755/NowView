@@ -72,6 +72,12 @@ export function Sc03ActionForm({
         void submit();
       }}
     >
+      {waiting.rejected ? (
+        <p role="alert" className="rounded-md border px-3 py-2 text-xs" style={{ borderColor: "var(--viz-status-serious)" }}>
+          <span className="font-medium">직전 답이 기록에서 거절되어 같은 결재가 다시 열렸다</span> ({waiting.rejected.status}) —{" "}
+          {waiting.rejected.reason}. 고쳐서 다시 낸다.
+        </p>
+      ) : null}
       {waiting.fields.map((f) => (
         <FormField
           key={f.key}

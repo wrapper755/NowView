@@ -45,6 +45,8 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
             "review": p["review"],
             "fields": (p["form"] or {}).get("fields", []),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
+            # 직전 답이 기록에서 거절됐으면 그 사유 — 같은 결재가 다시 열려도 화면이 말한다
+            "rejected": (domain.task_for_node(doc, p["node_id"]) or {}).get("rejected"),
         }
         for p in sorted(pendings.values(), key=lambda p: _node_rank(p["node_id"]))
     ]
@@ -135,7 +137,14 @@ def _center_view(doc: dict, center: CenterConfig | None) -> dict[str, Any] | Non
     if problem is None and center is not None:
         relay = center.missing(relay=True)
         problem = f"{relay} — 화면 답(대리 답)을 할 수 없다" if relay else None
-    return {"job": ledger.get("job"), "problem": problem, "package": center and center.sc03_package}
+    running = (doc["bpm"] or {}).get("state") == "running"
+    return {
+        "job": ledger.get("job"),
+        "problem": problem,
+        "package": center and center.sc03_package,
+        # 대리 답을 보냈는데 아직 기록이 오지 않은 결재 — 화면이 「Center 반영 중」을 보인다
+        "inflight": list(ledger.get("inflight", [])) if running else [],
+    }
 
 
 def _record_of(node: Any, process: BpmnProcess) -> str | None:

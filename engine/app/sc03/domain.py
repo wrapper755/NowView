@@ -1904,6 +1904,9 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
         run = latest_run(doc)
         if run is None or not run["result"]["passed"] or current_draft(doc) is None:
             raise DomainError("정합이 확인된 분석 초안이 없다(CT33)", 409)
+        # 형식도 여기서 본다 — 기록 작업에서만 보면 대리 답은 통과하고 기록이 422로 거절되어
+        # 같은 결재로 조용히 돌아왔다(화면 직접 진행 실측: 기본값에 이어 친 「…+09:006/28 18:00」)
+        _when(args.get("due") or SCHEDULE["confirm_due"], "회신기한")
     elif operation == "record_confirmation":
         check_confirmation(doc, str(args.get("dept") or ""), args)
     elif operation == "record_revision":
@@ -2078,6 +2081,20 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]]) -> None:
         if task is not None and task["request_id"] is None:
             task["request_id"] = request_id  # 늦게 연 업무에 대기를 잇는다
             continue
+        if task is not None:
+            # 끝나지 않은 업무에 같은 결재가 새 id로 왔다 — 기록이 거절되어 그림이 같은 결재로
+            # 돌아온 것이다(오류 경계). 새 업무를 열면 앞 업무가 영영 「진행」으로 남아 끝난 일에
+            # 지연 알림이 생겼다(화면 직접 진행 실측) — 같은 업무에 잇는다.
+            task["request_id"] = request_id
+            task["history"].append(
+                {
+                    "at": doc["clock"],
+                    "status": task["status"],
+                    "by": "system",
+                    "note": "기록이 거절되어 같은 결재가 다시 열렸다",
+                }
+            )
+            continue
         _open_task(doc, p["node_id"], request_id=request_id)
 
 
@@ -2088,10 +2105,22 @@ def ensure_task(doc: dict, node_id: str) -> None:
         _open_task(doc, node_id, request_id=None, late=True)
 
 
+def note_rejection(doc: dict, node_id: str, *, status: int, reason: str) -> None:
+    """
+    기록 작업이 거절한 답의 사유를 그 업무에 남긴다 — 화면이 다시 열린 결재 폼 위에 보인다.
+    Center·Studio 콘솔 답은 사전 검사를 거치지 않으므로 기록이 막는 수밖에 없는데, 그림은 같은
+    결재로 돌아갈 뿐 사유를 싣지 않는다(HTTP 어댑터가 4xx 본문을 버린다, 4.5).
+    """
+    task = task_for_node(doc, node_id)
+    if task is not None:
+        task["rejected"] = {"at": doc["clock"], "status": status, "reason": reason}
+
+
 def complete_task(doc: dict, node_id: str, *, actor: str) -> None:
     task = task_for_node(doc, node_id)
     if task is None:
         return
+    task.pop("rejected", None)
     task.update(status="COMPLETED", completed_at=doc["clock"], completed_by=actor)
     task["history"].append({"at": doc["clock"], "status": "COMPLETED", "by": actor, "note": None})
     audit(doc, actor=actor, action="task_completed", task_id=task["task_id"])
