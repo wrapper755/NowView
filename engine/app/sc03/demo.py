@@ -14,6 +14,8 @@ EV31-01~22),
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -439,18 +441,62 @@ def run_step(process: Sc03Process, demo_run_id: str, index: int) -> dict:
         return process.mark(demo_run_id, note=step.label, **mark)
     if step.kind == "clock":
         return process.mark(demo_run_id, note=step.label, **mark)
+    center = (doc["bpm"] or {}).get("executor") == "center"
     if step.kind == "record":
-        return process.meeting_record(demo_run_id, actor=step.actor, **step.answer, **mark)
-    if step.kind == "agent":
-        return process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark)
-    if step.kind == "revision":
-        return process.revise_forecast(
-            demo_run_id, reason=step.answer["reason"], actor=step.actor, **mark
+        return _after_record(
+            process,
+            center,
+            lambda: process.meeting_record(demo_run_id, actor=step.actor, **step.answer, **mark),
         )
-    expect = _expect(process.get(demo_run_id), step.node_id or "")
-    return process.act(
-        demo_run_id, step.node_id or "", dict(step.answer), actor=step.actor, expect=expect, **mark
+    if step.kind == "agent":
+        return _after_record(
+            process,
+            center,
+            lambda: process.agent(demo_run_id, step.answer["kind"], actor=step.actor, **mark),
+        )
+    if step.kind == "revision":
+        return _after_record(
+            process,
+            center,
+            lambda: process.revise_forecast(
+                demo_run_id, reason=step.answer["reason"], actor=step.actor, **mark
+            ),
+        )
+    node_id = step.node_id or ""
+    # 화면이 보는 버전은 시도마다 다시 읽는다 — 배정 기록이 들어오기 전에 읽으면
+    # 버전 0을 싣는다(실측).
+    return _after_record(
+        process,
+        center,
+        lambda: process.act(
+            demo_run_id,
+            node_id,
+            dict(step.answer),
+            actor=step.actor,
+            expect=_expect(process.get(demo_run_id), node_id),
+            **mark,
+        ),
     )
+
+
+def _after_record(process: Sc03Process, center: bool, run: Callable[[], dict]) -> dict:
+    """
+    각본 한 단계. **Center 실행이면 앞 결재의 기록 작업을
+    기다린다** — 대리 답 뒤의 기록(회의 열기 등)은 실행기가 따로 부르므로, 각본이 곧바로
+    다음 단계를 넣으면 「진행 중인 회의가 없다」·「본 배정버전(0)이 최신(1)이 아니다」(409)였다
+    (로컬 Center 실측).
+    `center_wait_s`까지 다시 해 보고, 그래도 409면 그 사유를 낸다.
+    """
+    deadline = time.monotonic() + (process.center_wait_s if center else 0)
+    while True:
+        try:
+            return run()
+        except DomainError as exc:
+            # 완료 조건 미충족도 같다 — 인수 기록이 들어오기 전이면 「미인수」다(실측).
+            waiting = exc.status == 409 or isinstance(exc, domain.PrerequisiteError)
+            if not waiting or time.monotonic() >= deadline:
+                raise
+        time.sleep(min(1.0, process.center_wait_s))
 
 
 def _expect(doc: dict, node_id: str) -> dict[str, Any] | None:
