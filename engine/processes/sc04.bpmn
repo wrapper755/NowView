@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SC04 — 수익성 개선 대응안 검토와 실행 승인(장면 4). 업무 흐름의 유일한 원천이다(장면 1~3과 같다).
+
+  BPM이 쥐는 것: 순서 · 사람 대기(결과 제출·임원 확인·검증·보완·추천·보고본·보고·판단 초안·판단본·대표 결정·승인서·
+  등록·책임 인수·종료) · 분기(보완 요청 · 검증 차단 · 승인 보완 · 인수 반려 · 보류 안 제외) · 장면 5 인계. 쥐지 않는 것:
+  효과·잔여 부족·검증 — 서비스 태스크가 NowView 계산 서비스(`nowview-sc04`)를 부른다. 엔진은 숫자를 모른다(P413).
+
+  단계 대응(업무설계표 SC04-S01~S14): 착수(S01, 화면 명령 — 이 그림은 착수된 검토건을 연다) → S02 결과 제출·임원 확인
+  (병렬) → S03·S04 검증·보완 → S05 공동 추천 → S06 보고본 → S07 보고 → S08·S09 판단 초안·확인 → S10 대표 결정 → S11
+  승인서·회의록 → S12 등록 → S13 인수 → S14 종료. 대표 질의·현업 답변·지원 지시(QA411~)와 Agent 질의 후보·회의록
+  초안(AG42·AG43)은 BPM 밖의 회의 기록이다.
+
+  **Studio 시험 실행·Center 서버 실행에서 돈다**(장면 1~3 N1~N6과 같은 틀). 서비스 태스크는 외부 확장 `nowview-sc04`
+  (`chaeksas/nowview-sc04.extension.json`)의 HTTP 작업이고 본문마다 `{{run_id}}`로 데모 실행을 묶는다. 결재에 답한 사람은
+  `answered_by_as`·`answered_via_as`로 받아 기록 작업에 싣는다. 기록이 거절되면 오류 경계로 **같은 결재로 되돌아간다**.
+  병렬 갈래끼리 변수가 겹치지 않게 폼 칸 이름에 과제·대상을 붙였다(AT31결론 · ACT41결정 …). 금액 칸은 text다 — 빈 값을
+  null로 보내지 않고 빈 글로 남겨 「누락」으로 검사한다(E404).
+  역할은 `app/sc04/domain.py`의 NODE_ROLES, 결재 담당자 이름은 `chk:approval.assignees` — 시험이 맞춰 본다.
+  이 파일은 손으로 고쳐도 된다 — 생성기는 남기지 않았다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc04">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:process id="nowview.sc04" name="SC04 수익성 개선 대응안 검토와 실행 승인" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "service_keys": {"nowview-sc04": "nowview"}, "extensions": [{"id": "nowview-sc04", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="장면 4 착수"/>
+    <bpmn:serviceTask id="Task_Open" name="검토건 열기">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "open_review", "input": {"demo_run_id": "데모실행ID"}, "output": {"검토ID": "review_id", "담당자명": "assignee_name"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S02 CT401·CT402 분석 결과 제출(부서 책임자) → 담당 임원 확인. 네 과제가 함께 돈다. 보완 요청이면 같은 부서가 새 버전을 낸다 -->
+    <bpmn:parallelGateway id="Gw_Results_Split" name="AT31 ∥ AT32 ∥ AT33 ∥ AT34"/>
+    <bpmn:parallelGateway id="Gw_Results_Join" name="결과 모으기"/>
+    <bpmn:userTask id="Submit_AT31" name="AT31 결과 제출">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT31 부분 공정·외주 조정 — 분석 결과 제출(RES41)", "answered_by_as": "AT31제출자", "answered_via_as": "AT31제출경로", "assignees": ["배정훈"], "description": "효과 산정 근거·가정·적용시점·비용·리스크·애로를 제출한다. 산정 가정은 함께 묶인다(가정 버전). 작성과 임원 확인은 따로 기록된다.", "show": ["검토ID", "error_message"], "fields": [{"key": "AT31결과", "label": "결과 유형", "type": "choice", "required": true, "choices": ["제출", "제외"]}, {"key": "AT31결론", "label": "결론", "type": "text", "required": true}, {"key": "AT31근거", "label": "근거 ID (;로 구분)", "type": "text", "required": true}, {"key": "AT31애로", "label": "리스크·애로·지원 요구", "type": "text"}, {"key": "AT31제외사유", "label": "제외 사유 (제외면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Submit_AT31" name="AT31 결과 제출 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "submit_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Submit_AT31'", "task_id": "'AT31'", "outcome": "AT31결과", "conclusion": "AT31결론", "evidence": "AT31근거", "risks": "AT31애로", "reason": "AT31제외사유", "answered_by": "AT31제출자", "answered_via": "AT31제출경로"}, "output": {"AT31결과버전": "result_ref", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_AT31" name="AT31 임원 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT31 생산 임원 확인 — RES41", "answered_by_as": "AT31확인자", "answered_via_as": "AT31확인경로", "assignees": ["권태윤"], "description": "제출본의 근거·가정·시점·비용을 확인한다. 확인 계정·시각이 고정된다. 고칠 것이 있으면 보완 요청 — 같은 부서가 새 버전을 낸다.", "show": ["AT31결과버전", "error_message"], "fields": [{"key": "AT31확인", "label": "확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "AT31확인의견", "label": "확인 의견", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_AT31" name="AT31 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "confirm_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_AT31'", "task_id": "'AT31'", "decision": "AT31확인", "opinion": "AT31확인의견", "answered_by": "AT31확인자", "answered_via": "AT31확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Confirm_AT31" name="AT31 확인 결과" default="Flow_AT31_confirmed"/>
+    <bpmn:userTask id="Submit_AT32" name="AT32 결과 제출">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT32 구매조건·긴급구매·대체 공급업체 — 분석 결과 제출(RES42)", "answered_by_as": "AT32제출자", "answered_via_as": "AT32제출경로", "assignees": ["서도현"], "description": "효과 산정 근거·가정·적용시점·비용·리스크·애로를 제출한다. 산정 가정은 함께 묶인다(가정 버전). 작성과 임원 확인은 따로 기록된다.", "show": ["검토ID", "error_message"], "fields": [{"key": "AT32결과", "label": "결과 유형", "type": "choice", "required": true, "choices": ["제출", "제외"]}, {"key": "AT32결론", "label": "결론", "type": "text", "required": true}, {"key": "AT32근거", "label": "근거 ID (;로 구분)", "type": "text", "required": true}, {"key": "AT32애로", "label": "리스크·애로·지원 요구", "type": "text"}, {"key": "AT32제외사유", "label": "제외 사유 (제외면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Submit_AT32" name="AT32 결과 제출 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "submit_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Submit_AT32'", "task_id": "'AT32'", "outcome": "AT32결과", "conclusion": "AT32결론", "evidence": "AT32근거", "risks": "AT32애로", "reason": "AT32제외사유", "answered_by": "AT32제출자", "answered_via": "AT32제출경로"}, "output": {"AT32결과버전": "result_ref", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_AT32" name="AT32 임원 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT32 구매 임원 확인 — RES42", "answered_by_as": "AT32확인자", "answered_via_as": "AT32확인경로", "assignees": ["문지후"], "description": "제출본의 근거·가정·시점·비용을 확인한다. 확인 계정·시각이 고정된다. 고칠 것이 있으면 보완 요청 — 같은 부서가 새 버전을 낸다.", "show": ["AT32결과버전", "error_message"], "fields": [{"key": "AT32확인", "label": "확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "AT32확인의견", "label": "확인 의견", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_AT32" name="AT32 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "confirm_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_AT32'", "task_id": "'AT32'", "decision": "AT32확인", "opinion": "AT32확인의견", "answered_by": "AT32확인자", "answered_via": "AT32확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Confirm_AT32" name="AT32 확인 결과" default="Flow_AT32_confirmed"/>
+    <bpmn:userTask id="Submit_AT33" name="AT33 결과 제출">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT33 고객·모델 물량 배분 — 분석 결과 제출(RES43)", "answered_by_as": "AT33제출자", "answered_via_as": "AT33제출경로", "assignees": ["박서진"], "description": "고객 생산배정 범위 안의 물량 조정 근거를 검토한 결과를 낸다. 근거가 없으면 「제외」와 사유를 적는다 — 미제출과 검토 후 제외는 다르다.", "show": ["검토ID", "error_message"], "fields": [{"key": "AT33결과", "label": "결과 유형", "type": "choice", "required": true, "choices": ["제출", "제외"]}, {"key": "AT33결론", "label": "결론", "type": "text", "required": true}, {"key": "AT33근거", "label": "근거 ID (;로 구분)", "type": "text", "required": true}, {"key": "AT33애로", "label": "리스크·애로·지원 요구", "type": "text"}, {"key": "AT33제외사유", "label": "제외 사유 (제외면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Submit_AT33" name="AT33 결과 제출 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "submit_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Submit_AT33'", "task_id": "'AT33'", "outcome": "AT33결과", "conclusion": "AT33결론", "evidence": "AT33근거", "risks": "AT33애로", "reason": "AT33제외사유", "answered_by": "AT33제출자", "answered_via": "AT33제출경로"}, "output": {"AT33결과버전": "result_ref", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_AT33" name="AT33 임원 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT33 영업 임원 확인 — RES43", "answered_by_as": "AT33확인자", "answered_via_as": "AT33확인경로", "assignees": ["남유진"], "description": "제출본의 근거·가정·시점·비용을 확인한다. 확인 계정·시각이 고정된다. 고칠 것이 있으면 보완 요청 — 같은 부서가 새 버전을 낸다.", "show": ["AT33결과버전", "error_message"], "fields": [{"key": "AT33확인", "label": "확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "AT33확인의견", "label": "확인 의견", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_AT33" name="AT33 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "confirm_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_AT33'", "task_id": "'AT33'", "decision": "AT33확인", "opinion": "AT33확인의견", "answered_by": "AT33확인자", "answered_via": "AT33확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Confirm_AT33" name="AT33 확인 결과" default="Flow_AT33_confirmed"/>
+    <bpmn:userTask id="Submit_AT34" name="AT34 결과 제출">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT34 기존 부족 원인 — 분석 결과 제출(RES44)", "answered_by_as": "AT34제출자", "answered_via_as": "AT34제출경로", "assignees": ["오세린"], "description": "효과 산정 근거·가정·적용시점·비용·리스크·애로를 제출한다. 산정 가정은 함께 묶인다(가정 버전). 작성과 임원 확인은 따로 기록된다.", "show": ["검토ID", "error_message"], "fields": [{"key": "AT34결과", "label": "결과 유형", "type": "choice", "required": true, "choices": ["제출", "제외"]}, {"key": "AT34결론", "label": "결론", "type": "text", "required": true}, {"key": "AT34근거", "label": "근거 ID (;로 구분)", "type": "text", "required": true}, {"key": "AT34애로", "label": "리스크·애로·지원 요구", "type": "text"}, {"key": "AT34제외사유", "label": "제외 사유 (제외면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Submit_AT34" name="AT34 결과 제출 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "submit_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Submit_AT34'", "task_id": "'AT34'", "outcome": "AT34결과", "conclusion": "AT34결론", "evidence": "AT34근거", "risks": "AT34애로", "reason": "AT34제외사유", "answered_by": "AT34제출자", "answered_via": "AT34제출경로"}, "output": {"AT34결과버전": "result_ref", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_AT34" name="AT34 임원 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "AT34 경영관리 임원 확인 — RES44", "answered_by_as": "AT34확인자", "answered_via_as": "AT34확인경로", "assignees": ["강민서"], "description": "제출본의 근거·가정·시점·비용을 확인한다. 확인 계정·시각이 고정된다. 고칠 것이 있으면 보완 요청 — 같은 부서가 새 버전을 낸다.", "show": ["AT34결과버전", "error_message"], "fields": [{"key": "AT34확인", "label": "확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "AT34확인의견", "label": "확인 의견", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_AT34" name="AT34 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "confirm_result", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_AT34'", "task_id": "'AT34'", "decision": "AT34확인", "opinion": "AT34확인의견", "answered_by": "AT34확인자", "answered_via": "AT34확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Confirm_AT34" name="AT34 확인 결과" default="Flow_AT34_confirmed"/>
+
+    <!-- S03·S04 CT402·CT403 비용·중복 검증 — 잔존 고정비 유지, 중복 제거, 적용량·원가 한도. 차단이면 담당 임원 보완 → 재검증 -->
+    <bpmn:userTask id="Verify_Effects" name="비용·중복 검증">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U402 효과 검증 — 회피 비용·잔존 고정비·중복", "answered_by_as": "검증자", "answered_via_as": "검증경로", "assignees": ["정하윤"], "description": "확인된 결과의 가정으로 월별 효과를 계산하고 검증한다. 기존 감가상각비는 회피 비용이 아니다. 같은 품목·물량·기간의 절감은 한 번만. 차단 오류는 보고 확정을 막는다 — 조건부 승인으로 우회할 수 없다.", "show": ["검토ID", "error_message"], "fields": [{"key": "검증기준", "label": "공통 기준(기간·단위·기준 전망·원가 버전) 확인", "type": "choice", "required": true, "choices": ["확인"]}, {"key": "검증메모", "label": "메모", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Verify" name="비용·중복 검증 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "verify_effects", "input": {"demo_run_id": "데모실행ID", "node_id": "'Verify_Effects'", "basis": "검증기준", "memo": "검증메모", "answered_by": "검증자", "answered_via": "검증경로"}, "output": {"검증ID": "run_id", "검증통과": "passed", "보완담당자명": "corrector_name", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Verify" name="검증 결과" default="Flow_verify_blocked"/>
+    <bpmn:userTask id="Correct_Effects" name="검증 보완">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "검증 차단 — 근거 없는 항목 보완·재확인", "answered_by_as": "보완자", "answered_via_as": "보완경로", "assignees": "보완담당자명", "description": "검증이 막은 항목(회피 불가 고정비·중복 미조정 등)을 걷어 내고 담당 임원이 다시 확인한다. 가정은 새 버전이고 검증을 다시 한다. 기준 손익의 고정비는 그대로다.", "show": ["검증ID", "error_message"], "fields": [{"key": "보완내용", "label": "보완 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Correct" name="검증 보완 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "correct_effects", "input": {"demo_run_id": "데모실행ID", "node_id": "'Correct_Effects'", "content": "보완내용", "answered_by": "보완자", "answered_via": "보완경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Agent_Check" name="Agent 검증·비교 요약 초안">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "agent_draft", "input": {"demo_run_id": "데모실행ID", "kind": "'AG41'"}, "output": {"검증요약초안ID": "output_id"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S05 CT404 우선 실행안 공동 제안 — 개별 대안 비교, 2~3개 추천·우선순위·사유, 물량 배분 제외 사유 -->
+    <bpmn:userTask id="Recommend" name="우선 실행안 제안">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U403 우선 실행안 — 담당 임원 공동 제안", "answered_by_as": "추천자", "answered_via_as": "추천경로", "assignees": ["강민서"], "description": "검증된 대응안을 비교해 우선 추진할 2~3개를 제안한다. 우선순위는 효과액 순이 아니라 착수 순서·선행조건 판단이다. 물량 배분안은 RES43 근거로 제외 사유를 남긴다. 담당 임원 확인이 있어야 공동 제안이다.", "show": ["검증ID", "검증요약초안ID", "error_message"], "fields": [{"key": "추천ALT41", "label": "ALT41 부분 공정·외주 조정", "type": "choice", "required": true, "choices": ["추천", "제외"]}, {"key": "ALT41우선순위", "label": "ALT41 우선순위", "type": "text"}, {"key": "ALT41사유", "label": "ALT41 선정·제외 사유", "type": "text", "required": true}, {"key": "추천ALT42", "label": "ALT42 구매조건·긴급구매 개선", "type": "choice", "required": true, "choices": ["추천", "제외"]}, {"key": "ALT42우선순위", "label": "ALT42 우선순위", "type": "text"}, {"key": "ALT42사유", "label": "ALT42 선정·제외 사유", "type": "text", "required": true}, {"key": "추천ALT43", "label": "ALT43 기존 승인 대체 공급업체", "type": "choice", "required": true, "choices": ["추천", "제외"]}, {"key": "ALT43우선순위", "label": "ALT43 우선순위", "type": "text"}, {"key": "ALT43사유", "label": "ALT43 선정·제외 사유", "type": "text", "required": true}, {"key": "EXCL44제외사유", "label": "EXCL44 물량 배분 제외 사유", "type": "text", "required": true}, {"key": "현업임원확인", "label": "생산·구매 임원 확인", "type": "choice", "required": true, "choices": ["확인"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Recommend" name="우선 실행안 제안 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "recommend", "input": {"demo_run_id": "데모실행ID", "node_id": "'Recommend'", "alt41_pick": "추천ALT41", "alt41_priority": "ALT41우선순위", "alt41_reason": "ALT41사유", "alt42_pick": "추천ALT42", "alt42_priority": "ALT42우선순위", "alt42_reason": "ALT42사유", "alt43_pick": "추천ALT43", "alt43_priority": "ALT43우선순위", "alt43_reason": "ALT43사유", "excluded_reason": "EXCL44제외사유", "owners": "현업임원확인", "answered_by": "추천자", "answered_via": "추천경로"}, "output": {"추천ID": "recommendation_ref", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S06·S07 CT404·CT405 보고본 확정·배포 → MT41 보고. 보고본은 고정되고 배포는 승인이 아니다 -->
+    <bpmn:userTask id="Freeze_Report" name="보고본 확정·배포">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U404 REP41-v1 확정·내부 배포", "answered_by_as": "확정자", "answered_via_as": "확정경로", "assignees": ["강민서"], "description": "추천안의 당해연도 순효과와 남는 부족을 고정한다. 결론은 「이 과제들을 우선 실행하되 이 조건·지원이 필요하다」다. 내부 배포 기록만 남긴다(메일 없음).", "show": ["추천ID", "error_message"], "fields": [{"key": "보고결론", "label": "보고 결론", "type": "text", "required": true}, {"key": "배포메모", "label": "배포 메모", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Freeze" name="보고본 확정·배포 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "freeze_report", "input": {"demo_run_id": "데모실행ID", "node_id": "'Freeze_Report'", "conclusion": "보고결론", "recipients": "배포메모", "answered_by": "확정자", "answered_via": "확정경로"}, "output": {"보고본ID": "report_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Report_Meeting" name="월간회의 보고">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "MT41 개회 · 보고", "answered_by_as": "보고자", "answered_via_as": "보고경로", "assignees": ["강민서"], "description": "대표 주재 월간 경영회의에서 대응 전 부족·예상 개선효과·남는 부족을 보고한다. 질의·답변·지시는 회의 기록으로 남긴다.", "show": ["보고본ID", "error_message"], "fields": [{"key": "보고요지", "label": "보고 요지", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Report_Meeting" name="월간회의 보고 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "open_meeting", "input": {"demo_run_id": "데모실행ID", "node_id": "'Report_Meeting'", "summary": "보고요지", "answered_by": "보고자", "answered_via": "보고경로"}, "output": {"회의ID": "meeting_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S08·S09 CT405·CT406 판단 초안 — 원 보고 가정 복제·재계산, 선행조건(CON41)·지원 지시(SUP41) → 판단본 확인 -->
+    <bpmn:userTask id="Draft_Decision" name="판단 초안">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U405 판단 초안 — 질의 뒤 가정 변경·조건·지원", "answered_by_as": "판단초안자", "answered_via_as": "판단초안경로", "assignees": ["정하윤"], "description": "원 보고 가정을 복제해 바꾼 칸만 고치고 같은 규칙으로 재계산한다(원 보고본은 그대로). 변경에는 사유와 현업 임원 확인이 필요하다. 질의에서 정한 선행조건·지원 지시를 책임·협조·확인자·기한과 함께 적는다.", "show": ["회의ID", "보고본ID", "error_message"], "fields": [{"key": "변경대안", "label": "가정을 바꿀 대안", "type": "choice", "required": true, "choices": ["없음", "ALT41", "ALT42", "ALT43"]}, {"key": "변경항목", "label": "바꿀 가정", "type": "choice", "required": false, "choices": ["효과 시작", "월 대상량", "회피단가", "추가단가", "물류단가", "긴급 후", "건당비용", "월지원비", "일회성비", "일회성월"]}, {"key": "변경값", "label": "바꾼 값 (시작은 월 첫날 2027-09-01)", "type": "text"}, {"key": "변경사유", "label": "변경 사유", "type": "text"}, {"key": "변경확인임원", "label": "변경을 확인한 현업 임원", "type": "text"}, {"key": "조건내용", "label": "선행조건 내용", "type": "text"}, {"key": "조건책임", "label": "조건 책임", "type": "text"}, {"key": "조건협조", "label": "조건 협조 (;로 구분)", "type": "text"}, {"key": "조건확인자", "label": "조건 충족 확인자", "type": "text"}, {"key": "조건기한", "label": "조건 기한 (KST)", "type": "text"}, {"key": "지원내용", "label": "지원 지시 내용", "type": "text"}, {"key": "지원책임", "label": "지원 책임", "type": "text"}, {"key": "지원협조", "label": "지원 협조 (;로 구분)", "type": "text"}, {"key": "지원확인자", "label": "지원 확인자", "type": "text"}, {"key": "지원기한", "label": "지원 기한 (KST)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Draft_Decision" name="판단 초안 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "draft_decision", "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Decision'", "change_alt": "변경대안", "change_field": "변경항목", "change_value": "변경값", "reason": "변경사유", "confirmed_by": "변경확인임원", "condition": "조건내용", "condition_owner": "조건책임", "condition_collaborators": "조건협조", "condition_verifier": "조건확인자", "condition_due": "조건기한", "support": "지원내용", "support_owner": "지원책임", "support_collaborators": "지원협조", "support_verifier": "지원확인자", "support_due": "지원기한", "answered_by": "판단초안자", "answered_via": "판단초안경로"}, "output": {"판단초안ID": "report_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_Decision" name="판단본 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "CONF41 판단본 확인", "answered_by_as": "판단확인자", "answered_via_as": "판단확인경로", "assignees": ["강민서"], "description": "관련 임원 확인과 재계산 결과를 확인하고 판단본을 고정한다. 원 보고본은 보존되고 대표 결정은 이 판단본으로 한다.", "show": ["판단초안ID", "error_message"], "fields": [{"key": "판단확인", "label": "판단본 확인", "type": "choice", "required": true, "choices": ["확인"]}, {"key": "판단확인의견", "label": "확인 의견", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_Decision" name="판단본 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "confirm_decision", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Decision'", "decision": "판단확인", "opinion": "판단확인의견", "answered_by": "판단확인자", "answered_via": "판단확인경로"}, "output": {"판단본ID": "report_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S10 CT406 대표 과제별 결정 — 승인·조건부 승인·보류·미승인. 보류·미승인은 실행과제가 없다. 잔여 부족 추가 발굴 지시 -->
+    <bpmn:userTask id="Decide" name="대표 과제별 결정">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "REV41 대표 결정 — 과제별 승인·조건부 승인·보류", "answered_by_as": "결정자", "answered_via_as": "결정경로", "assignees": ["임하준"], "description": "최종 판단본으로 과제마다 승인·조건부 승인·보류·미승인을 정한다. 조건부 승인에는 조건(책임·확인자·기한)을 잇는다. 근거가 확인되지 않은 중대한 안은 보류한다. 남는 부족분의 추가 발굴을 지시한다 — 효과는 미산정이다.", "show": ["판단본ID", "error_message"], "fields": [{"key": "ALT41결정", "label": "ALT41 부분 공정·외주 조정", "type": "choice", "required": true, "choices": ["승인", "조건부승인", "보류", "미승인"]}, {"key": "ALT41결정사유", "label": "ALT41 결정 사유", "type": "text", "required": true}, {"key": "ALT42결정", "label": "ALT42 구매조건·긴급구매 개선", "type": "choice", "required": true, "choices": ["승인", "조건부승인", "보류", "미승인"]}, {"key": "ALT42결정사유", "label": "ALT42 결정 사유", "type": "text", "required": true}, {"key": "ALT43결정", "label": "ALT43 기존 승인 대체 공급업체", "type": "choice", "required": true, "choices": ["승인", "조건부승인", "보류", "미승인"]}, {"key": "ALT43결정사유", "label": "ALT43 결정 사유", "type": "text", "required": true}, {"key": "조건연결", "label": "조건부 승인에 연결할 조건 (예 CON41)", "type": "text"}, {"key": "발굴지시", "label": "잔여 부족분 추가 과제 발굴 지시", "type": "text", "required": true}, {"key": "발굴책임자", "label": "발굴 책임자", "type": "text", "required": true}, {"key": "발굴협조", "label": "발굴 협조 (;로 구분)", "type": "text"}, {"key": "발굴기한", "label": "후속 보고기한 (KST)", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Decide" name="대표 과제별 결정 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "decide", "input": {"demo_run_id": "데모실행ID", "node_id": "'Decide'", "alt41_outcome": "ALT41결정", "alt41_reason": "ALT41결정사유", "alt42_outcome": "ALT42결정", "alt42_reason": "ALT42결정사유", "alt43_outcome": "ALT43결정", "alt43_reason": "ALT43결정사유", "condition_refs": "조건연결", "discovery": "발굴지시", "discovery_owner": "발굴책임자", "discovery_collaborators": "발굴협조", "discovery_due": "발굴기한", "answered_by": "결정자", "answered_via": "결정경로"}, "output": {"결정ID": "decision_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S10·S11 CT407·CT408 승인서 초안(경영관리) → 대표 확정(APR41-v1·MIN41-v1 함께). 필수 누락이면 확정하지 않는다 -->
+    <bpmn:userTask id="Draft_Approval" name="승인서 초안">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U406 승인서·회의록 초안", "answered_by_as": "승인초안자", "answered_via_as": "승인초안경로", "assignees": ["정하윤"], "description": "대표 결정대로 전체·개별 책임자, 총괄 한도와 과제 배분, 계획 제출기한과 과제 완료기한, 위임 조항, 회의록 초안을 쓴다. 빈 칸은 0이나 임의 날짜로 채우지 않는다 — 누락 목록이 함께 남는다.", "show": ["결정ID", "error_message"], "fields": [{"key": "전체책임자", "label": "전체 책임자", "type": "text"}, {"key": "총괄한도", "label": "총괄 예산 한도(원)", "type": "text"}, {"key": "계획제출기한", "label": "장면 5 상세 계획 제출기한 (KST)", "type": "text"}, {"key": "ACT41한도", "label": "ACT41 배분 한도(원)", "type": "text"}, {"key": "ACT41완료기한", "label": "ACT41 과제 완료기한 (KST)", "type": "text"}, {"key": "ACT42한도", "label": "ACT42 배분 한도(원)", "type": "text"}, {"key": "ACT42완료기한", "label": "ACT42 과제 완료기한 (KST)", "type": "text"}, {"key": "ACT43한도", "label": "ACT43 배분 한도(원)", "type": "text"}, {"key": "ACT43완료기한", "label": "ACT43 과제 완료기한 (KST)", "type": "text"}, {"key": "위임조항", "label": "위임 조항(전용·초과 재보고)", "type": "text"}, {"key": "회의록초안", "label": "회의록 초안", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Draft_Approval" name="승인서 초안 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "draft_approval", "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Approval'", "overall_owner": "전체책임자", "total_budget": "총괄한도", "plan_due": "계획제출기한", "alt41_budget": "ACT41한도", "alt41_due": "ACT41완료기한", "alt42_budget": "ACT42한도", "alt42_due": "ACT42완료기한", "alt43_budget": "ACT43한도", "alt43_due": "ACT43완료기한", "delegation": "위임조항", "minutes": "회의록초안", "answered_by": "승인초안자", "answered_via": "승인초안경로"}, "output": {"승인초안버전": "version", "누락건수": "missing", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Finalize_Approval" name="승인서 확정">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "APR41 대표 포괄 승인", "answered_by_as": "승인자", "answered_via_as": "승인경로", "assignees": ["임하준"], "description": "승인서와 회의록을 함께 확정한다. 책임·한도·두 기한·조건 확인자·위임 조항이 하나라도 비면 확정되지 않는다. 고칠 것이 있으면 보완 요청 — 경영관리가 초안을 다시 쓴다.", "show": ["승인초안버전", "누락건수", "error_message"], "fields": [{"key": "승인결정", "label": "승인", "type": "choice", "required": true, "choices": ["확정", "보완요청"]}, {"key": "승인의견", "label": "의견 (보완 요청이면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Finalize" name="승인서 확정 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "finalize_approval", "input": {"demo_run_id": "데모실행ID", "node_id": "'Finalize_Approval'", "decision": "승인결정", "opinion": "승인의견", "answered_by": "승인자", "answered_via": "승인경로"}, "output": {"승인서ID": "approval_id", "승인보완": "returned", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Finalize" name="승인 결과" default="Flow_approved"/>
+
+    <!-- S12·S13 CT408·CT409 과제·조건·지시 등록 → 책임자별 인수. 반려면 승인 범위 안에서 보완해 새 배정버전 -->
+    <bpmn:userTask id="Register_Actions" name="실행과제 등록">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U407 실행과제·조건·지시 등록", "answered_by_as": "등록자", "answered_via_as": "등록경로", "assignees": ["정하윤"], "description": "유효한 승인서의 승인·조건부 승인 안만 실행과제로 한 번에 등록한다. 조건·지원·추가 발굴 지시는 따로 관리한다. 상세 활동계획은 장면 5다.", "show": ["승인서ID", "error_message"], "fields": [{"key": "등록확인", "label": "등록", "type": "choice", "required": true, "choices": ["등록"]}, {"key": "등록메모", "label": "메모", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Register" name="실행과제 등록 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "register_actions", "input": {"demo_run_id": "데모실행ID", "node_id": "'Register_Actions'", "memo": "등록메모", "answered_by": "등록자", "answered_via": "등록경로"}, "output": {"ACT41배정": "act41_assigned", "ACT41책임자": "act41_owner", "ACT41배정버전": "act41_version", "ACT42배정": "act42_assigned", "ACT42책임자": "act42_owner", "ACT42배정버전": "act42_version", "ACT43배정": "act43_assigned", "ACT43책임자": "act43_owner", "ACT43배정버전": "act43_version", "SUP41배정": "sup41_assigned", "SUP41책임자": "sup41_owner", "SUP41배정버전": "sup41_version", "TOTAL배정": "total_assigned", "TOTAL책임자": "total_owner", "TOTAL배정버전": "total_version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:inclusiveGateway id="Gw_Accept" name="책임별 인수"/>
+    <bpmn:inclusiveGateway id="Gw_Accept_Join" name="인수 모으기"/>
+    <bpmn:userTask id="Accept_ACT41" name="ACT41 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT41 부분 공정·외주 조정 — 책임 인수", "answered_by_as": "ACT41인수자", "answered_via_as": "ACT41인수경로", "assignees": "ACT41책임자", "description": "범위·기대효과·예산·계획 제출기한·완료기한·선행조건을 보고 인수한다. 조건부 과제는 조건 미충족 표시를 유지한 채 인수할 수 있다 — 실행 착수는 조건 충족 뒤다. 불명확하면 사유와 함께 반려한다.", "show": ["ACT41배정버전", "승인서ID", "error_message"], "fields": [{"key": "ACT41결정", "label": "인수 여부", "type": "choice", "required": true, "choices": ["인수", "반려"]}, {"key": "ACT41사유", "label": "의견 (반려면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Accept_ACT41" name="ACT41 인수 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "accept", "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_ACT41'", "target": "'ACT41'", "decision": "ACT41결정", "reason": "ACT41사유", "version": "ACT41배정버전", "answered_by": "ACT41인수자", "answered_via": "ACT41인수경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Revise_ACT41" name="ACT41 보완">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT41 반려 — 승인 범위 안 보완", "answered_by_as": "ACT41보완자", "answered_via_as": "ACT41보완경로", "assignees": ["강민서"], "description": "반려 사유에 답해 승인 범위 안에서 설명·조건을 명확히 하고 새 배정버전으로 다시 낸다. 범위·책임·한도·기한을 바꾸는 중대 변경은 대표 재확인(새 승인 버전)이다.", "show": ["ACT41배정버전", "error_message"], "fields": [{"key": "ACT41보완사유", "label": "변경 사유", "type": "text", "required": true}, {"key": "ACT41보완내용", "label": "보완 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revise_ACT41" name="ACT41 보완 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "revise_assignment", "input": {"demo_run_id": "데모실행ID", "node_id": "'Revise_ACT41'", "target": "'ACT41'", "reason": "ACT41보완사유", "change": "ACT41보완내용", "answered_by": "ACT41보완자", "answered_via": "ACT41보완경로"}, "output": {"ACT41책임자": "owner", "ACT41배정버전": "version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_ACT41" name="ACT41 인수 결과" default="Flow_act41_accepted"/>
+    <bpmn:userTask id="Accept_ACT42" name="ACT42 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT42 구매조건·긴급구매 개선 + CON41 책임 — 책임 인수", "answered_by_as": "ACT42인수자", "answered_via_as": "ACT42인수경로", "assignees": "ACT42책임자", "description": "범위·기대효과·예산·계획 제출기한·완료기한·선행조건을 보고 인수한다. 조건부 과제는 조건 미충족 표시를 유지한 채 인수할 수 있다 — 실행 착수는 조건 충족 뒤다. 불명확하면 사유와 함께 반려한다.", "show": ["ACT42배정버전", "승인서ID", "error_message"], "fields": [{"key": "ACT42결정", "label": "인수 여부", "type": "choice", "required": true, "choices": ["인수", "반려"]}, {"key": "ACT42사유", "label": "의견 (반려면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Accept_ACT42" name="ACT42 인수 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "accept", "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_ACT42'", "target": "'ACT42'", "decision": "ACT42결정", "reason": "ACT42사유", "version": "ACT42배정버전", "answered_by": "ACT42인수자", "answered_via": "ACT42인수경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Revise_ACT42" name="ACT42 보완">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT42 반려 — 승인 범위 안 보완", "answered_by_as": "ACT42보완자", "answered_via_as": "ACT42보완경로", "assignees": ["강민서"], "description": "반려 사유에 답해 승인 범위 안에서 설명·조건을 명확히 하고 새 배정버전으로 다시 낸다. 범위·책임·한도·기한을 바꾸는 중대 변경은 대표 재확인(새 승인 버전)이다.", "show": ["ACT42배정버전", "error_message"], "fields": [{"key": "ACT42보완사유", "label": "변경 사유", "type": "text", "required": true}, {"key": "ACT42보완내용", "label": "보완 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revise_ACT42" name="ACT42 보완 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "revise_assignment", "input": {"demo_run_id": "데모실행ID", "node_id": "'Revise_ACT42'", "target": "'ACT42'", "reason": "ACT42보완사유", "change": "ACT42보완내용", "answered_by": "ACT42보완자", "answered_via": "ACT42보완경로"}, "output": {"ACT42책임자": "owner", "ACT42배정버전": "version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_ACT42" name="ACT42 인수 결과" default="Flow_act42_accepted"/>
+    <bpmn:userTask id="Accept_ACT43" name="ACT43 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT43 기존 승인 대체 공급업체 — 책임 인수", "answered_by_as": "ACT43인수자", "answered_via_as": "ACT43인수경로", "assignees": "ACT43책임자", "description": "범위·기대효과·예산·계획 제출기한·완료기한·선행조건을 보고 인수한다. 조건부 과제는 조건 미충족 표시를 유지한 채 인수할 수 있다 — 실행 착수는 조건 충족 뒤다. 불명확하면 사유와 함께 반려한다.", "show": ["ACT43배정버전", "승인서ID", "error_message"], "fields": [{"key": "ACT43결정", "label": "인수 여부", "type": "choice", "required": true, "choices": ["인수", "반려"]}, {"key": "ACT43사유", "label": "의견 (반려면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Accept_ACT43" name="ACT43 인수 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "accept", "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_ACT43'", "target": "'ACT43'", "decision": "ACT43결정", "reason": "ACT43사유", "version": "ACT43배정버전", "answered_by": "ACT43인수자", "answered_via": "ACT43인수경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Revise_ACT43" name="ACT43 보완">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "ACT43 반려 — 승인 범위 안 보완", "answered_by_as": "ACT43보완자", "answered_via_as": "ACT43보완경로", "assignees": ["강민서"], "description": "반려 사유에 답해 승인 범위 안에서 설명·조건을 명확히 하고 새 배정버전으로 다시 낸다. 범위·책임·한도·기한을 바꾸는 중대 변경은 대표 재확인(새 승인 버전)이다.", "show": ["ACT43배정버전", "error_message"], "fields": [{"key": "ACT43보완사유", "label": "변경 사유", "type": "text", "required": true}, {"key": "ACT43보완내용", "label": "보완 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revise_ACT43" name="ACT43 보완 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "revise_assignment", "input": {"demo_run_id": "데모실행ID", "node_id": "'Revise_ACT43'", "target": "'ACT43'", "reason": "ACT43보완사유", "change": "ACT43보완내용", "answered_by": "ACT43보완자", "answered_via": "ACT43보완경로"}, "output": {"ACT43책임자": "owner", "ACT43배정버전": "version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_ACT43" name="ACT43 인수 결과" default="Flow_act43_accepted"/>
+    <bpmn:userTask id="Accept_SUP41" name="SUP41 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "SUP41 생산 변경정보 지원 지시 — 책임 인수", "answered_by_as": "SUP41인수자", "answered_via_as": "SUP41인수경로", "assignees": "SUP41책임자", "description": "범위·기대효과·예산·계획 제출기한·완료기한·선행조건을 보고 인수한다. 조건부 과제는 조건 미충족 표시를 유지한 채 인수할 수 있다 — 실행 착수는 조건 충족 뒤다. 불명확하면 사유와 함께 반려한다.", "show": ["SUP41배정버전", "승인서ID", "error_message"], "fields": [{"key": "SUP41결정", "label": "인수 여부", "type": "choice", "required": true, "choices": ["인수", "반려"]}, {"key": "SUP41사유", "label": "의견 (반려면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Accept_SUP41" name="SUP41 인수 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "accept", "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_SUP41'", "target": "'SUP41'", "decision": "SUP41결정", "reason": "SUP41사유", "version": "SUP41배정버전", "answered_by": "SUP41인수자", "answered_via": "SUP41인수경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Revise_SUP41" name="SUP41 보완">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "SUP41 반려 — 승인 범위 안 보완", "answered_by_as": "SUP41보완자", "answered_via_as": "SUP41보완경로", "assignees": ["강민서"], "description": "반려 사유에 답해 승인 범위 안에서 설명·조건을 명확히 하고 새 배정버전으로 다시 낸다. 범위·책임·한도·기한을 바꾸는 중대 변경은 대표 재확인(새 승인 버전)이다.", "show": ["SUP41배정버전", "error_message"], "fields": [{"key": "SUP41보완사유", "label": "변경 사유", "type": "text", "required": true}, {"key": "SUP41보완내용", "label": "보완 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revise_SUP41" name="SUP41 보완 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "revise_assignment", "input": {"demo_run_id": "데모실행ID", "node_id": "'Revise_SUP41'", "target": "'SUP41'", "reason": "SUP41보완사유", "change": "SUP41보완내용", "answered_by": "SUP41보완자", "answered_via": "SUP41보완경로"}, "output": {"SUP41책임자": "owner", "SUP41배정버전": "version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_SUP41" name="SUP41 인수 결과" default="Flow_sup41_accepted"/>
+    <bpmn:userTask id="Accept_Overall" name="TOTAL 인수">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "전체 책임 + DIR41 추가 발굴 — 책임 인수", "answered_by_as": "TOTAL인수자", "answered_via_as": "TOTAL인수경로", "assignees": "TOTAL책임자", "description": "총괄 책임(전체 성과·잔여 부족 관리)과 추가 발굴 지시를 인수한다.", "show": ["TOTAL배정버전", "승인서ID", "error_message"], "fields": [{"key": "TOTAL결정", "label": "인수 여부", "type": "choice", "required": true, "choices": ["인수"]}, {"key": "TOTAL사유", "label": "의견 (반려면 필수)", "type": "text"}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Accept_TOTAL" name="TOTAL 인수 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "accept", "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_Overall'", "target": "'TOTAL'", "decision": "TOTAL결정", "reason": "TOTAL사유", "version": "TOTAL배정버전", "answered_by": "TOTAL인수자", "answered_via": "TOTAL인수경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+
+    <!-- S14 CT409·CT410 종료 요건 검사 → HANDOFF41. 위험·전망·목표는 그대로다 -->
+    <bpmn:userTask id="Complete_Scene" name="장면 4 완료">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U408 장면 5 인계 · 장면 4 완료", "answered_by_as": "완료자", "answered_via_as": "완료경로", "assignees": ["정하윤"], "description": "승인서·회의록, 전체·개별 최신 인수, 조건·지원·추가 지시의 책임·기한을 서버가 다시 검사한다. CON41 미충족은 차단이 아니다. 장면 완료는 실행 완료·위험 해소·전망 승인이 아니다.", "show": ["승인서ID", "error_message"], "fields": [{"key": "완료메모", "label": "완료 메모", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Complete" name="장면 4 완료 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "nowview-sc04", "operation": "complete_scene", "input": {"demo_run_id": "데모실행ID", "node_id": "'Complete_Scene'", "memo": "완료메모", "answered_by": "완료자", "answered_via": "완료경로"}, "output": {"인계ID": "handoff_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End" name="장면 4 완료 — 장면 5 상세 계획 대기"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Submit_AT31" name="기록 거절" attachedToRef="Record_Submit_AT31">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_AT31" name="기록 거절" attachedToRef="Record_Confirm_AT31">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Submit_AT32" name="기록 거절" attachedToRef="Record_Submit_AT32">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_AT32" name="기록 거절" attachedToRef="Record_Confirm_AT32">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Submit_AT33" name="기록 거절" attachedToRef="Record_Submit_AT33">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_AT33" name="기록 거절" attachedToRef="Record_Confirm_AT33">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Submit_AT34" name="기록 거절" attachedToRef="Record_Submit_AT34">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_AT34" name="기록 거절" attachedToRef="Record_Confirm_AT34">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Verify" name="기록 거절" attachedToRef="Record_Verify">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Correct" name="기록 거절" attachedToRef="Record_Correct">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Recommend" name="기록 거절" attachedToRef="Record_Recommend">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Freeze" name="기록 거절" attachedToRef="Record_Freeze">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Report_Meeting" name="기록 거절" attachedToRef="Record_Report_Meeting">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Draft_Decision" name="기록 거절" attachedToRef="Record_Draft_Decision">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_Decision" name="기록 거절" attachedToRef="Record_Confirm_Decision">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Decide" name="기록 거절" attachedToRef="Record_Decide">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Draft_Approval" name="기록 거절" attachedToRef="Record_Draft_Approval">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Finalize" name="기록 거절" attachedToRef="Record_Finalize">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Register" name="기록 거절" attachedToRef="Record_Register">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept_ACT41" name="기록 거절" attachedToRef="Record_Accept_ACT41">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revise_ACT41" name="기록 거절" attachedToRef="Record_Revise_ACT41">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept_ACT42" name="기록 거절" attachedToRef="Record_Accept_ACT42">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revise_ACT42" name="기록 거절" attachedToRef="Record_Revise_ACT42">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept_ACT43" name="기록 거절" attachedToRef="Record_Accept_ACT43">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revise_ACT43" name="기록 거절" attachedToRef="Record_Revise_ACT43">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept_SUP41" name="기록 거절" attachedToRef="Record_Accept_SUP41">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revise_SUP41" name="기록 거절" attachedToRef="Record_Revise_SUP41">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Accept_TOTAL" name="기록 거절" attachedToRef="Record_Accept_TOTAL">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Complete" name="기록 거절" attachedToRef="Record_Complete">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Open"/>
+    <bpmn:sequenceFlow id="Flow_open" sourceRef="Task_Open" targetRef="Gw_Results_Split"/>
+    <bpmn:sequenceFlow id="Flow_Submit_AT31_answered" sourceRef="Submit_AT31" targetRef="Record_Submit_AT31"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_AT31_answered" sourceRef="Confirm_AT31" targetRef="Record_Confirm_AT31"/>
+    <bpmn:sequenceFlow id="Flow_AT31" sourceRef="Gw_Results_Split" targetRef="Submit_AT31"/>
+    <bpmn:sequenceFlow id="Flow_AT31_submitted" sourceRef="Record_Submit_AT31" targetRef="Confirm_AT31"/>
+    <bpmn:sequenceFlow id="Flow_AT31_recorded" sourceRef="Record_Confirm_AT31" targetRef="Gw_Confirm_AT31"/>
+    <bpmn:sequenceFlow id="Flow_AT31_rework" name="보완 요청 — 새 버전" sourceRef="Gw_Confirm_AT31" targetRef="Submit_AT31">
+      <bpmn:conditionExpression>AT31확인 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AT31_confirmed" name="확인" sourceRef="Gw_Confirm_AT31" targetRef="Gw_Results_Join"/>
+    <bpmn:sequenceFlow id="Flow_Submit_AT32_answered" sourceRef="Submit_AT32" targetRef="Record_Submit_AT32"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_AT32_answered" sourceRef="Confirm_AT32" targetRef="Record_Confirm_AT32"/>
+    <bpmn:sequenceFlow id="Flow_AT32" sourceRef="Gw_Results_Split" targetRef="Submit_AT32"/>
+    <bpmn:sequenceFlow id="Flow_AT32_submitted" sourceRef="Record_Submit_AT32" targetRef="Confirm_AT32"/>
+    <bpmn:sequenceFlow id="Flow_AT32_recorded" sourceRef="Record_Confirm_AT32" targetRef="Gw_Confirm_AT32"/>
+    <bpmn:sequenceFlow id="Flow_AT32_rework" name="보완 요청 — 새 버전" sourceRef="Gw_Confirm_AT32" targetRef="Submit_AT32">
+      <bpmn:conditionExpression>AT32확인 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AT32_confirmed" name="확인" sourceRef="Gw_Confirm_AT32" targetRef="Gw_Results_Join"/>
+    <bpmn:sequenceFlow id="Flow_Submit_AT33_answered" sourceRef="Submit_AT33" targetRef="Record_Submit_AT33"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_AT33_answered" sourceRef="Confirm_AT33" targetRef="Record_Confirm_AT33"/>
+    <bpmn:sequenceFlow id="Flow_AT33" sourceRef="Gw_Results_Split" targetRef="Submit_AT33"/>
+    <bpmn:sequenceFlow id="Flow_AT33_submitted" sourceRef="Record_Submit_AT33" targetRef="Confirm_AT33"/>
+    <bpmn:sequenceFlow id="Flow_AT33_recorded" sourceRef="Record_Confirm_AT33" targetRef="Gw_Confirm_AT33"/>
+    <bpmn:sequenceFlow id="Flow_AT33_rework" name="보완 요청 — 새 버전" sourceRef="Gw_Confirm_AT33" targetRef="Submit_AT33">
+      <bpmn:conditionExpression>AT33확인 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AT33_confirmed" name="확인" sourceRef="Gw_Confirm_AT33" targetRef="Gw_Results_Join"/>
+    <bpmn:sequenceFlow id="Flow_Submit_AT34_answered" sourceRef="Submit_AT34" targetRef="Record_Submit_AT34"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_AT34_answered" sourceRef="Confirm_AT34" targetRef="Record_Confirm_AT34"/>
+    <bpmn:sequenceFlow id="Flow_AT34" sourceRef="Gw_Results_Split" targetRef="Submit_AT34"/>
+    <bpmn:sequenceFlow id="Flow_AT34_submitted" sourceRef="Record_Submit_AT34" targetRef="Confirm_AT34"/>
+    <bpmn:sequenceFlow id="Flow_AT34_recorded" sourceRef="Record_Confirm_AT34" targetRef="Gw_Confirm_AT34"/>
+    <bpmn:sequenceFlow id="Flow_AT34_rework" name="보완 요청 — 새 버전" sourceRef="Gw_Confirm_AT34" targetRef="Submit_AT34">
+      <bpmn:conditionExpression>AT34확인 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_AT34_confirmed" name="확인" sourceRef="Gw_Confirm_AT34" targetRef="Gw_Results_Join"/>
+    <bpmn:sequenceFlow id="Flow_Verify_Effects_answered" sourceRef="Verify_Effects" targetRef="Record_Verify"/>
+    <bpmn:sequenceFlow id="Flow_Correct_Effects_answered" sourceRef="Correct_Effects" targetRef="Record_Correct"/>
+    <bpmn:sequenceFlow id="Flow_results_joined" sourceRef="Gw_Results_Join" targetRef="Verify_Effects"/>
+    <bpmn:sequenceFlow id="Flow_verify_recorded" sourceRef="Record_Verify" targetRef="Gw_Verify"/>
+    <bpmn:sequenceFlow id="Flow_verify_ok" name="검증 통과" sourceRef="Gw_Verify" targetRef="Task_Agent_Check">
+      <bpmn:conditionExpression>검증통과</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_verify_blocked" name="차단 — 담당 임원 보완" sourceRef="Gw_Verify" targetRef="Correct_Effects"/>
+    <bpmn:sequenceFlow id="Flow_corrected" name="재검증" sourceRef="Record_Correct" targetRef="Verify_Effects"/>
+    <bpmn:sequenceFlow id="Flow_Recommend_answered" sourceRef="Recommend" targetRef="Record_Recommend"/>
+    <bpmn:sequenceFlow id="Flow_agent_check" sourceRef="Task_Agent_Check" targetRef="Recommend"/>
+    <bpmn:sequenceFlow id="Flow_Freeze_Report_answered" sourceRef="Freeze_Report" targetRef="Record_Freeze"/>
+    <bpmn:sequenceFlow id="Flow_Report_Meeting_answered" sourceRef="Report_Meeting" targetRef="Record_Report_Meeting"/>
+    <bpmn:sequenceFlow id="Flow_recommended" sourceRef="Record_Recommend" targetRef="Freeze_Report"/>
+    <bpmn:sequenceFlow id="Flow_frozen" sourceRef="Record_Freeze" targetRef="Report_Meeting"/>
+    <bpmn:sequenceFlow id="Flow_Draft_Decision_answered" sourceRef="Draft_Decision" targetRef="Record_Draft_Decision"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_Decision_answered" sourceRef="Confirm_Decision" targetRef="Record_Confirm_Decision"/>
+    <bpmn:sequenceFlow id="Flow_meeting" sourceRef="Record_Report_Meeting" targetRef="Draft_Decision"/>
+    <bpmn:sequenceFlow id="Flow_drafted" sourceRef="Record_Draft_Decision" targetRef="Confirm_Decision"/>
+    <bpmn:sequenceFlow id="Flow_Decide_answered" sourceRef="Decide" targetRef="Record_Decide"/>
+    <bpmn:sequenceFlow id="Flow_confirmed" sourceRef="Record_Confirm_Decision" targetRef="Decide"/>
+    <bpmn:sequenceFlow id="Flow_Draft_Approval_answered" sourceRef="Draft_Approval" targetRef="Record_Draft_Approval"/>
+    <bpmn:sequenceFlow id="Flow_Finalize_Approval_answered" sourceRef="Finalize_Approval" targetRef="Record_Finalize"/>
+    <bpmn:sequenceFlow id="Flow_decided" sourceRef="Record_Decide" targetRef="Draft_Approval"/>
+    <bpmn:sequenceFlow id="Flow_approval_drafted" sourceRef="Record_Draft_Approval" targetRef="Finalize_Approval"/>
+    <bpmn:sequenceFlow id="Flow_finalize_recorded" sourceRef="Record_Finalize" targetRef="Gw_Finalize"/>
+    <bpmn:sequenceFlow id="Flow_approval_returned" name="보완 요청" sourceRef="Gw_Finalize" targetRef="Draft_Approval">
+      <bpmn:conditionExpression>승인결정 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Register_Actions_answered" sourceRef="Register_Actions" targetRef="Record_Register"/>
+    <bpmn:sequenceFlow id="Flow_approved" name="확정" sourceRef="Gw_Finalize" targetRef="Register_Actions"/>
+    <bpmn:sequenceFlow id="Flow_registered" sourceRef="Record_Register" targetRef="Gw_Accept"/>
+    <bpmn:sequenceFlow id="Flow_Accept_ACT41_answered" sourceRef="Accept_ACT41" targetRef="Record_Accept_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_act41" name="ACT41 배정" sourceRef="Gw_Accept" targetRef="Accept_ACT41">
+      <bpmn:conditionExpression>ACT41배정</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revise_ACT41_answered" sourceRef="Revise_ACT41" targetRef="Record_Revise_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_act41_recorded" sourceRef="Record_Accept_ACT41" targetRef="Gw_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_act41_returned" name="반려" sourceRef="Gw_ACT41" targetRef="Revise_ACT41">
+      <bpmn:conditionExpression>ACT41결정 == '반려'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_act41_accepted" name="인수" sourceRef="Gw_ACT41" targetRef="Gw_Accept_Join"/>
+    <bpmn:sequenceFlow id="Flow_act41_revised" name="새 배정버전 재인수" sourceRef="Record_Revise_ACT41" targetRef="Accept_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_Accept_ACT42_answered" sourceRef="Accept_ACT42" targetRef="Record_Accept_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_act42" name="ACT42 배정" sourceRef="Gw_Accept" targetRef="Accept_ACT42">
+      <bpmn:conditionExpression>ACT42배정</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revise_ACT42_answered" sourceRef="Revise_ACT42" targetRef="Record_Revise_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_act42_recorded" sourceRef="Record_Accept_ACT42" targetRef="Gw_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_act42_returned" name="반려" sourceRef="Gw_ACT42" targetRef="Revise_ACT42">
+      <bpmn:conditionExpression>ACT42결정 == '반려'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_act42_accepted" name="인수" sourceRef="Gw_ACT42" targetRef="Gw_Accept_Join"/>
+    <bpmn:sequenceFlow id="Flow_act42_revised" name="새 배정버전 재인수" sourceRef="Record_Revise_ACT42" targetRef="Accept_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_Accept_ACT43_answered" sourceRef="Accept_ACT43" targetRef="Record_Accept_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_act43" name="ACT43 배정" sourceRef="Gw_Accept" targetRef="Accept_ACT43">
+      <bpmn:conditionExpression>ACT43배정</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revise_ACT43_answered" sourceRef="Revise_ACT43" targetRef="Record_Revise_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_act43_recorded" sourceRef="Record_Accept_ACT43" targetRef="Gw_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_act43_returned" name="반려" sourceRef="Gw_ACT43" targetRef="Revise_ACT43">
+      <bpmn:conditionExpression>ACT43결정 == '반려'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_act43_accepted" name="인수" sourceRef="Gw_ACT43" targetRef="Gw_Accept_Join"/>
+    <bpmn:sequenceFlow id="Flow_act43_revised" name="새 배정버전 재인수" sourceRef="Record_Revise_ACT43" targetRef="Accept_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_Accept_SUP41_answered" sourceRef="Accept_SUP41" targetRef="Record_Accept_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_sup41" name="SUP41 배정" sourceRef="Gw_Accept" targetRef="Accept_SUP41">
+      <bpmn:conditionExpression>SUP41배정</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Revise_SUP41_answered" sourceRef="Revise_SUP41" targetRef="Record_Revise_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_sup41_recorded" sourceRef="Record_Accept_SUP41" targetRef="Gw_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_sup41_returned" name="반려" sourceRef="Gw_SUP41" targetRef="Revise_SUP41">
+      <bpmn:conditionExpression>SUP41결정 == '반려'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_sup41_accepted" name="인수" sourceRef="Gw_SUP41" targetRef="Gw_Accept_Join"/>
+    <bpmn:sequenceFlow id="Flow_sup41_revised" name="새 배정버전 재인수" sourceRef="Record_Revise_SUP41" targetRef="Accept_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_Accept_Overall_answered" sourceRef="Accept_Overall" targetRef="Record_Accept_TOTAL"/>
+    <bpmn:sequenceFlow id="Flow_total" name="TOTAL 배정" sourceRef="Gw_Accept" targetRef="Accept_Overall">
+      <bpmn:conditionExpression>TOTAL배정</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_total_accepted" name="인수" sourceRef="Record_Accept_TOTAL" targetRef="Gw_Accept_Join"/>
+    <bpmn:sequenceFlow id="Flow_Complete_Scene_answered" sourceRef="Complete_Scene" targetRef="Record_Complete"/>
+    <bpmn:sequenceFlow id="Flow_accepts_joined" sourceRef="Gw_Accept_Join" targetRef="Complete_Scene"/>
+    <bpmn:sequenceFlow id="Flow_end" sourceRef="Record_Complete" targetRef="End"/>
+    <bpmn:sequenceFlow id="Flow_Record_Submit_AT31_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Submit_AT31" targetRef="Submit_AT31"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_AT31_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_AT31" targetRef="Confirm_AT31"/>
+    <bpmn:sequenceFlow id="Flow_Record_Submit_AT32_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Submit_AT32" targetRef="Submit_AT32"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_AT32_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_AT32" targetRef="Confirm_AT32"/>
+    <bpmn:sequenceFlow id="Flow_Record_Submit_AT33_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Submit_AT33" targetRef="Submit_AT33"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_AT33_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_AT33" targetRef="Confirm_AT33"/>
+    <bpmn:sequenceFlow id="Flow_Record_Submit_AT34_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Submit_AT34" targetRef="Submit_AT34"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_AT34_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_AT34" targetRef="Confirm_AT34"/>
+    <bpmn:sequenceFlow id="Flow_Record_Verify_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Verify" targetRef="Verify_Effects"/>
+    <bpmn:sequenceFlow id="Flow_Record_Correct_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Correct" targetRef="Correct_Effects"/>
+    <bpmn:sequenceFlow id="Flow_Record_Recommend_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Recommend" targetRef="Recommend"/>
+    <bpmn:sequenceFlow id="Flow_Record_Freeze_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Freeze" targetRef="Freeze_Report"/>
+    <bpmn:sequenceFlow id="Flow_Record_Report_Meeting_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Report_Meeting" targetRef="Report_Meeting"/>
+    <bpmn:sequenceFlow id="Flow_Record_Draft_Decision_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Draft_Decision" targetRef="Draft_Decision"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_Decision_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_Decision" targetRef="Confirm_Decision"/>
+    <bpmn:sequenceFlow id="Flow_Record_Decide_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Decide" targetRef="Decide"/>
+    <bpmn:sequenceFlow id="Flow_Record_Draft_Approval_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Draft_Approval" targetRef="Draft_Approval"/>
+    <bpmn:sequenceFlow id="Flow_Record_Finalize_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Finalize" targetRef="Finalize_Approval"/>
+    <bpmn:sequenceFlow id="Flow_Record_Register_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Register" targetRef="Register_Actions"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_ACT41_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept_ACT41" targetRef="Accept_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revise_ACT41_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Revise_ACT41" targetRef="Revise_ACT41"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_ACT42_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept_ACT42" targetRef="Accept_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revise_ACT42_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Revise_ACT42" targetRef="Revise_ACT42"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_ACT43_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept_ACT43" targetRef="Accept_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revise_ACT43_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Revise_ACT43" targetRef="Revise_ACT43"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_SUP41_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept_SUP41" targetRef="Accept_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revise_SUP41_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Revise_SUP41" targetRef="Revise_SUP41"/>
+    <bpmn:sequenceFlow id="Flow_Record_Accept_TOTAL_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Accept_TOTAL" targetRef="Accept_Overall"/>
+    <bpmn:sequenceFlow id="Flow_Record_Complete_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Complete" targetRef="Complete_Scene"/>
+  </bpmn:process>
+</bpmn:definitions>

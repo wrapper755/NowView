@@ -1,0 +1,1590 @@
+{
+ "processId": "nowview.sc04",
+ "name": "SC04 수익성 개선 대응안 검토와 실행 승인",
+ "nodes": [
+  {
+   "id": "Start",
+   "kind": "startEvent",
+   "name": "장면 4 착수",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Open",
+   "kind": "serviceTask",
+   "name": "검토건 열기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Results_Split",
+   "kind": "parallelGateway",
+   "name": "AT31 ∥ AT32 ∥ AT33 ∥ AT34",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Results_Join",
+   "kind": "parallelGateway",
+   "name": "결과 모으기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Submit_AT31",
+   "kind": "userTask",
+   "name": "AT31 결과 제출",
+   "role": "생산팀장",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Submit_AT31",
+   "kind": "serviceTask",
+   "name": "AT31 결과 제출 기록",
+   "role": null,
+   "recordOf": "Submit_AT31"
+  },
+  {
+   "id": "Confirm_AT31",
+   "kind": "userTask",
+   "name": "AT31 임원 확인",
+   "role": "생산임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_AT31",
+   "kind": "serviceTask",
+   "name": "AT31 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_AT31"
+  },
+  {
+   "id": "Gw_Confirm_AT31",
+   "kind": "exclusiveGateway",
+   "name": "AT31 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Submit_AT32",
+   "kind": "userTask",
+   "name": "AT32 결과 제출",
+   "role": "구매팀장",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Submit_AT32",
+   "kind": "serviceTask",
+   "name": "AT32 결과 제출 기록",
+   "role": null,
+   "recordOf": "Submit_AT32"
+  },
+  {
+   "id": "Confirm_AT32",
+   "kind": "userTask",
+   "name": "AT32 임원 확인",
+   "role": "구매임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_AT32",
+   "kind": "serviceTask",
+   "name": "AT32 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_AT32"
+  },
+  {
+   "id": "Gw_Confirm_AT32",
+   "kind": "exclusiveGateway",
+   "name": "AT32 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Submit_AT33",
+   "kind": "userTask",
+   "name": "AT33 결과 제출",
+   "role": "영업팀장",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Submit_AT33",
+   "kind": "serviceTask",
+   "name": "AT33 결과 제출 기록",
+   "role": null,
+   "recordOf": "Submit_AT33"
+  },
+  {
+   "id": "Confirm_AT33",
+   "kind": "userTask",
+   "name": "AT33 임원 확인",
+   "role": "영업임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_AT33",
+   "kind": "serviceTask",
+   "name": "AT33 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_AT33"
+  },
+  {
+   "id": "Gw_Confirm_AT33",
+   "kind": "exclusiveGateway",
+   "name": "AT33 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Submit_AT34",
+   "kind": "userTask",
+   "name": "AT34 결과 제출",
+   "role": "경영관리팀장",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Submit_AT34",
+   "kind": "serviceTask",
+   "name": "AT34 결과 제출 기록",
+   "role": null,
+   "recordOf": "Submit_AT34"
+  },
+  {
+   "id": "Confirm_AT34",
+   "kind": "userTask",
+   "name": "AT34 임원 확인",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_AT34",
+   "kind": "serviceTask",
+   "name": "AT34 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_AT34"
+  },
+  {
+   "id": "Gw_Confirm_AT34",
+   "kind": "exclusiveGateway",
+   "name": "AT34 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Verify_Effects",
+   "kind": "userTask",
+   "name": "비용·중복 검증",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Verify",
+   "kind": "serviceTask",
+   "name": "비용·중복 검증 기록",
+   "role": null,
+   "recordOf": "Verify_Effects"
+  },
+  {
+   "id": "Gw_Verify",
+   "kind": "exclusiveGateway",
+   "name": "검증 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Correct_Effects",
+   "kind": "userTask",
+   "name": "검증 보완",
+   "role": "담당임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Correct",
+   "kind": "serviceTask",
+   "name": "검증 보완 기록",
+   "role": null,
+   "recordOf": "Correct_Effects"
+  },
+  {
+   "id": "Task_Agent_Check",
+   "kind": "serviceTask",
+   "name": "Agent 검증·비교 요약 초안",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Recommend",
+   "kind": "userTask",
+   "name": "우선 실행안 제안",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Recommend",
+   "kind": "serviceTask",
+   "name": "우선 실행안 제안 기록",
+   "role": null,
+   "recordOf": "Recommend"
+  },
+  {
+   "id": "Freeze_Report",
+   "kind": "userTask",
+   "name": "보고본 확정·배포",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Freeze",
+   "kind": "serviceTask",
+   "name": "보고본 확정·배포 기록",
+   "role": null,
+   "recordOf": "Freeze_Report"
+  },
+  {
+   "id": "Report_Meeting",
+   "kind": "userTask",
+   "name": "월간회의 보고",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Report_Meeting",
+   "kind": "serviceTask",
+   "name": "월간회의 보고 기록",
+   "role": null,
+   "recordOf": "Report_Meeting"
+  },
+  {
+   "id": "Draft_Decision",
+   "kind": "userTask",
+   "name": "판단 초안",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Draft_Decision",
+   "kind": "serviceTask",
+   "name": "판단 초안 기록",
+   "role": null,
+   "recordOf": "Draft_Decision"
+  },
+  {
+   "id": "Confirm_Decision",
+   "kind": "userTask",
+   "name": "판단본 확인",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_Decision",
+   "kind": "serviceTask",
+   "name": "판단본 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_Decision"
+  },
+  {
+   "id": "Decide",
+   "kind": "userTask",
+   "name": "대표 과제별 결정",
+   "role": "대표이사",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Decide",
+   "kind": "serviceTask",
+   "name": "대표 과제별 결정 기록",
+   "role": null,
+   "recordOf": "Decide"
+  },
+  {
+   "id": "Draft_Approval",
+   "kind": "userTask",
+   "name": "승인서 초안",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Draft_Approval",
+   "kind": "serviceTask",
+   "name": "승인서 초안 기록",
+   "role": null,
+   "recordOf": "Draft_Approval"
+  },
+  {
+   "id": "Finalize_Approval",
+   "kind": "userTask",
+   "name": "승인서 확정",
+   "role": "대표이사",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Finalize",
+   "kind": "serviceTask",
+   "name": "승인서 확정 기록",
+   "role": null,
+   "recordOf": "Finalize_Approval"
+  },
+  {
+   "id": "Gw_Finalize",
+   "kind": "exclusiveGateway",
+   "name": "승인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Register_Actions",
+   "kind": "userTask",
+   "name": "실행과제 등록",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Register",
+   "kind": "serviceTask",
+   "name": "실행과제 등록 기록",
+   "role": null,
+   "recordOf": "Register_Actions"
+  },
+  {
+   "id": "Gw_Accept",
+   "kind": "inclusiveGateway",
+   "name": "책임별 인수",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Accept_Join",
+   "kind": "inclusiveGateway",
+   "name": "인수 모으기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_ACT41",
+   "kind": "userTask",
+   "name": "ACT41 인수",
+   "role": "생산임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept_ACT41",
+   "kind": "serviceTask",
+   "name": "ACT41 인수 기록",
+   "role": null,
+   "recordOf": "Accept_ACT41"
+  },
+  {
+   "id": "Revise_ACT41",
+   "kind": "userTask",
+   "name": "ACT41 보완",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Revise_ACT41",
+   "kind": "serviceTask",
+   "name": "ACT41 보완 기록",
+   "role": null,
+   "recordOf": "Revise_ACT41"
+  },
+  {
+   "id": "Gw_ACT41",
+   "kind": "exclusiveGateway",
+   "name": "ACT41 인수 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_ACT42",
+   "kind": "userTask",
+   "name": "ACT42 인수",
+   "role": "구매임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept_ACT42",
+   "kind": "serviceTask",
+   "name": "ACT42 인수 기록",
+   "role": null,
+   "recordOf": "Accept_ACT42"
+  },
+  {
+   "id": "Revise_ACT42",
+   "kind": "userTask",
+   "name": "ACT42 보완",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Revise_ACT42",
+   "kind": "serviceTask",
+   "name": "ACT42 보완 기록",
+   "role": null,
+   "recordOf": "Revise_ACT42"
+  },
+  {
+   "id": "Gw_ACT42",
+   "kind": "exclusiveGateway",
+   "name": "ACT42 인수 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_ACT43",
+   "kind": "userTask",
+   "name": "ACT43 인수",
+   "role": "구매임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept_ACT43",
+   "kind": "serviceTask",
+   "name": "ACT43 인수 기록",
+   "role": null,
+   "recordOf": "Accept_ACT43"
+  },
+  {
+   "id": "Revise_ACT43",
+   "kind": "userTask",
+   "name": "ACT43 보완",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Revise_ACT43",
+   "kind": "serviceTask",
+   "name": "ACT43 보완 기록",
+   "role": null,
+   "recordOf": "Revise_ACT43"
+  },
+  {
+   "id": "Gw_ACT43",
+   "kind": "exclusiveGateway",
+   "name": "ACT43 인수 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_SUP41",
+   "kind": "userTask",
+   "name": "SUP41 인수",
+   "role": "생산임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept_SUP41",
+   "kind": "serviceTask",
+   "name": "SUP41 인수 기록",
+   "role": null,
+   "recordOf": "Accept_SUP41"
+  },
+  {
+   "id": "Revise_SUP41",
+   "kind": "userTask",
+   "name": "SUP41 보완",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Revise_SUP41",
+   "kind": "serviceTask",
+   "name": "SUP41 보완 기록",
+   "role": null,
+   "recordOf": "Revise_SUP41"
+  },
+  {
+   "id": "Gw_SUP41",
+   "kind": "exclusiveGateway",
+   "name": "SUP41 인수 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Accept_Overall",
+   "kind": "userTask",
+   "name": "TOTAL 인수",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Accept_TOTAL",
+   "kind": "serviceTask",
+   "name": "TOTAL 인수 기록",
+   "role": null,
+   "recordOf": "Accept_Overall"
+  },
+  {
+   "id": "Complete_Scene",
+   "kind": "userTask",
+   "name": "장면 4 완료",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Complete",
+   "kind": "serviceTask",
+   "name": "장면 4 완료 기록",
+   "role": null,
+   "recordOf": "Complete_Scene"
+  },
+  {
+   "id": "End",
+   "kind": "endEvent",
+   "name": "장면 4 완료 — 장면 5 상세 계획 대기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Bnd_Record_Submit_AT31",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Submit_AT31"
+  },
+  {
+   "id": "Bnd_Record_Confirm_AT31",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_AT31"
+  },
+  {
+   "id": "Bnd_Record_Submit_AT32",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Submit_AT32"
+  },
+  {
+   "id": "Bnd_Record_Confirm_AT32",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_AT32"
+  },
+  {
+   "id": "Bnd_Record_Submit_AT33",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Submit_AT33"
+  },
+  {
+   "id": "Bnd_Record_Confirm_AT33",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_AT33"
+  },
+  {
+   "id": "Bnd_Record_Submit_AT34",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Submit_AT34"
+  },
+  {
+   "id": "Bnd_Record_Confirm_AT34",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_AT34"
+  },
+  {
+   "id": "Bnd_Record_Verify",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Verify_Effects"
+  },
+  {
+   "id": "Bnd_Record_Correct",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Correct_Effects"
+  },
+  {
+   "id": "Bnd_Record_Recommend",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Recommend"
+  },
+  {
+   "id": "Bnd_Record_Freeze",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Freeze_Report"
+  },
+  {
+   "id": "Bnd_Record_Report_Meeting",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Report_Meeting"
+  },
+  {
+   "id": "Bnd_Record_Draft_Decision",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Draft_Decision"
+  },
+  {
+   "id": "Bnd_Record_Confirm_Decision",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_Decision"
+  },
+  {
+   "id": "Bnd_Record_Decide",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Decide"
+  },
+  {
+   "id": "Bnd_Record_Draft_Approval",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Draft_Approval"
+  },
+  {
+   "id": "Bnd_Record_Finalize",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Finalize_Approval"
+  },
+  {
+   "id": "Bnd_Record_Register",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Register_Actions"
+  },
+  {
+   "id": "Bnd_Record_Accept_ACT41",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Accept_ACT41"
+  },
+  {
+   "id": "Bnd_Record_Revise_ACT41",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Revise_ACT41"
+  },
+  {
+   "id": "Bnd_Record_Accept_ACT42",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Accept_ACT42"
+  },
+  {
+   "id": "Bnd_Record_Revise_ACT42",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Revise_ACT42"
+  },
+  {
+   "id": "Bnd_Record_Accept_ACT43",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Accept_ACT43"
+  },
+  {
+   "id": "Bnd_Record_Revise_ACT43",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Revise_ACT43"
+  },
+  {
+   "id": "Bnd_Record_Accept_SUP41",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Accept_SUP41"
+  },
+  {
+   "id": "Bnd_Record_Revise_SUP41",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Revise_SUP41"
+  },
+  {
+   "id": "Bnd_Record_Accept_TOTAL",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Accept_Overall"
+  },
+  {
+   "id": "Bnd_Record_Complete",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Complete_Scene"
+  }
+ ],
+ "flows": [
+  {
+   "id": "Flow_start",
+   "source": "Start",
+   "target": "Task_Open",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_open",
+   "source": "Task_Open",
+   "target": "Gw_Results_Split",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Submit_AT31_answered",
+   "source": "Submit_AT31",
+   "target": "Record_Submit_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_AT31_answered",
+   "source": "Confirm_AT31",
+   "target": "Record_Confirm_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT31",
+   "source": "Gw_Results_Split",
+   "target": "Submit_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT31_submitted",
+   "source": "Record_Submit_AT31",
+   "target": "Confirm_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT31_recorded",
+   "source": "Record_Confirm_AT31",
+   "target": "Gw_Confirm_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT31_rework",
+   "source": "Gw_Confirm_AT31",
+   "target": "Submit_AT31",
+   "condition": "AT31확인 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_AT31_confirmed",
+   "source": "Gw_Confirm_AT31",
+   "target": "Gw_Results_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Submit_AT32_answered",
+   "source": "Submit_AT32",
+   "target": "Record_Submit_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_AT32_answered",
+   "source": "Confirm_AT32",
+   "target": "Record_Confirm_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT32",
+   "source": "Gw_Results_Split",
+   "target": "Submit_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT32_submitted",
+   "source": "Record_Submit_AT32",
+   "target": "Confirm_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT32_recorded",
+   "source": "Record_Confirm_AT32",
+   "target": "Gw_Confirm_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT32_rework",
+   "source": "Gw_Confirm_AT32",
+   "target": "Submit_AT32",
+   "condition": "AT32확인 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_AT32_confirmed",
+   "source": "Gw_Confirm_AT32",
+   "target": "Gw_Results_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Submit_AT33_answered",
+   "source": "Submit_AT33",
+   "target": "Record_Submit_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_AT33_answered",
+   "source": "Confirm_AT33",
+   "target": "Record_Confirm_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT33",
+   "source": "Gw_Results_Split",
+   "target": "Submit_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT33_submitted",
+   "source": "Record_Submit_AT33",
+   "target": "Confirm_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT33_recorded",
+   "source": "Record_Confirm_AT33",
+   "target": "Gw_Confirm_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT33_rework",
+   "source": "Gw_Confirm_AT33",
+   "target": "Submit_AT33",
+   "condition": "AT33확인 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_AT33_confirmed",
+   "source": "Gw_Confirm_AT33",
+   "target": "Gw_Results_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Submit_AT34_answered",
+   "source": "Submit_AT34",
+   "target": "Record_Submit_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_AT34_answered",
+   "source": "Confirm_AT34",
+   "target": "Record_Confirm_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT34",
+   "source": "Gw_Results_Split",
+   "target": "Submit_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT34_submitted",
+   "source": "Record_Submit_AT34",
+   "target": "Confirm_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT34_recorded",
+   "source": "Record_Confirm_AT34",
+   "target": "Gw_Confirm_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_AT34_rework",
+   "source": "Gw_Confirm_AT34",
+   "target": "Submit_AT34",
+   "condition": "AT34확인 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_AT34_confirmed",
+   "source": "Gw_Confirm_AT34",
+   "target": "Gw_Results_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Verify_Effects_answered",
+   "source": "Verify_Effects",
+   "target": "Record_Verify",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Correct_Effects_answered",
+   "source": "Correct_Effects",
+   "target": "Record_Correct",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_results_joined",
+   "source": "Gw_Results_Join",
+   "target": "Verify_Effects",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify_recorded",
+   "source": "Record_Verify",
+   "target": "Gw_Verify",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify_ok",
+   "source": "Gw_Verify",
+   "target": "Task_Agent_Check",
+   "condition": "검증통과",
+   "default": false
+  },
+  {
+   "id": "Flow_verify_blocked",
+   "source": "Gw_Verify",
+   "target": "Correct_Effects",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_corrected",
+   "source": "Record_Correct",
+   "target": "Verify_Effects",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Recommend_answered",
+   "source": "Recommend",
+   "target": "Record_Recommend",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_agent_check",
+   "source": "Task_Agent_Check",
+   "target": "Recommend",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Freeze_Report_answered",
+   "source": "Freeze_Report",
+   "target": "Record_Freeze",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Report_Meeting_answered",
+   "source": "Report_Meeting",
+   "target": "Record_Report_Meeting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_recommended",
+   "source": "Record_Recommend",
+   "target": "Freeze_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_frozen",
+   "source": "Record_Freeze",
+   "target": "Report_Meeting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Draft_Decision_answered",
+   "source": "Draft_Decision",
+   "target": "Record_Draft_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Confirm_Decision_answered",
+   "source": "Confirm_Decision",
+   "target": "Record_Confirm_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_meeting",
+   "source": "Record_Report_Meeting",
+   "target": "Draft_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_drafted",
+   "source": "Record_Draft_Decision",
+   "target": "Confirm_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Decide_answered",
+   "source": "Decide",
+   "target": "Record_Decide",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_confirmed",
+   "source": "Record_Confirm_Decision",
+   "target": "Decide",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Draft_Approval_answered",
+   "source": "Draft_Approval",
+   "target": "Record_Draft_Approval",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Finalize_Approval_answered",
+   "source": "Finalize_Approval",
+   "target": "Record_Finalize",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_decided",
+   "source": "Record_Decide",
+   "target": "Draft_Approval",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_approval_drafted",
+   "source": "Record_Draft_Approval",
+   "target": "Finalize_Approval",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_finalize_recorded",
+   "source": "Record_Finalize",
+   "target": "Gw_Finalize",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_approval_returned",
+   "source": "Gw_Finalize",
+   "target": "Draft_Approval",
+   "condition": "승인결정 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_Register_Actions_answered",
+   "source": "Register_Actions",
+   "target": "Record_Register",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_approved",
+   "source": "Gw_Finalize",
+   "target": "Register_Actions",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_registered",
+   "source": "Record_Register",
+   "target": "Gw_Accept",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Accept_ACT41_answered",
+   "source": "Accept_ACT41",
+   "target": "Record_Accept_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act41",
+   "source": "Gw_Accept",
+   "target": "Accept_ACT41",
+   "condition": "ACT41배정",
+   "default": false
+  },
+  {
+   "id": "Flow_Revise_ACT41_answered",
+   "source": "Revise_ACT41",
+   "target": "Record_Revise_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act41_recorded",
+   "source": "Record_Accept_ACT41",
+   "target": "Gw_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act41_returned",
+   "source": "Gw_ACT41",
+   "target": "Revise_ACT41",
+   "condition": "ACT41결정 == '반려'",
+   "default": false
+  },
+  {
+   "id": "Flow_act41_accepted",
+   "source": "Gw_ACT41",
+   "target": "Gw_Accept_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_act41_revised",
+   "source": "Record_Revise_ACT41",
+   "target": "Accept_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Accept_ACT42_answered",
+   "source": "Accept_ACT42",
+   "target": "Record_Accept_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act42",
+   "source": "Gw_Accept",
+   "target": "Accept_ACT42",
+   "condition": "ACT42배정",
+   "default": false
+  },
+  {
+   "id": "Flow_Revise_ACT42_answered",
+   "source": "Revise_ACT42",
+   "target": "Record_Revise_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act42_recorded",
+   "source": "Record_Accept_ACT42",
+   "target": "Gw_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act42_returned",
+   "source": "Gw_ACT42",
+   "target": "Revise_ACT42",
+   "condition": "ACT42결정 == '반려'",
+   "default": false
+  },
+  {
+   "id": "Flow_act42_accepted",
+   "source": "Gw_ACT42",
+   "target": "Gw_Accept_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_act42_revised",
+   "source": "Record_Revise_ACT42",
+   "target": "Accept_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Accept_ACT43_answered",
+   "source": "Accept_ACT43",
+   "target": "Record_Accept_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act43",
+   "source": "Gw_Accept",
+   "target": "Accept_ACT43",
+   "condition": "ACT43배정",
+   "default": false
+  },
+  {
+   "id": "Flow_Revise_ACT43_answered",
+   "source": "Revise_ACT43",
+   "target": "Record_Revise_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act43_recorded",
+   "source": "Record_Accept_ACT43",
+   "target": "Gw_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_act43_returned",
+   "source": "Gw_ACT43",
+   "target": "Revise_ACT43",
+   "condition": "ACT43결정 == '반려'",
+   "default": false
+  },
+  {
+   "id": "Flow_act43_accepted",
+   "source": "Gw_ACT43",
+   "target": "Gw_Accept_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_act43_revised",
+   "source": "Record_Revise_ACT43",
+   "target": "Accept_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Accept_SUP41_answered",
+   "source": "Accept_SUP41",
+   "target": "Record_Accept_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_sup41",
+   "source": "Gw_Accept",
+   "target": "Accept_SUP41",
+   "condition": "SUP41배정",
+   "default": false
+  },
+  {
+   "id": "Flow_Revise_SUP41_answered",
+   "source": "Revise_SUP41",
+   "target": "Record_Revise_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_sup41_recorded",
+   "source": "Record_Accept_SUP41",
+   "target": "Gw_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_sup41_returned",
+   "source": "Gw_SUP41",
+   "target": "Revise_SUP41",
+   "condition": "SUP41결정 == '반려'",
+   "default": false
+  },
+  {
+   "id": "Flow_sup41_accepted",
+   "source": "Gw_SUP41",
+   "target": "Gw_Accept_Join",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_sup41_revised",
+   "source": "Record_Revise_SUP41",
+   "target": "Accept_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Accept_Overall_answered",
+   "source": "Accept_Overall",
+   "target": "Record_Accept_TOTAL",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_total",
+   "source": "Gw_Accept",
+   "target": "Accept_Overall",
+   "condition": "TOTAL배정",
+   "default": false
+  },
+  {
+   "id": "Flow_total_accepted",
+   "source": "Record_Accept_TOTAL",
+   "target": "Gw_Accept_Join",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Complete_Scene_answered",
+   "source": "Complete_Scene",
+   "target": "Record_Complete",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_accepts_joined",
+   "source": "Gw_Accept_Join",
+   "target": "Complete_Scene",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_end",
+   "source": "Record_Complete",
+   "target": "End",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Submit_AT31_rejected",
+   "source": "Bnd_Record_Submit_AT31",
+   "target": "Submit_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_AT31_rejected",
+   "source": "Bnd_Record_Confirm_AT31",
+   "target": "Confirm_AT31",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Submit_AT32_rejected",
+   "source": "Bnd_Record_Submit_AT32",
+   "target": "Submit_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_AT32_rejected",
+   "source": "Bnd_Record_Confirm_AT32",
+   "target": "Confirm_AT32",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Submit_AT33_rejected",
+   "source": "Bnd_Record_Submit_AT33",
+   "target": "Submit_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_AT33_rejected",
+   "source": "Bnd_Record_Confirm_AT33",
+   "target": "Confirm_AT33",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Submit_AT34_rejected",
+   "source": "Bnd_Record_Submit_AT34",
+   "target": "Submit_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_AT34_rejected",
+   "source": "Bnd_Record_Confirm_AT34",
+   "target": "Confirm_AT34",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Verify_rejected",
+   "source": "Bnd_Record_Verify",
+   "target": "Verify_Effects",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Correct_rejected",
+   "source": "Bnd_Record_Correct",
+   "target": "Correct_Effects",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Recommend_rejected",
+   "source": "Bnd_Record_Recommend",
+   "target": "Recommend",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Freeze_rejected",
+   "source": "Bnd_Record_Freeze",
+   "target": "Freeze_Report",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Report_Meeting_rejected",
+   "source": "Bnd_Record_Report_Meeting",
+   "target": "Report_Meeting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Draft_Decision_rejected",
+   "source": "Bnd_Record_Draft_Decision",
+   "target": "Draft_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_Decision_rejected",
+   "source": "Bnd_Record_Confirm_Decision",
+   "target": "Confirm_Decision",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Decide_rejected",
+   "source": "Bnd_Record_Decide",
+   "target": "Decide",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Draft_Approval_rejected",
+   "source": "Bnd_Record_Draft_Approval",
+   "target": "Draft_Approval",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Finalize_rejected",
+   "source": "Bnd_Record_Finalize",
+   "target": "Finalize_Approval",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Register_rejected",
+   "source": "Bnd_Record_Register",
+   "target": "Register_Actions",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_ACT41_rejected",
+   "source": "Bnd_Record_Accept_ACT41",
+   "target": "Accept_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Revise_ACT41_rejected",
+   "source": "Bnd_Record_Revise_ACT41",
+   "target": "Revise_ACT41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_ACT42_rejected",
+   "source": "Bnd_Record_Accept_ACT42",
+   "target": "Accept_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Revise_ACT42_rejected",
+   "source": "Bnd_Record_Revise_ACT42",
+   "target": "Revise_ACT42",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_ACT43_rejected",
+   "source": "Bnd_Record_Accept_ACT43",
+   "target": "Accept_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Revise_ACT43_rejected",
+   "source": "Bnd_Record_Revise_ACT43",
+   "target": "Revise_ACT43",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_SUP41_rejected",
+   "source": "Bnd_Record_Accept_SUP41",
+   "target": "Accept_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Revise_SUP41_rejected",
+   "source": "Bnd_Record_Revise_SUP41",
+   "target": "Revise_SUP41",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Accept_TOTAL_rejected",
+   "source": "Bnd_Record_Accept_TOTAL",
+   "target": "Accept_Overall",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Complete_rejected",
+   "source": "Bnd_Record_Complete",
+   "target": "Complete_Scene",
+   "condition": null,
+   "default": false
+  }
+ ]
+}

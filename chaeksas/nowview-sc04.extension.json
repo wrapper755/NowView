@@ -1,0 +1,1606 @@
+{
+  "schema": 2,
+  "id": "nowview-sc04",
+  "version": "0.1.0",
+  "name": "NowView SC04 수익성 개선 대응안 검토·실행 승인 시스템",
+  "description": "가상 부품사 NowView의 장면 4(SC04) 시스템 작업 — 장면 3 분석과제 결과 제출·임원 확인, 대응안 효과 계산과 회피 비용·중복 검증, 우선 실행안 공동 제안, 보고본 확정, 대표 주재 월간회의 판단본, 과제별 결정, 포괄 승인서·회의록 확정, 실행과제·조건·지시 등록과 책임 인수, 장면 5 인계. 숫자는 NowView 규칙 계산이 만든다. 본문마다 Chaeksas 실행 id({{run_id}})를 실어 데모 실행과 묶는다 — 실행 위치를 studio·center로 만든 데모 실행에서만 받는다. 키(Bearer)가 실행 위치를 말한다 — 운영 키는 Center, 시험용 키는 Studio(nowview-sc01~sc03과 같은 키). 주소의 기본은 운영계이고 로컬 Center는 「서버 주소」를 덮어쓴다(ADR-0097) — 실행기가 호스트에서 돌면 http://localhost:3000, docker 컨테이너에서 돌면 http://host.docker.internal:3000. 기록 작업은 결재에 답한 사람(answered_by)을 받는다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "requires_keys": [
+    {
+      "purpose": "run"
+    }
+  ],
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "https://www.nowview.work",
+    "adapter": {
+      "allowed_hosts": [
+        "www.nowview.work",
+        "localhost",
+        "host.docker.internal"
+      ],
+      "allow_private_network": true,
+      "auth": {
+        "type": "bearer"
+      },
+      "limits": {
+        "timeout_s": 30,
+        "max_response_kb": 256
+      },
+      "operations": [
+        {
+          "name": "open_review",
+          "description": "검토건 열기 (S01·CT401) — 착수된 MR-2706-01인지 확인한다. 착수는 NowView 화면 명령이다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "assignee_name": {
+                "type": "string"
+              },
+              "review_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/open_review",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "assignee_name": "$.assignee_name",
+              "review_id": "$.review_id"
+            }
+          }
+        },
+        {
+          "name": "submit_result",
+          "description": "분석 결과 제출 (S02·CT401) — 새 버전, 산정 가정 묶음. 자기 부서 책임자만",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "conclusion",
+              "demo_run_id",
+              "evidence",
+              "node_id",
+              "outcome",
+              "task_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "conclusion": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "risks": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "task_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "result_ref": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/submit_result",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "conclusion": "{{input.conclusion}}",
+              "evidence": "{{input.evidence}}",
+              "node_id": "{{input.node_id}}",
+              "outcome": "{{input.outcome}}",
+              "reason": "{{input.reason}}",
+              "risks": "{{input.risks}}",
+              "task_id": "{{input.task_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "result_ref": "$.result_ref"
+            }
+          }
+        },
+        {
+          "name": "confirm_result",
+          "description": "담당 임원 확인 (S02·CT402) — 확인 또는 보완 요청. 해당 임원만",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "opinion",
+              "task_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "task_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/confirm_result",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "opinion": "{{input.opinion}}",
+              "task_id": "{{input.task_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "verify_effects",
+          "description": "비용·중복 검증 (S03·CT403) — 효과 계산과 차단 검증. 차단이면 보완 요청(담당 임원)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "basis",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "basis": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "memo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "corrector_name": {
+                "type": "string"
+              },
+              "error_message": {},
+              "passed": {
+                "type": "boolean"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/verify_effects",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "basis": "{{input.basis}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "corrector_name": "$.corrector_name",
+              "error_message": "$.error_message",
+              "passed": "$.passed",
+              "run_id": "$.run_id"
+            }
+          }
+        },
+        {
+          "name": "correct_effects",
+          "description": "검증 보완 (S04) — 담당 임원이 차단 항목을 고치고 재확인. 가정 새 버전, 검증 STALE",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/correct_effects",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "content": "{{input.content}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "agent_draft",
+          "description": "Agent 초안 (AG41 검증·비교 · AG42 질의 후보 · AG43 회의록·승인서) — 계산 결과만 인용한다. 실패해도 흐름은 계속된다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "kind"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "output_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/agent_draft",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "kind": "{{input.kind}}"
+            }
+          },
+          "response": {
+            "output": {
+              "output_id": "$.output_id"
+            }
+          }
+        },
+        {
+          "name": "recommend",
+          "description": "우선 실행안 제안 (S05·CT404) — 2~3개 추천, 우선순위·사유, 제외 사유, 담당 임원 확인",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "alt41_pick",
+              "alt41_reason",
+              "alt42_pick",
+              "alt42_reason",
+              "alt43_pick",
+              "alt43_reason",
+              "answered_by",
+              "demo_run_id",
+              "excluded_reason",
+              "node_id",
+              "owners"
+            ],
+            "properties": {
+              "alt41_pick": {
+                "type": "string"
+              },
+              "alt41_priority": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt41_reason": {
+                "type": "string"
+              },
+              "alt42_pick": {
+                "type": "string"
+              },
+              "alt42_priority": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt42_reason": {
+                "type": "string"
+              },
+              "alt43_pick": {
+                "type": "string"
+              },
+              "alt43_priority": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt43_reason": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "excluded_reason": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "owners": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "recommendation_ref": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/recommend",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "alt41_pick": "{{input.alt41_pick}}",
+              "alt41_priority": "{{input.alt41_priority}}",
+              "alt41_reason": "{{input.alt41_reason}}",
+              "alt42_pick": "{{input.alt42_pick}}",
+              "alt42_priority": "{{input.alt42_priority}}",
+              "alt42_reason": "{{input.alt42_reason}}",
+              "alt43_pick": "{{input.alt43_pick}}",
+              "alt43_priority": "{{input.alt43_priority}}",
+              "alt43_reason": "{{input.alt43_reason}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "excluded_reason": "{{input.excluded_reason}}",
+              "node_id": "{{input.node_id}}",
+              "owners": "{{input.owners}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "recommendation_ref": "$.recommendation_ref"
+            }
+          }
+        },
+        {
+          "name": "freeze_report",
+          "description": "보고본 확정·배포 (S06·CT404) — REP41-v1 고정, 내부 배포 이력",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "conclusion",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "conclusion": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "recipients": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "report_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/freeze_report",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "conclusion": "{{input.conclusion}}",
+              "node_id": "{{input.node_id}}",
+              "recipients": "{{input.recipients}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "report_id": "$.report_id"
+            }
+          }
+        },
+        {
+          "name": "open_meeting",
+          "description": "월간회의 보고 (S07·CT405) — MT41 개회, 참석, IN_REVIEW",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id",
+              "summary"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "meeting_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/open_meeting",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "node_id": "{{input.node_id}}",
+              "summary": "{{input.summary}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "meeting_id": "$.meeting_id"
+            }
+          }
+        },
+        {
+          "name": "draft_decision",
+          "description": "판단 초안 (S08·S09·CT406) — 가정 복제·재계산, 변경 전후, 조건·지원 초안. 승인이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change_alt",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_alt": {
+                "type": "string"
+              },
+              "change_field": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change_value": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition_collaborators": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition_owner": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition_verifier": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "confirmed_by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support_collaborators": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support_owner": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "support_verifier": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "report_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/draft_decision",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change_alt": "{{input.change_alt}}",
+              "change_field": "{{input.change_field}}",
+              "change_value": "{{input.change_value}}",
+              "condition": "{{input.condition}}",
+              "condition_collaborators": "{{input.condition_collaborators}}",
+              "condition_due": "{{input.condition_due}}",
+              "condition_owner": "{{input.condition_owner}}",
+              "condition_verifier": "{{input.condition_verifier}}",
+              "confirmed_by": "{{input.confirmed_by}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}",
+              "support": "{{input.support}}",
+              "support_collaborators": "{{input.support_collaborators}}",
+              "support_due": "{{input.support_due}}",
+              "support_owner": "{{input.support_owner}}",
+              "support_verifier": "{{input.support_verifier}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "report_id": "$.report_id"
+            }
+          }
+        },
+        {
+          "name": "confirm_decision",
+          "description": "판단본 확인 (S09) — DEC41 고정. 원 보고본 보존",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "opinion"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "report_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/confirm_decision",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "opinion": "{{input.opinion}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "report_id": "$.report_id"
+            }
+          }
+        },
+        {
+          "name": "decide",
+          "description": "대표 과제별 결정 (S10·CT406) — REV41, 승인 범위 효과·잔여 부족 재계산, DIR41. 대표만",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "alt41_outcome",
+              "alt41_reason",
+              "alt42_outcome",
+              "alt42_reason",
+              "alt43_outcome",
+              "alt43_reason",
+              "answered_by",
+              "demo_run_id",
+              "discovery",
+              "discovery_due",
+              "discovery_owner",
+              "node_id"
+            ],
+            "properties": {
+              "alt41_outcome": {
+                "type": "string"
+              },
+              "alt41_reason": {
+                "type": "string"
+              },
+              "alt42_outcome": {
+                "type": "string"
+              },
+              "alt42_reason": {
+                "type": "string"
+              },
+              "alt43_outcome": {
+                "type": "string"
+              },
+              "alt43_reason": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "condition_refs": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "discovery": {
+                "type": "string"
+              },
+              "discovery_collaborators": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "discovery_due": {
+                "type": "string"
+              },
+              "discovery_owner": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "decision_id": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/decide",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "alt41_outcome": "{{input.alt41_outcome}}",
+              "alt41_reason": "{{input.alt41_reason}}",
+              "alt42_outcome": "{{input.alt42_outcome}}",
+              "alt42_reason": "{{input.alt42_reason}}",
+              "alt43_outcome": "{{input.alt43_outcome}}",
+              "alt43_reason": "{{input.alt43_reason}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "condition_refs": "{{input.condition_refs}}",
+              "discovery": "{{input.discovery}}",
+              "discovery_collaborators": "{{input.discovery_collaborators}}",
+              "discovery_due": "{{input.discovery_due}}",
+              "discovery_owner": "{{input.discovery_owner}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "decision_id": "$.decision_id",
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "draft_approval",
+          "description": "승인서 초안 (S11·CT407) — 필수 누락 목록과 함께 저장. 확정이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "alt41_budget": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt41_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt42_budget": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt42_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt43_budget": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt43_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "delegation": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "minutes": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "overall_owner": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "plan_due": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "total_budget": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "missing": {
+                "type": "integer"
+              },
+              "version": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/draft_approval",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "alt41_budget": "{{input.alt41_budget}}",
+              "alt41_due": "{{input.alt41_due}}",
+              "alt42_budget": "{{input.alt42_budget}}",
+              "alt42_due": "{{input.alt42_due}}",
+              "alt43_budget": "{{input.alt43_budget}}",
+              "alt43_due": "{{input.alt43_due}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "delegation": "{{input.delegation}}",
+              "minutes": "{{input.minutes}}",
+              "node_id": "{{input.node_id}}",
+              "overall_owner": "{{input.overall_owner}}",
+              "plan_due": "{{input.plan_due}}",
+              "total_budget": "{{input.total_budget}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "missing": "$.missing",
+              "version": "$.version"
+            }
+          }
+        },
+        {
+          "name": "finalize_approval",
+          "description": "승인서 확정 (S11·CT407·CT408) — APR41·MIN41 함께 확정 또는 보완 요청. 대표만",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "approval_id": {
+                "type": "string"
+              },
+              "error_message": {},
+              "returned": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/finalize_approval",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "opinion": "{{input.opinion}}"
+            }
+          },
+          "response": {
+            "output": {
+              "approval_id": "$.approval_id",
+              "error_message": "$.error_message",
+              "returned": "$.returned"
+            }
+          }
+        },
+        {
+          "name": "register_actions",
+          "description": "실행과제 등록 (S12·CT408) — 승인·조건부 안만 전건, 조건·지원·발굴 지시, 전체 책임",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "memo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "act41_assigned": {
+                "type": "boolean"
+              },
+              "act41_owner": {
+                "type": "string"
+              },
+              "act41_version": {
+                "type": "integer"
+              },
+              "act42_assigned": {
+                "type": "boolean"
+              },
+              "act42_owner": {
+                "type": "string"
+              },
+              "act42_version": {
+                "type": "integer"
+              },
+              "act43_assigned": {
+                "type": "boolean"
+              },
+              "act43_owner": {
+                "type": "string"
+              },
+              "act43_version": {
+                "type": "integer"
+              },
+              "error_message": {},
+              "sup41_assigned": {
+                "type": "boolean"
+              },
+              "sup41_owner": {
+                "type": "string"
+              },
+              "sup41_version": {
+                "type": "integer"
+              },
+              "total_assigned": {
+                "type": "boolean"
+              },
+              "total_owner": {
+                "type": "string"
+              },
+              "total_version": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/register_actions",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "act41_assigned": "$.act41_assigned",
+              "act41_owner": "$.act41_owner",
+              "act41_version": "$.act41_version",
+              "act42_assigned": "$.act42_assigned",
+              "act42_owner": "$.act42_owner",
+              "act42_version": "$.act42_version",
+              "act43_assigned": "$.act43_assigned",
+              "act43_owner": "$.act43_owner",
+              "act43_version": "$.act43_version",
+              "error_message": "$.error_message",
+              "sup41_assigned": "$.sup41_assigned",
+              "sup41_owner": "$.sup41_owner",
+              "sup41_version": "$.sup41_version",
+              "total_assigned": "$.total_assigned",
+              "total_owner": "$.total_owner",
+              "total_version": "$.total_version"
+            }
+          }
+        },
+        {
+          "name": "accept",
+          "description": "책임 인수·반려 (S13·CT409) — 그 책임자만, 현재 배정버전·유효 승인서만. ACT42는 CON41 책임 함께",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "target"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "target": {
+                "type": "string"
+              },
+              "version": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/accept",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "decision": "{{input.decision}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}",
+              "target": "{{input.target}}",
+              "version": "{{input.version}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message"
+            }
+          }
+        },
+        {
+          "name": "revise_assignment",
+          "description": "반려 보완 (S13·AC415) — 승인 범위 안의 명확화, 배정버전 증가",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "change",
+              "demo_run_id",
+              "node_id",
+              "reason",
+              "target"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "change": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "owner": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/revise_assignment",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "change": "{{input.change}}",
+              "node_id": "{{input.node_id}}",
+              "reason": "{{input.reason}}",
+              "target": "{{input.target}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "owner": "$.owner",
+              "version": "$.version"
+            }
+          }
+        },
+        {
+          "name": "complete_scene",
+          "description": "장면 4 종료 (S14·CT409·CT410) — 요건 재검사, HANDOFF41과 SC04_COMPLETED 함께. 위험·전망·목표 그대로",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "demo_run_id",
+              "memo",
+              "node_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "memo": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "handoff_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/api/engine/sc04/demo-runs/{{input.demo_run_id}}/operations/complete_scene",
+            "body": {
+              "chaeksas_run_id": "{{run_id}}",
+              "chaeksas_node_id": "{{node_id}}",
+              "answered_by": "{{input.answered_by}}",
+              "answered_via": "{{input.answered_via}}",
+              "memo": "{{input.memo}}",
+              "node_id": "{{input.node_id}}"
+            }
+          },
+          "response": {
+            "output": {
+              "error_message": "$.error_message",
+              "handoff_id": "$.handoff_id"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
