@@ -17,6 +17,7 @@ import json
 import re
 import sqlite3
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -28,6 +29,7 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.services import OpOutcome, ServiceCallError
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
+from app import script_wait
 from app.sc01.center import CenterClient
 from app.sc01.domain import USERS, DomainError, parse_at
 from app.sc01.process import Sc01Process
@@ -35,6 +37,7 @@ from app.sc01.store import SqliteSc01Store
 from app.sc02 import demo as sc02_demo
 from app.sc02.process import Sc02Process
 from app.sc03 import demo
+from app.sc03 import process as sc03_process
 from app.sc03.process import PROCESS_PATH, RECORDS, Sc03Process
 from app.sc03.view import view
 
@@ -289,6 +292,48 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     at31 = next(a for a in center.approvals.values() if a["node_id"] == "Accept_AT31")
     assert at31["assignees"] == ["배정훈"]
     assert "End" in after["bpm"]["visited"]
+
+
+def test_center_script_waits_for_each_record_before_moving_the_clock(
+    proc: Sc03Process, center: FakeCenter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    대리 답 뒤 기록은 실행기가 따로 부른다 — 각본은 그 기록이 들어온 뒤에 다음 단계로 간다.
+    기다리지 않으면 다음 단계가 시계를 옮겨 업무 완료 시각이 다음 단계 시각이 됐다
+    (실측 18건 중 17건).
+    실행기는 각본·대리 답이 기다리는 동안(잠든 동안)에만 돈다.
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    demo.run_step(proc, rid, 0)
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    runner = FakeRunner(proc, center, job, "run_20270624_100500_c5d5e5")
+    proc.sync_center(rid)
+
+    now = [0.0]
+
+    def sleep(seconds: float) -> None:
+        now[0] += seconds
+        runner.step()
+        proc.sync_center(rid)
+
+    clock = SimpleNamespace(monotonic=lambda: now[0], sleep=sleep)
+    for module in (demo, script_wait, sc03_process):
+        monkeypatch.setattr(module, "time", clock)
+    proc.center_wait_s = 30
+    for index in range(1, len(steps)):
+        demo.run_step(proc, rid, index)
+
+    after = proc.get(rid)
+    last_at = {s.node_id: s.at for s in steps if s.kind == "act"}
+    done = {
+        t["node_id"]: t["completed_at"] for t in after["tasks"].values() if t.get("completed_at")
+    }
+    for node_id, at in last_at.items():
+        if node_id in done:
+            assert parse_at(done[node_id]) == parse_at(at), node_id
+    assert after["review"]["state"] == "SC03_COMPLETED"
+    assert not after["bpm"]["center"].get("inflight")
 
 
 def test_center_relay_prechecks_before_touching_center(
