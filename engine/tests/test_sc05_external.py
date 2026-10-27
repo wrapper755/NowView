@@ -337,3 +337,40 @@ def test_reset_on_center_cancels_the_started_job(proc: Sc05Process, center: Fake
     proc.start(rid, actor="u-fin")
     jobs = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
+
+
+# ─────────────────────── 화면 직접 진행에서 드러난 것(2026-10-28) ───────────────────────
+
+
+def test_center_screen_answers_show_inflight_and_move_the_script_marker(
+    proc: Sc05Process, center: FakeCenter
+) -> None:
+    """
+    화면 답(대리 답)은 결재만 닫는다 — 기록이 오기 전에는 「Center 반영 중」이고(`inflight`), 기록이
+    오면 걷히고 각본 단계가 따라온다. 그 뒤 「다음 단계」(각본)가 남은 단계부터 잇는다 — 예전에는
+    D500에 머물러 「단계를 건너뛸 수 없다」였다(화면 직접 진행 실측).
+    """
+    rid = proc.create(sc01_demo_run_id=_completed_sc04(proc), executor="center")["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    doc = proc.start(rid, actor="u-fin")
+    assert (doc["step"], doc["script_index"]) == ("D501", 0)
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
+    runner = FakeRunner(proc, center, job, "run_20270713_090000_c7d7e7")
+    proc.sync_center(rid)
+
+    given = {k: ("" if str(v).startswith("@") else v) for k, v in steps[2].answer.items()}
+    relayed = proc.act(rid, "Draft_Plan", given, actor="u-buy-lead")
+    assert view(relayed, center=CONFIG)["bpm"]["center"]["inflight"] == ["Draft_Plan"]
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    assert view(doc, center=CONFIG)["bpm"]["center"]["inflight"] == []
+    assert (doc["step"], doc["script_index"]) == ("D502", 2)
+
+    for index in (3, 4, 5):
+        demo.run_step(proc, rid, index)
+        runner.step()
+        proc.sync_center(rid)
+    doc = proc.get(rid)
+    # 각본이 대리 답한 결재의 기록은 각본 몫이다 — 두 번 세지 않는다
+    assert doc["script_index"] == 5 and doc["script_follow"] == {"ahead": [], "pending": []}

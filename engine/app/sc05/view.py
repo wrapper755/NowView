@@ -174,7 +174,14 @@ def _center_view(doc: dict, center: CenterConfig | None) -> dict[str, Any] | Non
     if problem is None and center is not None:
         relay = center.missing(relay=True)
         problem = f"{relay} — 화면 답(대리 답)을 할 수 없다" if relay else None
-    return {"job": ledger.get("job"), "problem": problem, "package": center and center.sc05_package}
+    running = (doc["bpm"] or {}).get("state") == "running"
+    return {
+        "job": ledger.get("job"),
+        "problem": problem,
+        "package": center and center.sc05_package,
+        # 대리 답을 보냈는데 아직 기록이 오지 않은 결재 — 화면이 「Center 반영 중」을 보인다
+        "inflight": list(ledger.get("inflight", [])) if running else [],
+    }
 
 
 def _record_of(node: Any, process: BpmnProcess) -> str | None:

@@ -415,7 +415,13 @@ export interface Sc05View {
     runId: string | null;
     state: string;
     waiting: Sc05Waiting[];
-    center: { job: { job_id: string; at: string } | null; problem: string | null; package: string | null } | null;
+    center: {
+      job: { job_id: string; at: string } | null;
+      problem: string | null;
+      package: string | null;
+      /** 대리 답을 보냈는데 아직 기록이 오지 않은 결재(실행기가 따로 부른다). */
+      inflight?: string[];
+    } | null;
     position: string[];
     visited: string[];
   } | null;
