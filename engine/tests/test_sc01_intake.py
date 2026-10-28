@@ -475,6 +475,32 @@ def test_summarize_intake_counts_today_in_kst() -> None:
     ]
 
 
+def test_summarize_intake_drops_approvals_of_finished_batches() -> None:
+    """
+    운영 실측(2026-10-28): 초기화가 접수 작업을 취소해도 Center는 그 실행의 결재를 `open`으로
+    세어 카드에 승인 대기로 남았다(답하면 효과 없이 200). 끝난 일괄의 결재는 대기가 아니다.
+    """
+    now = datetime(2026, 10, 28, 2, 0, tzinfo=UTC)
+    info = {
+        **WORKER,
+        "batches": [
+            {"run_id": "r9", "status": "waiting", "started_at": "2026-10-28T01:15:23+00:00",
+             "children": 0, "children_by_status": {}, "open_approvals": ["apr_9"]},
+            {"run_id": "r8", "status": "cancelled", "started_at": "2026-10-28T01:07:51+00:00",
+             "children": 0, "children_by_status": {}, "open_approvals": ["apr_8"]},
+            {"run_id": "r7", "status": "failed", "started_at": "2026-10-28T01:05:00+00:00",
+             "children": 0, "children_by_status": {}, "open_approvals": ["apr_7"]},
+        ],
+    }  # fmt: skip
+    card = summarize_intake(info, now=now)
+    assert [p["requestId"] for p in card["pendingApprovals"]] == ["apr_9"]
+    assert [(b["runId"], b["status"], b["openApprovals"]) for b in card["batches"]] == [
+        ("r9", "waiting", 1),
+        ("r8", "cancelled", 0),
+        ("r7", "failed", 0),
+    ]
+
+
 def test_a_job_center_refused_does_not_block_the_next_receive(
     proc: Sc01Process, center: FakeIntakeCenter
 ) -> None:

@@ -646,6 +646,9 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     부르는 쪽이 보낼 수 없다(422 `input_not_from_caller`) — NowView도, 접수 Bot의 `chk:call.input`도.
   * **일괄로 승인·반려한다** — 폼에 다중 선택이 없고, 결재 뒤에 목록을 다시 만들면 B16이라 Center가 가상 직원에 묶지
     않는다(`intake_not_gated`). 수신 한 번 = 메시지 하나라 일괄 하나가 대개 원천 하나다.
+  * **카드의 승인 대기는 끝나지 않은 일괄의 결재만이다**(`summarize_intake`). Center는 실행 상태와 무관하게 `open`인 결재를
+    세고, 초기화가 접수 작업을 취소해도 실행기가 결재를 회수하지 않는다 — 운영에서 취소된 일괄이 승인 대기로 남았고 답하면
+    효과 없이 200이었다(2026-10-28). 회수는 Chaeksas 쪽 일이다.
   * **접수 Bot의 작업은 데모 실행을 묶지 않는다**(`_intake_operate`) — 묶으면 위임된 SC01의 첫 호출이 409다.
   * **반려 = SC01을 시작하지 않는다.** 원천 `NEEDS_INFO` + TASK-DQ 보완 요청(`NEEDS_INFO`). 정정본이 승인되면 위임된 SC01의
     원천 확인이 같은 업무를 「보완 후 재배정」으로 잇는다.

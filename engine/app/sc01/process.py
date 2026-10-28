@@ -1402,6 +1402,10 @@ def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+#: 끝난 일괄 — C3 `RunInfo.status`의 끝 상태(Center `runs.FINAL_STATUSES`와 같다).
+BATCH_FINAL = frozenset({"success", "failed", "cancelled"})
+
+
 def summarize_intake(info: dict[str, Any], *, now: datetime) -> dict[str, Any]:
     """
     가상 직원(C5 `VirtualWorkerInfo`) → 카드. 「오늘」은 한국 시각의 실제 날짜다 — Center의
@@ -1419,6 +1423,15 @@ def summarize_intake(info: dict[str, Any], *, now: datetime) -> dict[str, Any]:
     for b in batches:
         for status, n in (b.get("children_by_status") or {}).items():
             children[status] = children.get(status, 0) + int(n)
+
+    def still_open(b: dict) -> list[str]:
+        # 끝난 일괄의 결재는 승인 대기가 아니다. Center는 실행 상태와 무관하게 `state = 'open'`인
+        # 결재를 세는데, 초기화가 접수 작업을 취소해도 실행기가 그 결재를 회수하지 않는다 — 운영
+        # 카드에 취소된 일괄이 승인 대기로 남았고, 답하면 아무 효과 없이 200이었다(2026-10-28).
+        if b.get("status") in BATCH_FINAL:
+            return []
+        return list(b.get("open_approvals") or [])
+
     return {
         "name": info.get("name"),
         "state": info.get("state"),
@@ -1428,7 +1441,7 @@ def summarize_intake(info: dict[str, Any], *, now: datetime) -> dict[str, Any]:
         "pendingApprovals": [
             {"requestId": rid, "runId": b.get("run_id"), "startedAt": b.get("started_at")}
             for b in batches
-            for rid in (b.get("open_approvals") or [])
+            for rid in still_open(b)
         ],
         "started": sum(int(b.get("children") or 0) for b in batches),
         "startedByStatus": children,
@@ -1438,7 +1451,7 @@ def summarize_intake(info: dict[str, Any], *, now: datetime) -> dict[str, Any]:
                 "status": b.get("status"),
                 "startedAt": b.get("started_at"),
                 "children": int(b.get("children") or 0),
-                "openApprovals": len(b.get("open_approvals") or []),
+                "openApprovals": len(still_open(b)),
             }
             for b in batches
         ],
