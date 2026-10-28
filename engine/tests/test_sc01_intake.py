@@ -276,9 +276,10 @@ def test_receive_wakes_the_intake_bot_and_approval_delegates_sc01(
     ]
     assert doc["sources"]["SRC02"]["screened_by"] == "고객계획 접수 담당"
 
-    # 승인 전에는 SC01 결재가 없다 — 각본은 사유를 말한다. 다른 원천도 받지 않는다.
+    # 승인 전에는 SC01 결재가 없다 — 화면 답은 사유를 말한다. 다른 원천도 받지 않는다.
+    first = demo.BASE[1]
     with pytest.raises(DomainError) as early:
-        demo.run_step(proc, rid, 1)
+        proc.act(rid, first.node_id, first.answer, actor=first.actor)
     assert early.value.status == 409 and "감독자 승인" in str(early.value)
     with pytest.raises(DomainError) as twice:
         proc.receive(rid, "CP03", actor="u-sales")
@@ -358,6 +359,45 @@ def test_script_approves_the_batch_as_the_supervisor(
     assert batch["state"] != "open" and batch["answered_by"] == "이도윤"
     assert proc.get(rid)["bpm"]["center"]["job"]["decision"] == "승인"
     assert proc.get(rid)["bpm"]["external_run_id"] == "run_20270616_090100_d4d4d4"
+
+
+def test_script_step_after_receive_approves_the_batch_and_goes_on(
+    proc: Sc01Process, center: FakeIntakeCenter
+) -> None:
+    """
+    장면 1 플레이어의 자동 재생·「다음」 — 수신 다음 단계가 접수 일괄을 감독자로 대리
+    승인하고 이어서 원천 확인까지 한다(운영에서 자동 재생이 승인 대기에서 멈췄다). 화면 답은
+    그대로 사람의 승인을 기다린다.
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)
+    run_id = "run_20270616_090000_e5e5e5"
+    center.job_states[center.jobs[0]["job_id"]] = {"run_id": run_id}
+    intake = _intake(proc, center, center.jobs[0], run_id)
+    [batch] = [a for a in center.approvals.values() if a["node_id"] == "Approve_Batch"]
+    children: list[FakeRunner] = []
+
+    def bind() -> None:  # 일괄 승인 한 번만 — 뒤의 원천 확인 대리 답은 위임된 SC01이 받는다
+        center.on_answer = None
+        intake.step()
+        [call] = intake.run.env.delegate.calls
+        children.append(FakeRunner(
+            proc, center, {"inputs": dict(call.inputs)}, "run_20270616_090100_f6f6f6",
+            sourced={"처리자": WORKER["name"]},
+        ))  # fmt: skip
+
+    center.on_answer = bind
+    doc = demo.run_step(proc, rid, 1)
+    assert batch["answered_by"] == "이도윤"
+    assert doc["bpm"]["external_run_id"] == "run_20270616_090100_f6f6f6"
+    assert doc["script_index"] == 1
+    children[0].step()
+    proc.sync_center(rid)
+    for index in range(2, len(demo.BASE)):
+        demo.run_step(proc, rid, index)
+        children[0].step()
+        proc.sync_center(rid)
+    assert children[0].run.state is State.DONE and proc.get(rid)["scene"] == "HANDED_OFF"
 
 
 def test_rejected_batch_does_not_start_sc01_and_asks_for_a_fix(

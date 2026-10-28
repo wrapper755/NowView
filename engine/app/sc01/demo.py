@@ -138,6 +138,10 @@ def run_step(process: Sc01Process, demo_run_id: str, index: int) -> dict:
             event_code=step.code,
             script_index=index,
         )
+    if domain.executor_of(doc) == "center" and not (doc["bpm"] or {}).get("external_run_id"):
+        # 접수 가상 직원을 거친 수신이면 SC01은 감독자 일괄 승인 뒤에야 기동된다(N5). 각본은
+        # 장면 2 시작과 같이 감독자로 대리 승인한다 — 기다리는 일괄이 없으면 아무것도 하지 않는다.
+        process.approve_intake_for_script(demo_run_id, opinion="각본 — 감독자 대리 승인")
     return process.act(
         demo_run_id,
         step.node_id,
