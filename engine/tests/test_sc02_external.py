@@ -14,6 +14,8 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -315,6 +317,72 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     # 종료는 「시작」만 기록된다 — 도달한 것(End)만 지나온 노드다. 반려·재협상 종료는 없다.
     assert "End" in after["bpm"]["visited"] and "End_Rejected" not in after["bpm"]["visited"]
     assert after["runs"]["RUN-APP01"]["result"]["next12"]["increase"] == "18817440"
+
+
+def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
+    proc: Sc02Process, center: FakeCenter
+) -> None:
+    """
+    대리 답이 폴러보다 먼저 결재를 찾아도 업무는 결재가 열려 있던 때 열린 것이다
+    (늦게 열지 않는다 — 운영 Center 각본 실측 9/12건).
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc01(proc.sc01), executor="center")[
+        "demo_run_id"
+    ]
+    demo.run_step(proc, rid, 0)  # D01 접수
+    [job] = center.jobs
+    runner = FakeRunner(proc, center, job, "run_20270617_090000_c5d5e5")
+    # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
+    doc = demo.run_step(proc, rid, 1)
+    task = domain.task_for_node(doc, "Verify_Request")
+    assert task is not None and task["request_id"] and not task.get("opened_late")
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    same = [t for t in doc["tasks"].values() if t["type"] == task["type"]]
+    assert [t["task_id"] for t in same] == [task["task_id"]]
+    assert same[0]["status"] == "COMPLETED" and not same[0].get("opened_late")
+
+
+def test_center_script_waits_for_the_record_before_the_next_step(
+    proc: Sc02Process, center: FakeCenter
+) -> None:
+    """
+    각본은 대리 답한 결재의 업무가 끝난 뒤 다음 단계로 간다 — 아니면 다음 단계가 시계를 먼저
+    옮겨 업무가 뒤 시각으로 끝났다(운영 Center 실측: 원문 대조 09:20 → 10:00).
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc01(proc.sc01), executor="center")[
+        "demo_run_id"
+    ]
+    steps = demo.steps_for("BASE")
+    demo.run_step(proc, rid, 0)
+    [job] = center.jobs
+    runner = FakeRunner(proc, center, job, "run_20270617_090000_c6d6e6")
+    proc.center_wait_s = 2
+    stop = threading.Event()
+
+    def run() -> None:  # 서버 실행기 — 대리 답과 따로 작업을 부른다
+        while not stop.is_set():
+            runner.step()
+            proc.sync_center(rid)
+            time.sleep(0.05)
+
+    worker = threading.Thread(target=run)
+    worker.start()
+    try:
+        for index in (1, 2, 3):
+            demo.run_step(proc, rid, index)
+    finally:
+        stop.set()
+        worker.join()
+    doc = proc.get(rid)
+    for index in (1, 2, 3):
+        task = domain.task_for_node(doc, steps[index].node_id) or next(
+            t for t in doc["tasks"].values() if t["node_id"] == steps[index].node_id
+        )
+        assert task["status"] == "COMPLETED", steps[index].node_id
+        assert parse_at(task["completed_at"]) == parse_at(steps[index].at), steps[index].node_id
+    assert not [a for a in doc["audit"] if a["action"] == "overdue_alert"]
 
 
 def test_center_relay_prechecks_before_touching_center(

@@ -10,6 +10,7 @@ SC01 각본(`app/sc01/demo.py`)과 같다: **단계 진행은 실제 상태 전�
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -292,7 +293,8 @@ def run_step(process: Sc02Process, demo_run_id: str, index: int) -> dict:
         key = max(current.values(), key=lambda p: p["seq"])["proposal_key"] if current else None
         expect = {"proposal": key}
     answer = {k: v for k, v in step.answer.items() if v is not None and v != ""}
-    return process.act(
+    since = max((a["seq"] for a in process.get(demo_run_id)["audit"]), default=0)
+    done_doc = process.act(
         demo_run_id,
         step.node_id,
         answer,
@@ -301,3 +303,34 @@ def run_step(process: Sc02Process, demo_run_id: str, index: int) -> dict:
         event_code=step.code,
         script_index=index,
     )
+    if (done_doc["bpm"] or {}).get("executor") != "center":
+        return done_doc
+    return _await_own_record(process, demo_run_id, step.node_id, since)
+
+
+def _await_own_record(process: Sc02Process, demo_run_id: str, node_id: str, since: int) -> dict:
+    """
+    Center 실행이면 이 단계 결재의 업무가 끝날 때까지(또는 기록이 거절될 때까지) 기다린다.
+
+    대리 답은 결재만 닫고 기록·계산 작업은 서버 실행기가 따로 부른다 — 기다리지 않으면 다음 단계가
+    시계를 먼저 옮겨 기록이 뒤 시각으로 적혔다(운영 Center 실측: 업무 완료 시각이 전부 다음 단계
+    시각, 협상 업무에 거짓 지연 알림). 장면 4·5의 같은 이름 함수와 같은 뜻인데, 확인 결재(요청안
+    분석·재분석)는 `answer_via`를 남기지 않아 업무 완료로 본다. 끝내 오지 않으면 지금 문서를
+    돌려준다 — 다음 단계의 대기가 거절 사유를 낸다.
+    """
+    deadline = time.monotonic() + process.center_wait_s * 3
+    while True:
+        doc = process.get(demo_run_id)
+        for a in doc["audit"]:
+            if a["seq"] <= since:
+                continue
+            detail = a.get("detail") or {}
+            if a["action"] == "answer_rejected" and detail.get("node_id") == node_id:
+                return doc
+            if a["action"] == "task_completed":
+                task = doc["tasks"].get(detail.get("task_id")) or {}
+                if task.get("node_id") == node_id:
+                    return doc
+        if time.monotonic() >= deadline:
+            return doc
+        time.sleep(min(1.0, process.center_wait_s))
