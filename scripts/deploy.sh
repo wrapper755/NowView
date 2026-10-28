@@ -21,6 +21,8 @@ LOCAL=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # 배포본은 체크아웃이 아니라 산출물이다.
 EXCLUDES=(
   --exclude=.git
+  # 다른 세션의 worktree 사본 — 올리면 서버에 소스가 겹으로 쌓인다.
+  --exclude=.claude/worktrees
   --exclude=node_modules
   --exclude=.next
   --exclude=engine/.venv

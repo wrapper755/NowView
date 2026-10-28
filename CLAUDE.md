@@ -1513,7 +1513,7 @@ MIXED 1) · 확인 지연 5건(복합 포함) · Q4 관리손익(보조) 902,868
 ## 5. 다음 단계와 선행 조건
 
 CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10)은 끝났다(장면 1~6 모두
-로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)는 아직 이전 구현이 떠 있다.
+로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 장면 1~6 코드를 올렸고, 운영 Center 연결이 남았다.
 
 ### 5.1 CI — 완료
 
@@ -1607,12 +1607,22 @@ UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연
 * **BPMN 15층을 한 줄로 펴면 캔버스에서 글자가 안 읽힌다** — 5열마다 줄을 접는다.
 * **dev의 StrictMode가 데모 실행을 둘 만들었다** — 생성 요청을 공유한다(4.2).
 
-### 5.4 운영계 배포 — 완료 (이전 구현 기준)
+### 5.4 운영계 배포 — 장면 1~6 코드 반영 · Center 연결 전
 
-> **운영계(`www.nowview.work`)는 아직 이전 구현(가동률 시나리오 · LangGraph)이다.** SC01 브랜치를 main에
-> 합친 뒤 `scripts/deploy.sh`로 올린다. 서버에 git이 있어 `uv sync --locked`가 Chaeksas를 받는다.
-> 엔진 테이블은 기동 시 만들어진다. 이전 LangGraph 테이블(`checkpoint*`, `instance_spec`)은 남지만
-> 쓰이지 않는다 — 지울지는 배포 때 정한다.
+> **2026-10-28 운영계(`www.nowview.work`)에 main(`8d089dd` + deploy.sh 제외 목록)을 올렸다** — 장면 1~6 화면·API가
+> 외부 주소에서 200이다. 그 전에는 장면 1만 있는 예전 판(내장 BPM)이 떠 있었다(이 절이 「가동률·LangGraph」라고 적고
+> 있었지만 실제로는 이미 SC01 판이었다 — 배포 전에 `/health`로 본다).
+> * **Center에 아직 잇지 않았다** — `/health.center.url`이 null이라 데모 실행(기본 Center)의 화면 진행·각본은 503이다.
+>   같은 서버에 운영 Chaeksas Center(127.0.0.1:8800)·서버 실행기 컨테이너가 있다. 사람이 할 것: CON-07 확장 정의
+>   `nowview-sc01`~`sc06` 서명·등록(외부 앱 키 = `NOWVIEW_SYSTEM_KEY`, 시험용 키 = `NOWVIEW_SYSTEM_KEY_TEST`, 서버 주소는
+>   기본값 그대로) → Studio 패키지 7개(SC01·접수 Bot·SC02~06) 승인·배포 → CON-13 접수 가상 직원 → CON-11 연동용·대리 답용
+>   키 → `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`·`CHAEKSAS_INTAKE_WORKER`
+>   → `systemctl restart nowview-engine`.
+> * 시스템 작업 키 두 개는 `deploy.sh --bootstrap`이 서버에서 지었다(`systemAuth.mode=keys`).
+> * **DB는 비우지 않았다** — 예전 데모 실행 33건·LangGraph 테이블(`checkpoint*`, `instance_spec`)이 남아 있다. 옛 문서는
+>   읽을 때 채우고(`domain.upgrade`) 새 데모 실행과 무관하다. 비우는 명령은 자동 권한 검사가 막았다 — 비우려면 사람이 한다.
+> * **rsync가 `.claude/worktrees`를 올리지 않는다** — 다른 세션의 worktree 사본이 서버에 겹으로 쌓인다. 같은 이유로 로컬
+>   `eslint .`도 그 사본까지 훑어 오류 수천 개를 낸다(`--ignore-pattern '.claude/**'`로 돌린다).
 
 
 **https://www.nowview.work** — `hetzner-server`(46.62.215.120)에 systemd 서비스 2개로
@@ -1887,5 +1897,5 @@ Center + 실행기 흉내로 대표 보고까지 잠갔다. 브라우저에서�
   장면 3~5는 진짜 실행기로 다시 돌려 보지 않았다). Studio 시험 실행은 아직 돌려 보지 않았다.
 * **새 보고 버전(RPT61-v2) 흐름** — 재적재가 새 산정과 재확인 대상을 알리는 데까지다. 새 보고본 작성·확인은 없다.
 * **Agent LLM 러너** — AG61~63은 고정 기록 재현뿐이다(장면 2~5와 같다).
-* 운영계 배포는 5.4와 같이 남았다.
+* 운영계는 코드만 올렸다 — 운영 Center 연결은 5.4.
 
