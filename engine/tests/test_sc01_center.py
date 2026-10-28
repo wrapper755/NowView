@@ -300,6 +300,28 @@ def test_demo_script_runs_on_center_through_relay_answers(
     assert {"Approve_DQ", "Task_Calc", "Accept_FIN", "Task_Handoff"} <= set(after["bpm"]["visited"])
 
 
+def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
+    proc: Sc01Process, center: FakeCenter
+) -> None:
+    """
+    대리 답이 폴러보다 먼저 결재를 찾아도 업무는 결재가 열려 있던 때 열린 것이다
+    (늦게 열지 않는다 — 운영 Center 각본에서 DQ·SALES가 늦게 열렸다).
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)  # EV01 수신
+    runner = FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_a1a1a1")
+    # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
+    doc = demo.run_step(proc, rid, 1)
+    task = doc["tasks"]["TASK-DQ"]
+    assert task["request_id"].startswith("apr_") and not task.get("opened_late")
+    runner.step()
+    proc.sync_center(rid)
+    doc = proc.get(rid)
+    assert [t for t in doc["tasks"] if t.startswith("TASK-DQ")] == ["TASK-DQ"]
+    assert doc["tasks"]["TASK-DQ"]["status"] == "COMPLETED"
+    assert not doc["tasks"]["TASK-DQ"].get("opened_late")
+
+
 def test_relay_prechecks_before_touching_center(proc: Sc01Process, center: FakeCenter) -> None:
     """역할(403)·업무 규칙(409)은 Center에 가기 전에 거절한다 — 입력은 지워지지 않는다(4.6)."""
     rid = proc.create(executor="center")["demo_run_id"]

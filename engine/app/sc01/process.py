@@ -1136,6 +1136,14 @@ class Sc01Process:
         ext, approval = self._await_approval(demo_run_id, node_id, name)
         # 결재가 보이는 값이 우선이다 — 사람이 본 원천으로 다시 본다(부수 효과 없음).
         check_answer(doc, node_id, answer, {**_center_vars(doc), **(approval.get("review") or {})})
+        # 폴러(2초)보다 대리 답이 먼저 결재를 찾으면 폴러는 대리 답한 결재를 건너뛴다 — 업무를
+        # 지금 연다. 결재가 열려 있었으니 늦게 연 것이 아니다(운영 Center 각본 실측: DQ·SALES
+        # 2건이 늦게 열렸다). 업무 변수(계산·원천·담당자)는 폴러와 같은 길로 읽는다(잠금 밖에서).
+        entry = (
+            self._approval_entry(approval["request_id"], node_id)
+            if domain.task_for_node(doc, node_id) is None
+            else None
+        )
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
             if domain.check_idempotency(doc, idempotency_key, body):
@@ -1151,6 +1159,14 @@ class Sc01Process:
                 )
             except CenterError as exc:
                 raise exc.as_domain("대리 답") from exc
+            if (
+                entry is not None
+                and entry["variables"] is not None
+                and domain.task_for_node(doc, node_id) is None
+            ):
+                domain.sync_tasks(
+                    doc, {approval["request_id"]: {"node_id": node_id}}, entry["variables"]
+                )
             bpm = doc["bpm"]
             bpm["center"]["relayed"].append(approval["request_id"])
             bpm["waiting"] = [

@@ -599,7 +599,7 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     **`chaeksas-core`가 `8f0b08d` 이전이면 변수가 생기지 않아** 기록 작업 입력이 「모르는 이름」으로 멈춘다.
   * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
     판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래) — 대리 답이 폴러보다
-    먼저 결재를 찾으면 대리 답 때 연다(장면 3~6 `_relay`, 5.10).
+    먼저 결재를 찾으면 대리 답 때 연다(장면 1·3~6 `_relay`, 5.10 — 장면 1은 운영 Center 각본에서 DQ·SALES 2건으로 드러났다).
   * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
     두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
   * **기록이 거절되면 같은 결재로 되돌아간다** — 기록 태스크마다 오류 경계(`Bnd_Record_*`, `TASK_FAILED`).
