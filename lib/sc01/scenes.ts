@@ -23,7 +23,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "overview",
     script: -1,
-    route: "/",
+    route: "/sc01",
     stage: "성과·전망 모니터링",
     title: "전체 현황 확인",
     narration:
@@ -32,7 +32,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "receive",
     script: 0,
-    route: "/plans",
+    route: "/sc01/plans",
     stage: "Risk 감지",
     title: "변경계획 수신",
     narration:
@@ -41,7 +41,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "verify",
     script: 1,
-    route: "/plans",
+    route: "/sc01/plans",
     stage: "Operation Control",
     title: "원천 확인 (CT01)",
     narration:
@@ -50,7 +50,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "calculate",
     script: 2,
-    route: "/risk",
+    route: "/sc01/risk",
     stage: "Risk 감지",
     title: "영향 확인 — 비교 계산",
     narration:
@@ -59,7 +59,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "sales-review",
     script: 3,
-    route: "/risk",
+    route: "/sc01/risk",
     stage: "Operation Control",
     title: "처리 경로 판단 (CT02)",
     narration:
@@ -68,7 +68,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "dispatch",
     script: 4,
-    route: "/tasks",
+    route: "/sc01/tasks",
     stage: "Operation Control",
     title: "현업 검토 배정 (CT03)",
     narration:
@@ -77,7 +77,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "review-request",
     script: 5,
-    route: "/tasks",
+    route: "/sc01/tasks",
     stage: "Management Review 연결",
     title: "Management Review 요청",
     narration:
@@ -86,7 +86,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "accept-prod",
     script: 6,
-    route: "/tasks",
+    route: "/sc01/tasks",
     stage: "Operation Control",
     title: "생산 담당 인수",
     narration: "생산담당이 인수한다. 담당자만 인수할 수 있고, 인수자·시각이 기록된다.",
@@ -94,7 +94,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "accept-mat",
     script: 7,
-    route: "/tasks",
+    route: "/sc01/tasks",
     stage: "Operation Control",
     title: "자재 담당 인수",
     narration: "자재담당도 인수한다. 경영관리 인수 전이라 업무는 아직 인계되지 않았다.",
@@ -102,7 +102,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "handoff",
     script: 8,
-    route: "/handoff",
+    route: "/sc01/handoff",
     stage: "Management Review 연결",
     title: "인계 결과 확인",
     narration:
@@ -111,7 +111,7 @@ export const SC01_SCENES: Sc01Scene[] = [
   {
     id: "overview-after",
     script: 8,
-    route: "/",
+    route: "/sc01",
     stage: "성과·전망 모니터링",
     title: "전체 현황 재확인",
     narration:

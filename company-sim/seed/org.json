@@ -1,0 +1,85 @@
+{
+  "company": "autoparts",
+  "users": [
+    {
+      "user_id": "u-sales",
+      "name": "이도윤",
+      "role": "영업담당"
+    },
+    {
+      "user_id": "u-sales-lead",
+      "name": "박서진",
+      "role": "영업팀장"
+    },
+    {
+      "user_id": "u-prod",
+      "name": "김태오",
+      "role": "생산담당"
+    },
+    {
+      "user_id": "u-mat",
+      "name": "최유나",
+      "role": "자재담당"
+    },
+    {
+      "user_id": "u-fin",
+      "name": "정하윤",
+      "role": "경영관리담당"
+    },
+    {
+      "user_id": "u-plant",
+      "name": "한준호",
+      "role": "공장장"
+    },
+    {
+      "user_id": "u-buy",
+      "name": "윤채원",
+      "role": "구매담당"
+    },
+    {
+      "user_id": "u-buy-lead",
+      "name": "서도현",
+      "role": "구매팀장"
+    },
+    {
+      "user_id": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+    },
+    {
+      "user_id": "u-ceo",
+      "name": "임하준",
+      "role": "대표이사"
+    },
+    {
+      "user_id": "u-fin-exec",
+      "name": "강민서",
+      "role": "경영관리임원"
+    },
+    {
+      "user_id": "u-fin-lead",
+      "name": "오세린",
+      "role": "경영관리팀장"
+    },
+    {
+      "user_id": "u-prod-lead",
+      "name": "배정훈",
+      "role": "생산팀장"
+    },
+    {
+      "user_id": "u-qa-lead",
+      "name": "신예준",
+      "role": "품질팀장"
+    },
+    {
+      "user_id": "u-prod-exec",
+      "name": "권태윤",
+      "role": "생산임원"
+    },
+    {
+      "user_id": "u-sales-exec",
+      "name": "남유진",
+      "role": "영업임원"
+    }
+  ]
+}

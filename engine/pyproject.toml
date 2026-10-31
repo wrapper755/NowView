@@ -19,11 +19,14 @@ dependencies = [
 # 커밋에 고정한다: 브랜치를 따라가면 같은 락파일로 다른 엔진이 깔린다.
 # core가 같은 워크스페이스의 contracts·llm·extension_api를 끌고 온다.
 [tool.uv.sources]
-chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "554d7fa70749ded870b9e2b93e25a87ecf4b9f2d", subdirectory = "packages/core" }
-chaeksas-service-kit = { git = "https://github.com/wrapper755/Chaeksas", rev = "554d7fa70749ded870b9e2b93e25a87ecf4b9f2d", subdirectory = "packages/service_kit" }
+chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "d479226d964b09a800ba305ee761cee4a520cbfc", subdirectory = "packages/core" }
+autoparts-sim = { path = "../company-sim", editable = true }
+chaeksas-service-kit = { git = "https://github.com/wrapper755/Chaeksas", rev = "d479226d964b09a800ba305ee761cee4a520cbfc", subdirectory = "packages/service_kit" }
 
 [dependency-groups]
 dev = [
+    # 회사 시스템 시뮬레이터 — 시험이 같은 프로세스에 띄워 엔진의 회사 클라이언트에 붙인다(tests/conftest.py).
+    "autoparts-sim",
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.8",

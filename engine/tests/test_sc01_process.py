@@ -434,7 +434,7 @@ def test_correction_supersedes_the_external_run_and_links_the_next(proc: Sc01Pro
         (first, "studio", "superseded")
     ]
     with pytest.raises(DomainError) as stale:
-        proc.operate(rid, "validate_source", {"source_id": "SRC03"}, external_run_id=first)
+        proc.operate(rid, "validate_customer_plan", {"source_id": "SRC03"}, external_run_id=first)
     assert stale.value.status == 409 and "대체된 실행" in str(stale.value)
 
     second = "run_20270616_100000_f2f2f2"

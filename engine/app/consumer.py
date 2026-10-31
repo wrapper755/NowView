@@ -4,7 +4,7 @@ C15 일꾼 — Center에 쌓인 NowView 서비스 태스크의 일감을 가져�
 
 Chaeksas는 바깥 기능을 부르는 길을 모두 Pull로 바꿨다(ADR-0102, 계약 C15). 서버
 실행기·Studio는 `chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` =
-`nowview-sc01`~`sc06`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고 알린다. 연결은 늘
+`autoparts-sc01`~`sc06`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고 알린다. 연결은 늘
 NowView → Center다 — Center는 NowView 주소도 키도 모른다.
 
 ```
@@ -43,8 +43,10 @@ import logging
 import os
 import platform
 import threading
-from collections.abc import Mapping
+from collections import deque
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -60,6 +62,9 @@ log = logging.getLogger("nowview.consumer")
 EXECUTOR_OF_ORIGIN = {"test": "studio", "run": "center"}
 #: 업무 규칙 위반의 상태 코드 → C15 실패 코드. 모두 다시 불러도 같은 답이라 `retryable`이 아니다.
 CODE_OF_STATUS = {403: "forbidden", 404: "not_found", 409: "conflict", 422: "input_invalid"}
+#: 회사 시스템이 닿지 않으면(`app/company.py`, 503) 업무 규칙 위반이 아니다 — C15
+#: `dependency_down`은 Center가 다시 내주는(retryable) 코드다.
+CODE_OF_STATUS[503] = "dependency_down"
 #: 들이기 요청의 상태를 다시 묻는 간격(초).
 ENROLL_EVERY_S = 5.0
 
@@ -116,9 +121,34 @@ def manifest_of(topic: str, folder: Path | None = None) -> ServiceAppManifest:
     )
 
 
-def scene_service(topic: str, process: Operates, folder: Path | None = None) -> Service:
-    """토픽 하나 = 장면 하나의 `operate`. 작업마다 같은 처리기다 — 작업 이름으로 가른다."""
+def scene_service(
+    topic: str,
+    process: Operates,
+    folder: Path | None = None,
+    journal: Callable[[dict[str, Any]], None] | None = None,
+) -> Service:
+    """
+    토픽 하나 = 장면 하나의 `operate`. 작업마다 같은 처리기다 — 작업 이름으로 가른다.
+    `journal`이 있으면 일감마다 결과를 한 줄 남긴다(`/worker`의 최근 일감).
+    """
     manifest = manifest_of(topic, folder)
+
+    def note(req: OpRequest, operation: str, outcome: str, reason: str | None = None) -> None:
+        if journal is None:
+            return
+        journal(
+            {
+                "at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "topic": topic,
+                "operation": operation,
+                "origin": req.origin,
+                "runId": req.run_id,
+                "nodeId": req.node_id,
+                "demoRunId": req.input.get("demo_run_id"),
+                "outcome": outcome,
+                "reason": reason,
+            }
+        )
 
     def handler_for(operation: str):
         def handle(req: OpRequest, mode: str) -> dict[str, Any]:
@@ -129,7 +159,7 @@ def scene_service(topic: str, process: Operates, folder: Path | None = None) -> 
                 raise OpError("input_invalid", "입력에 demo_run_id가 없다", status=422)
             via = EXECUTOR_OF_ORIGIN.get(req.origin or "run", "center")
             try:
-                return process.operate(
+                out = process.operate(
                     str(demo_run_id),
                     operation,
                     args,
@@ -139,7 +169,10 @@ def scene_service(topic: str, process: Operates, folder: Path | None = None) -> 
                 )
             except DomainError as exc:
                 code = CODE_OF_STATUS.get(exc.status, "rejected")
+                note(req, operation, code, str(exc))
                 raise OpError(code, str(exc), status=exc.status) from exc
+            note(req, operation, "complete")
+            return out
 
         return handle
 
@@ -163,6 +196,8 @@ class ConsumerHost:
     _consumer: Consumer | None = field(default=None, init=False)
     _state: str = field(default="off", init=False)
     _code: str | None = field(default=None, init=False)
+    #: 최근 일감(새것이 앞) — 엔진 메모리에만 있다. 다시 뜨면 빈다.
+    _recent: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=50), init=False)
     _problem: str | None = field(default=None, init=False)
 
     @classmethod
@@ -176,12 +211,19 @@ class ConsumerHost:
         enabled = os.getenv("NOWVIEW_CONSUMER", "").lower() != "off"
         # 뜨지 않을 때는 확장 정의를 읽지 않는다 — 정의가 없는 자리(내장 시험·화면만)에서 엔진이
         # 기동조차 못 하면 안 된다. 뜰 때 정의가 없으면 기동에서 바로 드러난다.
-        services = (
-            [scene_service(topic, proc) for topic, proc in processes.items()]
-            if enabled and center_url
-            else []
-        )
-        return cls(center_url=center_url, services=services, tokens=tokens, enabled=enabled)
+        host = cls(center_url=center_url, services=[], tokens=tokens, enabled=enabled)
+        if enabled and center_url:
+            host.services = [
+                scene_service(topic, proc, journal=host.remember)
+                for topic, proc in processes.items()
+            ]
+        return host
+
+    def remember(self, entry: dict[str, Any]) -> None:
+        self._recent.appendleft(entry)
+
+    def recent_tasks(self) -> list[dict[str, Any]]:
+        return list(self._recent)
 
     @property
     def topics(self) -> list[str]:

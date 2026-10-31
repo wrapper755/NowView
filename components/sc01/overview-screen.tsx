@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
@@ -302,7 +302,7 @@ function WorkSummary() {
         <CardTitle>지금 챙길 것</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Link href="/handoff" className="group block space-y-2">
+        <Link href="/sc01/handoff" className="group block space-y-2">
           <p className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">미해결 이슈</span>
             <span className="text-3xl font-semibold tabular-nums">{open.length}</span>
@@ -322,7 +322,7 @@ function WorkSummary() {
           </span>
         </Link>
 
-        <Link href="/tasks" className="group block space-y-2 border-t pt-5">
+        <Link href="/sc01/tasks" className="group block space-y-2 border-t pt-5">
           <p className="flex items-baseline justify-between">
             <span className="text-sm text-muted-foreground">진행 중 업무</span>
             <span className="text-3xl font-semibold tabular-nums">{active.length}</span>

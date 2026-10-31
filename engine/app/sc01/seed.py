@@ -1,6 +1,10 @@
 """
 SC01 시드 — `seed/SYN-SC01-v0.2.xlsx`의 **원천 시트**를 읽는다.
 
+**운영 경로는 이것을 쓰지 않는다**(2026-10-31) — 회사 자료는 회사 시스템(`company-sim/`)에서 읽는다
+(`app/company.py`). 여기서는 NowView의 규칙(`load_rules`)과, 시험이 계산을 엑셀과 대조할 때 쓰는
+`load_seed`만 남았다.
+
 엑셀이 기준 시드이자 기대 결과다(DATA-01). 원천(버전·고객원천·물량스냅샷·실적·단위원가·
 고정비)만 적재하고, 파생 시트(손익계산·월분기연간·SC01검증·정합성검증)는 **읽지 않는다** —
 그것들은 서비스가 다시 계산한 값과 대조할 기대값이다(`tests/test_sc01_calc.py`).
@@ -115,6 +119,18 @@ def _rules(ws: Any) -> dict[str, Decimal]:
 
 def _key(r: dict[str, Any]) -> Key:
     return (r["customer_id"], r["plant_id"], r["model_id"], _as_date(r["period"]))
+
+
+@cache
+def load_rules(path: Path = SEED_PATH) -> dict[str, Decimal]:
+    """
+    R01 임계값 — NowView의 규칙이다(규칙 계산은 NowView 몫, `docs/worker-interfaces.md` §0). 회사
+    자료는 회사 시스템에서 읽고(`app/company.py`) 규칙만 여기서 읽는다.
+    """
+    wb = load_workbook(path, data_only=True, read_only=True)
+    rules = _rules(wb["버전기준"])
+    wb.close()
+    return rules
 
 
 @cache

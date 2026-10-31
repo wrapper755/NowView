@@ -2,7 +2,7 @@
 SC01 실행 — Chaeksas BPM 엔진(`chaeksas.core.engine`)을 라이브러리로 돌린다.
 
 **Chaeksas는 그림을 해석하고 사람을 기다린다. 숫자는 모른다.** 서비스 태스크가 부르는
-`nowview.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
+`autoparts.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
 Center·서버 실행기는 쓰지 않는다: 정의 변경마다 패키지 서명·배포가 필요하고, 결재 응답은
 관리자 토큰으로만 되고, 작업 결과 값을 돌려주지 않아 화면이 결과를 읽을 길이 없다.
 
@@ -33,17 +33,18 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app.company import CompanyClient, default_client
 from app.sc01 import agent, domain
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import USERS, DomainError
-from app.sc01.seed import Seed, load_seed
+from app.sc01.seed import Seed
 from app.sc01.store import Sc01Store, StaleWrite
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc01.bpmn"
 #: 고객계획 접수 Bot(N5) — Center 서버 Bot으로만 돈다. 엔진은 읽어서 그림·시험에만 쓴다.
 INTAKE_PATH = PROCESS_PATH.with_name("sc01-intake.bpmn")
 #: 바깥 Chaeksas 외부 확장의 id와 같다 — 확장 id에는 점을 쓸 수 없다(C13 `^[a-z][a-z0-9-]{1,49}$`).
-APP_ID = "nowview-sc01"
+APP_ID = "autoparts-sc01"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
 SAVE_RETRIES = 5
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초). 서버 실행기가 앞 작업을 끝내고 결재를
@@ -80,30 +81,29 @@ def request_draft(doc: dict, seed: Seed, run_id: str, *, actor: str, manual: boo
 #: 난다 — 내장 실행기의 답 훅에만 두면 바깥 실행에서 원천이 확인되지 않아 계산이 409로 막힌다
 #: (docs/chaeksas-integration.md N1).
 RECORDS = (
-    "record_dq_review",
-    "record_sales_review",
-    "record_dispatch",
-    "record_review_request",
+    "record_plan_review",
+    "record_risk_review",
+    "assign_follow_up",  # 현업 배정(Approve_Dispatch)·Review 요청(Approve_Review) — 결재로 가른다
     "record_acceptance",
 )
 #: 접수 Bot(`sc01-intake.bpmn`)이 부르는 작업 — 데모 실행을 바깥 실행에 **묶지 않는다**. 접수 Bot의
 #: 실행은 SC01 실행이 아니다 — 묶는 것은 승인 뒤 위임된 SC01의 첫 호출이다(N5).
-INTAKE_OPERATIONS = ("screen_source", "record_intake_review")
+INTAKE_OPERATIONS = ("screen_customer_plan", "record_intake_decision")
 OPERATIONS = (
-    "validate_source",
-    "compare",
-    "request_agent_draft",
-    "hand_off",
+    "validate_customer_plan",
+    "assess_supply_risk",
+    "request_review_draft",
+    "hand_off_case",
     *RECORDS,
     *INTAKE_OPERATIONS,
 )
 #: 결재 노드 → 기록 작업 (HTTP `POST …/answers/{node_id}`). 계산 실행(Confirm_Calc)은 없다 — 곧바로
-#: `compare`가 요청 기록을 남긴다.
+#: `assess_supply_risk`가 요청 기록을 남긴다.
 RECORD_OF_NODE = {
-    "Approve_DQ": "record_dq_review",
-    "Approve_Sales": "record_sales_review",
-    "Approve_Dispatch": "record_dispatch",
-    "Approve_Review": "record_review_request",
+    "Approve_DQ": "record_plan_review",
+    "Approve_Sales": "record_risk_review",
+    "Approve_Dispatch": "assign_follow_up",
+    "Approve_Review": "assign_follow_up",
     "Accept_PROD": "record_acceptance",
     "Accept_MAT": "record_acceptance",
     "Accept_FIN": "record_acceptance",
@@ -194,13 +194,13 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
     결재에 낡은 사유가 남지 않게).
     """
     node_id = args.get("node_id") or {
-        "record_dq_review": "Approve_DQ",
-        "record_sales_review": "Approve_Sales",
-        "record_dispatch": "Approve_Dispatch",
-        "record_review_request": "Approve_Review",
+        "record_plan_review": "Approve_DQ",
+        "record_risk_review": "Approve_Sales",
     }.get(operation, "")
     if node_id not in domain.NODE_ROLES:
         raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
+    if operation == "assign_follow_up" and node_id not in _FOLLOW_UP:
+        raise DomainError(f"배정 결재가 아니다: {node_id}", 422)
     if operation == "record_acceptance" and not node_id.startswith("Accept_"):
         raise DomainError(f"인수 결재가 아니다: {node_id}", 422)
     answer, variables = _record_answer(operation, args)
@@ -214,21 +214,27 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
 
 def _record_answer(operation: str, args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     """기록 입력 → `check_answer`가 보는 (결재 칸, 변수)."""
-    if operation == "record_dq_review":
+    if operation == "record_plan_review":
         return {"확인결과": args["result"]}, {"원천ID": args["source_id"]}
-    if operation == "record_sales_review":
+    if operation == "record_risk_review":
         return {"영업의견": args.get("opinion"), "영업근거": args.get("evidence")}, {}
-    if operation == "record_dispatch":
-        return {"생산담당자": args.get("prod"), "자재담당자": args.get("mat")}, {}
-    if operation == "record_review_request":
-        return {"경영관리담당자": args.get("fin")}, {}
+    if operation == "assign_follow_up":
+        return {label: args.get(key) for key, label in _FOLLOW_UP[args["node_id"]]}, {}
     return {}, {}
+
+
+#: 배정 결재 → (입력, 결재 칸) — 한 작업(`assign_follow_up`)이 두 결재를 받는다. 예전에는 어댑터
+#: 본문 템플릿이 없는 입력을 실을 수 없어 작업을 둘로 갈랐다(C15 일꾼에는 그 제약이 없다).
+_FOLLOW_UP = {
+    "Approve_Dispatch": (("prod", "생산담당자"), ("mat", "자재담당자")),
+    "Approve_Review": (("fin", "경영관리담당자"),),
+}
 
 
 def _apply_record(
     doc: dict, operation: str, node_id: str, args: dict[str, Any], by: str
 ) -> dict[str, Any]:
-    if operation == "record_dq_review":
+    if operation == "record_plan_review":
         if args["result"] == "확인완료":
             domain.verify_source(
                 doc,
@@ -243,7 +249,7 @@ def _apply_record(
             domain.mark_task(doc, node_id, actor=by, outcome="needs_info")
         return {"recorded": True}
 
-    if operation == "record_sales_review":
+    if operation == "record_risk_review":
         run_id = args["run_id"]
         doc["reviews"][run_id] = {
             "run_id": run_id,
@@ -258,13 +264,13 @@ def _apply_record(
         domain.mark_task(doc, node_id, actor=by, outcome="completed")
         return {"recorded": True}
 
-    if operation == "record_dispatch":
+    if operation == "assign_follow_up" and node_id == "Approve_Dispatch":
         prod, mat = _user(args["prod"]), _user(args["mat"])
         domain.audit(doc, actor=by, action="dispatched", prod=prod, mat=mat)
         # 인수 결재의 담당자는 **이름**이다(`chk:approval.assignees`) — 폼은 id를 고른다.
         return {"prod_name": domain.name_of(prod), "mat_name": domain.name_of(mat)}
 
-    if operation == "record_review_request":
+    if operation == "assign_follow_up":
         fin = _user(args["fin"])
         domain.audit(doc, actor=by, action="review_requested", fin=fin)
         return {"fin_name": domain.name_of(fin)}
@@ -353,17 +359,17 @@ def run_operation(
 
     `actor`는 내장 실행이 아는 「지금 답한 사람」이다 — 바깥 실행은 `None`이다(`_answerer`).
     """
-    if operation == "validate_source":
+    if operation == "validate_customer_plan":
         errors = domain.validate_source(doc, seed, args["source_id"])
         if args.get("processed_by"):
             domain.note_processor(doc, str(args["processed_by"]))
         return {"passed": not errors, "error_count": len(errors)}
-    if operation == "screen_source":
+    if operation == "screen_customer_plan":
         summary = domain.screen_source(
             doc, seed, args["source_id"], processed_by=args.get("processed_by")
         )
         return {"summary": summary}
-    if operation == "record_intake_review":
+    if operation == "record_intake_decision":
         named = _named_answerer(args, None)
         if named is None:
             raise DomainError("접수 결정에 답한 사람(answered_by)이 없다", 422)
@@ -379,15 +385,15 @@ def run_operation(
             processed_by=args.get("processed_by"),
         )
         return {"recorded": True}
-    if operation == "compare":
+    if operation == "assess_supply_risk":
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
         by, how = _answerer(doc, "Confirm_Calc", args, actor)
         domain.audit(doc, actor=by, action="calculation_requested", **how)
         return domain.compare(doc, seed, args["source_id"])
-    if operation == "request_agent_draft":
+    if operation == "request_review_draft":
         return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}
-    if operation == "hand_off":
+    if operation == "hand_off_case":
         return {"handed_off": domain.hand_off(doc, args["run_id"])}
     if operation in RECORDS:
         return _record(doc, operation, args, actor)
@@ -429,14 +435,19 @@ class Sc01Process:
         inline_agent: bool = False,
         center: CenterClient | None = None,
         center_wait_s: float = CENTER_WAIT_S,
+        company: CompanyClient | None = None,
     ) -> None:
         """
         `inline_agent=True`면 초안 작업을 조작이 끝난 직후 같은 스레드에서 돈다 — 테스트용이다.
         운영에서는 스레드 풀이다. `center`를 주지 않으면 **설정 없는** Center다 — center 데모 실행의
         대리 답·기동은 503으로 사유를 낸다(조용히 다른 길로 가지 않는다).
+
+        `company` — 회사 시스템(`app/company.py`). 회사 자료(`seed`)는 처음 쓸 때 회사에서 읽는다 —
+        `seed`를 주면 그것을 쓴다(시험).
         """
         self.store = store
-        self.seed = seed or load_seed()
+        self.company = company or default_client()
+        self._seed = seed
         self.process = read_process(PROCESS_PATH.read_bytes())
         self.engine = Engine()
         self.publish = publish
@@ -447,6 +458,13 @@ class Sc01Process:
         self._guard = threading.Lock()
         self.center = center or CenterClient(CenterConfig())
         self.center_wait_s = center_wait_s
+
+    @property
+    def seed(self) -> Seed:
+        """회사 자료(T01·F01·실적·C01·FC01·CP01) + NowView 규칙. 회사가 닿지 않으면 503이다."""
+        if self._seed is None:
+            self._seed = self.company.load_seed()
+        return self._seed
 
     # ───────────── 공통 ─────────────
 
@@ -507,6 +525,10 @@ class Sc01Process:
             domain.sync_tasks(
                 doc, {k: v for k, v in doc["bpm"]["snapshot"]["pendings"].items()}, run.variables
             )
+        # 회사의 확정 기록(원천 확인 상태)을 먼저 적는다 — 회사가 받지 못하면 이 조작은 저장되지
+        # 않는다(503, 다시 할 일). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
+        for record in doc.pop("_company_writes", []):
+            self.company.set_plan_status(doc["demo_run_id"], record.pop("doc_id"), **record)
         # 초안 작업 대기열은 저장하지 않는다 — 저장이 끝난 뒤 던진다(_dispatch).
         jobs = doc.pop("_agent_queue", [])
         try:
@@ -618,6 +640,8 @@ class Sc01Process:
         if case_id not in domain.CASES:
             raise DomainError(f"모르는 시연 사례: {case_id} (가능: {', '.join(domain.CASES)})", 422)
         demo_run_id = f"demo-{uuid.uuid4().hex[:8]}"
+        # 회사 세계 = 데모 실행(`docs/worker-interfaces.md` Q1). 회사가 닿지 않으면 만들지 않는다.
+        self.company.ensure_world(demo_run_id)
         doc = domain.new_demo_run(
             self.seed,
             demo_run_id,
@@ -658,6 +682,8 @@ class Sc01Process:
                 doc, actor=actor, action="clock_moved", event_code=event_code, to=doc["clock"]
             )
             domain.raise_overdue_alerts(doc)
+            # 회사 세계의 시각도 함께 — 원천 도착 시각이 회사 쪽 사건이다.
+            self.company.set_clock(demo_run_id, doc["clock"])
             doc = self._commit(doc, version, None, event_code or "clock")
         return self._dispatch(doc)
 
@@ -672,7 +698,8 @@ class Sc01Process:
         idempotency_key: str | None = None,
     ) -> dict:
         """
-        시연 원천 수신.
+        시연 원천 수신 — 고객이 회사에 원천을 보내고(회사 시스템 시뮬레이터), NowView가 회사
+        수신함에서 그것을 들인다(`docs/worker-interfaces.md` §3.3). 원천의 주인은 회사다.
 
         * 처음 → BPM 시작.
         * 보완 대기 중 → 정정본을 메시지로 전달해 같은 실행에서 다시 검증한다.
@@ -686,7 +713,10 @@ class Sc01Process:
             doc, version = self._load(demo_run_id)
             if domain.check_idempotency(doc, idempotency_key, ["receive", fixture_id]):
                 return doc
-            source_id, created = domain.receive_source(doc, self.seed, fixture_id, actor=actor)
+            self.company.set_clock(demo_run_id, doc["clock"])
+            sent = self.company.customer_sends(demo_run_id, fixture_id)
+            plan = self.company.customer_plan(demo_run_id, sent["doc_id"])
+            source_id, created = domain.receive_company_plan(doc, plan, actor=actor)
             if not created:
                 return doc  # 재수신 — 중복 등록·이슈 생성 없이 기존 접수를 돌려준다
             if domain.executor_of(doc) != "embedded":
@@ -813,8 +843,8 @@ class Sc01Process:
                 # 계산 실행 결재(Confirm_Calc)는 기록 작업이 없다 — 계산이 불렸으면 지나왔다.
                 decided=args.get("node_id")
                 if operation in RECORDS
-                else ("Confirm_Calc" if operation == "compare" else None),
-                done=operation == "hand_off" and out["handed_off"],
+                else ("Confirm_Calc" if operation == "assess_supply_risk" else None),
+                done=operation == "hand_off_case" and out["handed_off"],
             )
             doc = self._commit(doc, version, None, operation)
         self._dispatch(doc)
@@ -1359,6 +1389,8 @@ class Sc01Process:
             )
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
+            # 회사 세계도 S0로 — 수신함·원천 상태·시각.
+            self.company.reset_world(demo_run_id)
             doc = self._commit(doc, version, None, "reset")
         return self._dispatch(doc)
 

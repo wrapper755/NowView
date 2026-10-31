@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from datetime import date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -117,28 +117,6 @@ def due_at(assigned: datetime, business_days: int) -> datetime:
 
 
 # ─────────────────────────── 시연 원천 (EX 변형 포함) ───────────────────────────
-
-#: fixture_id → (customer_plan_id, {(모델, 월): 바꿀 수량}). 기본 데이터에 예외값을 섞지 않고
-#: 각 변형을 CP02 기준에서 따로 만든다(ERR-01). None은 누락이다 — 0과 다르다.
-FIXTURES: dict[str, tuple[str, dict[tuple[str, int], int | None]]] = {
-    "CP02": ("CP02", {}),
-    "EX01": ("CP02", {("A-b", 7): 9500, ("A-c", 7): 5900}),
-    "EX02": ("CP02", {("A-b", 7): None}),
-    "CP03": ("CP03", {("A-b", 7): 9000}),
-    "EX04": ("CP02", {("A-c", 7): 6500}),
-    "EX05": ("CP02", {("A-b", 7): 0}),
-}
-
-
-def fixture_rows(seed: Seed, fixture_id: str) -> tuple[str, list[SourceRow]]:
-    if fixture_id not in FIXTURES:
-        raise DomainError(f"모르는 시연 원천: {fixture_id}", 404)
-    plan_id, overrides = FIXTURES[fixture_id]
-    rows = []
-    for row in seed.customer_plans["CP02"]:
-        q = overrides.get((row.model_id, row.period.month), row.quantity)
-        rows.append(replace(row, customer_plan_id=plan_id, quantity=q))
-    return plan_id, rows
 
 
 def _row_json(r: SourceRow) -> dict[str, Any]:
@@ -324,14 +302,19 @@ def audit(
 # ─────────────────────────── 원천 (UI02·UI03) ───────────────────────────
 
 
-def receive_source(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tuple[str, bool]:
-    """시연 원천 수신. 같은 내용 재수신은 기존 접수를 돌려준다 — (source_id, 새로 만들었나)."""
-    plan_id, rows = fixture_rows(seed, fixture_id)
+def receive_company_plan(doc: dict, plan: dict[str, Any], *, actor: str) -> tuple[str, bool]:
+    """
+    회사 수신함에 들어온 고객계획 원천(`GET /worlds/{w}/customer-plans/{doc_id}`)을 NowView
+    문서에 사본으로 들인다 — 원천의 주인은 회사 시스템이다(`docs/worker-interfaces.md` §2). 같은
+    내용 재수신은 기존 접수를 돌려준다 — (source_id, 새로 만들었나).
+    """
+    rows = [_row_from(r) for r in plan["rows"]]
     digest = _content_hash(rows)
     for sid, s in doc["sources"].items():
         if s["hash"] == digest:
             return sid, False
-    sid = f"SRC{len(doc['sources']) + 2:02d}"  # SRC01은 시드(CP01)다
+    sid = f"SRC{len(doc['sources']) + 2:02d}"  # SRC01은 기준 원천(CP01)이다
+    plan_id = plan["customer_plan_id"]
     earlier = ordered(doc["sources"])
     corrects = next(
         (s["source_id"] for s in earlier if s["customer_plan_id"] == plan_id), None
@@ -339,9 +322,10 @@ def receive_source(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tup
     doc["sources"][sid] = {
         "source_id": sid,
         "seq": len(doc["sources"]) + 1,
-        "fixture_id": fixture_id,
+        "fixture_id": plan.get("fixture_id"),
+        "company_doc_id": plan["doc_id"],
         "customer_plan_id": plan_id,
-        "received_at": doc["clock"],
+        "received_at": plan.get("received_at") or doc["clock"],
         "hash": digest,
         "status": "RECEIVED",
         "corrects": corrects,  # 정정본이면 이전 원천과의 관계를 남긴다(이전 것은 지우지 않는다)
@@ -352,7 +336,14 @@ def receive_source(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tup
     }
     # 새 계획 수신이 장면의 시작이다. 인계 뒤에 정정본이 오면 다시 ACTIVE다(WF-03).
     doc["scene"] = "ACTIVE"
-    audit(doc, actor=actor, action="source_received", source_id=sid, fixture_id=fixture_id)
+    audit(
+        doc,
+        actor=actor,
+        action="source_received",
+        source_id=sid,
+        fixture_id=plan.get("fixture_id"),
+        company_doc_id=plan["doc_id"],
+    )
     return sid, True
 
 
@@ -408,11 +399,37 @@ def verify_source(doc: dict, source_id: str, *, actor: str, opinion: str, eviden
         opinion=opinion,
         evidence=evidence,
     )
+    _to_company(doc, s, "VERIFIED", by=actor, opinion=opinion, evidence=evidence)
 
 
 def request_fix(doc: dict, source_id: str, *, actor: str, opinion: str) -> None:
     s = doc["sources"][source_id]
     s.update(status="NEEDS_INFO", fix_requested_by=actor, fix_opinion=opinion)
+    _to_company(doc, s, "NEEDS_INFO", by=actor, opinion=opinion, evidence="")
+
+
+def _to_company(
+    doc: dict, source: dict, status: str, *, by: str, opinion: str, evidence: str
+) -> None:
+    """
+    원천 확인 결정은 회사의 확정 기록이다 — 회사 시스템에 돌려 적을 것을 문서에 걸어 둔다. 저장
+    직전에 프로세스가 보낸다(`Sc01Process._commit`) — 회사가 받지 못하면 이 조작 전체가 저장되지
+    않는다. 회사 원천이 아닌 것(기준 원천 SRC01)은 적지 않는다. `ref`가 같으면 회사가 다시 적지
+    않는다.
+    """
+    doc_id = source.get("company_doc_id")
+    if not doc_id:
+        return
+    doc.setdefault("_company_writes", []).append(
+        {
+            "doc_id": doc_id,
+            "status": status,
+            "by": name_of(by) if by in USERS else by,
+            "opinion": opinion,
+            "evidence": evidence,
+            "ref": f"{doc['demo_run_id']}:{source['source_id']}:{status}",
+        }
+    )
 
 
 # ─────────────────────────── 비교 계산 (UI03-02·UI04) ───────────────────────────
@@ -964,8 +981,9 @@ def screen_source(
     doc: dict, seed: Seed, source_id: str, *, processed_by: str | None
 ) -> dict[str, Any]:
     """
-    접수 Bot의 원천 검증 — SC01의 자동 검증과 같은 검사(`validate_source`)에 변경 요약을 붙여 일괄
-    결재에 보인다. **데모 실행을 바깥 실행에 묶지 않는다** — 묶는 것은 위임된 SC01의 첫 호출이다.
+    접수 Bot의 원천 검증 — SC01의 자동 검증과 같은 검사(`validate_customer_plan`)에 변경 요약을
+    붙여 일괄 결재에 보인다. **데모 실행을 바깥 실행에 묶지 않는다** — 묶는 것은 위임된 SC01의
+    첫 호출이다.
     """
     errors = validate_source(doc, seed, source_id)
     s = doc["sources"][source_id]

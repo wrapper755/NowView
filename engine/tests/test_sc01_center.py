@@ -232,7 +232,7 @@ def test_demo_script_runs_on_center_through_relay_answers(
     rid = proc.create(executor="center")["demo_run_id"]
     doc = demo.run_step(proc, rid, 0)  # EV01 수신
     [job] = center.jobs
-    assert job["target"] == {"type": "server_runner"} and job["bpm_process_id"] == "nowview.sc01"
+    assert job["target"] == {"type": "server_runner"} and job["bpm_process_id"] == "autoparts.sc01"
     assert job["inputs"] == {"데모실행ID": rid, "원천ID": "SRC02"}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"] and doc["bpm"]["snapshot"] is None
 
