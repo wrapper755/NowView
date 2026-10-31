@@ -40,9 +40,9 @@ def settings(tmp_path) -> Settings:
 
 def test_config_defaults_then_persists(settings: Settings, tmp_path) -> None:
     assert settings.config == default_config()
-    assert settings.scene_of("autopart1.sc01") == 1
-    assert settings.scene_of("autopart1.sc01-intake") == 1
-    assert settings.scene_of("autopart1.sc04") == 4
+    assert settings.scene_of("company1.sc01") == 1
+    assert settings.scene_of("company1.sc01-intake") == 1
+    assert settings.scene_of("company1.sc04") == 4
     assert settings.scene_of("other.bpm") is None
 
     changed = settings.config.model_copy(deep=True)
@@ -72,9 +72,8 @@ def test_config_rejects_inconsistent_settings(change, reason) -> None:
 class _Worker:
     def describe(self):
         return {
-            "state": "enrolling",
-            "topics": ["nowview"],
-            "requestCode": "AB12-CD34",
+            "state": "running",
+            "topics": ["external"],
             "problem": None,
             "lastFetch": None,
         }
@@ -98,7 +97,7 @@ class _System:
     configured = False
 
     def describe(self):
-        return {"company": "autopart1", "url": None, "key": False}
+        return {"company": "company1", "url": None, "key": False}
 
     def reachable(self):
         return False
@@ -109,7 +108,7 @@ def client(settings: Settings, monkeypatch) -> TestClient:
     monkeypatch.setenv("NOWVIEW_ADMIN_KEY", ADMIN_KEY)
     app = FastAPI()
     app.include_router(
-        build_router(settings, _Worker(), _Center(), _Poller(), {"autopart1": _System()})
+        build_router(settings, _Worker(), _Center(), _Poller(), {"company1": _System()})
     )
     return TestClient(app)
 
@@ -119,13 +118,13 @@ def test_public_companies_show_no_registration(client: TestClient) -> None:
     body = response.json()
     assert body == [
         {
-            "id": "autopart1",
+            "id": "company1",
             "name": "가상 자동차 부품사",
             "description": body[0]["description"],
             "scenes": [1, 2, 3, 4, 5, 6],
         }
     ]
-    assert "nowview" not in response.text  # 토픽·BPM 프로세스 id가 없다
+    assert "external" not in response.text  # 토픽·BPM 프로세스 id가 없다
     assert client.get("/worker").status_code == 404
 
 
@@ -133,7 +132,7 @@ def test_admin_api_needs_the_key(client: TestClient, monkeypatch) -> None:
     assert client.get("/admin/status").status_code == 401
     assert client.get("/admin/status", headers={"x-admin-key": "wrong"}).status_code == 401
     ok = client.get("/admin/status", headers={"x-admin-key": ADMIN_KEY}).json()
-    assert ok["consumer"]["requestCode"] == "AB12-CD34" and ok["restartRequired"] is False
+    assert ok["consumer"]["state"] == "running" and ok["restartRequired"] is False
     monkeypatch.delenv("NOWVIEW_ADMIN_KEY")
     assert client.get("/admin/config", headers={"x-admin-key": ADMIN_KEY}).status_code == 503
 
@@ -141,17 +140,17 @@ def test_admin_api_needs_the_key(client: TestClient, monkeypatch) -> None:
 def test_admin_edits_config(client: TestClient, settings: Settings) -> None:
     headers = {"x-admin-key": ADMIN_KEY}
     view = client.get("/admin/config", headers=headers).json()
-    assert view["extension"]["id"] == "nowview"
+    assert view["extension"]["id"] == "external"
     assert "assess_supply_risk" in view["extension"]["operations"]
     config = view["config"]
     config["processes"].append(
-        {"bpm_process_id": "autopart1.sc01-v2", "company": "autopart1", "scene": 1}
+        {"bpm_process_id": "company1.sc01-v2", "company": "company1", "scene": 1}
     )
     saved = client.put("/admin/config", json=config, headers=headers).json()
     assert saved["restartRequired"] is False
-    assert settings.scene_of("autopart1.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
+    assert settings.scene_of("company1.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
 
-    config["topics"] = ["nowview"]
+    config["topics"] = ["external"]
     assert client.put("/admin/config", json=config, headers=headers).json()["restartRequired"]
 
     config["processes"].append({"bpm_process_id": "x", "company": "nope", "scene": 1})
@@ -183,24 +182,24 @@ def test_worker_routes_by_the_sending_bpm_process(settings: Settings) -> None:
             }
         )
 
-    assert resolve(request("autopart1.sc01")) == "scene-1"
-    assert resolve(request("autopart1.sc05")) == "scene-5"
+    assert resolve(request("company1.sc01")) == "scene-1"
+    assert resolve(request("company1.sc05")) == "scene-5"
     with pytest.raises(OpError) as missing:
         resolve(request("someone.else"))
     assert missing.value.code == "not_found" and "관리자" in missing.value.message
 
 
-def test_bpmn_copies_match_autopart1() -> None:
+def test_bpmn_copies_match_company1() -> None:
     """
-    엔진의 BPMN은 사본이다 — 원본은 autopart1 리포의 `bpm/`(가상 자동차 부품사의 업무 정의). 옆에
-    autopart1이 있으면(`AUTOPART1_DIR`, 기본 `../autopart1`) 사본이 원본과 같은지 본다. 다르면
+    엔진의 BPMN은 사본이다 — 원본은 Company1 리포의 `bpm/`(가상 자동차 부품사의 업무 정의). 옆에
+    Company1 리포가 있으면(`COMPANY1_DIR`, 기본 `../Company1`) 사본이 원본과 같은지 본다. 다르면
     `scripts/sync-bpm.sh`로 가져온다.
     """
     import os
 
-    source = Path(os.getenv("AUTOPART1_DIR") or ROOT.parent / "autopart1") / "bpm" / "autopart1"
+    source = Path(os.getenv("COMPANY1_DIR") or ROOT.parent / "Company1") / "bpm" / "company1"
     if not source.is_dir():
-        pytest.skip(f"autopart1 BPM 원본이 없다: {source}")
+        pytest.skip(f"Company1 BPM 원본이 없다: {source}")
     drawings = sorted(source.glob("*/process/*.bpmn"))
     assert drawings, source
     for original in drawings:

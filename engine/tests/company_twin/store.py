@@ -1,6 +1,6 @@
 """
-회사 시스템 쌍둥이(엔진 시험 전용) — autopart1 기간계(`legacy/`)의 HTTP 계약
-(`docs/worker-interfaces.md` §4.2)을 같은 프로세스에서 흉내 낸다. 원본은 autopart1 리포다.
+회사 시스템 쌍둥이(엔진 시험 전용) — Company1 기간계(`legacy/`)의 HTTP 계약
+(`docs/worker-interfaces.md` §4.2)을 같은 프로세스에서 흉내 낸다. 원본은 Company1 리포다.
 """
 
 from __future__ import annotations

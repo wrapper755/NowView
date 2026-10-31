@@ -6,13 +6,14 @@
 ## 1. NowView가 하는 일
 
 * **NowView는 회사 사이트가 아니다.** 두 가지다.
-  * **일꾼** — Center에 올린 회사별 BPM 프로세스의 서비스 태스크(일감)를 가져가 수행한다.
-  * **대시보드** — N개 회사의 운영 현황을 그 회사의 BPM 진행 위에서 보여 준다.
+  * **워커(Worker, 일꾼)** — Center에 올린 회사별 BPM 프로세스의 서비스 태스크(External Service 일감)를 가져가 수행한다.
+  * **대시보드(Dashboard)** — N개 회사의 운영 현황을 그 회사의 BPM 진행 위에서 보여 준다. **NowView의 본체는 대시보드다** — 워커는
+    대시보드가 보일 운영 기록을 BPM 진행에서 받아 오는 몫이다.
 * **일꾼은 BPM 프로세스와 회사 시스템을 잇는다.** 회사의 자료와 확정 기록은 회사 시스템에 있고, NowView는 그것을 읽어 계산하고
   결정을 돌려 적는다.
 * **규칙 계산은 NowView 몫이다.** 전망 비교·지표·위험 판정·Agent 초안·경영 이슈·업무는 INNONOW 방법론이고 회사가 바뀌어도 같은
   규칙을 쓴다. 회사 시스템은 자료와 확정 기록의 원본(system of record)이다.
-* **NowView는 고정 프로그램이다.** 일꾼이 제공하는 작업은 확장 `nowview` 하나에 모여 있고 NowView 판과 함께 바뀐다. 회사나 업무마다
+* **NowView는 고정 프로그램이다.** 일꾼이 제공하는 작업은 기본 확장 `external`(BPM 서비스 태스크의 External Service) 하나에 모여 있고 NowView 판과 함께 바뀐다. 회사나 업무마다
   확장을 만들지 않는다. 어느 회사의 어느 BPM 프로세스를 맡는지는 **설정**이다(§5).
 * **연결은 늘 NowView에서 나간다.** Center는 일감을 쌓아 두고, 회사 시스템은 받은 원천을 수신함에 쌓아 둔다. 어느 쪽도 NowView
   주소·키를 모른다.
@@ -54,9 +55,9 @@ Center ◀──────────────────────▶ 
 
 ## 4. 경계별 인터페이스
 
-### 4.1 ① BPM ↔ 일꾼 — 일감 (토픽 `nowview`)
+### 4.1 ① BPM ↔ 일꾼 — 일감 (토픽 `external`)
 
-* **확장 정의** `chaeksas/nowview.extension.json`의 작업·입출력 스키마가 계약이다. 일꾼은 이것으로 Center에 manifest를 올리고, Center는
+* **확장 정의** `chaeksas/external.extension.json`의 작업·입출력 스키마가 계약이다. 일꾼은 이것으로 Center에 manifest를 올리고, Center는
   일감의 작업을 대조하고 출력 필수 칸을 막는다.
   * 외부 확장 계약(C13)이 HTTP 어댑터 모양이라 주소(`allowed_hosts`)와 작업마다 요청(`request`)이 필수 칸이다. NowView 일꾼만 부르므로
     자리만 채웠다(운영계 주소, `path: "/"`, 키 없음) — 범용 어댑터 일꾼으로는 부를 수 없다.
@@ -85,8 +86,8 @@ Center ◀──────────────────────▶ 
 
 ### 4.2 ② 일꾼 ↔ 회사 시스템 — 회사 시스템 API
 
-가상 자동차 부품사의 회사 시스템은 별도 리포 autopart1의 기간계다(`legacy/`, :8191 — `../autopart1`에서 `scripts/stack.sh start`). 엔진 시험은 같은 계약의 쌍둥이(`engine/tests/company_twin/`)를 쓴다. NowView 엔진만 부른다 — 주소는 설정, 키는 엔진 환경
-(`COMPANY_AUTOPART1_KEY`, Bearer). JSON, 금액은 문자열 DECIMAL, 수량 누락은 `null`(0과 다르다).
+가상 자동차 부품사의 회사 시스템은 별도 리포 Company1의 기간계다(`legacy/`, :8191 — `../Company1`에서 `scripts/stack.sh start`). 엔진 시험은 같은 계약의 쌍둥이(`engine/tests/company_twin/`)를 쓴다. NowView 엔진만 부른다 — 주소는 설정, 키는 엔진 환경
+(`COMPANY_COMPANY1_KEY`, Bearer). JSON, 금액은 문자열 DECIMAL, 수량 누락은 `null`(0과 다르다).
 
 **세계(world)** — 시연은 같은 회사를 여러 번 처음부터 돌린다. 회사 시스템은 세계마다 **변하는 기록**(수신함·원천 상태·시각)을 따로
 가진다. 세계 id = NowView 데모 실행 id다 — 데모 실행을 만들 때 세계도 만들고, 초기화하면 세계도 처음으로 돌린다. **불변 기록**
@@ -137,7 +138,7 @@ POST /worlds/{w}/reset                              → 세계를 S0로
   실어 보낸다. 엔진 관리 API:
 
 ```
-GET  /admin/status    → 일꾼(상태·토픽·요청 코드·최근 일감) · Center 연결 · 회사 시스템 연결 · 재시작 필요 여부
+GET  /admin/status    → 일꾼(상태·토픽·최근 일감) · Center 연결 · 회사 시스템 연결 · 재시작 필요 여부
 GET  /admin/config    → 설정 · 업무 번호 목록 · 고정 확장의 작업 목록(읽기만)
 PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 ```
@@ -148,11 +149,11 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 ```json
 {
-  "companies": [{"id": "autopart1", "name": "가상 자동차 부품사", "description": "…", "system_url": "http://localhost:8191"}],
+  "companies": [{"id": "company1", "name": "가상 자동차 부품사", "description": "…", "system_url": "http://localhost:8191"}],
   "processes": [
-    {"bpm_process_id": "autopart1.sc01",        "company": "autopart1", "scene": 1},
-    {"bpm_process_id": "autopart1.sc01-intake", "company": "autopart1", "scene": 1},
-    {"bpm_process_id": "autopart1.sc02",          "company": "autopart1", "scene": 2}
+    {"bpm_process_id": "company1.sc01",        "company": "company1", "scene": 1},
+    {"bpm_process_id": "company1.sc01-intake", "company": "company1", "scene": 1},
+    {"bpm_process_id": "company1.sc02",          "company": "company1", "scene": 2}
   ],
   "topics": ["nowview", "nowview-sc02", "nowview-sc03", "nowview-sc04", "nowview-sc05", "nowview-sc06"]
 }
@@ -161,15 +162,15 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 * 처음 뜰 때 설정이 없으면 이 모양의 기본값을 적는다(장면 2~6은 옮기기 전 이름 `nowview.sc0N`·토픽 `nowview-sc0N`).
 * 검사: 회사 id·BPM 프로세스·토픽이 겹치지 않을 것, 매핑의 회사가 있을 것, 업무 번호가 NowView에 있는 것(1~6)일 것, NowView에 업무
   코드가 있는 회사일 것.
-* 매핑·회사 시스템 주소는 저장하면 바로 쓰인다. 토픽은 엔진을 다시 띄워야 한다(일꾼이 들이기 때 Center에 알린다).
+* 매핑·회사 시스템 주소는 저장하면 바로 쓰인다. 토픽은 일꾼 파일(`nowview.consumer.json`)을 다시 지어 Center와 엔진을 다시 띄워야 한다(Center는 그 파일의 토픽만 내준다).
 
 ## 6. 장면 1 한 바퀴
 
 ```
 1 플레이어 「CP02 수신」 ─▶ 엔진 ─▶ 회사 POST /worlds/{w}/sim/customer-plans ─▶ GET 원천 ─▶ 문서에 사본
-2 엔진 ─▶ Center: 접수 Bot 메시지 시작(autopart1.sc01-intake)
+2 엔진 ─▶ Center: 접수 Bot 메시지 시작(company1.sc01-intake)
 3 일감 screen_customer_plan ─▶ 일꾼 ─▶ 검증·변경 요약 ─▶ complete
-4 감독자 일괄 승인(대리 답) ─▶ 일감 record_intake_decision ─▶ 위임: autopart1.sc01 시작
+4 감독자 일괄 승인(대리 답) ─▶ 일감 record_intake_decision ─▶ 위임: company1.sc01 시작
 5 일감 validate_customer_plan ─▶ 검증
 6 영업담당 확인(결재) ─▶ 일감 record_plan_review ─▶ 회사 POST status VERIFIED
 7 계산 확인(결재) ─▶ 일감 assess_supply_risk ─▶ 회사 자료(T01·F01·실적·C01·FC01) ─▶ 계산 run·F02·이슈

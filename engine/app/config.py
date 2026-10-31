@@ -11,9 +11,10 @@ NowView는 BPM 패키지와 함께 배포되는 **고정 프로그램**이다. �
   `processes`를 찾아 그 회사·업무(장면)의 처리기로 간다. 매핑에 없는 BPM 프로세스의 일감은
   `not_found`로 거절한다.
 * **처음 뜰 때 설정이 없으면 기본값을 적는다**(`default_config`) — 가상 자동차 부품사 하나. 회사
-  시스템 주소의 기본은 환경의 `COMPANY_AUTOPART1_URL`이다(옛 설정 호환).
-* **토픽을 바꾸면 엔진을 다시 띄워야 한다** — 일꾼이 들이기 때 토픽을 Center에 알린다. 승인된 뒤의
-  토픽 변경은 Center 쪽 승인도 다시 필요하다.
+  시스템 주소의 기본은 환경의 `COMPANY_COMPANY1_URL`이다(옛 설정 호환).
+* **토픽을 바꾸면 엔진과 Center를 다시 띄워야 한다** — Center는 확장 폴더의 일꾼 파일
+  (`nowview.consumer.json`)에 적힌 토픽만 내준다. 파일은 `app/extension_folder.py`로
+  다시 짓는다.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ from pydantic import BaseModel, Field, model_validator
 #: NowView가 아는 업무(장면) — 화면·처리기가 코드에 있는 것만 매핑할 수 있다.
 SCENES = (1, 2, 3, 4, 5, 6)
 #: NowView 고정 확장 — 판마다 하나. 옮기기 전 장면은 예전 확장(`nowview-scN`)을 그대로 쓴다.
-FIXED_TOPIC = "nowview"
+FIXED_TOPIC = "external"
 
 
 class CompanyConfig(BaseModel):
@@ -82,20 +83,20 @@ def default_config() -> NowViewConfig:
     return NowViewConfig(
         companies=[
             CompanyConfig(
-                id="autopart1",
+                id="company1",
                 name="가상 자동차 부품사",
                 description=(
                     "매출 약 1조원 · 현대·기아 주요 고객 · A제품 울산공장 a~e 모델 — "
                     "2027년 시나리오 1"
                 ),
-                system_url=os.getenv("COMPANY_AUTOPART1_URL") or None,
+                system_url=os.getenv("COMPANY_COMPANY1_URL") or None,
             )
         ],
         processes=[
-            ProcessMapping(bpm_process_id="autopart1.sc01", company="autopart1", scene=1),
-            ProcessMapping(bpm_process_id="autopart1.sc01-intake", company="autopart1", scene=1),
+            ProcessMapping(bpm_process_id="company1.sc01", company="company1", scene=1),
+            ProcessMapping(bpm_process_id="company1.sc01-intake", company="company1", scene=1),
             *(
-                ProcessMapping(bpm_process_id=f"autopart1.sc0{n}", company="autopart1", scene=n)
+                ProcessMapping(bpm_process_id=f"company1.sc0{n}", company="company1", scene=n)
                 for n in (2, 3, 4, 5, 6)
             ),
         ],

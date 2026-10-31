@@ -2,7 +2,7 @@
 SC01 실행 — Chaeksas BPM 엔진(`chaeksas.core.engine`)을 라이브러리로 돌린다.
 
 **Chaeksas는 그림을 해석하고 사람을 기다린다. 숫자는 모른다.** 서비스 태스크가 부르는
-`autopart1.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
+`company1.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
 Center·서버 실행기는 쓰지 않는다: 정의 변경마다 패키지 서명·배포가 필요하고, 결재 응답은
 관리자 토큰으로만 되고, 작업 결과 값을 돌려주지 않아 화면이 결과를 읽을 길이 없다.
 
@@ -44,7 +44,7 @@ PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc01.bpmn"
 #: 고객계획 접수 Bot(N5) — Center 서버 Bot으로만 돈다. 엔진은 읽어서 그림·시험에만 쓴다.
 INTAKE_PATH = PROCESS_PATH.with_name("sc01-intake.bpmn")
 #: 바깥 Chaeksas 외부 확장의 id와 같다 — 확장 id에는 점을 쓸 수 없다(C13 `^[a-z][a-z0-9-]{1,49}$`).
-APP_ID = "nowview"
+APP_ID = "external"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
 SAVE_RETRIES = 5
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초). 서버 실행기가 앞 작업을 끝내고 결재를
