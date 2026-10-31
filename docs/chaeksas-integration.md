@@ -28,13 +28,15 @@
 
 | 무엇 | 어디서 (Center 콘솔 http://localhost:8501 의 왼쪽 메뉴) | 값 |
 |---|---|---|
-| 기본 확장(일꾼 작업 목록)·일꾼 | **콘솔이 아니다** — Center 확장 폴더에 복사하고 Center를 다시 띄운다(Chaeksas ADR-0121) | `chaeksas/*.extension.json`(기본 확장 `external` 0.1.0 + 옮기기 전 `nowview-sc02`~`sc06`) + `nowview.consumer.json`(이름·토픽·토큰 해시) |
+| 일꾼 | **콘솔이 아니다** — Center 일꾼 폴더에 일꾼 파일을 두고 Center를 다시 띄운다(Chaeksas ADR-0121) | `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) |
+| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.1.0 |
 | BPM 패키지 둘 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`, `company1.sc01-intake` — 그림 원본은 Company1 리포 `bpm/company1/` |
 | 가상 직원 | 업무 › **가상 직원** › 「새 가상 직원」 | id `company1-intake`, 감독자 `이도윤`, 접수 BPM 프로세스 `company1.sc01-intake` |
 | Center 키 둘 | 관리 › **Center API 키** › 「새 키...」 | 종류 「연동용」 하나, 「대리 답용」 하나 → `engine/.env.local` |
 | BPM 프로세스 → 회사·업무 | NowView `/admin` 설정 | 기본값에 이미 있다 — 손댈 것 없음 |
 
-장면 2~6은 아직 옮기기 전이다 — 예전 확장 `nowview-sc02`~`sc06`, 패키지 `company1.sc02`~`sc06`로 돈다.
+장면 2~6은 아직 옮기기 전이다 — 그림은 예전 확장 `nowview-sc02`~`sc06`을 부르는데 일꾼은 그 토픽을 맡지 않는다(기본 토픽은
+`external` 하나). **옮길 때까지 장면 2~6의 Center 실행은 서비스 태스크에서 멈춘다.**
 
 ## 3. 등록 순서 (로컬 Center)
 
@@ -43,14 +45,14 @@
 * Center 콘솔 `http://localhost:8501`에 **관리자 계정**으로 들어간다(패키지 승인·가상 직원·키 발급은 관리자만 된다).
 * Studio를 띄우고 이 Center에 연결해 둔다(Studio의 「Center로 올리기」가 그 연결로 올린다).
 
-**1. 기본 확장·일꾼을 확장 폴더로** (NowView → Center) — 콘솔 등록·요청 코드 승인이 없다(Chaeksas ADR-0121)
-1. 일꾼 토큰을 하나 짓는다: `cd engine && uv run python -m app.extension_folder --new-token`. 찍힌 원문을 `engine/.env.local`의
-   `NOWVIEW_CONSUMER_TOKEN=` 뒤에 붙인다(원문은 여기에만 둔다).
-2. 확장 폴더 파일을 짓는다 — 로컬 compose의 Center는 Chaeksas 리포 `deploy/extensions/`가 그 폴더다(`CHK_CENTER__EXTENSIONS_DIR`):
-   `cd engine && uv run --env-file .env.local python -m app.extension_folder ~/Workspace/Chaeksas/deploy/extensions`.
-   확장 정의 여섯과 `nowview.consumer.json`(토큰 **해시**·토픽)이 생긴다.
-3. Center를 다시 띄운다. 콘솔 **배포·자원 › 리소스**의 「확장 폴더」 칸에 `external`·일꾼 `NowView 엔진`이 「등록」으로 보이면 된다.
-   폴더가 들인 것은 콘솔에서 등록·해제하지 않는다 — 빼려면 파일을 지우고 Center를 다시 띄운다. 일감 흐름은 Center 로그에 남는다.
+**1. 일꾼 파일을 Center 일꾼 폴더로** (NowView → Center) — 콘솔 등록·요청 코드 승인이 없다(Chaeksas ADR-0121)
+1. 일꾼 토큰을 하나 짓는다: `cd engine && uv run python -m app.worker_file --new-token`. 찍힌 원문을 `engine/.env.local`의
+   `WORKER_CONSUMER_TOKEN=` 뒤에 붙인다(원문은 여기에만 둔다).
+2. 일꾼 파일을 짓는다 — 로컬 compose의 Center는 Chaeksas 리포 `deploy/consumers/`가 그 폴더다(`CHK_CENTER__CONSUMERS_DIR`):
+   `cd engine && uv run --env-file .env.local python -m app.worker_file ~/Workspace/Chaeksas/deploy/consumers`.
+   `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 **해시**)이 생긴다.
+3. Center를 다시 띄운다. 콘솔 **배포·자원 › 리소스**의 「일꾼 폴더」에 일꾼 `worker`가 「등록」으로 보이면 된다. 확장 정의 `external`은
+   5에서 엔진(일꾼)이 뜰 때 올린다. 빼려면 파일을 지우고 Center를 다시 띄운다. 일감 흐름·확장 올리기는 Center 로그에 남는다.
 
 **2. BPM 패키지 올리기·승인·배포** (Studio → Center 콘솔) — 두 그림 모두 같은 순서다.
 1. Studio에서 Company1 리포의 `bpm/company1/company1.sc01/process/sc01.bpmn`을 연다 → 메뉴 **파일 › Center로 올리기**.
@@ -70,15 +72,17 @@
 2. 한 번 더 **새 키...** → 이름 `nowview-relay`, 종류 **대리 답용** → **발급** → `CHAEKSAS_RELAY_KEY=` 뒤에 붙인다.
 
 **5. 일꾼 켜기** (NowView)
-1. `engine/.env.local`에 `CHAEKSAS_CENTER_URL`·`NOWVIEW_CONSUMER_TOKEN`이 있고 `NOWVIEW_CONSUMER=off` 줄이 없어야 한다.
-2. `npm run stack:restart engine`. 엔진 로그(`npm run stack:logs engine`)에 「일꾼이 토픽 … 를 가져간다」가 나오면 된다 — 승인 단계는 없다.
+1. `engine/.env.local`에 `CHAEKSAS_CENTER_URL`·`WORKER_CONSUMER_TOKEN`이 있고 `WORKER_CONSUMER=off` 줄이 없어야 한다.
+2. `npm run stack:restart engine`. 엔진 로그(`npm run stack:logs engine`)에 「확장 external 0.1.0판을 올렸다」·「일꾼이 토픽 external를
+   가져간다」가 나오면 된다 — 승인 단계는 없다.
 
 **6. 확인** (NowView)
 1. `/admin`(비밀번호는 저장소 루트 `.env.local`의 `NOWVIEW_ADMIN_PASSWORD`)에서 일꾼이 「일감을 가져가는 중」, 「연결」의 Center
    연동용 키·대리 답용 키가 「있음」, 회사 시스템이 「응답함」인지 본다.
 2. 회사 화면 `http://localhost:3000/c/company1/sc01`의 데모 플레이어에서 실행 위치 **Center**로 초기화하고 장면 1을 돌린다.
 
-**토큰·토픽을 바꿀 때** — 1의 두 명령으로 파일을 다시 짓고 Center와 엔진을 다시 띄운다. Center는 해시가 바뀌면 옛 토큰을 폐기하고,
+**토큰·토픽을 바꿀 때** — 1의 두 명령으로 파일을 다시 짓고 Center와 엔진을 다시 띄운다. 확장 정의를 고치면 판을 올린다(같은 판·
+다른 내용은 Center가 409로 거절한다). Center는 해시가 바뀌면 옛 토큰을 폐기하고,
 폐기된 토큰은 되살아나지 않는다.
 
 ## 4. NowView 환경과 설정
@@ -92,8 +96,8 @@
 | | `CHAEKSAS_RELAY_KEY` | 대리 답용 키 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
 | | `CHAEKSAS_INTAKE_WORKER` | 접수 가상 직원 id. 있으면 원천 수신이 접수 Bot을 메시지로 깨운다. 없으면 SC01을 바로 기동한다 |
 | | `CHAEKSAS_SC01_PACKAGE` | 장면 1 패키지 id(기본 `company1.sc01`) |
-| | `NOWVIEW_CONSUMER_TOKEN` | 일꾼 토큰 원문 — Center는 확장 폴더의 `nowview.consumer.json`에 든 해시만 안다 |
-| | `NOWVIEW_CONSUMER=off` | 일꾼을 끈다 |
+| | `WORKER_CONSUMER_TOKEN` | 일꾼 토큰 원문 — Center는 일꾼 폴더의 `worker.consumer.json`에 든 해시만 안다 |
+| | `WORKER_CONSUMER=off` | 일꾼을 끈다 |
 | | `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` | 회사 시스템 주소(설정의 기본값)·키 |
 | | `NOWVIEW_ADMIN_KEY` | 관리 API 키 — 웹과 같은 값 |
 | company1 `legacy/.env.local` | `COMPANY1_LEGACY_KEY` | 회사 시스템 키 — 엔진 `COMPANY_COMPANY1_KEY`와 같은 값 |
@@ -175,11 +179,11 @@ NowView 원천 수신 ──메시지 「고객계획접수」──▶ 접수 B
 
 운영 서버(`www.nowview.work`)에도 같은 서버에 Chaeksas Center(127.0.0.1:8800)와 서버 실행기가 있다.
 
-1. 운영 Chaeksas가 C15 판(Pull)이고 확장 폴더(ADR-0121)가 있는 판이어야 한다 — 옛 판은 일감을 쌓지 않고 폴더를 읽지 않는다.
+1. 운영 Chaeksas가 C15 판(Pull)이고 일꾼 폴더(ADR-0121)가 있는 판이어야 한다 — 옛 판은 일감을 쌓지 않고 폴더를 읽지 않는다.
 2. `scripts/deploy.sh --bootstrap` — `/etc/nowview.env`에 빠진 관리자 비밀(`NOWVIEW_ADMIN_PASSWORD`·`SECRET`·`KEY`)을 더한다.
 3. 회사 시스템 시뮬레이터를 서버에 올린다 — **아직 배포 스크립트·systemd 유닛이 없다**(남은 일).
 4. `scripts/deploy.sh`로 NowView를 올린다.
-5. `/etc/nowview.env`에 `NOWVIEW_CONSUMER_TOKEN`을 두고 3장 1의 명령으로 운영 Center의 확장 폴더에 파일을 지은 뒤 Center를 다시
+5. `/etc/nowview.env`에 `WORKER_CONSUMER_TOKEN`을 두고 3장 1의 명령으로 운영 Center의 일꾼 폴더에 파일을 지은 뒤 Center를 다시
    띄운다(배포 스크립트에 아직 이 단계가 없다 — 남은 일).
 6. 운영 Center 콘솔에서 3장 2~4를 한다. `/etc/nowview.env`에 `CHAEKSAS_*`·`COMPANY_COMPANY1_*`를 넣고 `systemctl restart nowview-engine`.
 
@@ -189,6 +193,7 @@ NowView 원천 수신 ──메시지 「고객계획접수」──▶ 접수 B
 * 일꾼 멱등 저장소가 메모리다 — 엔진이 다시 뜨는 사이 다시 온 일감은 한 번 더 돈다.
 * 회사 시스템의 사용자 명단을 엔진이 아직 읽지 않는다(엔진 `domain.USERS`를 쓴다).
 * 회사 시스템 시뮬레이터의 운영 배포.
-* `scripts/deploy.sh`가 확장 폴더 파일을 짓고 Center를 다시 띄우는 단계(지금은 3장 1을 손으로 한다).
+* `scripts/deploy.sh`가 일꾼 파일을 짓고 Center를 다시 띄우는 단계(지금은 3장 1을 손으로 한다).
+* 장면 2~6을 `external`로 옮기기 전까지 그 장면들의 Center 실행은 서비스 태스크에서 멈춘다(일꾼이 옛 토픽을 맡지 않는다).
 * 관리자 로그인에 시도 횟수 제한이 없다.
 * 장면 2~6을 `external` 확장·회사 이름 패키지로 옮기기.

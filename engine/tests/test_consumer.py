@@ -78,6 +78,7 @@ class FakeCenter:
 
     def __init__(self) -> None:
         self.enroll_calls = 0
+        self.extensions: list[tuple[str, str]] = []
         self.manifests: list[str] = []
         self.queue: list[dict] = []
         self.finished: dict[str, tuple[str, dict]] = {}
@@ -90,6 +91,10 @@ class FakeCenter:
             return httpx.Response(404, json={"code": "not_found", "message": path, "detail": {}})
         if request.headers.get("authorization") != f"Bearer {TOKEN}":
             return httpx.Response(401, json={"code": "token_invalid", "message": "", "detail": {}})
+        if path == "/api/v1/consumers/self/extension":
+            definition = json.loads(request.content)["definition"]
+            self.extensions.append((definition["id"], definition["version"]))
+            return httpx.Response(201, json={})
         if path == "/api/v1/consumers/self/manifest":
             self.manifests.append(json.loads(request.content)["app_id"])
             return httpx.Response(200, json={})
@@ -167,8 +172,10 @@ def test_consumer_takes_tasks_with_its_token_and_reports_reasons(proc: Sc01Proce
     )
     host.start()
     try:
-        assert host.describe()["state"] == "running"
+        _until(lambda: host.describe()["state"] == "running")
         _until(lambda: center.manifests == ["external"])
+        # 확장 정의는 manifest보다 먼저, 일꾼 토큰으로 올린다 — 콘솔 등록·들이기가 없다
+        assert center.extensions == [("external", "0.1.0")]
         assert center.enroll_calls == 0
 
         rid = proc.create(executor="studio")["demo_run_id"]
@@ -220,31 +227,29 @@ def test_consumer_stays_off_without_a_token(proc: Sc01Process) -> None:
     )
     host.start()
     found = host.describe()
-    assert found["state"] == "off" and "NOWVIEW_CONSUMER_TOKEN" in found["problem"]
+    assert found["state"] == "off" and "WORKER_CONSUMER_TOKEN" in found["problem"]
 
 
-def test_extension_folder_files(tmp_path) -> None:
+def test_worker_file(tmp_path) -> None:
     """
-    Center 확장 폴더(ADR-0121)에 둘 파일 — 확장 정의는 리포 그대로, 일꾼 파일은 토큰 **해시**와
-    설정의 토픽. 원문은 어디에도 쓰지 않는다.
+    Center 일꾼 폴더(ADR-0121)에 둘 `worker.consumer.json` — 이름 `worker`·설정의 토픽·토큰
+    **해시**. 원문은 쓰지 않는다. 확장 정의는 이 파일에 없다(일꾼이 올린다).
     """
     import hashlib
 
     from app.config import default_config
-    from app.consumer import extensions_dir
-    from app.extension_folder import CONSUMER_FILE, new_token, write_folder
+    from app.worker_file import WORKER_FILE, new_token, write_worker_file
 
     token = new_token()
     assert token.startswith("chk_ctr_") and len(token) == len("chk_ctr_") + 40
     topics = list(default_config().topics)
-    written = write_folder(tmp_path, token, topics, extensions_dir())
-    names = sorted(p.name for p in written)
-    assert "external.extension.json" in names and CONSUMER_FILE in names
-    assert (tmp_path / "external.extension.json").read_bytes() == (
-        extensions_dir() / "external.extension.json"
-    ).read_bytes()
-    body = json.loads((tmp_path / CONSUMER_FILE).read_text("utf-8"))
-    assert set(body) == {"name", "topics", "token_sha256"}
-    assert body["topics"] == topics and body["topics"][0] == "external"
-    assert body["token_sha256"] == hashlib.sha256(token.encode()).hexdigest()
-    assert all(token not in p.read_text("utf-8") for p in written)
+    assert topics == ["external"]
+    path = write_worker_file(tmp_path, token, topics)
+    assert path.name == WORKER_FILE == "worker.consumer.json"
+    body = json.loads(path.read_text("utf-8"))
+    assert body == {
+        "name": "worker",
+        "topics": ["external"],
+        "token_sha256": hashlib.sha256(token.encode()).hexdigest(),
+    }
+    assert token not in path.read_text("utf-8")

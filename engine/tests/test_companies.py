@@ -150,7 +150,7 @@ def test_admin_edits_config(client: TestClient, settings: Settings) -> None:
     assert saved["restartRequired"] is False
     assert settings.scene_of("company1.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
 
-    config["topics"] = ["external"]
+    config["topics"] = ["external", "nowview-sc02"]
     assert client.put("/admin/config", json=config, headers=headers).json()["restartRequired"]
 
     config["processes"].append({"bpm_process_id": "x", "company": "nope", "scene": 1})

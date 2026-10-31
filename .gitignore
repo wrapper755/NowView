@@ -43,7 +43,7 @@ next-env.d.ts
 # python 엔진 (engine/)
 # uv.lock은 커밋한다 — package-lock.json과 같은 이유로 재현성이 필요하다.
 engine/.venv/
-# 예전 C15 일꾼 토큰 자리(들이기 승인) — 지금은 NOWVIEW_CONSUMER_TOKEN 환경변수다. 남은 사본이 올라가지 않게 둔다
+# 예전 C15 일꾼 토큰 자리(들이기 승인) — 지금은 WORKER_CONSUMER_TOKEN 환경변수다. 남은 사본이 올라가지 않게 둔다
 engine/.consumer/
 __pycache__/
 *.py[cod]

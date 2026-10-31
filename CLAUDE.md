@@ -136,7 +136,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   가상 자동차 부품사(가칭, id `company1`)는 그 회사들 중 하나이고, 그 회사의 업무(장면 1~6)를 BPM 프로세스로 정의해 대시보드로
   운영 현황을 보인다. **NowView는 BPM 패키지와 함께 배포되는 고정 프로그램이다**(2026-10-31 결정, `docs/worker-interfaces.md`
   §1) — 워커의 작업 목록은 **기본 확장 `external` 하나**(파일 `chaeksas/external.extension.json`, 토픽도 `external`, NowView 판과 함께 바뀐다 —
-  BPM 서비스 태스크의 External Service다. 배포 때 Center의 확장 폴더로 복사되는 기본 확장이라 Center에서 등록·해제하지 않는다)이고, 어느 회사의 어느 BPM
+  BPM 서비스 태스크의 External Service다. 일꾼이 뜰 때 Center에 올리는 기본 확장이라 Center 콘솔에서 등록·해제하지 않는다)이고, 어느 회사의 어느 BPM
   프로세스를 맡는지는 **설정**(엔진 DB `nowview_config`, `app/config.py`)이다. 일꾼은 일감을 보낸 BPM 프로세스 id(`company1.sc01`)로
   설정에서 회사·업무를 찾는다. **등록은 공개하지 않는다** — 공개 화면·API(`/api/engine/companies`)는 회사 이름·설명·업무 번호뿐이고,
   BPM 프로세스 매핑·토픽·회사 시스템 주소·일꾼 상태(요청 코드)는 **관리자 모드 `/admin`**(로그인)에만 있다. 업무(장면) 목록은
@@ -338,7 +338,7 @@ NowView/
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
-    │   ├── extension_folder.py   # Center 확장 폴더 파일 짓기 — 확장 정의 복사 + nowview.consumer.json(토큰 해시·토픽, ADR-0121)
+    │   ├── worker_file.py        # Center 일꾼 폴더에 둘 worker.consumer.json 짓기(토큰 해시·토픽, ADR-0121)·--new-token
     │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
     │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
     │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
@@ -523,16 +523,17 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     (어댑터 때는 「…이 409를 돌려줬다」뿐이었다).
   * **최소 한 번 실행이다**(C15) — 잠금이 지나 같은 일감이 다시 오면 `service_kit`의 멱등 저장소가 저장한
     결과를 다시 준다(같은 칸·다른 본문은 `idempotency_conflict`). 저장소는 **메모리**다 — 엔진이 다시 뜨면 빈다.
-  * **승인 없는 일꾼이다**(2026-10-31 사용자 결정, Chaeksas ADR-0121). 배포가 Center의 확장 폴더
-    (`CHK_CENTER__EXTENSIONS_DIR`)에 확장 정의(`chaeksas/*.extension.json`)와 일꾼 파일 `nowview.consumer.json`(이름·토픽·
-    토큰 **해시**)을 복사하면 Center가 뜰 때 들인다 — 콘솔 등록·해제도, 요청 코드 승인도 없다. 파일은
-    `engine/app/extension_folder.py`가 짓는다(`--new-token`으로 토큰 원문을 짓고 `NOWVIEW_CONSUMER_TOKEN`에 둔다). 엔진은
-    `CHAEKSAS_CENTER_URL`·`NOWVIEW_CONSUMER_TOKEN`이 있으면 바로 가져가기를 시작하고(들이기를 부르지 않는다), 토큰이 없으면
-    꺼진 채 사유를 남긴다. **지켜볼 것은 로그다** — 엔진 로그 `nowview.consumer`와 Center 로그(일꾼·일감·토픽·작업·오류 코드).
-    `/health.consumer.state`는 `off`·`running`이다.
+  * **승인 없는 일꾼이다**(2026-10-31 사용자 결정, Chaeksas ADR-0121). 배포가 Center의 일꾼 폴더
+    (`CHK_CENTER__CONSUMERS_DIR`)에 일꾼 파일 `worker.consumer.json`(이름 `worker`·토픽·토큰 **해시**)을 두면 Center가 뜰 때
+    들인다 — 요청 코드 승인이 없다. 파일은 `engine/app/worker_file.py`가 짓는다(`--new-token`으로 토큰 원문을 짓고
+    `WORKER_CONSUMER_TOKEN`에 둔다). **확장 정의는 일꾼이 올린다** — 엔진이 뜨면 토픽마다 `chaeksas/{topic}.extension.json`을
+    `PUT /consumers/self/extension`으로 올리고(409는 판을 올리라는 경고만) manifest를 올린 뒤 가져가기를 시작한다. 콘솔 등록·
+    해제는 없다. 토큰이 없으면 꺼진 채 사유를 남긴다. **기본 토픽은 `external` 하나다** — 장면 2~6의 옛 토픽은 맡지 않아,
+    옮길 때까지 그 장면들의 Center 실행은 서비스 태스크에서 멈춘다. **지켜볼 것은 로그다** — 엔진 로그 `nowview.consumer`와 Center 로그(일꾼·일감·토픽·작업·오류 코드).
+    `/health.consumer.state`는 `off`·`starting`(확장 정의 올리는 중)·`running`이다.
   * **manifest는 확장 정의에서 짓는다**(`manifest_of`) — 작업·모드·입출력 스키마·`timeout_s`. 일꾼이 뜰 때
     `PUT …/consumers/self/manifest`로 올리고, Center가 일감의 작업을 대조하고 출력 필수 칸을 막는다(422
-    `output_invalid`). 그래서 **정의가 Center 확장 폴더에 있어야 한다**.
+    `output_invalid`). 그래서 **확장 정의를 먼저 올린다**.
     정의 위치는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포 `chaeksas/`, 도커 이미지는 `additional_contexts`로 복사).
   * **기본 확장(`external`)은 요청 템플릿을 자리만 채운다**(운영계 주소·`path: "/"`·키 없음) — C13이 HTTP 어댑터 모양을
     요구해서다. 작업 이름도 업무 언어로 바꿨다(`assess_supply_risk`·`record_plan_review`·`assign_follow_up` …,
@@ -1673,7 +1674,7 @@ UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연
 > **2026-10-31 Chaeksas가 바깥 호출을 Pull로 바꿨다(ADR-0102, C15) — NowView는 엔진이 C15 일꾼이 됐다**(4.3). 이 판을
 > 올리기 전에 운영 Chaeksas(Center·서버 실행기)도 C15 판(`554d7fa` 이후)이어야 한다 — 옛 Center는 일감을 쌓지 않고
 > 어댑터로 `/operations/…`를 부르는데 그 경로가 없어졌다. 사람이 할 것은 `docs/chaeksas-integration.md` §7이다 — 확장
-> 정의·일꾼은 Center 확장 폴더로 복사하고(ADR-0121, 콘솔 등록·요청 코드 승인 없음), 패키지·접수 가상 직원·연동용·대리 답용
+> 일꾼은 Center 일꾼 폴더의 파일로 들이고 확장 정의는 일꾼이 올린다(ADR-0121, 콘솔 등록·승인 없음), 패키지·접수 가상 직원·연동용·대리 답용
 > 키는 콘솔에서 한다.
 > * **DB는 비우지 않았다** — 예전 데모 실행 33건·LangGraph 테이블(`checkpoint*`, `instance_spec`)이 남아 있다. 옛 문서는
 >   읽을 때 채우고(`domain.upgrade`) 새 데모 실행과 무관하다. 비우는 명령은 자동 권한 검사가 막았다 — 비우려면 사람이 한다.
