@@ -18,8 +18,21 @@ DB_USER=nowview
 WEB_PORT=${WEB_PORT:-3100}
 ENGINE_PORT=${ENGINE_PORT:-8077}
 
+# 관리자 모드(/admin, docs/worker-interfaces.md §0.1)의 비밀 — 파일이 이미 있어도 **빠진 것만** 지어 더한다.
+# 비밀번호는 이 서버에만 있다: `grep NOWVIEW_ADMIN_PASSWORD /etc/nowview.env`로 본다.
+ensure_admin_secrets() {
+  local name
+  for name in NOWVIEW_ADMIN_PASSWORD NOWVIEW_ADMIN_SECRET NOWVIEW_ADMIN_KEY; do
+    if ! grep -q "^${name}=" "$ENV_FILE"; then
+      echo "${name}=$(openssl rand -hex 24)" >> "$ENV_FILE"
+      echo "더함: ${name}"
+    fi
+  done
+}
+
 if [[ -f $ENV_FILE ]]; then
   echo "이미 있다: $ENV_FILE — 그대로 둔다 (비밀번호를 바꾸면 엔진이 붙지 못한다)"
+  ensure_admin_secrets
   exit 0
 fi
 
@@ -67,5 +80,6 @@ umask 077
   echo "OLLAMA_MODEL=kimi-k3:cloud"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
+ensure_admin_secrets
 
 echo "작성: $ENV_FILE (0600, root만)"

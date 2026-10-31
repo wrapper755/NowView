@@ -134,9 +134,13 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **NowView의 역할**(2026-10-31 사용자 정의): **회사 사이트가 아니다.** 둘이다 — ① Chaeksas Center에 올린 **회사별 BPM 프로세스의
   서비스 태스크를 수행하는 일꾼**(C15, `engine/app/consumer.py`), ② **N개 회사의 운영 현황 대시보드**(`/` 회사 목록 → `/c/{회사}`).
   가상 자동차 부품사(가칭, id `autoparts`)는 그 회사들 중 하나이고, 그 회사의 업무(장면 1~6)를 BPM 프로세스로 정의해 대시보드로
-  운영 현황을 보인다. 회사 등록부는 `engine/app/companies.py`(화면 사본 `lib/companies.ts`, 시험이 대조). Center에 올리는 이름에
-  회사가 들어간다 — 패키지 `autoparts.sc01`, 일꾼 토픽 `autoparts-sc01`. **장면은 하나씩 옮긴다** — 지금 장면 1만 회사 이름이고
-  장면 2~6은 예전 이름(`nowview-scN`)이다(`migrated`). 옮길 때 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복한다.
+  운영 현황을 보인다. **NowView는 BPM 패키지와 함께 배포되는 고정 프로그램이다**(2026-10-31 결정, `docs/worker-interfaces.md`
+  §0.1) — 일꾼의 작업 목록은 **고정 확장 `nowview` 하나**(토픽도 `nowview`, NowView 판과 함께 바뀐다)이고, 어느 회사의 어느 BPM
+  프로세스를 맡는지는 **설정**(엔진 DB `nowview_config`, `app/config.py`)이다. 일꾼은 일감을 보낸 BPM 프로세스 id(`autoparts.sc01`)로
+  설정에서 회사·업무를 찾는다. **등록은 공개하지 않는다** — 공개 화면·API(`/api/engine/companies`)는 회사 이름·설명·업무 번호뿐이고,
+  BPM 프로세스 매핑·토픽·회사 시스템 주소·일꾼 상태(요청 코드)는 **관리자 모드 `/admin`**(로그인)에만 있다. 업무(장면) 목록은
+  코드다(`lib/companies.ts`의 `SCENES` = 엔진 `SCENE_WORKS`). **장면은 하나씩 옮긴다** — 지금 장면 1만 `nowview` 확장이고 장면 2~6은
+  예전 확장(`nowview-scN`)이다. 옮길 때 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복한다.
 * **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
   몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 서버**(`company-sim/`, :8091)이고 엔진이 `app/company.py`로 읽고 적는다.
@@ -258,17 +262,17 @@ NowView/
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
 ├── company-sim/                  # 가상 자동차 부품사 회사 시스템 시뮬레이터(별도 서버, :8091) — autoparts_sim(seed · store · main)
 │                                 #   · seed/(엑셀 원천 시트 사본 · org.json) · tests · Dockerfile. 세계(world) = 데모 실행
-├── chaeksas/                     # Center에 올릴 외부 확장 정의 — 장면마다 한 벌(autoparts-sc01 · 아직 옮기기 전 nowview-sc02~sc06, 4.3)
+├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 고정 확장 nowview.extension.json · 옮기기 전 nowview-sc02~sc06
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
-│   ├── page.tsx                  # 회사 목록 — 회사별 BPM 프로세스 등록 현황 · 일꾼 상태 한 줄
-│   ├── worker/page.tsx           # 일꾼 — Center 들이기(요청 코드)·맡은 토픽·Center 연동·최근 일감
-│   ├── c/[company]/              # 회사 화면(정적 경로 — 등록부의 회사만, `dynamicParams=false`)
-│   │   ├── layout.tsx        # 공통 줄(회사 이름·역할·해설) · 업무 사이드바 · 화면 메뉴 · 데모 플레이어 · 세션 동기화
-│   │   ├── page.tsx          # 회사 운영 현황 — 업무(BPM 프로세스)별 Center 패키지·토픽
-│   │   ├── sc01/             # 장면 1 — page(UI01 경영 현황) · plans(UI02·03) · risk(UI04) · tasks(UI05) · handoff(UI06) · process(BPM)
+│   ├── page.tsx                  # 회사 목록 — INNONOW 브랜드 영역 + 공개 회사 목록(이름·설명·업무)
+│   ├── admin/page.tsx            # 관리자 모드 — 로그인 · 일꾼 상태(요청 코드·토픽·최근 일감) · 연결 · 설정 편집(공개 화면에 링크 없음)
+│   ├── c/[company]/              # 회사 화면 — 회사는 설정이라 서버가 묻지 않고 클라이언트가 공개 목록으로 확인한다
+│   │   ├── layout.tsx            # 공통 줄(회사 이름·역할·해설) · 업무 사이드바 · 화면 메뉴 · 데모 플레이어 · 세션 동기화
+│   │   ├── page.tsx              # 회사 운영 현황 — 그 회사가 쓰는 업무(없는 회사면 그렇게 말한다)
+│   │   ├── sc01/                 # 장면 1 — page(UI01 경영 현황) · plans(UI02·03) · risk(UI04) · tasks(UI05) · handoff(UI06) · process(BPM)
 │   │   ├── sc02/                 # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
 │   │   │                         #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
 │   │   ├── sc03/                 # 장면 3 — page(업무함 U31) · analysis(U32) · confirm(U33) · meeting(U34·U35)
@@ -279,13 +283,16 @@ NowView/
 │   │   │                         #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
 │   │   ├── sc06/                 # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · confirm(확인 절차 결재)
 │   │   │                         #   · report(U602 보고 요약) · process(BPM)
-│   └── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01~sc06 + 읽기 전용 companies·worker)
+│   ├── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — sc01~sc06 + 읽기 전용 companies. `/admin`은 중계하지 않는다
+│   └── api/admin/                # 관리자 — login(비밀번호 → 서명 쿠키)·session·[...path](세션이 있으면 엔진 /admin/*로, X-Admin-Key)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
 │   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
 │   │                             #   scenario-nav(업무 사이드바 · 머리의 업무 · 화면 메뉴), demo-player-switch(장면별 플레이어),
 │   │                             #   preparation-note(장면 시작 준비 중 — 앞 업무 진행 표시), top-bar(공통 줄),
-│   │                             #   company-link(장면 경로 → 회사 주소 링크), worker-status(일꾼 상태)
+│   │                             #   company-link(장면 경로 → 회사 주소 링크)
+│   ├── admin/                    # 관리자 모드 — admin-console(로그인·설정 JSON 편집) · status-panel(일꾼·연결·최근 일감)
+│   ├── companies/company-list.tsx # 공개 회사 목록 · 회사 운영 현황(클라이언트가 공개 목록을 받는다)
 │   │                             #   brand-hero(첫 화면 머리 — Center 로그인 상단과 같은 INNONOW 로고·문구, 로고는 `public/brand/`)
 │   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
 │   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
@@ -301,7 +308,8 @@ NowView/
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
-│   ├── companies.ts              # 회사 등록부 화면 사본(엔진 `app/companies.py`와 시험이 대조) · companyPath
+│   ├── companies.ts              # 업무 목록 SCENES(엔진 SCENE_WORKS와 시험이 대조) · useCompanies(공개 목록) · companyPath
+│   ├── admin-session.ts          # 관리자 세션(서버 전용) — 비밀번호 대조·서명 쿠키
 │   ├── company-nav.ts            # 장면 경로 ↔ 회사 주소 — useScenePath · useCompanyRouter(장면 코드는 회사를 모른다)
 │   ├── preparation.ts            # 장면 시작 202(준비 중) → 준비 상태를 읽다가 문서를 받는다(4.3)
 │   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
@@ -330,7 +338,8 @@ NowView/
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
-    │   ├── companies.py          # 회사 등록부 — 회사·장면별 Center 패키지·일꾼 토픽 · GET /companies · GET /worker
+    │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
+    │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
     │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
@@ -494,7 +503,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
 * **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
   `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
-  (= BPMN `app_id`, 회사 등록부의 장면마다 하나 — `autoparts-sc01`, 옮기기 전 장면은 `nowview-sc02`~`sc06`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
+  (= BPMN `app_id`, 설정 `topics` — 고정 확장 `nowview`, 옮기기 전 장면은 `nowview-sc02`~`sc06`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
   `complete`·`fail`로 알린다. 연결은 늘 엔진 → Center다 — **Center는 NowView 주소도 키도 모른다.**
   내장 BPM의 `_InProcessCalls`와 일꾼이 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다.
   예전(Push)에는 Center 쪽 HTTP 어댑터가 BFF의 `/operations/…`를 키로 찔렀다 — 그 경로·키 검사(N6,
@@ -523,16 +532,17 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     `PUT …/consumers/self/manifest`로 올리고, Center가 일감의 작업을 대조하고 출력 필수 칸을 막는다(422
     `output_invalid`). 그래서 **정의는 Center에 등록해 둔다**(외부 확장 토픽은 등록된 정의가 있어야 승인된다).
     정의 위치는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포 `chaeksas/`, 도커 이미지는 `additional_contexts`로 복사).
-  * **장면 1 정의(`autoparts-sc01`)는 요청 템플릿을 자리만 채운다**(운영계 주소·`path: "/"`·키 없음) — C13이 HTTP 어댑터 모양을
+  * **NowView 고정 확장(`nowview`)은 요청 템플릿을 자리만 채운다**(운영계 주소·`path: "/"`·키 없음) — C13이 HTTP 어댑터 모양을
     요구해서다. 작업 이름도 업무 언어로 바꿨다(`assess_supply_risk`·`record_plan_review`·`assign_follow_up` …,
     `docs/worker-interfaces.md` §3.1). 장면 2~6 정의는 아래처럼 옛 템플릿이 남아 있다.
   * **확장 정의의 요청 템플릿(`path`·`body`·`allowed_hosts`·`auth`)은 이 길에서 쓰지 않는다.** Chaeksas 범용
     어댑터 일꾼(`chk-adapter-consumer`)을 대신 돌릴 때만 읽힌다. 고치면 다시 서명해야 해서 그대로 뒀다 —
     `test_extension_definition_matches_the_bpmn_service_calls`가 여전히 템플릿 ↔ 그림을 잠근다.
-  * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 토픽(서비스 앱 id)은 `autoparts-sc01`,
-    BPM 프로세스(패키지) id는 `autoparts.sc01`이다 — 둘 다 회사 이름이 앞이다(`companies.py`, 2026-10-31). 장면 1을 옮기며
-    정의도 새 id로 다시 냈다(`chaeksas/autoparts-sc01.extension.json` 0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다).
-  * **`/worker`**(BFF `/api/engine/worker`)가 일꾼 상태·맡은 토픽·요청 코드·최근 일감 50건(엔진 메모리)을 보인다.
+  * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 토픽(서비스 앱 id)은 NowView 고정 확장 `nowview`, BPM
+    프로세스(패키지) id는 회사가 짓는다(`autoparts.sc01`). 장면 1을 옮기며 정의를 새 id로 다시 냈다(`chaeksas/nowview.extension.json`
+    0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다).
+  * **관리자 모드 `/admin`**(로그인)이 일꾼 상태·맡은 토픽·요청 코드·최근 일감 50건(엔진 메모리)을 보인다 — 공개 화면·API에는 없다
+    (`/health`도 일꾼 상태만 싣는다). 요청 코드도 거기서 본다.
     **토픽을 바꾸면 들이기를 다시 해야 한다** — 승인 전 요청은 옛 토픽으로 나간 것이라 `engine/.consumer/`를 지우고 새 코드를
     받는다(승인 뒤라면 Center에서 일꾼의 토픽을 바꾼다).
   * **BPMN은 `chk:process.extensions`에 `nowview-scN`을 선언한다** — Studio가 이것을 패키지
@@ -562,7 +572,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
-* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 그 밖에는 읽기 전용 `companies`·`worker`(하위 경로 없이 GET)뿐이다. 목록 밖은 404 —
+* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 그 밖에는 읽기 전용 `companies`(하위 경로 없이 GET)뿐이다. 관리 API는 `/api/admin/*`(관리자 세션)만 중계한다. 목록 밖은 404 —
   엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 BFF를 부르는 길은 없다(C15 일꾼). 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
   `X-Demo-Actor`·`Idempotency-Key`뿐이다.
@@ -875,7 +885,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc06_external.py` | 확장 정의 `nowview-sc06` ↔ BPMN(계약 검사·본문 입력·답한 사람·오류 경계), Studio 흉내로 대표 보고까지(늦게 연 업무·같은 기록), 결론 숫자 틀린 확정 → 기록 거절 → 같은 결재(남은 항목은 감사 이력), `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·담당 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **콘솔 답 거절 → 같은 업무에 잇고 사유가 폼에·반영 중(`inflight`)·화면 답이 각본 지점을 옮김**, 회신기한 형식 사전 검사 |
 | `engine/tests/test_consumer.py` | C15 일꾼 — manifest가 여섯 장면 그림의 서비스 호출·입력·출력을 다 덮는다, 가짜 Center와 들이기(요청 코드 → 승인 → 봉한 토큰) → manifest → 가져가기 → `complete`, `origin`이 선언과 다르면 사유와 함께 `fail`(conflict), 같은 멱등 칸 다른 본문 `idempotency_conflict`, Center 없으면 꺼짐. 장면별 바깥 실행 시험의 Studio·서버 실행기 흉내도 이 수행기를 지난다(`conftest.C15Calls` — Center처럼 출력 필수 칸을 본다) |
-| `engine/tests/test_companies.py` | 회사 등록부 — 화면 사본(`lib/companies.ts`)과 같다, 토픽 중복 없음, 옮긴 장면은 확장 정의 id = 토픽 · 그림 프로세스 id = 패키지 · 서비스 호출·확장 선언 = 토픽, `GET /companies`·`/worker` |
+| `engine/tests/test_companies.py` | NowView 설정·회사 — 업무 목록 = 화면 사본, 설정 기본값·저장·검사(겹침·없는 회사·없는 업무), 공개 목록에 등록 정보 없음·`/worker` 없음, 관리 API 키(401·503)·설정 편집(토픽 바꾸면 재시작 필요), 일꾼이 보낸 BPM 프로세스 id로 업무를 찾음(없으면 `not_found`) |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |

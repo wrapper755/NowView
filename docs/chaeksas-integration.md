@@ -346,13 +346,17 @@ NowView는 회사 사이트가 아니라 **회사별 BPM 프로세스의 일꾼 
 이름에 회사가 들어간다 — 가상 자동차 부품사(가칭, `autoparts`)의 장면 N은 패키지 `autoparts.scN`, 토픽 `autoparts-scN`이다.
 등록부는 `engine/app/companies.py`. 장면은 하나씩 옮기고, 옮길 때마다 Center에 다시 등록해 실행·시험·수정을 반복한다.
 
+**NowView는 고정 패키지다**(2026-10-31, `docs/worker-interfaces.md` §0.1) — 확장·토픽은 회사·장면마다가 아니라 NowView 하나
+(`nowview`)이고, 회사는 BPM 프로세스 id로 NowView 설정(관리자 모드 `/admin`)에서 찾는다.
+
 **장면 1을 옮기며 Center에서 할 것**(예전 `nowview-sc01`·`nowview.sc01`·`nowview.sc01-intake`·`nowview-intake`는 쓰지 않는다):
 
-1. CON-07 확장 정의 `chaeksas/autoparts-sc01.extension.json`(0.1.0) 서명·등록 — 키·주소는 없다.
+1. CON-07 확장 정의 `chaeksas/nowview.extension.json`(0.1.0) 서명·등록 — 키는 없다(주소·요청은 계약이 요구하는 자리 채움).
 2. Studio에서 `engine/processes/sc01.bpmn`(→ `autoparts.sc01`)과 `sc01-intake.bpmn`(→ `autoparts.sc01-intake`)을 내보내
    승인·배포.
 3. CON-13 접수 가상 직원 `autoparts-intake`(접수 Bot = `autoparts.sc01-intake`, 감독자) — 엔진 `CHAEKSAS_INTAKE_WORKER`와 같은 id.
-4. CON-07 「일꾼 승인 대기」에서 엔진의 요청 코드 승인(`/worker` 화면에 보인다). 토픽이 바뀌어 예전 요청은 버렸다.
+4. `engine/.env.local`의 `NOWVIEW_CONSUMER=off`를 지우고 엔진을 다시 띄운다 → CON-07 「일꾼 승인 대기」에서 요청 코드 승인
+   (NowView 관리자 모드 `/admin`에 보인다 — 공개 화면에는 없다).
 5. CON-11 연동용·대리 답용 키 → `engine/.env.local`.
 
 ## 6. 하지 않는 것

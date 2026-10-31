@@ -27,7 +27,7 @@
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
-        "extensions": [{"id": "autoparts-sc01", "version": "&gt;=0.1.0,&lt;1"}],
+        "extensions": [{"id": "nowview", "version": "&gt;=0.1.0,&lt;1"}],
         "inputs": [
           {"name": "데모실행ID", "type": "string", "required": true},
           {"name": "원천ID", "type": "string", "required": true},
@@ -43,7 +43,7 @@
     <bpmn:serviceTask id="Task_Validate" name="원천 자동 검증">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "validate_customer_plan",
+          "app_id": "nowview", "operation": "validate_customer_plan",
           "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID", "processed_by": "처리자"},
           "output": {"검증통과": "passed", "검증오류수": "error_count"}
         }</chk:serviceCall>
@@ -73,7 +73,7 @@
     <bpmn:serviceTask id="Record_DQ" name="원천 확인 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_plan_review",
+          "app_id": "nowview", "operation": "record_plan_review",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_DQ'", "source_id": "원천ID", "result": "확인결과", "opinion": "확인의견", "evidence": "확인근거", "answered_by": "확인자", "answered_via": "확인경로"},
           "output": {"error_message": "error_message"}
         }</chk:serviceCall>
@@ -111,7 +111,7 @@
     <bpmn:serviceTask id="Task_Calc" name="전망 생성 · 지표 계산">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "assess_supply_risk",
+          "app_id": "nowview", "operation": "assess_supply_risk",
           "input": {"demo_run_id": "데모실행ID", "source_id": "원천ID", "answered_by": "계산요청자", "answered_via": "계산요청경로"},
           "output": {"계산ID": "run_id", "위험수준": "risk", "이슈ID": "issue_id"}
         }</chk:serviceCall>
@@ -126,7 +126,7 @@
     <bpmn:serviceTask id="Task_AgentRequest" name="Agent 검토 초안 요청">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "request_review_draft",
+          "app_id": "nowview", "operation": "request_review_draft",
           "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
           "output": {"초안ID": "output_id"}
         }</chk:serviceCall>
@@ -155,7 +155,7 @@
     <bpmn:serviceTask id="Record_Sales" name="영업 검토 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_risk_review",
+          "app_id": "nowview", "operation": "record_risk_review",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Sales'", "run_id": "계산ID", "opinion": "영업의견", "evidence": "영업근거", "manual_review": "경영검토요청", "agent_output": "초안ID", "answered_by": "영업검토자", "answered_via": "영업검토경로"},
           "output": {"error_message": "error_message"}
         }</chk:serviceCall>
@@ -192,7 +192,7 @@
     <bpmn:serviceTask id="Record_Dispatch" name="현업 배정 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "assign_follow_up",
+          "app_id": "nowview", "operation": "assign_follow_up",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Dispatch'", "prod": "생산담당자", "mat": "자재담당자", "answered_by": "배정자", "answered_via": "배정경로"},
           "output": {"생산담당자명": "prod_name", "자재담당자명": "mat_name", "error_message": "error_message"}
         }</chk:serviceCall>
@@ -220,7 +220,7 @@
     <bpmn:serviceTask id="Record_PROD" name="생산 인수 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_acceptance",
+          "app_id": "nowview", "operation": "record_acceptance",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_PROD'", "run_id": "계산ID", "answered_by": "생산인수자", "answered_via": "생산인수경로"},
           "output": {"error_message": "error_message"}
         }</chk:serviceCall>
@@ -245,7 +245,7 @@
     <bpmn:serviceTask id="Record_MAT" name="자재 인수 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_acceptance",
+          "app_id": "nowview", "operation": "record_acceptance",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_MAT'", "run_id": "계산ID", "answered_by": "자재인수자", "answered_via": "자재인수경로"},
           "output": {"error_message": "error_message"}
         }</chk:serviceCall>
@@ -276,7 +276,7 @@
     <bpmn:serviceTask id="Record_Review" name="경영 검토 요청 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "assign_follow_up",
+          "app_id": "nowview", "operation": "assign_follow_up",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Approve_Review'", "fin": "경영관리담당자", "answered_by": "검토요청자", "answered_via": "검토요청경로"},
           "output": {"경영관리담당자명": "fin_name", "error_message": "error_message"}
         }</chk:serviceCall>
@@ -302,7 +302,7 @@
     <bpmn:serviceTask id="Record_FIN" name="손익분석 인수 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_acceptance",
+          "app_id": "nowview", "operation": "record_acceptance",
           "input": {"demo_run_id": "데모실행ID", "node_id": "'Accept_FIN'", "run_id": "계산ID", "answered_by": "경영관리인수자", "answered_via": "경영관리인수경로"},
           "output": {"error_message": "error_message"}
         }</chk:serviceCall>
@@ -318,7 +318,7 @@
     <bpmn:serviceTask id="Task_Handoff" name="장면 인계 기록">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "hand_off_case",
+          "app_id": "nowview", "operation": "hand_off_case",
           "input": {"demo_run_id": "데모실행ID", "run_id": "계산ID"},
           "output": {"인계완료": "handed_off"}
         }</chk:serviceCall>

@@ -29,7 +29,7 @@
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
-        "extensions": [{"id": "autoparts-sc01", "version": "&gt;=0.1.0,&lt;1"}],
+        "extensions": [{"id": "nowview", "version": "&gt;=0.1.0,&lt;1"}],
         "inputs": [
           {"name": "원천목록", "type": "list", "required": true,
            "description": "{데모실행ID, 원천ID} 목록 — NowView 원천 수신이 메시지 본문에 싣는다"},
@@ -53,7 +53,7 @@
     <bpmn:serviceTask id="Task_Screen" name="원천 자동 검증 (건마다)">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "screen_customer_plan",
+          "app_id": "nowview", "operation": "screen_customer_plan",
           "input": {"demo_run_id": "건['데모실행ID']", "source_id": "건['원천ID']", "processed_by": "가상직원"},
           "output": {"검토": "summary"}
         }</chk:serviceCall>
@@ -84,7 +84,7 @@
     <bpmn:serviceTask id="Record_Batch" name="접수 결정 기록 (건마다)">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "autoparts-sc01", "operation": "record_intake_decision",
+          "app_id": "nowview", "operation": "record_intake_decision",
           "input": {"demo_run_id": "건['데모실행ID']", "source_id": "건['원천ID']", "decision": "결정", "opinion": "의견", "answered_by": "승인자", "answered_via": "승인경로", "processed_by": "가상직원"},
           "output": {"기록": "recorded"}
         }</chk:serviceCall>

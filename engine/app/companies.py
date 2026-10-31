@@ -1,119 +1,173 @@
 """
-회사 등록부 — NowView가 대시보드를 보여 주는 회사와, 그 회사의 BPM 프로세스(장면)가 Center에 어떤
-이름으로 올라가 있는지.
+회사 — 공개 목록(`GET /companies`)과 관리자 모드(`/admin/*`).
 
-NowView는 회사 사이트가 아니다. 두 가지 일을 한다(2026-10-31 사용자 정의):
+NowView는 회사 사이트가 아니다. 두 가지 일을 한다(2026-10-31 사용자 정의,
+`docs/worker-interfaces.md` §0.1):
 
-* **일꾼** — 회사마다 Center에 올린 BPM 프로세스의 서비스 태스크 일감을 가져가 수행한다
-  (`app/consumer.py`). 토픽에 회사가 들어간다(`autoparts-sc01`) — 일감 입력에 회사를 싣지 않는다.
+* **일꾼** — Center에 올린 회사별 BPM 프로세스의 서비스 태스크 일감을 가져가 수행한다
+  (`app/consumer.py`). 일꾼이 제공하는 작업은 NowView 고정 확장 `nowview` 하나이고, 어느 회사의 어느
+  BPM 프로세스를 맡는지는 **설정**이다(`app/config.py`).
 * **회사별 대시보드** — N개 회사의 운영 현황을 그 회사의 BPM 진행 위에서 보여 준다.
 
-지금 회사는 하나다 — 가상 자동차 부품사(가칭, `autoparts`). 장면은 하나씩 회사 이름으로 옮긴다:
-옮긴 장면은 `autoparts-scN`·`autoparts.scN`이고, 아직 옮기지 않은 장면은 예전 이름(`nowview-scN`)
-그대로다(`migrated`). 화면 쪽 등록부는 `lib/companies.ts`이고 시험이 둘을 대조한다.
+**등록은 공개하지 않는다.** 공개 목록은 회사 이름·설명과 그 회사가 쓰는 업무 번호뿐이다 — BPM
+프로세스 id·토픽·회사 시스템 주소·들이기 상태(요청 코드)는 관리자 모드(`/admin/*`)에만 있다. 관리
+API는 BFF만 아는 키(`NOWVIEW_ADMIN_KEY`, 헤더 `X-Admin-Key`)로 막고, 공개 BFF 경로는 그것을 중계하지
+않는다. 키가 없으면 관리자 모드는 꺼져 있다(503).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import hmac
+import json
+import os
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Header, HTTPException
+from pydantic import ValidationError
+
+from .config import ConfigStore, NowViewConfig
+
+#: NowView가 아는 업무(장면) — 코드에 화면·처리기가 있다. 화면 쪽 사본은 `lib/companies.ts`의
+#: `SCENES` (시험이 대조).
+SCENE_WORKS: dict[int, str] = {
+    1: "고객 생산계획 변경 대응",
+    2: "외주 단가 인상 검토",
+    3: "수익성 통합 분석",
+    4: "개선안 검토·실행 승인",
+    5: "결정 실행·계획 갱신",
+    6: "완료·성과 검토",
+}
+
+EXTENSION = Path(__file__).resolve().parents[2] / "chaeksas" / "nowview.extension.json"
 
 
-@dataclass(frozen=True)
-class Scene:
-    """회사의 BPM 프로세스 하나 — 시연 순서(`no`), 업무 이름, Center의 일꾼 토픽·패키지 id."""
+class Settings:
+    """
+    지금 설정 — 관리자 모드가 고치면 바로 바뀐다(일꾼의 매핑·회사 시스템 주소). 토픽은 엔진을 다시
+    띄워야 한다(일꾼이 들이기 때 Center에 알린 값이다).
+    """
 
-    no: int
-    work: str
-    topic: str
-    package: str
+    def __init__(self, store: ConfigStore) -> None:
+        self.store = store
+        self.config, self.updated_at = store.load()
+        self.started_topics = list(self.config.topics)
+        self._listeners: list[Callable[[NowViewConfig], None]] = []
 
-    @property
-    def migrated(self) -> bool:
-        """회사 이름으로 옮겨 Center에 다시 올린 장면인가."""
-        return not self.topic.startswith("nowview-")
+    def on_change(self, listener: Callable[[NowViewConfig], None]) -> None:
+        self._listeners.append(listener)
+        listener(self.config)
 
+    def replace(self, config: NowViewConfig) -> None:
+        self.updated_at = self.store.save(config)
+        self.config = config
+        for listener in self._listeners:
+            listener(config)
 
-@dataclass(frozen=True)
-class Company:
-    id: str
-    name: str
-    description: str
-    scenes: tuple[Scene, ...]
-
-
-COMPANIES: tuple[Company, ...] = (
-    Company(
-        id="autoparts",
-        name="가상 자동차 부품사",
-        description=(
-            "매출 약 1조원 · 현대·기아 주요 고객 · A제품 울산공장 a~e 모델 — 2027년 시나리오 1"
-        ),
-        scenes=(
-            Scene(1, "고객 생산계획 변경 대응", "autoparts-sc01", "autoparts.sc01"),
-            Scene(2, "외주 단가 인상 검토", "nowview-sc02", "nowview.sc02"),
-            Scene(3, "수익성 통합 분석", "nowview-sc03", "nowview.sc03"),
-            Scene(4, "개선안 검토·실행 승인", "nowview-sc04", "nowview.sc04"),
-            Scene(5, "결정 실행·계획 갱신", "nowview-sc05", "nowview.sc05"),
-            Scene(6, "완료·성과 검토", "nowview-sc06", "nowview.sc06"),
-        ),
-    ),
-)
+    def scene_of(self, bpm_process_id: str | None) -> int | None:
+        found = self.config.mapping(bpm_process_id)
+        return found.scene if found else None
 
 
-def company(company_id: str) -> Company | None:
-    return next((c for c in COMPANIES if c.id == company_id), None)
-
-
-def describe(c: Company) -> dict[str, Any]:
-    return {
-        "id": c.id,
-        "name": c.name,
-        "description": c.description,
-        "scenes": [
-            {
-                "no": s.no,
-                "work": s.work,
-                "topic": s.topic,
-                "package": s.package,
-                "migrated": s.migrated,
-            }
-            for s in c.scenes
-        ],
-    }
+def public_companies(config: NowViewConfig) -> list[dict[str, Any]]:
+    """공개 목록 — 이름·설명·업무 번호만. BPM 프로세스 id·주소는 내지 않는다."""
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "description": c.description,
+            "scenes": sorted({p.scene for p in config.processes if p.company == c.id}),
+        }
+        for c in config.companies
+    ]
 
 
 def build_router(
-    worker: Any, center: Any, poller: Any, systems: dict[str, Any] | None = None
+    settings: Settings,
+    worker: Any,
+    center: Any,
+    poller: Any,
+    systems: dict[str, Any],
 ) -> APIRouter:
     """
-    `/companies`(등록부 + 회사 시스템 연결)와 `/worker`(일꾼 상태). 키·토큰 값은 싣지 않는다.
-    `systems` — 회사 id → 회사 시스템 클라이언트(`app/company.py`).
+    `GET /companies`(공개)와 `/admin/*`(관리자 모드). `systems` — 회사 id → 회사 시스템 클라이언트
+    (`app/company.py`). 키·토큰 값은 어디에도 싣지 않는다.
     """
     router = APIRouter()
-    systems = systems or {}
+
+    def admin(x_admin_key: str | None = Header(default=None)) -> None:
+        key = os.getenv("NOWVIEW_ADMIN_KEY") or ""
+        if not key:
+            raise HTTPException(503, "관리자 모드가 꺼져 있다 — NOWVIEW_ADMIN_KEY가 없다")
+        if not hmac.compare_digest(x_admin_key or "", key):
+            raise HTTPException(401, "관리자 키가 없거나 틀렸다")
 
     @router.get("/companies")
     def companies() -> list[dict[str, Any]]:
-        return [{**describe(c), "system": _system(systems.get(c.id))} for c in COMPANIES]
+        return public_companies(settings.config)
 
-    @router.get("/worker")
-    def worker_status() -> dict[str, Any]:
+    @router.get("/admin/status", dependencies=[Depends(admin)])
+    def status() -> dict[str, Any]:
         return {
             "consumer": worker.describe(),
             "recent": worker.recent_tasks(),
             "center": {**center.config.describe(), "polling": poller.running},
+            "companies": {
+                cid: {**client.describe(), "reachable": client.reachable()}
+                for cid, client in systems.items()
+            },
+            "restartRequired": settings.config.topics != settings.started_topics,
+        }
+
+    @router.get("/admin/config", dependencies=[Depends(admin)])
+    def get_config() -> dict[str, Any]:
+        return {
+            "config": settings.config.model_dump(),
+            "updatedAt": settings.updated_at,
+            "scenes": SCENE_WORKS,
+            # 고정 확장의 작업 — 읽기만 한다(NowView 판과 함께 바뀐다)
+            "extension": _extension_summary(),
+        }
+
+    @router.put("/admin/config", dependencies=[Depends(admin)])
+    def put_config(body: dict[str, Any]) -> dict[str, Any]:
+        try:
+            config = NowViewConfig.model_validate(body)
+        except ValidationError as exc:
+            reasons = [_reason(e) for e in exc.errors()]
+            raise HTTPException(422, {"message": "설정이 맞지 않는다", "reasons": reasons}) from exc
+        unknown = [c.id for c in config.companies if c.id not in systems]
+        if unknown:
+            # 회사의 업무 코드(회사 시스템 클라이언트·장면 처리기)가 없으면 매핑해도 처리할 수 없다
+            raise HTTPException(
+                422,
+                {
+                    "message": "NowView에 그 회사의 업무 코드가 없다",
+                    "reasons": [f"companies: {', '.join(unknown)}"],
+                },
+            )
+        settings.replace(config)
+        return {
+            "config": config.model_dump(),
+            "updatedAt": settings.updated_at,
+            "restartRequired": config.topics != settings.started_topics,
         }
 
     return router
 
 
-def _system(client: Any) -> dict[str, Any] | None:
-    """회사 시스템 연결 — 설정이 있으면 `/health`를 물어 닿는지 본다(짧게)."""
-    if client is None:
-        return None
-    info = dict(client.describe())
-    info["reachable"] = client.reachable() if client.configured else False
-    return info
+def _extension_summary() -> dict[str, Any]:
+    raw = json.loads(EXTENSION.read_text("utf-8"))
+    return {
+        "id": raw["id"],
+        "version": raw["version"],
+        "operations": [op["name"] for op in raw["service"]["adapter"]["operations"]],
+    }
+
+
+def _reason(error: Any) -> str:
+    """Pydantic 오류 한 줄 — 위치가 없는(설정 전체의) 검사는 사유만 보인다."""
+    message = str(error["msg"]).removeprefix("Value error, ")
+    where = ".".join(map(str, error["loc"]))
+    return f"{where}: {message}" if where else message

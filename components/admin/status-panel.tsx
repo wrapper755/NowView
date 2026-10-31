@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-/** 엔진 `GET /worker` — C15 일꾼(`engine/app/consumer.py`)과 Center 연동(N3)의 지금 상태. 키·토큰 값은 없다. */
-type WorkerStatus = {
+/** 엔진 `GET /admin/status` — 일꾼(C15)·Center 연동(N3)·회사 시스템의 지금 상태. 키·토큰 값은 없다. */
+type AdminStatus = {
   consumer: {
     state: "off" | "enrolling" | "running";
     topics: string[];
@@ -26,31 +26,33 @@ type WorkerStatus = {
     reason: string | null;
   }>;
   center: { url: string | null; integration: boolean; relay: boolean; polling: boolean };
+  companies: Record<string, { company: string; url: string | null; key: boolean; reachable: boolean }>;
+  restartRequired: boolean;
 };
 
-const STATE_LABEL: Record<WorkerStatus["consumer"]["state"], string> = {
-  off: "꺼짐 — Center 주소가 없다",
+const STATE_LABEL: Record<AdminStatus["consumer"]["state"], string> = {
+  off: "꺼짐 — Center 주소가 없거나 NOWVIEW_CONSUMER=off",
   enrolling: "승인 대기",
   running: "일감을 가져가는 중",
 };
 
 const ORIGIN_LABEL: Record<string, string> = { run: "Center 서버 실행", test: "Studio 시험 실행" };
 
-/** 5초마다 읽는다 — 일꾼 상태는 SSE 채널이 없다(데모 실행 문서가 아니다). 엔진이 꺼져 있으면 그 사실을 보인다. */
-export function useWorkerStatus(): { status: WorkerStatus | null; error: string | null } {
-  const [status, setStatus] = useState<WorkerStatus | null>(null);
+/** 5초마다 읽는다 — 관리자 화면에만 있다. */
+function useAdminStatus(): { status: AdminStatus | null; error: string | null } {
+  const [status, setStatus] = useState<AdminStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     const read = async () => {
       try {
-        const response = await fetch("/api/engine/worker", { cache: "no-store" });
+        const response = await fetch("/api/admin/status", { cache: "no-store" });
         if (!alive) return;
         if (!response.ok) {
-          setError(`엔진이 ${response.status}를 돌려줬다`);
+          setError(`상태를 읽지 못했다 (${response.status})`);
           return;
         }
-        setStatus((await response.json()) as WorkerStatus);
+        setStatus((await response.json()) as AdminStatus);
         setError(null);
       } catch (cause) {
         if (alive) setError(`엔진에 연결할 수 없다 — ${String(cause)}`);
@@ -66,33 +68,18 @@ export function useWorkerStatus(): { status: WorkerStatus | null; error: string 
   return { status, error };
 }
 
-/** 일꾼 한 줄 요약 — 회사 목록 머리에 둔다. */
-export function WorkerBadge() {
-  const { status, error } = useWorkerStatus();
-  if (error) return <Badge variant="destructive">엔진 연결 안 됨</Badge>;
-  if (!status) return <Badge variant="outline">일꾼 읽는 중</Badge>;
-  const { state, topics } = status.consumer;
-  return (
-    <Badge variant={state === "running" ? "default" : "outline"}>
-      일꾼 {STATE_LABEL[state]} · 토픽 {topics.length}
-    </Badge>
-  );
-}
-
-/** `/worker` 화면 본문 — 들이기 상태·맡은 토픽·Center 연동·최근 일감. */
-export function WorkerStatusPanel() {
-  const { status, error } = useWorkerStatus();
-  if (error) {
-    return <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">{error}</p>;
-  }
+/** 관리자 화면의 상태 — 들이기(요청 코드)·토픽·Center 연동·회사 시스템·최근 일감. */
+export function StatusPanel() {
+  const { status, error } = useAdminStatus();
+  if (error) return <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">{error}</p>;
   if (!status) return <p className="text-sm text-muted-foreground">읽는 중…</p>;
-  const { consumer, center, recent } = status;
+  const { consumer, center, recent, companies } = status;
   return (
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>C15 일꾼</CardTitle>
-          <CardDescription>Center에 쌓인 서비스 태스크 일감을 가져가 회사별 업무 규칙으로 수행한다.</CardDescription>
+          <CardTitle>일꾼</CardTitle>
+          <CardDescription>Center에 쌓인 서비스 태스크 일감을 가져가 회사 설정대로 수행한다.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm">
           <p>
@@ -107,8 +94,13 @@ export function WorkerStatusPanel() {
             </p>
           ) : null}
           {consumer.problem ? <p className="text-destructive">{consumer.problem}</p> : null}
+          {status.restartRequired ? (
+            <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
+              토픽 설정이 바뀌었다 — 엔진을 다시 띄워야 일꾼이 새 토픽으로 들이기를 한다(승인된 일꾼이면 Center 쪽 토픽도 바꾼다).
+            </p>
+          ) : null}
           <div>
-            <p className="mb-1 text-xs text-muted-foreground">맡은 토픽</p>
+            <p className="mb-1 text-xs text-muted-foreground">지금 맡은 토픽</p>
             <ul className="flex flex-wrap gap-1.5">
               {consumer.topics.map((t) => (
                 <li key={t}>
@@ -124,17 +116,20 @@ export function WorkerStatusPanel() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Center 연동</CardTitle>
-          <CardDescription>NowView가 Center에 업무를 기동하고 결재에 대리 답하는 길(N3).</CardDescription>
+          <CardTitle>연결</CardTitle>
+          <CardDescription>Center(기동·대리 답·진행 읽기)와 회사 시스템.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-1 text-sm">
           <p>
-            주소 <span className="font-mono">{center.url ?? "없음"}</span>
+            Center <span className="font-mono">{center.url ?? "없음"}</span> · 연동용 키 {center.integration ? "있음" : "없음"} · 대리
+            답용 키 {center.relay ? "있음" : "없음"} · 진행 폴링 {center.polling ? "도는 중" : "멈춤"}
           </p>
-          <p>
-            연동용 키 {center.integration ? "있음" : "없음"} · 대리 답용 키 {center.relay ? "있음" : "없음"} · 진행 폴링{" "}
-            {center.polling ? "도는 중" : "멈춤"}
-          </p>
+          {Object.entries(companies).map(([id, c]) => (
+            <p key={id}>
+              회사 시스템 <span className="font-mono">{id}</span> <span className="font-mono">{c.url ?? "주소 없음"}</span> · 키{" "}
+              {c.key ? "있음" : "없음"} · {c.reachable ? "응답함" : "응답 없음"}
+            </p>
+          ))}
         </CardContent>
       </Card>
 

@@ -44,7 +44,7 @@ PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc01.bpmn"
 #: 고객계획 접수 Bot(N5) — Center 서버 Bot으로만 돈다. 엔진은 읽어서 그림·시험에만 쓴다.
 INTAKE_PATH = PROCESS_PATH.with_name("sc01-intake.bpmn")
 #: 바깥 Chaeksas 외부 확장의 id와 같다 — 확장 id에는 점을 쓸 수 없다(C13 `^[a-z][a-z0-9-]{1,49}$`).
-APP_ID = "autoparts-sc01"
+APP_ID = "nowview"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
 SAVE_RETRIES = 5
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초). 서버 실행기가 앞 작업을 끝내고 결재를
