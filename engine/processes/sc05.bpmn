@@ -25,7 +25,7 @@
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="nowview.sc05" name="SC05 결정 실행과 계획 갱신" isExecutable="true">
     <bpmn:extensionElements>
-      <chk:process>{"run_location": "server", "service_keys": {"nowview-sc05": "nowview"}, "extensions": [{"id": "nowview-sc05", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "nowview-sc05", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="장면 5 착수"/>
     <bpmn:serviceTask id="Task_Open" name="장면 열기">

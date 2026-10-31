@@ -25,7 +25,7 @@ from chaeksas.contracts._semver import satisfies
 from chaeksas.contracts.bpmn_ext import read_process
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
+from conftest import C15Calls
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
 from app.sc01.center import CenterClient
@@ -88,32 +88,6 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
 # ─────────────────────────── 공통 ───────────────────────────
 
 
-class _Calls:
-    """바깥 실행기의 HTTP 어댑터 흉내 — 4xx는 상태 코드만 남긴다(본문을 버린다)."""
-
-    def __init__(self, proc: Sc05Process, via: str) -> None:
-        self.proc, self.via = proc, via
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via=self.via,
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 @pytest.fixture
 def center() -> FakeCenter:
     return FakeCenter()
@@ -155,7 +129,7 @@ def _studio(proc: Sc05Process, rid: str, run_id: str) -> tuple[Engine, object]:
         proc.process,
         run_id=run_id,
         log=RunLog(run_id=run_id),
-        env=RunEnv(services=_Calls(proc, "studio")),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid},
         now=parse_at(proc.get(rid)["clock"]),

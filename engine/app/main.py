@@ -18,10 +18,10 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from .consumer import ConsumerHost
 from .events import hub
 from .notify import build_notifier
 from .sc01.api import build_router as build_sc01_router
-from .sc01.auth import SystemAuth
 from .sc01.center import CenterClient, CenterConfig
 from .sc01.poller import CenterPoller
 from .sc01.process import Sc01Process
@@ -60,29 +60,38 @@ notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
 # Center 연동(N3) — 키는 엔진만 쥔다. 설정이 없으면 center 데모 실행의 대리 답·기동이 503이다.
 center = CenterClient(CenterConfig.from_env())
 sc01 = Sc01Process(build_sc01_store(backend), publish=notifier.publish, center=center)
-# 시스템 작업의 키(N6). 키가 없으면 그 길은 503이다 — 끄려면 NOWVIEW_SYSTEM_AUTH=off(auth.py).
-system_auth = SystemAuth.from_env()
-app.include_router(build_sc01_router(sc01, hub, system_auth))
+app.include_router(build_sc01_router(sc01, hub))
 # 장면 2 — 장면 1 인계 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc02_*`). 내장 실행만.
 sc02 = Sc02Process(build_sc01_store(backend, "sc02"), sc01, publish=notifier.publish)
-app.include_router(build_sc02_router(sc02, hub, system_auth))
+app.include_router(build_sc02_router(sc02, hub))
 # 장면 3 — 장면 2 인수 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc03_*`).
 sc03 = Sc03Process(build_sc01_store(backend, "sc03"), sc02, publish=notifier.publish)
-app.include_router(build_sc03_router(sc03, hub, system_auth))
+app.include_router(build_sc03_router(sc03, hub))
 # 장면 4 — 장면 3 인계(HANDOFF31)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc04_*`).
 sc04 = Sc04Process(build_sc01_store(backend, "sc04"), sc03, publish=notifier.publish)
-app.include_router(build_sc04_router(sc04, hub, system_auth))
+app.include_router(build_sc04_router(sc04, hub))
 # 장면 5 — 장면 4 인계(HANDOFF41)에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc05_*`).
 sc05 = Sc05Process(build_sc01_store(backend, "sc05"), sc04, publish=notifier.publish)
-app.include_router(build_sc05_router(sc05, hub, system_auth))
+app.include_router(build_sc05_router(sc05, hub))
 # 장면 6 — 장면 5 인계(HANDOFF51)에서 RV61 검토 문서를 적재하고, 확인 절차(담당 임원 확인 → 종합 →
 # 확정 →
 # 대표 보고)를 BPM으로 돈다. 같은 데모 실행 id, 다른 테이블(`sc06_*`).
 sc06 = Sc06Process(build_sc01_store(backend, "sc06"), sc05, publish=notifier.publish)
-app.include_router(build_sc06_router(sc06, hub, system_auth))
+app.include_router(build_sc06_router(sc06, hub))
 # 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 여섯 장면
 # 모두.
 poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
+# 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다.
+consumer = ConsumerHost.from_env(
+    {
+        "nowview-sc01": sc01,
+        "nowview-sc02": sc02,
+        "nowview-sc03": sc03,
+        "nowview-sc04": sc04,
+        "nowview-sc05": sc05,
+        "nowview-sc06": sc06,
+    }
+)
 
 
 @app.on_event("startup")
@@ -91,12 +100,14 @@ async def _start_notifications() -> None:
     hub.bind_loop(asyncio.get_running_loop())
     await notifier.start()
     poller.start()
+    consumer.start()
 
 
 @app.on_event("shutdown")
 async def _stop_notifications() -> None:
     # LISTEN 연결을 정리하지 않으면 재시작 때 Postgres에 유령 세션이 남는다.
     poller.stop()
+    consumer.stop()
     await notifier.stop()
 
 
@@ -121,8 +132,8 @@ def health() -> dict[str, Any]:
             ],
         },
         "demoRuns": len(sc01.store.list()),
-        # 시스템 작업 인증 — 「키 없이 꺼 둔 채 운영」을 눈치챌 수 있어야 한다. 값은 싣지 않는다.
-        "systemAuth": system_auth.describe(),
+        # C15 일꾼 — 승인 대기(요청 코드)·가져가는 중·꺼짐. 토큰은 싣지 않는다.
+        "consumer": consumer.describe(),
         # Center 연동(N3) — 키 값은 싣지 않는다. 폴러가 없으면 center 실행의 진행이 멈춰 보인다.
         "center": {**center.config.describe(), "polling": poller.running},
         "eventSubscribers": hub.subscriber_count,

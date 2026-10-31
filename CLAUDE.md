@@ -304,7 +304,8 @@ NowView/
     ├── seed/SYN-SC06-v0.6.xlsx   # SC01~SC06 v0.6 — 기존 71개 시트는 v0.5와 같다, SC06 원천(기준·실적·거래 180·변경·판단·후속·근거·Agent·보고)을 한 번에 적재
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
-    │   ├── main.py               # FastAPI — health + /sc01 ~ /sc05 라우터
+    │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
+    │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   ├── preparation.py        # 장면 2~6 시작의 배경 진행 · 준비 상태(4.3)
@@ -321,7 +322,7 @@ NowView/
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process · _external,
-                                  #   test_events · _notify · test_preparation
+                                  #   test_events · _notify · test_preparation · test_consumer
 ```
 
 **디렉토리 규칙**
@@ -373,16 +374,7 @@ POST /sc01/demo-runs/{id}/sources/receive  {fixtureId}     → 시연 원천 수
 POST /sc01/demo-runs/{id}/actions/{nodeId} {answer}        → BPM 사람 대기에 응답
 POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset {caseId, executor}
 GET  /sc01/demo-runs/{id}/events           → SSE
-     시스템 작업 — 바깥 Chaeksas가 서비스 태스크에서 부른다 (행위자 헤더 없음)
-     본문에 늘 {chaeksas_run_id: {{run_id}}, chaeksas_node_id: {{node_id}}} — 데모 실행을 바깥 실행에 묶는다
-POST /sc01/demo-runs/{id}/sources/{sourceId}/validation    → {passed, error_count}
-POST /sc01/demo-runs/{id}/sources/{sourceId}/comparison    → {run_id, risk, issue_id}
-POST /sc01/demo-runs/{id}/calc-runs/{runId}/agent-draft    → {output_id}
-POST /sc01/demo-runs/{id}/calc-runs/{runId}/handoff        → {handed_off}
-POST /sc01/demo-runs/{id}/answers/{nodeId}  {결재 칸…}      → 결정 기록 (N1, 아래 4.5)
-     접수 Bot(N5)이 부른다 — 데모 실행을 바깥 실행에 묶지 않는다
-POST /sc01/demo-runs/{id}/intake/sources/{sourceId}/screening → {summary}  (검증 결과·변경 요약)
-POST /sc01/demo-runs/{id}/intake/sources/{sourceId}/decision  → {recorded} (반려면 보완 요청)
+     시스템 작업(서비스 태스크)은 HTTP 경로가 없다 — 엔진의 C15 일꾼이 Center에서 일감을 가져간다(아래)
 GET  /sc01/intake                          → 「접수 가상 직원」 카드 (Center 가상 직원 그대로)
 POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대리 답 (감독자는 Center가 대조)
 
@@ -394,7 +386,7 @@ POST /sc02/demo-runs/{id}/requests/receive {fixtureId}        → 요청 접수 
 POST /sc02/demo-runs/{id}/actions/{nodeId} {answer, expect}   → 사람 대기에 응답. expect = {proposal}·{bundle}
 POST /sc02/demo-runs/{id}/negotiation-due {due, reason}        → 외부 협상기한 변경(이력 보존)
 POST /sc02/demo-runs/{id}/agent-outputs/{oid}/adopt · /clock {at} · /script/{i} · /reset {executor?}
-POST /sc02/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 13개(외부 확장 nowview-sc02, 키 검사)
+     시스템 작업 13개(토픽 nowview-sc02) — C15 일꾼이 가져간다(HTTP 경로 없음)
 
      장면 3(4.17) — 데모 실행 id는 장면 1·2와 같다
 GET  /sc03/process · /cases · /script?case_id=
@@ -408,7 +400,7 @@ POST /sc03/demo-runs/{id}/agent-drafts {kind}  · /agent-outputs/{oid}/adopt    
 POST /sc03/demo-runs/{id}/tasks/{taskId}/draft {changes, reason}                      → 배정 전 과제 초안 수정(전후값)
 POST /sc03/demo-runs/{id}/forecast-revisions {reason}   → E34 새 전망 버전(E34 사례 실행에서만)
 POST /sc03/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}
-POST /sc03/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 18개(외부 확장 nowview-sc03, 키 검사)
+     시스템 작업 18개(토픽 nowview-sc03) — C15 일꾼이 가져간다(HTTP 경로 없음)
 
      장면 4(4.18) — 데모 실행 id는 장면 1~3과 같다
 GET  /sc04/process · /cases · /script?case_id=
@@ -421,7 +413,7 @@ POST /sc04/demo-runs/{id}/meetings/MT41/records {type, subject, content, related
 POST /sc04/demo-runs/{id}/agent-drafts {kind}  · /agent-outputs/{oid}/adopt          → AG42 질의 후보·AG43 회의록·승인서 초안(경영관리)
 POST /sc04/demo-runs/{id}/budget-policy {kind: transfer|total, …}  → 예산 위임 조회(E407) — 규칙만, 거래·이력 없음
 POST /sc04/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}
-POST /sc04/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 18개(외부 확장 nowview-sc04, 키 검사)
+     시스템 작업 18개(토픽 nowview-sc04) — C15 일꾼이 가져간다(HTTP 경로 없음)
 
      장면 5(4.19) — 데모 실행 id는 장면 1~4와 같다
 GET  /sc05/process · /cases · /script?case_id=
@@ -434,7 +426,7 @@ POST /sc05/demo-runs/{id}/actions/{nodeId} {answer, expect}  → 사람 대기�
                                                           FORECAST_INVALID·COMPLETION_BLOCKED (blocking_items) — 착수·제출·완료는 대기가 아니어도 요건부터
 POST /sc05/demo-runs/{id}/agent-drafts {kind} · /agent-outputs/{oid}/review {note}  → AG51~AG58 초안·제안 검토 기록(업무 역할)
 POST /sc05/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}   → 시계 이동이 그 시각까지의 배경 원천을 들인다
-POST /sc05/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 27개(외부 확장 nowview-sc05, 키 검사)
+     시스템 작업 27개(토픽 nowview-sc05) — C15 일꾼이 가져간다(HTTP 경로 없음)
 
      장면 6(4.20) — 데모 실행 id는 장면 1~5와 같다. 조회 넷은 멱등이고, 쓰기는 적재와 확인 절차(BPM)다
 GET  /sc06/process · /script
@@ -443,7 +435,7 @@ GET  /sc06/demo-runs/{id} · /history · /history/{seq} · /events(SSE, 채널 s
 POST /sc06/demo-runs/{id}/start                         → 확인 착수(경영관리 담당) = BPM 시작(내장)·SC06 기동(Center)·착수만(Studio)
 POST /sc06/demo-runs/{id}/actions/{nodeId} {answer}     → 결재 답(담당만). 확정의 요건 미충족 → 422 REPORT_INVALID (blocking_items)
 POST /sc06/demo-runs/{id}/script/{i} · /reset {executor?}   → 각본 D601~D607 · 확인 절차만 확인 전으로(적재는 그대로)
-POST /sc06/demo-runs/{id}/operations/{name} {chaeksas_run_id, chaeksas_node_id, …}  → 시스템 작업 6개(외부 확장 nowview-sc06, 키 검사)
+     시스템 작업 6개(토픽 nowview-sc06) — C15 일꾼이 가져간다(HTTP 경로 없음)
 GET  /sc06/demo-runs/{id}/reviews/RV61/summary?report_version=          → U601 요약(3과제·합계·완료 판단·Agent)
 GET  /sc06/demo-runs/{id}/reviews/RV61/tasks/ACT42/variance?report_version=  → 원인별 건수·실제 긴급비, PO61-1103, AG62
 GET  /sc06/demo-runs/{id}/evidence/{evidenceId}?report_version=           → 근거 본문·작성/확인 이력(가상 증빙)
@@ -465,47 +457,47 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   * 화면: 각 클라이언트의 `create`(장면 6은 `open`)가 202면 `lib/preparation.ts`로 3초마다 읽다가 문서를 받는다 — 시작 카드·
     플레이어는 그대로 결과를 기다리고, 준비 중에는 「앞 업무를 끝까지 진행하는 중 — 고객 생산계획 변경 대응 EV07 · 외주 단가 인상
     검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
-* **시스템 작업은 Chaeksas 외부 확장(HTTP 어댑터)으로 부른다** — 정의는 `chaeksas/nowview-sc01.extension.json`.
-  내장 BPM의 `_InProcessCalls`와 HTTP가 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다 —
-  BPMN의 `output` 대응이 두 길 모두에서 맞는다. 내장 BPM을 걷어내기 전까지 두 길이 함께 있다.
+* **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
+  `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
+  `nowview-sc01`~`sc06`(= BPMN `app_id`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
+  `complete`·`fail`로 알린다. 연결은 늘 엔진 → Center다 — **Center는 NowView 주소도 키도 모른다.**
+  내장 BPM의 `_InProcessCalls`와 일꾼이 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다.
+  예전(Push)에는 Center 쪽 HTTP 어댑터가 BFF의 `/operations/…`를 키로 찔렀다 — 그 경로·키 검사(N6,
+  `auth.py`)·로컬 Center의 주소 덮어쓰기는 걷었다.
+  ```
+  서버 실행기·Studio ─올리기─▶ Center(외부 작업) ◀─가져가기·끝내기─ 엔진 일꾼 ─▶ 장면 N operate
+  ```
+  * **실행 위치는 일감의 `origin`이다** — Studio 시험 실행은 `test`, 서버 실행은 `run`. Center가 올린 쪽을
+    인증해 붙이는 값이라(Studio는 `test_…` 실행만 올린다) 지어낼 수 없다. 시험용 키 ↔ 운영 키가 하던 일이다.
+    데모 실행의 선언(`executor`)과 어긋나면 409(`domain.link_external_run`)이고 묶이지 않는다.
+  * **일감의 입력이 그림의 `chk:serviceCall.input` 그대로다.** 데모 실행은 `demo_run_id`, 바깥 실행 id·노드 id는
+    멱등 칸(`run_id`·`node_id`)이다 — 템플릿 `{{run_id}}`·`chaeksas_run_id`가 하던 일이다. 선택 입력이
+    빠져도 호출이 멈추지 않는다(어댑터는 `{{input.x}}`가 없으면 실패시켰다).
+  * **거절 사유가 그대로 간다** — 업무 규칙 위반(`DomainError`)은 `fail` `{code: forbidden·not_found·conflict·
+    input_invalid, message: 사유, retryable: false}`다. 결재가 보이는 `error_message`에 이제 사유가 실린다
+    (어댑터 때는 「…이 409를 돌려줬다」뿐이었다).
+  * **최소 한 번 실행이다**(C15) — 잠금이 지나 같은 일감이 다시 오면 `service_kit`의 멱등 저장소가 저장한
+    결과를 다시 준다(같은 칸·다른 본문은 `idempotency_conflict`). 저장소는 **메모리**다 — 엔진이 다시 뜨면 빈다.
+  * **들이기는 요청 코드 승인이다.** 엔진이 뜨면(`CHAEKSAS_CENTER_URL`이 있을 때, 끄려면 `NOWVIEW_CONSUMER=off`)
+    토큰이 없으면 들이기를 청하고 요청 코드를 로그·`/health.consumer.requestCode`에 보인다. 관리자가 Center
+    CON-07 「일꾼 승인 대기」에서 같은 코드를 승인하면 봉한 토큰이 내려와 `engine/.consumer/`(gitignore,
+    `NOWVIEW_CONSUMER_DIR`)에 남는다. `NOWVIEW_CONSUMER_TOKEN`이 있으면 그것이 이긴다. 운영 배포는
+    `engine/.consumer`를 rsync에서 뺀다(지우면 다시 승인해야 한다). `/health.consumer.state`가
+    `off`·`enrolling`·`running`이다.
+  * **manifest는 확장 정의에서 짓는다**(`manifest_of`) — 작업·모드·입출력 스키마·`timeout_s`. 승인 뒤 일꾼이
+    `PUT …/consumers/self/manifest`로 올리고, Center가 일감의 작업을 대조하고 출력 필수 칸을 막는다(422
+    `output_invalid`). 그래서 **정의는 Center에 등록해 둔다**(외부 확장 토픽은 등록된 정의가 있어야 승인된다).
+    정의 위치는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포 `chaeksas/`, 도커 이미지는 `additional_contexts`로 복사).
+  * **확장 정의의 요청 템플릿(`path`·`body`·`allowed_hosts`·`auth`)은 이 길에서 쓰지 않는다.** Chaeksas 범용
+    어댑터 일꾼(`chk-adapter-consumer`)을 대신 돌릴 때만 읽힌다. 고치면 다시 서명해야 해서 그대로 뒀다 —
+    `test_extension_definition_matches_the_bpmn_service_calls`가 여전히 템플릿 ↔ 그림을 잠근다.
   * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 서비스 앱 id가 `nowview.sc01` →
-    `nowview-sc01`이 됐다(BPMN `app_id`·`service_keys`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
-  * **어댑터는 `base_url`의 경로를 버린다**(호스트·포트만 쓴다) — 그래서 작업 `path`에 BFF 경로
-    `/api/engine/…`를 통째로 적었다.
-  * **정의는 한 벌이고, 로컬 Center가 주소만 덮어쓴다**(R4, ADR-0097). 기본 주소는 운영계
-    (`https://www.nowview.work`)이고 `allowed_hosts`가 `[www.nowview.work, localhost, host.docker.internal]`,
-    `allow_private_network: true`다. 로컬 Center에서만 CON-07 → `nowview-sc01` → 「서버 주소」를 바꾼다
-    (`PUT /api/v1/resources/extensions/nowview-sc01/address`, 관리자) — 실행기가 호스트 프로세스면
-    `http://localhost:3000`, **Chaeksas compose의 컨테이너면 `http://host.docker.internal:3000`**이다. 컨테이너
-    안의 `localhost`는 컨테이너 자신이라 연결 거부다(실측 — 그래서 0.7.1에서 허용 호스트를 더했다).
-    Center는 정의의 허용 호스트 **안에서만** 받는다 — 정의가 상한이다. 해시가 하나라 로컬에서 시험한
-    그 판이 운영에 간다. 예전에는 Center에서 바꿀 길이 없어 `.local` 정의를 따로 두고 작업 정의를 두 파일에
-    맞춰 적었다 — 지웠다. 사설망 허용을 운영 정의에 켠 득실은 `docs/chaeksas-integration.md` §7의 5.
-    `test_extension_definition_matches_the_bpmn_service_calls`가 정의 ↔ BPMN 입력을 잠근다.
-  * **어댑터는 `localhost`를 `::1`로 푼다**(실측). `next dev`는 양쪽에 듣지만 웹을
-    `-H 127.0.0.1`로 띄우면 연결 거부다. `127.0.0.1`로 덮어쓰면 허용 호스트 밖이라 어댑터가 거절한다.
-  * 정의를 고치면 `version`을 올리고 다시 서명한다(같은 버전·다른 내용은 409). 지금 0.7.1 — 기록 작업
-    응답에 `error_message`(성공이면 null, 4.5의 기록 거절)가 있고, 기록 작업과 계산은 `answered_by`를 받는다.
-    0.7.0에서 접수 Bot 작업 둘(`screen_source`·`record_intake_review`)과 `validate_source.processed_by`가 생겼다.
-    0.7.1은 허용 호스트에 `host.docker.internal`만 더했다.
-  * **두 BPMN은 `chk:process.extensions`에 `nowview-sc01`(`>=0.7.1,<1`)을 선언한다.** Studio는 이 칸에 적힌 확장만
-    패키지 `requires.extensions`로 옮기고, 서버 실행기는 거기 있는 확장만 Center에서 정의(주소)를 받아 온다.
-    빠지면 실행기가 `nowview-sc01`을 서비스 앱으로 보고 「서비스 앱 주소를 모른다」로 첫 호출에서 실패한다
-    (2026-10-27 로컬 Center 실측). 정의 해시(`definition_hash`)는 고정하지 않는다 — 고정하면 정의를 올릴 때마다
-    그림·패키지를 다시 만들어야 한다(Studio가 경고만 한다, ADR-0060). 범위 밖으로 정의를 올리면(1.0) 그림의
-    범위도 올린다 — `test_extension_definition_matches_the_bpmn_service_calls`가 잡는다.
-    시험이 정의 ↔ **두 BPMN**(SC01·접수 Bot)의 입력을 잠근다.
-  * **시스템 작업은 키를 받는다**(0.4.0, N6) — `auth: {type: bearer}` + `requires_keys: [{purpose: run}]`.
-    ADR-0091 이후 둘 중 `requires_keys`만 있으면 E3다. BPMN의 키 참조는 `service_keys`의 `nowview`다.
-    **키는 NowView가 짓는다**(R6 답) — 운영 키(`NOWVIEW_SYSTEM_KEY`)는 Center의 「외부 앱 키」, 시험용 키
-    (`NOWVIEW_SYSTEM_KEY_TEST`)는 「시험용 키」에 넣는다(CON-07 → `nowview-sc01`). Center에는 검증 API가 없다.
-    * **어느 키로 왔는지가 실행 위치다** — 시험용 키는 Studio에만 간다. 데모 실행의 선언(`executor`)과 어긋나면
-      409(`domain.link_external_run`). 키가 없거나 틀리면 401, 엔진에 키가 하나도 없으면 **503**이다 — 환경
-      파일이 빠진 채 올라간 운영계가 조용히 열리면 안 된다. 끄려면 `NOWVIEW_SYSTEM_AUTH=off`를 명시한다.
-      두 키가 같아도 503이다(실행 위치를 가를 수 없다). `/health`의 `systemAuth.mode`가 `keys`·`off`·
-      `unconfigured`를 드러낸다(값은 싣지 않는다).
-    * 로컬은 `engine/.env.local`(gitignore)에 두면 `stack:start engine`이 `--env-file`로 읽는다. 운영은
-      `/etc/nowview.env` — `deploy/bootstrap.sh`가 **파일이 이미 있어도 빠진 키만** 지어 더한다.
+    `nowview-sc01`이 됐다(BPMN `app_id`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
+  * **BPMN은 `chk:process.extensions`에 `nowview-scN`을 선언한다** — Studio가 이것을 패키지
+    `requires.extensions`로 옮기고, Center는 그 줄로 「이 실행이 이 토픽에 올려도 되나」를 본다(C15
+    `topic_not_required`). `service_keys`·`key_ref`는 걷었다(ADR-0102 — 쓰는 곳이 없다, B7이 경고한다).
+    **그래서 그림이 바뀌었다 — Studio에서 패키지를 다시 내보내 승인·배포해야 한다.**
+  * `chaeksas-core`·`chaeksas-service-kit`은 같은 커밋(`554d7fa`)에 고정한다(`engine/pyproject.toml`).
 * **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
   없다). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
   `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태,
@@ -513,7 +505,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `nowview.sc01`) · `CHAEKSAS_INTAKE_WORKER`(접수 가상 직원 id — 있으면
   수신이 `/jobs` 대신 메시지 시작으로 접수 Bot을 깨운다, N5). 키가 둘인 것은
   Chaeksas 권한표 그대로다 — 대리 답용 키는 결재만, 연동용 키는 결재를 못 읽는다. `/health.center`가 설정·폴링
-  여부를 드러낸다(값은 싣지 않는다). 시스템 작업 키(N6)와는 방향이 반대인 다른 키다.
+  여부를 드러낸다(값은 싣지 않는다). C15 일꾼 토큰과는 다른 키다(일꾼 토큰은 가져가기·끝내기만 연다).
   * **메시지는 `schema: 1`이 있어야 한다**(`MessageRequest`) — 없으면 422 `input_invalid`(실측). 작업(`/jobs`)은
     `schema`가 없는 계약이다.
   * **Center 멱등 키에는 초기화 회차가 들어간다**(`_center_key`). 초기화하면 원천 번호가 다시 SRC02라
@@ -529,9 +521,9 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
 * **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 목록 밖의 장면은 404 —
-  엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 부르는 `/api/engine/sc01/…` 주소는 그대로다. 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
+  엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 BFF를 부르는 길은 없다(C15 일꾼). 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
-  `X-Demo-Actor`·`Idempotency-Key`·`Authorization`(시스템 작업 키, N6)이다. 키 검사도 엔진이 한다.
+  `X-Demo-Actor`·`Idempotency-Key`뿐이다.
 * **화면은 규칙을 다시 구현하지 않는다.** 금액·비율은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다
   (`lib/sc01/format.ts`). 판정 임계값도 `/rules`로 받아 표시한다.
 * **페이지는 정적 프리렌더(`○`)다.** 데이터는 클라이언트에서 받는다 — 서버에서 엔진을 부르면 전부 `ƒ`가
@@ -616,8 +608,8 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     내장 데모 실행에 바깥 호출이 와도 409다. 예외는 정정(EX03): 묶인 실행이 있는데 보완 대기가 아닌 때
     정정본이 오면 그 실행을 `bpm_history`(`superseded`)로 옮긴다 — 그 실행의 남은 호출은 409이고 다음
     새 실행이 묶인다. 바깥 실행은 취소할 수 없으니 이것이 내장의 cancel에 해당한다.
-  * **Studio인지 Center인지는 선언하고, 키로 검사한다.** 템플릿으로 알 길이 없고(요청 R5 거절), 인증된
-    구분은 시험용 키 ↔ 운영 키다(N6, 4.3). 선언을 남긴 것은 화면이 첫 호출 전부터 읽기 전용이어야 해서다
+  * **Studio인지 Center인지는 선언하고, 일감의 `origin`으로 검사한다**(C15, 4.3). 예전에는 시험용 키 ↔ 운영
+    키(N6)였다. 선언을 남긴 것은 화면이 첫 호출 전부터 읽기 전용이어야 해서다
     (`docs/chaeksas-integration.md` §5 N2).
   * 바깥 실행의 업무는 대기 id를 (실행, 결재, 원천·계산)으로 지어 `sync_tasks`에 넘긴다 — 정정 뒤의 새
     실행이 같은 결재에 오면 인수한 업무에 재확인, 끝난 업무에 재검토 업무가 생긴다(내장과 같은 규칙).
@@ -827,19 +819,20 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
-| `engine/tests/test_sc02_external.py` | 확장 정의 `nowview-sc02` ↔ BPMN(본문 입력·답한 사람·오류 경계·확장 선언), Studio 흉내(진짜 엔진 + 시험용 키)로 인계까지, 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·폴링·도달한 종료), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc02_external.py` | 확장 정의 `nowview-sc02` ↔ BPMN(본문 입력·답한 사람·오류 경계·확장 선언), Studio 흉내(진짜 엔진 + `origin: test` 일감)로 인계까지, 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·폴링·도달한 종료), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc03_calc.py` | **통합가상데이터 v0.3 파생 시트와 대조** — 통합손익(연간·Q3·잔여·12개월), 통합모델손익 a~e, SC03검증 V31·V32·V39·V40, 숫자 원천 = v0.2, 구매 증가 156,812개·18,817,440원, E33 정합 실패, E34 −1,988,000원, 엑셀 시각 KST·초 반올림 |
 | `engine/tests/test_sc03_process.py` | Chaeksas 위의 기본 시연 D30~D41 — **끝난 문서 = SC03 시트**(사실확인·쟁점·후보·과제·인계·이벤트 시각), T31 재착수, T33 무응답 차단, T34 담당·기한 필수, 차단 → 재분석, T35 제외 사유 누락 시 전체 미저장, T36 C32·C33 → AT32, T37 3/4 완료 422·타부서 403, E35-M 책임자 NULL 전건 보류, T38 구버전 인수 409, 멱등, E31·E33·E34·E36·E37, 화면 답이 각본 지점을 옮김(병렬 순서 바뀜·조회 건너뜀), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc04_calc.py` | **통합가상데이터 v0.4 파생 시트와 대조** — SC04월효과 36행 전부(보고·판단), SC04월손익 월·연간·Q3·Q4·잔여, SC04비교 대안별 효과·정상 연간, SC04검증, 숫자 시트 = v0.3, T403(2,900 → 124.8M)·E401 감가상각 회피 차단·E402 중복 180만원·E403 승인 범위 121.6M, 입력 한도(전망·원가·긴급 역전·일회성비), E407 위임 조회 |
 | `engine/tests/test_sc04_process.py` | Chaeksas 위의 기본 시연 D401~D413 — **끝난 문서 = SC04 시트**(예산과제·조건지시·인계·이벤트 23건 시각·행위자·회의 기록), T401 재착수·재등록, T402 보고본/판단본 분리, 작성자 ≠ 확인자·AT33 제외·Q31·Q32 이력, 다른 부서 403, 보완 요청 새 버전, E401·E402 검증 차단 → 담당 임원 보완, 추천 2~3개·우선순위, 회의 기록 역할, 판단 변경 사유·임원 확인, T403, 대표만 결정·판단본 409, T407 승인서 누락 422 무저장, T406 보류 과제 미생성, T408 2/3 종료 422·타인 403, T409 반려·보완·구버전 409, T411·T412·T413, 시계·초기화·각본, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
-| `engine/tests/test_sc04_external.py` | 확장 정의 `nowview-sc04` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc04_external.py` | 확장 정의 `nowview-sc04` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc05_calc.py` | **통합가상데이터 v0.5 파생 시트와 대조** — v0.4 45개 시트 그대로, 기초 손익 = SC05모델손익 60행, FC50 = 장면 4 판단 가정 손익, SC05월효과 18행, SC05월손익 월·연간·마감·전망·Q3, 모델별 효과, 변경 대사(9월 −1.2M · 11~12월 +2.4M · 차이 0), X506 재가산 대사 실패, X508 3,427,786,680, SC05초기지표, 임계값 같으면 정상·NULL 미확인, X509 중복·비용 NULL, 납기·품질 미수집, SC05예산(정산 이중 차감 없음), 고객계획 a~e 월합계 0 |
 | `engine/tests/test_sc05_process.py` | Chaeksas 위의 기본 시연 D501~D518 — **끝난 문서 = SC05 시트**(계획·활동·조건품의·예산원장·변경공유·구매표본 60건·운영계획·전망버전·인계·이벤트 시각·사람·Agent 상태), SC05착수조건 GT51~55, T501~T532(X501 착수 422·T506 9/1 전 READY·T502 권한·T503 누락 저장·확정 422·T504 v1 유지·T507/X502 범위 이탈·T509 예산 초과·T512/X504·T513 전결 경계·대행 확인·T516/X509·T518·T521/X506·T522·T523/X505·T524/X507·T525/X508·T526 새 RUN·T527 게시 멱등·T528 시계만으로 승인 없음·T530 Agent 실패·T531), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
-| `engine/tests/test_sc05_external.py` | 확장 정의 `nowview-sc05` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·구매 확인 대행 담당자), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc05_external.py` | 확장 정의 `nowview-sc05` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·구매 확인 대행 담당자), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc06_calc.py` | **통합가상데이터 v0.6 파생 시트와 대조** — 기존 71개 시트 = v0.5, BASE61 = 장면 5 FC51 산정본(어긋나면 409), 과제성과·월효과 9행·원인집계·운영지표·분기손익·SC06요약·검증 17항목(계산값), 보고 결론 숫자 ↔ 산정, X61-01 비용 null 산정 보류·확인 소계, X61-02 판단 보류, X61-03 중복 대사 대기, X61-04 Agent 후보, AT61-06/X61-05 재적재 새 산정·확인 재수행 대상·같은 입력 되돌림, X61-06 미산정 ≠ 0, X61-07 원인 비용 + 미달 대사 오류, X61-08 검토 가능, 오류값 422·쉼표 문자열, 연결 누락·승인 전 발주, 고정비 절감 거절, AT61-12·14 |
 | `engine/tests/test_sc06_process.py` | 장면 5 완료까지 각본 실행 후 적재(확인 전 DRAFT · 새 실행·도중 실행), 다시 열어도 재적재 없음, **확인 절차 각본 끝의 기록 일곱 건 = SC06보고 시트**(행위자·시각·상태·글·근거)·보고본이 CALC61-v1에 묶임, 담당만 답함 403, 결론 숫자가 다르면 확정 422 REPORT_INVALID → 보완 요청 → 다시 결론·확정, 재확인 요청 → 두 확인 이력·다시 열림, 초기화는 확인만 되돌림, BPMN ↔ 역할표·담당 이름, HTTP 착수·결재·각본·폼 기본값, 조회 계약 4개(문맥 칸·3과제·원인·PO61-1103·AG62·근거·확인 다섯 단계·후속·연간 FC51 그대로), 403 ACCESS_DENIED(오류에 금액·근거 없음)·409 VERSION_MISMATCH·404, **조회가 문서·이력·감사를 바꾸지 않는다**, Studio 장면 5 409, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
-| `engine/tests/test_sc06_external.py` | 확장 정의 `nowview-sc06` ↔ BPMN(계약 검사·본문 입력·답한 사람·오류 경계), Studio 흉내로 대표 보고까지(늦게 연 업무·같은 기록), 결론 숫자 틀린 확정 → 기록 거절 → 같은 결재(남은 항목은 감사 이력), 키 ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·담당 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
-| `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, 키 ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **콘솔 답 거절 → 같은 업무에 잇고 사유가 폼에·반영 중(`inflight`)·화면 답이 각본 지점을 옮김**, 회신기한 형식 사전 검사 |
+| `engine/tests/test_sc06_external.py` | 확장 정의 `nowview-sc06` ↔ BPMN(계약 검사·본문 입력·답한 사람·오류 경계), Studio 흉내로 대표 보고까지(늦게 연 업무·같은 기록), 결론 숫자 틀린 확정 → 기록 거절 → 같은 결재(남은 항목은 감사 이력), `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·담당 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **콘솔 답 거절 → 같은 업무에 잇고 사유가 폼에·반영 중(`inflight`)·화면 답이 각본 지점을 옮김**, 회신기한 형식 사전 검사 |
+| `engine/tests/test_consumer.py` | C15 일꾼 — manifest가 여섯 장면 그림의 서비스 호출·입력·출력을 다 덮는다, 가짜 Center와 들이기(요청 코드 → 승인 → 봉한 토큰) → manifest → 가져가기 → `complete`, `origin`이 선언과 다르면 사유와 함께 `fail`(conflict), 같은 멱등 칸 다른 본문 `idempotency_conflict`, Center 없으면 꺼짐. 장면별 바깥 실행 시험의 Studio·서버 실행기 흉내도 이 수행기를 지난다(`conftest.C15Calls` — Center처럼 출력 필수 칸을 본다) |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
@@ -1621,7 +1614,15 @@ UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연
 >   기본값 그대로) → Studio 패키지 7개(SC01·접수 Bot·SC02~06) 승인·배포 → CON-13 접수 가상 직원 → CON-11 연동용·대리 답용
 >   키 → `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`·`CHAEKSAS_INTAKE_WORKER`
 >   → `systemctl restart nowview-engine`.
-> * 시스템 작업 키 두 개는 `deploy.sh --bootstrap`이 서버에서 지었다(`systemAuth.mode=keys`).
+> * 시스템 작업 키 두 개는 `deploy.sh --bootstrap`이 서버에서 지었다 — **2026-10-31 Pull 전환(4.3) 뒤로는 읽는 곳이 없다.**
+>
+> **2026-10-31 Chaeksas가 바깥 호출을 Pull로 바꿨다(ADR-0102, C15) — NowView는 엔진이 C15 일꾼이 됐다**(4.3). 이 판을
+> 올리기 전에 운영 Chaeksas(Center·서버 실행기)도 C15 판(`554d7fa` 이후)이어야 한다 — 옛 Center는 일감을 쌓지 않고
+> 어댑터로 `/operations/…`를 부르는데 그 경로가 없어졌다. 사람이 할 것(Center 연결 순서가 이렇게 바뀐다):
+> CON-07 확장 정의 `nowview-sc01`~`sc06` 등록(외부 앱 키·시험용 키·서버 주소는 **없다**) → Studio 패키지 7개를 **다시 내보내**
+> 승인·배포(그림에서 `service_keys`를 걷었다) → CON-13 접수 가상 직원 → CON-11 연동용·대리 답용 키 → `/etc/nowview.env`에
+> `CHAEKSAS_CENTER_URL` 등 → `systemctl restart nowview-engine` → 엔진 로그(또는 `/health.consumer.requestCode`)의 요청
+> 코드를 CON-07 「일꾼 승인 대기」에서 승인(토픽 여섯).
 > * **DB는 비우지 않았다** — 예전 데모 실행 33건·LangGraph 테이블(`checkpoint*`, `instance_spec`)이 남아 있다. 옛 문서는
 >   읽을 때 채우고(`domain.upgrade`) 새 데모 실행과 무관하다. 비우는 명령은 자동 권한 검사가 막았다 — 비우려면 사람이 한다.
 > * **rsync가 `.claude/worktrees`를 올리지 않는다** — 다른 세션의 worktree 사본이 서버에 겹으로 쌓인다. 같은 이유로 로컬
@@ -1716,9 +1717,8 @@ scripts/deploy.sh --logs engine 80
   있다(id는 무작위 8자리 hex). Agent를 `llm` 모드로 켜면 비용 위험이 다시 생긴다 — 계산마다 모델을 한 번
   (실패 시 두 번) 부르고, 영업담당·팀장 역할이면 "다시 생성"으로 횟수 제한 없이 부를 수 있다. 운영 기본은 `mock`이다.
 
-  **시스템 작업(바깥 Chaeksas가 부르는 길)은 이제 키를 받는다**(N6, 4.3). 아래 경고와 다른 경우다 — 키는
-  BFF↔엔진 사이의 것이 아니라 **바깥 호출자가 싣고 BFF가 그대로 넘기는 것**이라 공격 경로 끝에서 검사된다.
-  화면이 쓰는 업무 조작(행위자 헤더)은 여전히 열려 있다.
+  **시스템 작업(서비스 태스크의 업무 기록)은 웹에 경로가 없다**(2026-10-31, 4.3) — 엔진의 C15 일꾼이 Center에서
+  가져간다. 바깥에서 HTTP로 업무를 적는 길이 닫혔다. 화면이 쓰는 업무 조작(행위자 헤더)은 여전히 열려 있다.
 
   **막을 자리를 짚을 때 층을 틀리기 쉽다.** 엔진(8077)은 **이미 127.0.0.1 전용이고**
   외부에서 연결 거부다 — 그래서 *엔진에* API key를 걸어도 BFF↔엔진 사이만 인증되고
@@ -1795,7 +1795,7 @@ scripts/deploy.sh --logs engine 80
 ### 5.7 장면 3(SC03) — 완료 (Studio·Center 실행)
 
 2026-10-27. 설계·데이터는 4.17. 엔진 시험(SQLite·Postgres)으로 기본 시연 D30 → D41과 E31~E37을 잠갔고, 숫자는 통합가상데이터
-v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 Studio 흉내(진짜 엔진 + 시험용 키)·가짜 Center + 실행기 흉내로
+v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 Studio 흉내(진짜 엔진 + `origin: test` 일감)·가짜 Center + 실행기 흉내로
 완료까지 갔다. 브라우저에서는 **내장 실행(시험용, API로 만든 데모 실행)**으로 U31~U37·BPM 화면, 플레이어 진행, 3/4 완료 거절(422
 남은 항목), 화면 폼 인수(4/4) → 완료, 375px를 확인했다.
 
@@ -1831,7 +1831,7 @@ v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 
 
 2026-10-27. 설계·데이터는 4.18. 엔진 시험(SQLite·Postgres)으로 기본 시연 D401 → D413과 E401~E405·E408, T401~T416을 잠갔고, 숫자는
 통합가상데이터 v0.4의 파생 시트(월효과 36행·월손익·비교·검증), 끝난 문서는 SC04 시트(예산과제·조건지시·회의·이벤트 23건·인계)와 같다.
-바깥 실행은 Studio 흉내(진짜 엔진 + 시험용 키)·가짜 Center + 실행기 흉내로 완료까지 갔다. 브라우저에서는 **내장 실행(시험용, API로 만든
+바깥 실행은 Studio 흉내(진짜 엔진 + `origin: test` 일감)·가짜 Center + 실행기 흉내로 완료까지 갔다. 브라우저에서는 **내장 실행(시험용, API로 만든
 데모 실행)**으로 U401~U408·BPM 화면을 각본으로 진행하고, 전체 책임 인수와 장면 완료는 화면 폼으로 했다. 예산 위임 조회, 375px를 확인했다.
 
 **남은 것**
@@ -1861,7 +1861,7 @@ v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 
 
 2026-10-27. 설계·데이터는 4.19. 엔진 시험(SQLite·Postgres)으로 기본 시연 D501 → D518과 X501~X509, T501~T532를 잠갔고, 숫자는 통합가상데이터
 v0.5의 파생 시트(모델손익 60행·월효과 18행·월손익·초기지표·예산·변경대사), 끝난 문서는 SC05 시트(계획·활동·조건품의·예산원장·변경공유·
-구매표본 60건·운영계획·전망버전·인계·이벤트 시각과 사람·Agent 상태)와 같다. 바깥 실행은 Studio 흉내(진짜 엔진 + 시험용 키)·가짜 Center +
+구매표본 60건·운영계획·전망버전·인계·이벤트 시각과 사람·Agent 상태)와 같다. 바깥 실행은 Studio 흉내(진짜 엔진 + `origin: test` 일감)·가짜 Center +
 실행기 흉내로 완료까지 갔다. 브라우저에서는 **내장 실행(시험용, API로 만든 데모 실행)**으로 U501~U508·BPM 화면을 각본으로 진행하고, Agent
 초안을 폼으로 가져와 협조·비용이 빈 초안을 저장해 확정 차단 사유 12건이 보이는 것을 확인했다. 375px(문서 폭·좁은 칸)를 확인했다.
 

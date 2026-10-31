@@ -3,8 +3,8 @@ SC02 실행 — `processes/sc02.bpmn`을 **Studio 시험 실행·Center 서버 �
 태스크가 부르는 시스템 작업(외부 확장 `nowview-sc02`)으로 업무를 적는다. SC01의 N1~N6과 같은 틀이다
 (`docs/chaeksas-integration.md`).
 
-* **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 `{{run_id}}`가 데모
-  실행을 그 실행에 묶는다(`link_external_run`). 어느 키로 왔는지가 실행 위치다(N6) — 선언과 어긋나면
+* **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 실행 id가 데모
+  실행을 그 실행에 묶는다(`link_external_run`). 일감의 `origin`이 실행 위치다(C15) — 선언과 어긋나면
   409.
 * **Center**: 요청 접수가 SC02 패키지를 기동하고(`POST /jobs`), 화면 답은 대리 답이며(사전 검사가
   먼저), 진행은 실행 기록을 폴링한다. **Studio**: 결재는 Studio에서 답한다 — 화면은 읽기만 한다.
@@ -145,8 +145,8 @@ def run_operation(
     doc: dict, seed: Seed, operation: str, args: dict[str, Any], *, actor: str | None = None
 ) -> dict[str, Any]:
     """
-    작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다. 내장 어댑터와 HTTP 길(바깥
-    Chaeksas의 HTTP 어댑터)이 **같은 함수**를 쓴다 — 출력 모양이 갈라지면 BPMN의 `output` 대응이
+    작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다. 내장 어댑터와 C15 일꾼
+    (`app/consumer.py`)이 **같은 함수**를 쓴다 — 출력 모양이 갈라지면 BPMN의 `output` 대응이
     한쪽에서만 맞는다. 기록 작업의 `error_message: None`은 결재가 보이는 직전 거절 사유를 비운다.
     """
     if operation == "screen_request":
@@ -584,7 +584,7 @@ class Sc02Process:
         via: str | None = None,
     ) -> dict[str, Any]:
         """
-        시스템 작업을 HTTP로 — 바깥 BPM(Chaeksas HTTP 어댑터)이 서비스 태스크에서 부른다(SC01
+        시스템 작업 — 바깥 BPM의 서비스 태스크 일감을 C15 일꾼이 가져와 부른다(SC01
         `operate`와 같다). 첫 호출의 `external_run_id`가 데모 실행을 묶고, 다른 실행·내장 데모
         실행이면 409. 기록이 거절되면 거절만 남기고(반쯤 적힌 효과는 버린다) 상태 코드를 낸다 —
         그림은 같은 결재로 돌아간다.
