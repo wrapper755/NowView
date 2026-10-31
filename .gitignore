@@ -62,7 +62,3 @@ engine/*.sqlite-*
 # 로컬 개발 프로세스 제어(scripts/stack.sh)의 PID·로그
 .dev/
 
-# 회사 시스템 시뮬레이터(company-sim) — 가상 환경·세계 저장소
-company-sim/.venv/
-company-sim/*.sqlite
-company-sim/*.sqlite-*

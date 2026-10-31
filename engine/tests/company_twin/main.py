@@ -1,19 +1,6 @@
 """
-가상 자동차 부품사(autoparts) 회사 시스템 시뮬레이터 — NowView 일꾼이 읽고 적는 회사 쪽 원본.
-
-NowView는 회사 사이트가 아니다. 회사의 자료·확정 기록은 회사 시스템에 있고, NowView 엔진(일꾼)이 이
-API로 읽고 돌려 적는다(`docs/worker-interfaces.md` §3.2). 연결은 늘 NowView → 회사다 — 이 서버는
-NowView 주소를 모른다.
-
-* `/company/…` — 불변 기록(조직·마스터·버전별 계획·실적·원가). 세계와 무관하다.
-* `/worlds/{w}/…` — 세계마다 변하는 기록(시각·고객계획 수신함·원천 확인 상태).
-* `/worlds/{w}/sim/…`·`POST /worlds`·`/reset`·`/clock` — 시연 조작. 실제 회사 시스템에는 없다.
-
-실행 — `uv run uvicorn autoparts_sim.main:build_app --factory --port 8091`(팩토리 — 키가 없으면
-시험이 임포트만 해도 터지지 않게).
-
-인증 — `AUTOPARTS_SIM_KEY`가 있으면 `Authorization: Bearer <키>`를 요구한다. 없으면 기동하지
-않는다(조용히 열리지 않게). 끄려면 `AUTOPARTS_SIM_AUTH=off`를 명시한다. `/health`는 열려 있다.
+회사 시스템 쌍둥이(엔진 시험 전용) — autopart1 기간계(`legacy/`)의 HTTP 계약
+(`docs/worker-interfaces.md` §4.2)을 같은 프로세스에서 흉내 낸다. 원본은 autopart1 리포다.
 """
 
 from __future__ import annotations
@@ -27,8 +14,8 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from . import seed
-from .store import WorldStore
+from company_twin import seed
+from company_twin.store import WorldStore
 
 KST = ZoneInfo("Asia/Seoul")
 #: 기준 시점 S0 — 2027-06-15 18:00(실적 컷오프 다음 저녁, NowView SC01 S0와 같다).
@@ -57,10 +44,10 @@ class StatusBody(BaseModel):
 
 
 def _auth_dependency():
-    key = os.getenv("AUTOPARTS_SIM_KEY") or ""
-    off = os.getenv("AUTOPARTS_SIM_AUTH", "").lower() == "off"
+    key = os.getenv("COMPANY_TWIN_KEY") or ""
+    off = os.getenv("COMPANY_TWIN_AUTH", "").lower() == "off"
     if not key and not off:
-        raise RuntimeError("AUTOPARTS_SIM_KEY가 없다 — 끄려면 AUTOPARTS_SIM_AUTH=off를 명시한다")
+        raise RuntimeError("COMPANY_TWIN_KEY가 없다 — 끄려면 COMPANY_TWIN_AUTH=off를 명시한다")
 
     def check(authorization: str | None = Header(default=None)) -> None:
         if off:
@@ -76,8 +63,7 @@ def _new_world(world_id: str) -> dict[str, Any]:
     return {"world_id": world_id, "clock": S0_CLOCK, "seq": 0, "inbox": {}, "status_log": []}
 
 
-def build_app(store: WorldStore | None = None) -> FastAPI:
-    store = store or WorldStore()
+def build_app(store: WorldStore) -> FastAPI:
     data = seed.load()
     app = FastAPI(
         title="autoparts 회사 시스템 시뮬레이터",
@@ -98,7 +84,7 @@ def build_app(store: WorldStore | None = None) -> FastAPI:
             "ok": True,
             "company": "autoparts",
             "worlds": store.count(),
-            "auth": "off" if os.getenv("AUTOPARTS_SIM_AUTH", "").lower() == "off" else "key",
+            "auth": "off" if os.getenv("COMPANY_TWIN_AUTH", "").lower() == "off" else "key",
         }
 
     # ───────────── 불변 기록 ─────────────

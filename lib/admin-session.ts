@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 /**
- * 관리자 세션(서버 전용) — 관리자 모드(`/admin`)만 쓴다(`docs/worker-interfaces.md` §0.1 Q7).
+ * 관리자 세션(서버 전용) — 관리자 모드(`/admin`)만 쓴다(`docs/worker-interfaces.md` §4.3).
  *
  * * 비밀번호는 환경 `NOWVIEW_ADMIN_PASSWORD`, 쿠키 서명 키는 `NOWVIEW_ADMIN_SECRET`에만 있다(`.env.local`·`/etc/nowview.env`).
  *   둘 중 하나라도 없으면 관리자 모드는 꺼져 있다 — 조용히 열리지 않는다.

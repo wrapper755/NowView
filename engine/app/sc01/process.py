@@ -2,7 +2,7 @@
 SC01 실행 — Chaeksas BPM 엔진(`chaeksas.core.engine`)을 라이브러리로 돌린다.
 
 **Chaeksas는 그림을 해석하고 사람을 기다린다. 숫자는 모른다.** 서비스 태스크가 부르는
-`autoparts.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
+`autopart1.sc01` 앱은 이 모듈 안의 어댑터(`_InProcessCalls`)다 — 네트워크를 타지 않는다.
 Center·서버 실행기는 쓰지 않는다: 정의 변경마다 패키지 서명·배포가 필요하고, 결재 응답은
 관리자 토큰으로만 되고, 작업 결과 값을 돌려주지 않아 화면이 결과를 읽을 길이 없다.
 
@@ -79,7 +79,7 @@ def request_draft(doc: dict, seed: Seed, run_id: str, *, actor: str, manual: boo
 #: 두 길의 출력 모양이 갈라지면 BPMN의 `output` 대응이 한쪽에서만 맞는다.
 #: 사람 결정 뒤의 **기록** 작업. 결재를 어디서 답했든(내장·Studio·Center) 업무 효과는 이 길로만
 #: 난다 — 내장 실행기의 답 훅에만 두면 바깥 실행에서 원천이 확인되지 않아 계산이 409로 막힌다
-#: (docs/chaeksas-integration.md N1).
+#: (docs/chaeksas-integration.md §5).
 RECORDS = (
     "record_plan_review",
     "record_risk_review",
@@ -640,7 +640,7 @@ class Sc01Process:
         if case_id not in domain.CASES:
             raise DomainError(f"모르는 시연 사례: {case_id} (가능: {', '.join(domain.CASES)})", 422)
         demo_run_id = f"demo-{uuid.uuid4().hex[:8]}"
-        # 회사 세계 = 데모 실행(`docs/worker-interfaces.md` Q1). 회사가 닿지 않으면 만들지 않는다.
+        # 회사 세계 = 데모 실행(`docs/worker-interfaces.md` §4.2). 회사가 닿지 않으면 만들지 않는다.
         self.company.ensure_world(demo_run_id)
         doc = domain.new_demo_run(
             self.seed,
@@ -699,7 +699,7 @@ class Sc01Process:
     ) -> dict:
         """
         시연 원천 수신 — 고객이 회사에 원천을 보내고(회사 시스템 시뮬레이터), NowView가 회사
-        수신함에서 그것을 들인다(`docs/worker-interfaces.md` §3.3). 원천의 주인은 회사다.
+        수신함에서 그것을 들인다(`docs/worker-interfaces.md` §4.2). 원천의 주인은 회사다.
 
         * 처음 → BPM 시작.
         * 보완 대기 중 → 정정본을 메시지로 전달해 같은 실행에서 다시 검증한다.

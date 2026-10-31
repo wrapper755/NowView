@@ -256,7 +256,7 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     steps = demo.steps_for("BASE")
     doc = demo.run_step(proc, rid, 0)  # D01 접수
     [job] = center.jobs
-    assert job["bpm_process_id"] == "nowview.sc02" and job["target"] == {"type": "server_runner"}
+    assert job["bpm_process_id"] == "autopart1.sc02" and job["target"] == {"type": "server_runner"}
     assert job["inputs"] == {"데모실행ID": rid, "요청ID": domain.REQUEST_ID}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"]
 

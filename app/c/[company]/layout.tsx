@@ -13,7 +13,7 @@ import { TopBar } from "@/components/shared/top-bar";
  */
 export default async function CompanyLayout({ children, params }: LayoutProps<"/c/[company]">) {
   // 회사는 설정(엔진 DB)이라 빌드 때 모른다 — 서버에서 엔진을 묻지 않는다(엔진이 꺼져도 화면 틀은 뜬다, 4.3). 이름·없는
-  // 회사 판정은 클라이언트가 공개 목록으로 한다(Q6).
+  // 회사 판정은 클라이언트가 공개 목록으로 한다.
   const { company: id } = await params;
   return (
     <div className="flex flex-1 flex-col lg:pl-56">

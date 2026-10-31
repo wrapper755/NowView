@@ -7,7 +7,7 @@
 
   BPM이 쥐는 것: 순서 · 사람 대기(배정·인수·검토) · 분기 · 인계.
   BPM이 쥐지 않는 것: 계산 · 원천 검증 · 이슈 갱신 — 서비스 태스크가 NowView 계산 서비스
-  (`autoparts.sc01`)를 부른다. 엔진은 숫자를 모른다(구현명세 AG-01, 설계 G12).
+  (`autopart1.sc01`)를 부른다. 엔진은 숫자를 모른다(구현명세 AG-01, 설계 G12).
 
   단계 대응(SC01 설계서 1.5): S01 접수 → S02 원천 확인(CT01) → S03·S04 전망 작성·비교 계산 →
   S05 영업 검토(CT02) → S06 현업 배정(CT03) ∥ S07 경영 검토 연결 → S08 인계.
@@ -23,7 +23,7 @@
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc01">
   <bpmn:message id="Msg_correction" name="원천정정"/>
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
-  <bpmn:process id="autoparts.sc01" name="SC01 고객계획 변경 대응" isExecutable="true">
+  <bpmn:process id="autopart1.sc01" name="SC01 고객계획 변경 대응" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",

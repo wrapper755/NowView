@@ -187,7 +187,7 @@ def issue_id_for(model_id: str, period: date) -> str:
 
 #: 시연 사례 → Agent 모드. EX08은 Agent 응답 실패를 재현한다(나머지 업무는 그대로 진행된다).
 CASES = {"BASE": None, "EX08": "fail"}
-#: BPMN을 누가 도는가(docs/chaeksas-integration.md §4·N2). 내장이 아니면 엔진은 이 문서에서 step하지
+#: BPMN을 누가 도는가(docs/chaeksas-integration.md §5). 내장이 아니면 엔진은 이 문서에서 step하지
 #: 않는다 — 바깥 실행의 진행은 그 실행이 부르는 작업으로만 안다.
 EXECUTORS = ("embedded", "studio", "center")
 #: 바깥 실행 위치의 이름 — 사유 문구에 쓴다.
@@ -305,7 +305,7 @@ def audit(
 def receive_company_plan(doc: dict, plan: dict[str, Any], *, actor: str) -> tuple[str, bool]:
     """
     회사 수신함에 들어온 고객계획 원천(`GET /worlds/{w}/customer-plans/{doc_id}`)을 NowView
-    문서에 사본으로 들인다 — 원천의 주인은 회사 시스템이다(`docs/worker-interfaces.md` §2). 같은
+    문서에 사본으로 들인다 — 원천의 주인은 회사 시스템이다(`docs/worker-interfaces.md` §3). 같은
     내용 재수신은 기존 접수를 돌려준다 — (source_id, 새로 만들었나).
     """
     rows = [_row_from(r) for r in plan["rows"]]

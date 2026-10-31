@@ -42,7 +42,7 @@ export function CompanyList() {
   );
 }
 
-/** 회사 운영 현황 — 그 회사가 쓰는 업무. 업무를 고르면 그 화면으로 간다. 없는 회사면 그렇게 말한다(Q6). */
+/** 회사 운영 현황 — 그 회사가 쓰는 업무. 업무를 고르면 그 화면으로 간다. 없는 회사면 그렇게 말한다. */
 export function CompanyOverview({ companyId }: { companyId: string }) {
   const { companies, error } = useCompanies();
   if (error) return <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">{error}</p>;

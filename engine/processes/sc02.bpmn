@@ -23,7 +23,7 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc02">
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
-  <bpmn:process id="nowview.sc02" name="SC02 단가 인상 검토와 경영검토 연결" isExecutable="true">
+  <bpmn:process id="autopart1.sc02" name="SC02 단가 인상 검토와 경영검토 연결" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",

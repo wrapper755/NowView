@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 
 /**
- * NowView 관리자 모드 — 로그인 뒤에만 열린다(`docs/worker-interfaces.md` §0.1). 공개 화면에는 이곳으로 가는 링크가 없다.
+ * NowView 관리자 모드 — 로그인 뒤에만 열린다(`docs/worker-interfaces.md` §1). 공개 화면에는 이곳으로 가는 링크가 없다.
  * 설정(회사·회사 시스템 주소·BPM 프로세스 매핑·토픽)은 엔진 DB에 있고 여기서만 고친다. 키·비밀번호는 설정이 아니라
  * 서버 환경 파일에 있다.
  */

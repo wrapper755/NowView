@@ -112,9 +112,7 @@ jobs:
         with:
           enable-cache: true
           # 엔진 의존성만 캐시 키에 넣는다 — 앱 쪽 변경으로 캐시가 날아가지 않게 한다.
-          cache-dependency-glob: |
-            engine/uv.lock
-            company-sim/uv.lock
+          cache-dependency-glob: engine/uv.lock
 
       # Python 버전은 `engine/.python-version`이 원천이다. 여기에 또 적으면
       # 로컬 venv와 CI가 갈라진다 — node-version / @types/node에서 겪은 것과 같은 문제다.
@@ -128,11 +126,6 @@ jobs:
 
       - name: Test (pytest)
         run: uv run pytest
-
-      # 회사 시스템 시뮬레이터(company-sim/) — 엔진 시험이 같은 프로세스에 띄워 쓰고, 자기 시험도 따로 있다.
-      - name: Company simulator (lint · test)
-        working-directory: company-sim
-        run: uv sync --locked && uv run ruff check . && uv run pytest
 
   # 컨테이너 이미지 — 푸시하지 않고 빌드만 한다.
   #
