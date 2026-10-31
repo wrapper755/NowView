@@ -29,6 +29,7 @@ from urllib.parse import quote
 import httpx
 
 from app.sc01.domain import DomainError
+from app.worker_file import center_key
 
 API = "/api/v1"
 #: 한 요청의 상한. 조작 하나가 Center를 기다리는 동안 그 데모 실행의 잠금을 쥐는 일이 있다.
@@ -76,8 +77,8 @@ class CenterConfig:
     def from_env(cls) -> CenterConfig:
         return cls(
             url=(os.getenv("CHAEKSAS_CENTER_URL") or "").rstrip("/") or None,
-            integration_key=os.getenv("CHAEKSAS_INTEGRATION_KEY") or None,
-            relay_key=os.getenv("CHAEKSAS_RELAY_KEY") or None,
+            integration_key=center_key("integration"),
+            relay_key=center_key("relay"),
             package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "company1.sc01",
             intake_worker=os.getenv("CHAEKSAS_INTAKE_WORKER") or None,
             sc02_package=os.getenv("CHAEKSAS_SC02_PACKAGE") or "company1.sc02",

@@ -338,7 +338,7 @@ NowView/
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
-    │   ├── worker_file.py        # Center 일꾼 폴더에 둘 worker.consumer.json 짓기(토큰 해시·토픽, ADR-0121)·--new-token
+    │   ├── worker_file.py        # 설치가 Center 키 셋(일꾼·연동용·대리 답용)을 짓고 Center 폴더에 해시 파일을 쓴다(ADR-0122) · center_key
     │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
     │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
     │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
@@ -525,8 +525,10 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     결과를 다시 준다(같은 칸·다른 본문은 `idempotency_conflict`). 저장소는 **메모리**다 — 엔진이 다시 뜨면 빈다.
   * **승인 없는 일꾼이다**(2026-10-31 사용자 결정, Chaeksas ADR-0121). 배포가 Center의 일꾼 폴더
     (`CHK_CENTER__CONSUMERS_DIR`)에 일꾼 파일 `worker.consumer.json`(이름 `worker`·토픽·토큰 **해시**)을 두면 Center가 뜰 때
-    들인다 — 요청 코드 승인이 없다. 파일은 `engine/app/worker_file.py`가 짓는다(`--new-token`으로 토큰 원문을 짓고
-    `WORKER_CONSUMER_TOKEN`에 둔다). **확장 정의는 일꾼이 올린다** — 엔진이 뜨면 토픽마다 `chaeksas/{topic}.extension.json`을
+    들인다 — 요청 코드 승인이 없다. 파일은 `engine/app/worker_file.py`가 짓는다 — **연동용·대리 답용 키도 같은 명령이 짓는다**
+    (2026-11-01 사용자 결정: 설치가 키를 짓고 Center는 해시 파일 `nowview-{integration,relay}.key.json`으로 들인다, 콘솔 발급·옮겨
+    적기 없음). 원문은 `engine/.consumer/keys.json`(0600)에만 있고 엔진은 `center_key`로 읽는다 — 같은 이름의 환경 변수가 이긴다.
+    Center가 `*.key.json`을 읽는 판은 Chaeksas에 요청 중이다(그 전에는 콘솔 발급 키를 env에 둔다). **확장 정의는 일꾼이 올린다** — 엔진이 뜨면 토픽마다 `chaeksas/{topic}.extension.json`을
     `PUT /consumers/self/extension`으로 올리고(409는 판을 올리라는 경고만) manifest를 올린 뒤 가져가기를 시작한다. 콘솔 등록·
     해제는 없다. 토큰이 없으면 꺼진 채 사유를 남긴다. **기본 토픽은 `external` 하나다** — 장면 2~6의 옛 토픽은 맡지 않아,
     옮길 때까지 그 장면들의 Center 실행은 서비스 태스크에서 멈춘다. **지켜볼 것은 로그다** — 엔진 로그 `nowview.consumer`와 Center 로그(일꾼·일감·토픽·작업·오류 코드).
@@ -553,7 +555,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     **그래서 그림이 바뀌었다 — Studio에서 패키지를 다시 내보내 승인·배포해야 한다.**
   * `chaeksas-core`·`chaeksas-service-kit`은 같은 커밋(`d479226`, 2026-10-31 로컬 Center와 같은 판)에 고정한다(`engine/pyproject.toml`).
 * **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
-  없다). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
+  없다 — 원문은 설치가 지은 보관 파일 `engine/.consumer/keys.json`, 위 「승인 없는 일꾼」). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
   `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태,
   `GET /virtual-workers/{id}` 가상 직원) · `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-CHK-On-Behalf-Of` =
   행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `company1.sc01`) · `CHAEKSAS_INTAKE_WORKER`(접수 가상 직원 id — 있으면

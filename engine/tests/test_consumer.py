@@ -227,29 +227,50 @@ def test_consumer_stays_off_without_a_token(proc: Sc01Process) -> None:
     )
     host.start()
     found = host.describe()
-    assert found["state"] == "off" and "WORKER_CONSUMER_TOKEN" in found["problem"]
+    assert found["state"] == "off" and "app.worker_file" in found["problem"]
 
 
-def test_worker_file(tmp_path) -> None:
+def test_worker_file(tmp_path, monkeypatch) -> None:
     """
-    Center 일꾼 폴더(ADR-0121)에 둘 `worker.consumer.json` — 이름 `worker`·설정의 토픽·토큰
-    **해시**. 원문은 쓰지 않는다. 확장 정의는 이 파일에 없다(일꾼이 올린다).
+    설치가 Center 키 셋(일꾼·연동용·대리 답용)을 짓고 Center 폴더(ADR-0122)에 **해시만** 쓴다.
+    원문은 엔진의 보관 파일(0600)에만 있고 엔진은 거기서 읽는다 — 환경 변수가 있으면 그것이
+    이긴다. 다시 돌려도 키는 그대로이고 `--rotate`만 바꾼다.
     """
     import hashlib
 
     from app.config import default_config
-    from app.worker_file import WORKER_FILE, new_token, write_worker_file
+    from app.worker_file import center_key, ensure_keys, load_keys, write_folder
 
-    token = new_token()
-    assert token.startswith("chk_ctr_") and len(token) == len("chk_ctr_") + 40
+    store = tmp_path / "secret" / "keys.json"
+    monkeypatch.setenv("NOWVIEW_CONSUMER_DIR", str(store.parent))
+    for name in ("WORKER_CONSUMER_TOKEN", "CHAEKSAS_INTEGRATION_KEY", "CHAEKSAS_RELAY_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    keys = ensure_keys()
+    assert set(keys) == {"worker", "integration", "relay"} and len(set(keys.values())) == 3
+    for token in keys.values():
+        assert token.startswith("chk_ctr_") and len(token) == len("chk_ctr_") + 40
+    assert store.stat().st_mode & 0o777 == 0o600
+    assert ensure_keys() == keys and load_keys() == keys
+    assert center_key("relay") == keys["relay"]
+    monkeypatch.setenv("CHAEKSAS_RELAY_KEY", "from-env")
+    assert center_key("relay") == "from-env"
+    assert ensure_keys(rotate=True)["worker"] != keys["worker"]
+    keys = load_keys()
+
+    folder = tmp_path / "consumers"
     topics = list(default_config().topics)
     assert topics == ["external"]
-    path = write_worker_file(tmp_path, token, topics)
-    assert path.name == WORKER_FILE == "worker.consumer.json"
-    body = json.loads(path.read_text("utf-8"))
-    assert body == {
-        "name": "worker",
-        "topics": ["external"],
-        "token_sha256": hashlib.sha256(token.encode()).hexdigest(),
+    paths = write_folder(folder, keys, topics)
+    sha = {kind: hashlib.sha256(token.encode()).hexdigest() for kind, token in keys.items()}
+    assert {p.name for p in paths} == {
+        "worker.consumer.json", "nowview-integration.key.json", "nowview-relay.key.json"
     }
-    assert token not in path.read_text("utf-8")
+    assert json.loads((folder / "worker.consumer.json").read_text("utf-8")) == {
+        "name": "worker", "topics": ["external"], "token_sha256": sha["worker"],
+    }
+    for kind in ("integration", "relay"):
+        assert json.loads((folder / f"nowview-{kind}.key.json").read_text("utf-8")) == {
+            "name": f"nowview-{kind}", "type": kind, "token_sha256": sha[kind],
+        }
+    written = "".join(p.read_text("utf-8") for p in paths)
+    assert not any(token in written for token in keys.values())

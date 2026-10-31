@@ -42,17 +42,28 @@
 
 **준비**
 * 회사 시스템: Company1 리포에서 `scripts/stack.sh start`. NowView: `npm run stack:start`(엔진 → 웹).
-* Center 콘솔 `http://localhost:8501`에 **관리자 계정**으로 들어간다(패키지 승인·가상 직원·키 발급은 관리자만 된다).
+* Center 콘솔 `http://localhost:8501`에 **관리자 계정**으로 들어간다(패키지 승인·가상 직원은 관리자만 된다).
 * Studio를 띄우고 이 Center에 연결해 둔다(Studio의 「Center로 올리기」가 그 연결로 올린다).
 
-**1. 일꾼 파일을 Center 일꾼 폴더로** (NowView → Center) — 콘솔 등록·요청 코드 승인이 없다(Chaeksas ADR-0121)
-1. 일꾼 토큰을 하나 짓는다: `cd engine && uv run python -m app.worker_file --new-token`. 찍힌 원문을 `engine/.env.local`의
-   `WORKER_CONSUMER_TOKEN=` 뒤에 붙인다(원문은 여기에만 둔다).
-2. 일꾼 파일을 짓는다 — 로컬 compose의 Center는 Chaeksas 리포 `deploy/consumers/`가 그 폴더다(`CHK_CENTER__CONSUMERS_DIR`):
-   `cd engine && uv run --env-file .env.local python -m app.worker_file ~/Workspace/Chaeksas/deploy/consumers`.
-   `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 **해시**)이 생긴다.
-3. Center를 다시 띄운다. 콘솔 **배포·자원 › 리소스**의 「일꾼 폴더」에 일꾼 `worker`가 「등록」으로 보이면 된다. 확장 정의 `external`은
-   5에서 엔진(일꾼)이 뜰 때 올린다. 빼려면 파일을 지우고 Center를 다시 띄운다. 일감 흐름·확장 올리기는 Center 로그에 남는다.
+**1. NowView 키를 Center 폴더로** (NowView → Center) — 콘솔 발급·요청 코드 승인이 없다(Chaeksas ADR-0122)
+
+NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝내기)·연동용(실행 기동·메시지·진행 읽기)·대리 답용(결재 읽기·답).
+**셋 다 설치가 짓는다** — Center를 띄운 뒤 콘솔에서 발급받아 옮겨 적지 않는다(2026-11-01 사용자 결정). 원문은 엔진만 아는 보관
+파일(`engine/.consumer/keys.json`, gitignore, 0600)에 있고, Center 폴더에는 해시만 간다.
+
+1. 키를 짓고 Center 폴더에 해시 파일을 쓴다 — 로컬 compose의 Center는 **그 compose 파일 옆의** `deploy/consumers/`가 그 폴더다
+   (`CHK_CENTER__CONSUMERS_DIR`, 다른 곳이면 `CHK_CENTER__CONSUMERS_HOST_DIR`). 지금 로컬 Center는 Chaeksas worktree
+   `.claude/worktrees/local-center`에서 돈다:
+   `cd engine && uv run python -m app.worker_file ~/Workspace/Chaeksas/.claude/worktrees/local-center/deploy/consumers`.
+   없는 키만 짓는다(다시 돌려도 키는 그대로, 새로 지으려면 `--rotate`). 생기는 파일:
+   `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) · `nowview-integration.key.json` · `nowview-relay.key.json`
+   (이름·키 종류·토큰 해시).
+2. Center를 다시 띄운다. 콘솔 **배포·자원 › 리소스**의 「일꾼 폴더」에 일꾼 `worker`와 두 키가 보이면 된다. 확장 정의 `external`은
+   4에서 엔진(일꾼)이 뜰 때 올린다. 빼려면 파일을 지우고 Center를 다시 띄운다(그 키가 폐기된다).
+
+> **Chaeksas 쪽이 아직이다**(2026-11-01) — 지금 Center는 `*.consumer.json`(일꾼)만 읽고 `*.key.json`(연동용·대리 답용)은 읽지
+> 않는다. Chaeksas에 요청했고, 그 판이 오기 전에는 콘솔 **관리 › Center API 키**로 발급한 키를 `engine/.env.local`의
+> `CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`에 둔다(환경 변수가 보관 파일을 이긴다).
 
 **2. BPM 패키지 올리기·승인·배포** (Studio → Center 콘솔) — 두 그림 모두 같은 순서다.
 1. Studio에서 Company1 리포의 `bpm/company1/company1.sc01/process/sc01.bpmn`을 연다 → 메뉴 **파일 › Center로 올리기**.
@@ -66,22 +77,17 @@
 2. id `company1-intake`, 이름 `고객계획 접수 담당`, 감독자 `이도윤`, 접수 BPM 프로세스 `company1.sc01-intake` → **등록**.
    (id는 `engine/.env.local`의 `CHAEKSAS_INTAKE_WORKER`와 같아야 한다 — 이미 `company1-intake`로 적혀 있다.)
 
-**4. Center 키 발급** (Center 콘솔 → NowView)
-1. **관리 › Center API 키** › **새 키...** → 이름 `nowview-integration`, 종류 **연동용** → **발급**. 한 번만 보이는 원문을 복사해
-   `engine/.env.local`의 `CHAEKSAS_INTEGRATION_KEY=` 뒤에 붙인다.
-2. 한 번 더 **새 키...** → 이름 `nowview-relay`, 종류 **대리 답용** → **발급** → `CHAEKSAS_RELAY_KEY=` 뒤에 붙인다.
-
-**5. 일꾼 켜기** (NowView)
-1. `engine/.env.local`에 `CHAEKSAS_CENTER_URL`·`WORKER_CONSUMER_TOKEN`이 있고 `WORKER_CONSUMER=off` 줄이 없어야 한다.
+**4. 일꾼 켜기** (NowView)
+1. `engine/.env.local`에 `CHAEKSAS_CENTER_URL`이 있고 `WORKER_CONSUMER=off` 줄이 없어야 한다.
 2. `npm run stack:restart engine`. 엔진 로그(`npm run stack:logs engine`)에 「확장 external 0.1.0판을 올렸다」·「일꾼이 토픽 external를
    가져간다」가 나오면 된다 — 승인 단계는 없다.
 
-**6. 확인** (NowView)
+**5. 확인** (NowView)
 1. `/admin`(비밀번호는 저장소 루트 `.env.local`의 `NOWVIEW_ADMIN_PASSWORD`)에서 일꾼이 「일감을 가져가는 중」, 「연결」의 Center
    연동용 키·대리 답용 키가 「있음」, 회사 시스템이 「응답함」인지 본다.
 2. 회사 화면 `http://localhost:3000/c/company1/sc01`의 데모 플레이어에서 실행 위치 **Center**로 초기화하고 장면 1을 돌린다.
 
-**토큰·토픽을 바꿀 때** — 1의 두 명령으로 파일을 다시 짓고 Center와 엔진을 다시 띄운다. 확장 정의를 고치면 판을 올린다(같은 판·
+**키·토픽을 바꿀 때** — 1의 명령(키를 바꾸려면 `--rotate`)으로 파일을 다시 짓고 Center와 엔진을 다시 띄운다. 확장 정의를 고치면 판을 올린다(같은 판·
 다른 내용은 Center가 409로 거절한다). Center는 해시가 바뀌면 옛 토큰을 폐기하고,
 폐기된 토큰은 되살아나지 않는다.
 
@@ -92,14 +98,13 @@
 | 파일 | 값 | 쓰임 |
 |---|---|---|
 | `engine/.env.local` | `CHAEKSAS_CENTER_URL` | Center 주소(일꾼·기동·대리 답 모두) |
-| | `CHAEKSAS_INTEGRATION_KEY` | 연동용 키 — 기동(`POST /jobs`·`/messages`), 진행 읽기, 가상 직원 읽기, 작업 거두기 |
-| | `CHAEKSAS_RELAY_KEY` | 대리 답용 키 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
 | | `CHAEKSAS_INTAKE_WORKER` | 접수 가상 직원 id. 있으면 원천 수신이 접수 Bot을 메시지로 깨운다. 없으면 SC01을 바로 기동한다 |
 | | `CHAEKSAS_SC01_PACKAGE` | 장면 1 패키지 id(기본 `company1.sc01`) |
-| | `WORKER_CONSUMER_TOKEN` | 일꾼 토큰 원문 — Center는 일꾼 폴더의 `worker.consumer.json`에 든 해시만 안다 |
+| | `WORKER_CONSUMER_TOKEN`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY` | 두지 않는다 — 키는 보관 파일에 있다. 있으면 보관 파일을 이긴다(콘솔 발급 키를 쓸 때) |
 | | `WORKER_CONSUMER=off` | 일꾼을 끈다 |
 | | `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` | 회사 시스템 주소(설정의 기본값)·키 |
 | | `NOWVIEW_ADMIN_KEY` | 관리 API 키 — 웹과 같은 값 |
+| `engine/.consumer/keys.json` | `worker`·`integration`·`relay` | 설치(`python -m app.worker_file`)가 지은 키 원문(0600). 일꾼 — 일감 가져가기·끝내기 · 연동용 — 기동(`POST /jobs`·`/messages`)·진행 읽기·가상 직원 읽기·작업 거두기 · 대리 답용 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
 | company1 `legacy/.env.local` | `COMPANY1_LEGACY_KEY` | 회사 시스템 키 — 엔진 `COMPANY_COMPANY1_KEY`와 같은 값 |
 | `.env.local`(저장소 루트, 웹) | `NOWVIEW_ADMIN_PASSWORD` | 관리자 로그인 비밀번호 |
 | | `NOWVIEW_ADMIN_SECRET` | 관리자 세션 쿠키 서명 |
@@ -183,9 +188,10 @@ NowView 원천 수신 ──메시지 「고객계획접수」──▶ 접수 B
 2. `scripts/deploy.sh --bootstrap` — `/etc/nowview.env`에 빠진 관리자 비밀(`NOWVIEW_ADMIN_PASSWORD`·`SECRET`·`KEY`)을 더한다.
 3. 회사 시스템 시뮬레이터를 서버에 올린다 — **아직 배포 스크립트·systemd 유닛이 없다**(남은 일).
 4. `scripts/deploy.sh`로 NowView를 올린다.
-5. `/etc/nowview.env`에 `WORKER_CONSUMER_TOKEN`을 두고 3장 1의 명령으로 운영 Center의 일꾼 폴더에 파일을 지은 뒤 Center를 다시
-   띄운다(배포 스크립트에 아직 이 단계가 없다 — 남은 일).
-6. 운영 Center 콘솔에서 3장 2~4를 한다. `/etc/nowview.env`에 `CHAEKSAS_*`·`COMPANY_COMPANY1_*`를 넣고 `systemctl restart nowview-engine`.
+5. 서버에서 3장 1의 명령으로 키를 짓고 운영 Center 폴더에 파일을 쓴 뒤 Center를 다시 띄운다(보관 파일은 서버의
+   `engine/.consumer/` — 배포 rsync가 빼는 자리다. 배포 스크립트에 아직 이 단계가 없다 — 남은 일).
+6. 운영 Center 콘솔에서 3장 2·3을 한다. `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTAKE_WORKER`·`COMPANY_COMPANY1_*`를
+   넣고 `systemctl restart nowview-engine`.
 
 ## 8. 남은 일
 
