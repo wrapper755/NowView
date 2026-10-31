@@ -33,7 +33,7 @@ from app.sc05.process import PROCESS_PATH as SC05_PATH
 from app.sc06.process import PROCESS_PATH as SC06_PATH
 
 DRAWINGS = {
-    "autoparts-sc01": [SC01_PATH, INTAKE_PATH],
+    "nowview": [SC01_PATH, INTAKE_PATH],
     "nowview-sc02": [SC02_PATH],
     "nowview-sc03": [SC03_PATH],
     "nowview-sc04": [SC04_PATH],
@@ -134,7 +134,7 @@ class FakeCenter:
         self.queue.append(
             {
                 "task_id": task_id,
-                "topic": "autoparts-sc01",
+                "topic": "nowview",
                 "operation": operation,
                 "mode": "deterministic",
                 "origin": origin,
@@ -184,7 +184,7 @@ def test_consumer_enrolls_then_takes_tasks_and_reports_reasons(proc: Sc01Process
     center = FakeCenter()
     host = ConsumerHost(
         center_url="http://center",
-        services=[scene_service("autoparts-sc01", proc)],
+        services=[scene_service("nowview", proc)],
         tokens=TokenFile(path=tmp_path / "consumer" / "consumer-token.json"),
         client=httpx.Client(base_url="http://center", transport=httpx.MockTransport(center.handle)),
         enroll_every_s=0.05,
@@ -193,11 +193,11 @@ def test_consumer_enrolls_then_takes_tasks_and_reports_reasons(proc: Sc01Process
     try:
         code = _until(lambda: host.describe()["requestCode"] or host.describe()["problem"])
         assert code == center.code() and host.describe()["state"] == "enrolling"
-        assert center.enrolled["topics"] == ["autoparts-sc01"]
+        assert center.enrolled["topics"] == ["nowview"]
         center.approved = True
         _until(lambda: host.describe()["state"] == "running")
         assert host.tokens.token() == TOKEN  # 원문은 토큰 파일에만 있다
-        _until(lambda: center.manifests == ["autoparts-sc01"])
+        _until(lambda: center.manifests == ["nowview"])
 
         rid = proc.create(executor="studio")["demo_run_id"]
         sid = proc.receive(rid, "CP02", actor="u-sales")["sources"]["SRC02"]["source_id"]
@@ -232,7 +232,7 @@ def test_consumer_stays_off_without_a_center(proc: Sc01Process, tmp_path) -> Non
     """Center 주소가 없으면 뜨지 않는다 — 내장 시험·로컬 화면만 쓸 때."""
     host = ConsumerHost(
         center_url=None,
-        services=[scene_service("autoparts-sc01", proc)],
+        services=[scene_service("nowview", proc)],
         tokens=TokenFile(path=tmp_path / "t.json"),
     )
     host.start()

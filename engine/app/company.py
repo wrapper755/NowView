@@ -90,6 +90,17 @@ class CompanyClient:
             os.getenv(f"{prefix}_URL"), os.getenv(f"{prefix}_KEY"), company_id=company_id
         )
 
+    def set_url(self, url: str | None) -> None:
+        """관리자 모드가 회사 시스템 주소를 바꿨다 — 연결·캐시를 새로 한다(키는 환경 그대로)."""
+        url = (url or "").rstrip("/") or None
+        if url == self.url:
+            return
+        with self._guard:
+            self.url = url
+            self._client = None
+            self._seed = None
+            self._worlds = set()
+
     @property
     def configured(self) -> bool:
         return self.url is not None or self._client is not None

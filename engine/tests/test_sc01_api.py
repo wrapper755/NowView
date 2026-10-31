@@ -291,7 +291,7 @@ def _op(client, rid: str, operation: str, *, origin="test", run=RUN, node="Task_
     task = LockedTask.model_validate(
         {
             "task_id": "xt_test",
-            "topic": "autoparts-sc01",
+            "topic": "nowview",
             "operation": operation,
             "mode": "deterministic",
             "origin": origin,
@@ -309,7 +309,7 @@ def _op(client, rid: str, operation: str, *, origin="test", run=RUN, node="Task_
         }
     )
     # 일감마다 새 수행기 — 같은 멱등 칸을 다시 보내도 저장된 결과가 아니라 지금 상태를 본다
-    return _Worked(scene_service("autoparts-sc01", client.process).execute(task))
+    return _Worked(scene_service("nowview", client.process).execute(task))
 
 
 def _received(client) -> tuple[str, str]:
@@ -433,7 +433,7 @@ def test_every_decision_is_followed_by_its_record_task() -> None:
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """
-    확장 정의(`chaeksas/autoparts-sc01.extension.json`)와 BPMN이 갈라지면 어댑터가 실행 중에
+    확장 정의(`chaeksas/nowview.extension.json`)와 BPMN이 갈라지면 어댑터가 실행 중에
     멈춘다 — 본문 템플릿의 `{{input.x}}`가 입력에 없으면 호출이 실패한다(4.3). 정의는 한 벌이고
     (R4) 답한 사람을 받는 작업은 결재의 `answered_by_as` 변수를 싣는다(R1).
     """
@@ -447,16 +447,16 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
-    # 장면마다 한 벌 — 장면 2~6은 `nowview-sc02`~`sc06`(test_sc02~sc06_external.py가 잠근다)
+    # NowView 고정 확장 `nowview`(장면 1) — 옮기기 전 장면 2~6은 `nowview-sc02`~`sc06`
     assert sorted(p.name for p in root.glob("*.extension.json")) == [
-        "autoparts-sc01.extension.json",
         "nowview-sc02.extension.json",
         "nowview-sc03.extension.json",
         "nowview-sc04.extension.json",
         "nowview-sc05.extension.json",
         "nowview-sc06.extension.json",
+        "nowview.extension.json",
     ]
-    raw = (root / "autoparts-sc01.extension.json").read_bytes()
+    raw = (root / "nowview.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
     adapter = json.loads(raw)["service"]["adapter"]

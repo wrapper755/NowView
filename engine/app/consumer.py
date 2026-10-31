@@ -2,10 +2,11 @@
 C15 일꾼 — Center에 쌓인 NowView 서비스 태스크의 일감을 가져가 이 프로세스에서
 수행한다.
 
-Chaeksas는 바깥 기능을 부르는 길을 모두 Pull로 바꿨다(ADR-0102, 계약 C15). 서버
-실행기·Studio는 `chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` =
-`autoparts-sc01`~`sc06`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고 알린다. 연결은 늘
-NowView → Center다 — Center는 NowView 주소도 키도 모른다.
+Chaeksas는 바깥 기능을 부르는 길을 모두 Pull로 바꿨다(ADR-0102, 계약 C15). 서버 실행기·Studio는
+`chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` — NowView 고정 확장 `nowview`,
+옮기기 전 업무는 `nowview-sc02`~`sc06`, 설정 `topics`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고
+알린다. 일감을 보낸 BPM 프로세스 id로 설정에서 회사·업무를 찾는다(`routed_by`). 연결은 늘 NowView →
+Center다 — Center는 NowView 주소도 키도 모른다.
 
 ```
 서버 실행기·Studio ─올리기─▶ Center(외부 작업) ◀─가져가기·끝내기─ 이 일꾼 ─▶ 장면 N operate
@@ -121,17 +122,48 @@ def manifest_of(topic: str, folder: Path | None = None) -> ServiceAppManifest:
     )
 
 
+#: 일감 → 그것을 처리할 장면 프로세스. 운영은 설정의 BPM 프로세스 매핑(`routed_by`), 시험은 고정.
+Resolve = Callable[[OpRequest], Operates]
+
+
+def routed_by(
+    mapping: Callable[[str | None], int | None], scenes: Mapping[int, Operates]
+) -> Resolve:
+    """
+    일감을 보낸 BPM 프로세스 id(`caller.bpm_process_id`) → 설정의 업무(장면) → 그 장면의 프로세스.
+    NowView는 고정 프로그램이고 어느 회사의 어느 BPM 프로세스를 맡는지는 설정이다(`app/config.py`) —
+    매핑에 없으면 거절한다.
+    """
+
+    def resolve(req: OpRequest) -> Operates:
+        scene = mapping(req.caller.bpm_process_id)
+        if scene is None:
+            raise OpError(
+                "not_found",
+                f"NowView 설정에 없는 BPM 프로세스다: {req.caller.bpm_process_id} — 관리자 "
+                "모드에서 회사·업무에 매핑하라",
+                status=404,
+            )
+        return scenes[scene]
+
+    return resolve
+
+
 def scene_service(
     topic: str,
-    process: Operates,
+    process: Operates | Resolve,
     folder: Path | None = None,
     journal: Callable[[dict[str, Any]], None] | None = None,
 ) -> Service:
     """
-    토픽 하나 = 장면 하나의 `operate`. 작업마다 같은 처리기다 — 작업 이름으로 가른다.
-    `journal`이 있으면 일감마다 결과를 한 줄 남긴다(`/worker`의 최근 일감).
+    토픽 하나의 처리기. `process`가 장면 프로세스면 늘 그것이고, 함수면 일감마다
+    고른다(`routed_by`). 작업마다 같은 처리기다 — 작업 이름으로 가른다. `journal`이 있으면 일감마다
+    결과를 한 줄 남긴다 (관리자 모드의 최근 일감).
     """
     manifest = manifest_of(topic, folder)
+
+    def resolve(req: OpRequest) -> Operates:
+        return process if hasattr(process, "operate") else process(req)  # type: ignore[operator,return-value]
 
     def note(req: OpRequest, operation: str, outcome: str, reason: str | None = None) -> None:
         if journal is None:
@@ -159,7 +191,12 @@ def scene_service(
                 raise OpError("input_invalid", "입력에 demo_run_id가 없다", status=422)
             via = EXECUTOR_OF_ORIGIN.get(req.origin or "run", "center")
             try:
-                out = process.operate(
+                target = resolve(req)
+            except OpError as exc:
+                note(req, operation, exc.code, exc.message)
+                raise
+            try:
+                out = target.operate(
                     str(demo_run_id),
                     operation,
                     args,
@@ -201,7 +238,8 @@ class ConsumerHost:
     _problem: str | None = field(default=None, init=False)
 
     @classmethod
-    def from_env(cls, processes: Mapping[str, Operates]) -> ConsumerHost:
+    def from_env(cls, topics: list[str], resolve: Resolve) -> ConsumerHost:
+        """`topics` — 설정의 일꾼 토픽. `resolve` — 일감 → 장면 프로세스(`routed_by`)."""
         folder = Path(os.getenv("NOWVIEW_CONSUMER_DIR") or DEFAULT_TOKEN_DIR)
         tokens = TokenFile(
             path=folder / "consumer-token.json",
@@ -214,8 +252,7 @@ class ConsumerHost:
         host = cls(center_url=center_url, services=[], tokens=tokens, enabled=enabled)
         if enabled and center_url:
             host.services = [
-                scene_service(topic, proc, journal=host.remember)
-                for topic, proc in processes.items()
+                scene_service(topic, resolve, journal=host.remember) for topic in topics
             ]
         return host
 

@@ -30,7 +30,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { COMPANIES } from "@/lib/companies";
+import { SCENES } from "@/lib/companies";
 import { cn } from "@/lib/utils";
 
 /**
@@ -112,12 +112,14 @@ export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
 
 /**
  * 장면 = 그 장면이 수행하는 업무. 「장면 1~6」은 시연 순서일 뿐 업무가 무엇인지 말하지 않는다 — 사이드바·좁은 화면의
- * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다. 업무 이름은 회사 등록부(`lib/companies.ts`)에서 온다 — 지금 회사는
- * 하나라 첫 회사다. 회사가 늘면 지금 회사의 장면으로 바꾼다.
+ * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다. 업무는 NowView 코드의 목록(`lib/companies.ts`의 `SCENES`)이다.
  */
-export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = COMPANIES[0].scenes.map(
-  (s) => ({ scene: s.no, label: s.work, detail: s.detail, href: `/sc0${s.no}` }),
-);
+export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = SCENES.map((s) => ({
+  scene: s.no,
+  label: s.work,
+  detail: s.detail,
+  href: `/sc0${s.no}`,
+}));
 
 function itemsOf(scene: number) {
   return scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;

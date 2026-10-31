@@ -1,9 +1,9 @@
 {
   "schema": 2,
-  "id": "autoparts-sc01",
+  "id": "nowview",
   "version": "0.1.0",
-  "name": "가상 자동차 부품사 · 고객 생산계획 변경 대응",
-  "description": "가상 자동차 부품사(autoparts)의 장면 1 「고객 생산계획 변경 대응」 시스템 작업 — 원천 검증 · 비교 계산 · Agent 초안 요청 · 결재 기록 · 장면 인계. 사람 업무는 포함하지 않는다. NowView 엔진의 C15 일꾼이 토픽 autoparts-sc01의 일감을 가져가 수행한다 — 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행)이고, 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 접수 Bot(autoparts.sc01-intake, 고객계획 접수 가상 직원)의 작업 screen_source·record_intake_review는 데모 실행을 묶지 않는다 — 묶는 것은 위임된 SC01의 첫 호출이다. 이 정의는 작업 목록·입출력 스키마(Center가 일감을 대조할 manifest)만 쓴다 — 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)을 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "name": "NowView 일꾼",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)과 그 접수 Bot의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {

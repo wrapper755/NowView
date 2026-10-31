@@ -1,77 +1,80 @@
 """
-회사 등록부(`app/companies.py`) — NowView가 운영 현황을 보여 주는 회사와, 그 회사의
-BPM 프로세스가 Center에 올라간 이름(패키지·일꾼 토픽).
+NowView 설정과 회사(`app/config.py` · `app/companies.py`, `docs/worker-interfaces.md` §0.1).
 
-* **화면 사본과 같다** — `lib/companies.ts`는 빌드 때 정적 경로를 만들려고 둔 사본이다.
-* **회사 이름으로 옮긴 장면은 그림·확장 정의·프로세스가 같은 이름을 말한다** — 패키지 id =
-  BPMN 프로세스 id, 토픽 = 서비스 호출의 `app_id` = 확장 정의 id = `chk:process.extensions`.
+* **업무 목록은 코드다** — 화면 사본(`lib/companies.ts`의 `SCENES`)과 엔진(`SCENE_WORKS`)이 같다.
+* **설정은 엔진 DB에 있다** — 처음에는 기본값(가상 자동차 부품사)을 적고, 고친 값이 남는다. 회사
+  id·매핑의 회사·업무 번호·토픽 겹침을 검사한다.
+* **등록은 공개하지 않는다** — 공개 목록은 이름·설명·업무 번호뿐이다. 관리 API는 키 없이 401, 키가
+  서버에 없으면 503.
+* **일꾼은 보낸 BPM 프로세스 id로 업무를 찾는다** — 매핑에 없으면 `not_found`.
 """
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 
 import pytest
-from chaeksas.contracts.bpmn_ext import read_process
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.companies import COMPANIES, build_router
-from app.sc01.process import APP_ID as SC01_APP_ID
-from app.sc01.process import INTAKE_PATH
-from app.sc01.process import PROCESS_PATH as SC01_PATH
+from app.companies import SCENE_WORKS, Settings, build_router
+from app.config import ConfigStore, NowViewConfig, default_config
+from app.consumer import routed_by
+from app.store import build_sqlite_backend
 
 ROOT = Path(__file__).resolve().parents[2]
-DRAWINGS = {1: [SC01_PATH, INTAKE_PATH]}
+ADMIN_KEY = "admin-test-key"
 
 
-def _ts_registry() -> list[tuple[str, int, str, str]]:
+def test_scene_catalog_matches_the_screen() -> None:
     text = (ROOT / "lib" / "companies.ts").read_text("utf-8")
-    company_ids = re.findall(r'^\s{4}id: "([a-z0-9-]+)"', text, re.M)
-    scenes = re.findall(
-        r'no: (\d), work: "[^"]+", detail: "[^"]+", topic: "([^"]+)", package: "([^"]+)"', text
-    )
-    assert len(company_ids) == 1, "회사가 늘면 이 대조를 회사별로 나눈다"
-    return [(company_ids[0], int(no), topic, package) for no, topic, package in scenes]
+    screen = {int(no): work for no, work in re.findall(r'\{ no: (\d), work: "([^"]+)"', text)}
+    assert screen == SCENE_WORKS
 
 
-def test_screen_registry_matches_the_engine() -> None:
-    engine = [(c.id, s.no, s.topic, s.package) for c in COMPANIES for s in c.scenes]
-    assert _ts_registry() == engine
+@pytest.fixture
+def settings(tmp_path) -> Settings:
+    return Settings(ConfigStore(build_sqlite_backend(str(tmp_path / "engine.sqlite"))))
 
 
-def test_topics_are_unique_across_companies() -> None:
-    topics = [s.topic for c in COMPANIES for s in c.scenes]
-    assert len(topics) == len(set(topics))
+def test_config_defaults_then_persists(settings: Settings, tmp_path) -> None:
+    assert settings.config == default_config()
+    assert settings.scene_of("autoparts.sc01") == 1
+    assert settings.scene_of("autoparts.sc01-intake") == 1
+    assert settings.scene_of("nowview.sc04") == 4
+    assert settings.scene_of("other.bpm") is None
+
+    changed = settings.config.model_copy(deep=True)
+    changed.companies[0].system_url = "http://sim:8091"
+    settings.replace(changed)
+    again = Settings(ConfigStore(build_sqlite_backend(str(tmp_path / "engine.sqlite"))))
+    assert again.config.companies[0].system_url == "http://sim:8091"
 
 
 @pytest.mark.parametrize(
-    "scene",
-    [s for c in COMPANIES for s in c.scenes if s.migrated],
-    ids=lambda s: s.topic,
+    ("change", "reason"),
+    [
+        (lambda d: d["processes"].append({**d["processes"][0]}), "두 번 매핑"),
+        (lambda d: d["processes"][0].update(company="nope"), "없는 회사"),
+        (lambda d: d["processes"][0].update(scene=9), "없는 업무"),
+        (lambda d: d["companies"].append({**d["companies"][0]}), "회사 id가 겹친다"),
+        (lambda d: d.update(topics=[]), "topics"),
+    ],
 )
-def test_migrated_scene_speaks_one_name(scene) -> None:
-    """옮긴 장면: 확장 정의 id = 토픽, 그림의 프로세스 id = 패키지, 서비스 호출·확장 선언 = 토픽."""
-    raw = json.loads((ROOT / "chaeksas" / f"{scene.topic}.extension.json").read_text("utf-8"))
-    assert raw["id"] == scene.topic
-    main, *others = DRAWINGS[scene.no]
-    assert read_process(main.read_bytes()).id == scene.package
-    for path in [main, *others]:
-        process = read_process(path.read_bytes())
-        assert [e.id for e in process.info.extensions] == [scene.topic], path.name
-        for node in process.of_kind("serviceTask"):
-            assert node.prop("serviceCall").app_id == scene.topic, (path.name, node.id)
-    if scene.no == 1:
-        assert SC01_APP_ID == scene.topic
+def test_config_rejects_inconsistent_settings(change, reason) -> None:
+    body = default_config().model_dump()
+    change(body)
+    with pytest.raises(ValueError, match=reason):
+        NowViewConfig.model_validate(body)
 
 
 class _Worker:
     def describe(self):
         return {
-            "state": "off",
-            "topics": [],
-            "requestCode": None,
+            "state": "enrolling",
+            "topics": ["nowview"],
+            "requestCode": "AB12-CD34",
             "problem": None,
             "lastFetch": None,
         }
@@ -91,21 +94,97 @@ class _Poller:
     running = False
 
 
-def test_companies_and_worker_routes() -> None:
-    from fastapi import FastAPI
+class _System:
+    configured = False
 
+    def describe(self):
+        return {"company": "autoparts", "url": None, "key": False}
+
+    def reachable(self):
+        return False
+
+
+@pytest.fixture
+def client(settings: Settings, monkeypatch) -> TestClient:
+    monkeypatch.setenv("NOWVIEW_ADMIN_KEY", ADMIN_KEY)
     app = FastAPI()
-    app.include_router(build_router(_Worker(), _Center(), _Poller()))
-    client = TestClient(app)
-    body = client.get("/companies").json()
-    assert body[0]["id"] == "autoparts"
-    assert body[0]["scenes"][0] == {
-        "no": 1,
-        "work": "고객 생산계획 변경 대응",
-        "topic": "autoparts-sc01",
-        "package": "autoparts.sc01",
-        "migrated": True,
-    }
-    assert [s["migrated"] for s in body[0]["scenes"]][1:] == [False] * 5
-    worker = client.get("/worker").json()
-    assert worker["consumer"]["state"] == "off" and worker["center"]["polling"] is False
+    app.include_router(
+        build_router(settings, _Worker(), _Center(), _Poller(), {"autoparts": _System()})
+    )
+    return TestClient(app)
+
+
+def test_public_companies_show_no_registration(client: TestClient) -> None:
+    response = client.get("/companies")
+    body = response.json()
+    assert body == [
+        {
+            "id": "autoparts",
+            "name": "가상 자동차 부품사",
+            "description": body[0]["description"],
+            "scenes": [1, 2, 3, 4, 5, 6],
+        }
+    ]
+    assert "nowview" not in response.text  # 토픽·BPM 프로세스 id가 없다
+    assert client.get("/worker").status_code == 404
+
+
+def test_admin_api_needs_the_key(client: TestClient, monkeypatch) -> None:
+    assert client.get("/admin/status").status_code == 401
+    assert client.get("/admin/status", headers={"x-admin-key": "wrong"}).status_code == 401
+    ok = client.get("/admin/status", headers={"x-admin-key": ADMIN_KEY}).json()
+    assert ok["consumer"]["requestCode"] == "AB12-CD34" and ok["restartRequired"] is False
+    monkeypatch.delenv("NOWVIEW_ADMIN_KEY")
+    assert client.get("/admin/config", headers={"x-admin-key": ADMIN_KEY}).status_code == 503
+
+
+def test_admin_edits_config(client: TestClient, settings: Settings) -> None:
+    headers = {"x-admin-key": ADMIN_KEY}
+    view = client.get("/admin/config", headers=headers).json()
+    assert view["extension"]["id"] == "nowview"
+    assert "assess_supply_risk" in view["extension"]["operations"]
+    config = view["config"]
+    config["processes"].append(
+        {"bpm_process_id": "autoparts.sc01-v2", "company": "autoparts", "scene": 1}
+    )
+    saved = client.put("/admin/config", json=config, headers=headers).json()
+    assert saved["restartRequired"] is False
+    assert settings.scene_of("autoparts.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
+
+    config["topics"] = ["nowview"]
+    assert client.put("/admin/config", json=config, headers=headers).json()["restartRequired"]
+
+    config["processes"].append({"bpm_process_id": "x", "company": "nope", "scene": 1})
+    bad = client.put("/admin/config", json=config, headers=headers)
+    assert bad.status_code == 422
+    assert "없는 회사" in " ".join(bad.json()["detail"]["reasons"])
+    config["processes"].pop()
+    config["companies"].append({"id": "other", "name": "다른 회사"})
+    assert client.put("/admin/config", json=config, headers=headers).status_code == 422
+
+
+def test_worker_routes_by_the_sending_bpm_process(settings: Settings) -> None:
+    from chaeksas.contracts.service_app import OpRequest
+    from chaeksas.service_kit.app import OpError
+
+    scenes = {n: f"scene-{n}" for n in range(1, 7)}
+    resolve = routed_by(settings.scene_of, scenes)
+
+    def request(bpm: str) -> OpRequest:
+        return OpRequest.model_validate(
+            {
+                "schema": 1,
+                "mode": "deterministic",
+                "run_id": "run_x",
+                "node_id": "n",
+                "node_instance": 1,
+                "attempt": 1,
+                "caller": {"type": "server_runner", "bpm_process_id": bpm},
+            }
+        )
+
+    assert resolve(request("autoparts.sc01")) == "scene-1"
+    assert resolve(request("nowview.sc05")) == "scene-5"
+    with pytest.raises(OpError) as missing:
+        resolve(request("someone.else"))
+    assert missing.value.code == "not_found" and "관리자" in missing.value.message
