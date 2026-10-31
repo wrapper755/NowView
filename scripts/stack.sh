@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# 로컬 개발 프로세스 제어 — 웹(:3000) · 엔진(:8077) · 회사 시스템 시뮬레이터(:8091) · DB(docker).
+# 로컬 개발 프로세스 제어 — 웹(:3000) · 엔진(:8077) · DB(docker).
+#
+# 회사 시스템(가상 자동차 부품사 기간계 :8191)은 autopart1 리포의 것이다 — 그쪽 `scripts/stack.sh start`로 띄운다.
 #
 # 왜 스크립트로 두는가. 수동으로 띄우고 죽이다가 두 번 망가뜨렸다:
 #
@@ -13,11 +15,11 @@
 # 헤맸다. → `start engine`은 기본이 `--reload`다.
 #
 # 사용법
-#   scripts/stack.sh start   [all|web|engine|sim|db]
-#   scripts/stack.sh stop    [all|web|engine|sim|db]
-#   scripts/stack.sh restart [all|web|engine|sim|db]
+#   scripts/stack.sh start   [all|web|engine|db]
+#   scripts/stack.sh stop    [all|web|engine|db]
+#   scripts/stack.sh restart [all|web|engine|db]
 #   scripts/stack.sh status
-#   scripts/stack.sh logs    <web|engine|sim> [줄수]
+#   scripts/stack.sh logs    <web|engine> [줄수]
 #
 # 대상을 생략하면 `all`이다(db는 제외 — 아래 참조).
 
@@ -29,7 +31,6 @@ mkdir -p "$RUN_DIR"
 
 WEB_PORT="${WEB_PORT:-3000}"
 ENGINE_PORT="${ENGINE_PORT:-8077}"
-SIM_PORT="${SIM_PORT:-8091}"
 
 # 종료를 기다리는 한계. 넘으면 강제 종료한다.
 STOP_TIMEOUT=15
@@ -92,7 +93,6 @@ wait_until() {
 }
 
 health_ok() { curl -sf --max-time 2 "http://localhost:$ENGINE_PORT/health" >/dev/null 2>&1; }
-sim_ok()    { curl -sf --max-time 2 "http://localhost:$SIM_PORT/health" >/dev/null 2>&1; }
 web_ok()    { curl -sf --max-time 3 -o /dev/null "http://localhost:$WEB_PORT/" 2>/dev/null; }
 
 # ----------------------------------------------------------------- 시작
@@ -150,17 +150,6 @@ start_engine() {
     env -C "$ROOT/engine" uv run uvicorn app.main:app \
       --port "$ENGINE_PORT" --reload --timeout-graceful-shutdown 3 --log-level warning \
       "${env_file[@]}"
-}
-
-start_sim() {
-  # 가상 자동차 부품사의 회사 시스템(company-sim/) — 엔진이 회사 자료·원천을 여기서 읽는다
-  # (docs/worker-interfaces.md). 키는 `company-sim/.env.local`(gitignore)의 AUTOPARTS_SIM_KEY —
-  # 엔진 `engine/.env.local`의 COMPANY_AUTOPARTS_KEY와 같은 값이다. 없으면 기동하지 않는다.
-  local env_file=()
-  [[ -f $ROOT/company-sim/.env.local ]] && env_file=(--env-file .env.local)
-  start_proc sim "$SIM_PORT" sim_ok \
-    env -C "$ROOT/company-sim" uv run uvicorn autoparts_sim.main:build_app --factory \
-      --port "$SIM_PORT" --reload --log-level warning "${env_file[@]}"
 }
 
 start_db() {
@@ -255,21 +244,20 @@ print("storage=%s notify=%s listening=%s 구독자=%s" % (
   fi
   status_line web "$WEB_PORT"
   status_line engine "$ENGINE_PORT" "$(c_dim "$engine_extra")"
-  status_line sim "$SIM_PORT"
 
   if db_ok; then
     printf '  %s %-7s :%-5s %s\n' "$(c_ok '●')" "db" "55432" "$(c_dim 'docker compose')"
   else
     printf '  %s %-7s :%-5s %s\n' "$(c_bad '○')" "db" "55432" "$(c_dim '내려가 있음')"
   fi
-  printf '\n  %s\n\n' "$(c_dim "로그: scripts/stack.sh logs web|engine|sim")"
+  printf '\n  %s\n\n' "$(c_dim "로그: scripts/stack.sh logs web|engine")"
 }
 
 cmd_logs() {
   local name="${1:-}" lines="${2:-60}"
   case "$name" in
-    web|engine|sim) ;;
-    *) die "logs <web|engine|sim> [줄수]" ;;
+    web|engine) ;;
+    *) die "logs <web|engine> [줄수]" ;;
   esac
   local file; file="$(logfile "$name")"
   [ -f "$file" ] || die "$name 로그가 없다 (이 스크립트로 띄운 적이 없다)"
@@ -280,12 +268,11 @@ cmd_logs() {
 
 targets_for() {
   case "${1:-all}" in
-    all)    echo "sim engine web" ;;   # 회사 시스템 → 엔진 → 웹 — 앞의 것을 뒤의 것이 부른다
+    all)    echo "engine web" ;;   # 엔진을 먼저 — 웹이 곧바로 /api/engine을 부른다
     web)    echo "web" ;;
     engine) echo "engine" ;;
-    sim)    echo "sim" ;;
     db)     echo "db" ;;
-    *)      die "대상은 all|web|engine|sim|db 중 하나다 (받은 값: $1)" ;;
+    *)      die "대상은 all|web|engine|db 중 하나다 (받은 값: $1)" ;;
   esac
 }
 
@@ -294,7 +281,6 @@ cmd_start() {
     case "$t" in
       web) start_web ;;
       engine) start_engine ;;
-      sim) start_sim ;;
       db) start_db ;;
     esac
   done
@@ -310,7 +296,6 @@ cmd_stop() {
     case "$t" in
       web) stop_proc web "$WEB_PORT" "$force" ;;
       engine) stop_proc engine "$ENGINE_PORT" "$force" ;;
-      sim) stop_proc sim "$SIM_PORT" "$force" ;;
       db) stop_db ;;
     esac
   done

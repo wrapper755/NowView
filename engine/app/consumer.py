@@ -31,7 +31,7 @@ Center다 — Center는 NowView 주소도 키도 모른다.
 
 * 토큰은 `NOWVIEW_CONSUMER_DIR`(기본 `engine/.consumer`)의 파일에 둔다. 처음에는
   **들이기 요청**을 보내고 요청 코드를 로그·`/health.consumer.requestCode`에 보인다 —
-  관리자가 Center CON-07 「일꾼 승인 대기」에서 같은 코드를 승인하면 토큰이 내려온다.
+  관리자가 Center 콘솔 「리소스」의 「일꾼 승인 대기」에서 같은 코드를 승인하면 토큰이 내려온다.
   `NOWVIEW_CONSUMER_TOKEN`이 있으면 그것이 이긴다.
 * 확장 정의는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포의 `chaeksas/`)에서 읽는다.
 """
@@ -307,7 +307,7 @@ class ConsumerHost:
                 return True
             if code != self._code:
                 log.warning(
-                    "Center CON-07 「일꾼 승인 대기」에서 요청 코드 %s를 승인하라 (토픽 %s)",
+                    "Center 콘솔 「리소스 › 일꾼 승인 대기」에서 요청 코드 %s를 승인하라 (토픽 %s)",
                     code,
                     ", ".join(self.topics),
                 )

@@ -1,9 +1,10 @@
 """
 테스트 고정물 — 두 저장 백엔드를 고르는 규칙, 같은 프로세스의 회사 시스템.
 
-**회사 시스템은 진짜 시뮬레이터다**(`company-sim/`, 2026-10-31). 엔진의 회사 자료·원천 수신·원천
-상태 쓰기는 회사 시스템 API를 지난다(`app/company.py`) — 시험은 시뮬레이터 앱을 같은 프로세스에 띄워
-HTTP 대신 ASGI로 붙인다. 세계는 데모 실행 id라 시험끼리 섞이지 않는다.
+**회사 시스템은 autopart1 기간계의 쌍둥이다**(`tests/company_twin/` — 원본은 autopart1 리포
+`legacy/`). 엔진의 회사 자료·원천 수신·원천 상태 쓰기는 회사 시스템 API를 지난다(`app/company.py`) —
+시험은 쌍둥이 앱을 같은 프로세스에 띄워 HTTP 대신 ASGI로 붙인다. 세계는 데모 실행 id라 시험끼리
+섞이지 않는다.
 
 **`REQUIRE_POSTGRES`가 켜져 있으면 건너뛰지 않고 실패한다.** CI에서 환경 변수 이름을
 오타내면 Postgres 테스트가 전부 skip되는데, 초록색 체크만 보고는 "검증했다"와
@@ -20,23 +21,23 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def company_system(tmp_path_factory):
     """회사 시스템 시뮬레이터를 한 번 띄워 엔진의 기본 회사 클라이언트로 끼운다."""
-    from autoparts_sim.main import build_app
-    from autoparts_sim.store import WorldStore
+    from company_twin.main import build_app
+    from company_twin.store import WorldStore
     from fastapi.testclient import TestClient
 
     from app import company
 
-    previous = os.environ.get("AUTOPARTS_SIM_AUTH")
-    os.environ["AUTOPARTS_SIM_AUTH"] = "off"
+    previous = os.environ.get("COMPANY_TWIN_AUTH")
+    os.environ["COMPANY_TWIN_AUTH"] = "off"
     sim = build_app(WorldStore(tmp_path_factory.mktemp("company") / "sim.sqlite"))
-    client = company.CompanyClient("http://autoparts-sim", client=TestClient(sim))
+    client = company.CompanyClient("http://company-twin", client=TestClient(sim))
     company._override = client
     yield client
     company._override = None
     if previous is None:
-        os.environ.pop("AUTOPARTS_SIM_AUTH", None)
+        os.environ.pop("COMPANY_TWIN_AUTH", None)
     else:
-        os.environ["AUTOPARTS_SIM_AUTH"] = previous
+        os.environ["COMPANY_TWIN_AUTH"] = previous
 
 
 def postgres_url() -> str | None:

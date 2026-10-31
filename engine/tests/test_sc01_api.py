@@ -48,7 +48,7 @@ def _run(client) -> str:
 
 def test_process_topology_comes_from_the_bpmn(client) -> None:
     body = client.get("/sc01/process").json()
-    assert body["processId"] == "autoparts.sc01"
+    assert body["processId"] == "autopart1.sc01"
     ids = {n["id"] for n in body["nodes"]}
     assert {"Approve_DQ", "Task_Calc", "Accept_PROD", "Accept_MAT", "Accept_FIN"} <= ids
     roles = {n["id"]: n["role"] for n in body["nodes"]}
@@ -302,7 +302,7 @@ def _op(client, rid: str, operation: str, *, origin="test", run=RUN, node="Task_
                 "attempt": 1,
                 "call_seq": 1,
             },
-            "caller": {"type": "studio", "host": "t", "bpm_process_id": "autoparts.sc01"},
+            "caller": {"type": "studio", "host": "t", "bpm_process_id": "autopart1.sc01"},
             "input": {"demo_run_id": rid, **args},
             "lock_until": "2099-01-01T00:00:00Z",
             "deadline": "2099-01-01T00:00:00Z",

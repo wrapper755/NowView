@@ -145,7 +145,7 @@ class FakeCenter:
                     "attempt": 1,
                     "call_seq": 1,
                 },
-                "caller": {"type": "studio", "host": "t", "bpm_process_id": "autoparts.sc01"},
+                "caller": {"type": "studio", "host": "t", "bpm_process_id": "autopart1.sc01"},
                 "input": input,
                 "lock_until": "2099-01-01T00:00:00Z",
                 "deadline": "2099-01-01T00:00:00Z",

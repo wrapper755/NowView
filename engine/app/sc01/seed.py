@@ -124,7 +124,7 @@ def _key(r: dict[str, Any]) -> Key:
 @cache
 def load_rules(path: Path = SEED_PATH) -> dict[str, Decimal]:
     """
-    R01 임계값 — NowView의 규칙이다(규칙 계산은 NowView 몫, `docs/worker-interfaces.md` §0). 회사
+    R01 임계값 — NowView의 규칙이다(규칙 계산은 NowView 몫, `docs/worker-interfaces.md` §1). 회사
     자료는 회사 시스템에서 읽고(`app/company.py`) 규칙만 여기서 읽는다.
     """
     wb = load_workbook(path, data_only=True, read_only=True)

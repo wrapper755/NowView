@@ -27,24 +27,6 @@ services:
       timeout: 3s
       retries: 20
 
-  # 가상 자동차 부품사의 회사 시스템(시뮬레이터) — 엔진이 회사 자료·원천을 읽고 원천 상태를 적는다
-  # (docs/worker-interfaces.md). 키는 compose 안에서만 쓰는 고정값이다(엔진과 같은 값).
-  autoparts-sim:
-    build:
-      context: ./company-sim
-    environment:
-      AUTOPARTS_SIM_KEY: ${AUTOPARTS_SIM_KEY:-compose-local-sim-key}
-    ports:
-      - "8091:8091"
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8091/health',timeout=3).status==200 else 1)"
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 5s
-
   engine:
     build:
       context: ./engine
@@ -60,8 +42,9 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k3:cloud}
       LOG_LEVEL: INFO
-      COMPANY_AUTOPARTS_URL: http://autoparts-sim:8091
-      COMPANY_AUTOPARTS_KEY: ${AUTOPARTS_SIM_KEY:-compose-local-sim-key}
+      # 회사 시스템 — autopart1 기간계(autopart1 리포)를 호스트에서 띄워 두면 그것을 읽는다.
+      COMPANY_AUTOPART1_URL: ${COMPANY_AUTOPART1_URL:-http://host.docker.internal:8191}
+      COMPANY_AUTOPART1_KEY: ${COMPANY_AUTOPART1_KEY:-}
     extra_hosts:
       # Linux에서는 이 별칭이 기본 제공되지 않는다 — 명시해야 호스트 ollama에 닿는다.
       - "host.docker.internal:host-gateway"
@@ -69,8 +52,6 @@ services:
       - "8077:8077"
     depends_on:
       postgres:
-        condition: service_healthy
-      autoparts-sim:
         condition: service_healthy
     healthcheck:
       test:

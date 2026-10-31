@@ -240,7 +240,7 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     steps = demo.steps_for("BASE")
     doc = demo.run_step(proc, rid, 0)  # D31 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03"]
     assert job["inputs"] == {"데모실행ID": rid} and job["target"] == {"type": "server_runner"}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"]
 
@@ -280,7 +280,7 @@ def test_center_script_waits_for_each_record_before_moving_the_clock(
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     steps = demo.steps_for("BASE")
     demo.run_step(proc, rid, 0)
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03"]
     runner = FakeRunner(proc, center, job, "run_20270624_100500_c5d5e5")
     proc.sync_center(rid)
 
@@ -320,7 +320,7 @@ def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     node = demo.steps_for("BASE")[1].node_id
     demo.run_step(proc, rid, 0)  # D31 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03"]
     runner = FakeRunner(proc, center, job, "run_20270624_100500_c7d7e7")
     # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
     doc = demo.run_step(proc, rid, 1)
@@ -340,7 +340,7 @@ def test_center_relay_prechecks_before_touching_center(
     """역할(403)·업무 규칙(422)은 Center에 묻기 전에 거절한다 — 입력은 지워지지 않는다."""
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03")
     FakeRunner(proc, center, job, "run_20270624_100500_c6d6e6")
     proc.sync_center(rid)
     before = len(center.calls)
@@ -370,12 +370,12 @@ def test_center_unconfigured_leaves_a_reason(proc: Sc03Process) -> None:
 def test_reset_on_center_cancels_the_started_job(proc: Sc03Process, center: FakeCenter) -> None:
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03")
     doc = proc.reset(rid, actor="u-demo")
     assert job["job_id"] in center.cancelled
     assert doc["bpm"]["executor"] == "center" and doc["review"]["state"] == "PENDING"
     proc.start(rid, actor="u-fin")
-    jobs = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03"]
+    jobs = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
 
 
@@ -393,7 +393,7 @@ def test_console_rejection_on_center_reopens_the_same_task_with_its_reason(
     """
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     demo.run_step(proc, rid, 0)
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03")
     runner = FakeRunner(proc, center, job, "run_20270624_100500_e7f7a7")
     proc.sync_center(rid)
     for index in (1, 2):
@@ -440,7 +440,7 @@ def test_relay_precheck_refuses_a_malformed_reply_due(
     """회신기한 형식은 사전 검사가 본다 — Center에 답하기 전에 422(입력 보존)."""
     rid = proc.create(sc01_demo_run_id=_handed_off_sc02(proc), executor="center")["demo_run_id"]
     demo.run_step(proc, rid, 0)
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc03")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc03")
     runner = FakeRunner(proc, center, job, "run_20270624_100500_e8f8a8")
     proc.sync_center(rid)
     demo.run_step(proc, rid, 1)

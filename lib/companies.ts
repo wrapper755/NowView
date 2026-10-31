@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * 회사와 업무(화면 쪽).
  *
  * NowView는 회사 사이트가 아니다 — Center에 올린 회사별 BPM 프로세스의 일감을 수행하는 **일꾼**이고, 그 위에서 회사별 운영
- * 현황을 보여 주는 **대시보드**다(`docs/worker-interfaces.md` §0.1). NowView는 고정 프로그램이라 **업무(장면)는 코드**이고
+ * 현황을 보여 주는 **대시보드**다(`docs/worker-interfaces.md` §1). NowView는 고정 프로그램이라 **업무(장면)는 코드**이고
  * (`SCENES` — 엔진 `app/companies.py`의 `SCENE_WORKS`와 시험이 대조), **회사는 설정**이다(엔진 DB, 관리자 모드에서 고친다).
  * 화면은 공개 목록(`GET /api/engine/companies` — 이름·설명·업무 번호)만 받는다. BPM 프로세스 id·토픽·회사 시스템 주소는
  * 관리자 모드(`/admin`)에만 있다.
@@ -47,7 +47,7 @@ function fetchCompanies(): Promise<PublicCompany[]> {
   return cache;
 }
 
-/** 공개 회사 목록 — 회사는 설정이라 빌드 때 모른다(정적 페이지가 클라이언트에서 받는다, Q6). */
+/** 공개 회사 목록 — 회사는 설정이라 빌드 때 모른다(정적 페이지가 클라이언트에서 받는다). */
 export function useCompanies(): CompaniesState {
   const [state, setState] = useState<CompaniesState>({ companies: null, error: null });
   useEffect(() => {

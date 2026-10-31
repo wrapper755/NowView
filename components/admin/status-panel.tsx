@@ -88,7 +88,7 @@ export function StatusPanel() {
           </p>
           {consumer.state === "enrolling" && consumer.requestCode ? (
             <p className="rounded-md border border-brand/40 bg-brand-soft/50 p-3">
-              Center CON-07 「일꾼 승인 대기」에서 요청 코드{" "}
+              Center 콘솔 「배포·자원 › 리소스」의 「일꾼 승인 대기」에서 요청 코드{" "}
               <span className="font-mono text-base font-semibold tracking-wider">{consumer.requestCode}</span>를 승인하면 일감을
               가져가기 시작한다.
             </p>

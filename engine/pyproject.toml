@@ -20,13 +20,10 @@ dependencies = [
 # core가 같은 워크스페이스의 contracts·llm·extension_api를 끌고 온다.
 [tool.uv.sources]
 chaeksas-core = { git = "https://github.com/wrapper755/Chaeksas", rev = "d479226d964b09a800ba305ee761cee4a520cbfc", subdirectory = "packages/core" }
-autoparts-sim = { path = "../company-sim", editable = true }
 chaeksas-service-kit = { git = "https://github.com/wrapper755/Chaeksas", rev = "d479226d964b09a800ba305ee761cee4a520cbfc", subdirectory = "packages/service_kit" }
 
 [dependency-groups]
 dev = [
-    # 회사 시스템 시뮬레이터 — 시험이 같은 프로세스에 띄워 엔진의 회사 클라이언트에 붙인다(tests/conftest.py).
-    "autoparts-sim",
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.8",
@@ -43,7 +40,7 @@ select = ["E", "F", "I", "UP", "B"]
 testpaths = ["tests"]
 # `app` 패키지를 설치하지 않고 임포트한다. tests/에 __init__.py를 두지 않는 이유도
 # 같다 — conftest를 모듈로 직접 임포트해 고정물을 공유한다.
-pythonpath = ["."]
+pythonpath = [".", "tests"]
 # 비동기 테스트(허브·SSE)에 필요하다. strict가 기본이라 마커를 붙인 것만 돈다.
 asyncio_mode = "strict"
 # LLM 실호출은 기본 실행에서 뺀다 — 비결정적이고 모델 자격증명이 필요하다. `pytest -m llm`.

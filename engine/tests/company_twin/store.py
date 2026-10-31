@@ -1,28 +1,20 @@
 """
-세계(world) 저장소 — 시연을 처음부터 다시 돌릴 수 있게 회사의 **변하는 기록**만 세계마다 따로 둔다:
-세계 시각, 고객 생산계획 수신함(받은 원천과 그 확인 상태), 상태 이력. 세계 id = NowView 데모 실행
-id다(`docs/worker-interfaces.md` Q1).
-
-세계 하나 = JSON 문서 하나(SQLite 행 하나). 같은 파일을 여러 스레드가 쓰므로 잠금으로 줄
-세운다(NowView 엔진 SC01 저장소와 같은 이유).
+회사 시스템 쌍둥이(엔진 시험 전용) — autopart1 기간계(`legacy/`)의 HTTP 계약
+(`docs/worker-interfaces.md` §4.2)을 같은 프로세스에서 흉내 낸다. 원본은 autopart1 리포다.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import threading
 from pathlib import Path
 from typing import Any
 
-DEFAULT_PATH = Path(__file__).resolve().parents[1] / "sim-state.sqlite"
-
 
 class WorldStore:
-    def __init__(self, path: str | Path | None = None) -> None:
-        where = str(path or os.getenv("AUTOPARTS_SIM_DB") or DEFAULT_PATH)
-        self._db = sqlite3.connect(where, check_same_thread=False)
+    def __init__(self, path: str | Path) -> None:
+        self._db = sqlite3.connect(str(path), check_same_thread=False)
         self._lock = threading.Lock()
         self._mutate = threading.RLock()
         with self._lock:

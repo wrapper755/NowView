@@ -5,7 +5,7 @@ import { TopBar } from "@/components/shared/top-bar";
 
 export const metadata: Metadata = { title: "NowView — 관리자", robots: { index: false, follow: false } };
 
-/** NowView 관리자 모드 — 로그인 뒤에만 열린다. 공개 화면에는 링크가 없다(`docs/worker-interfaces.md` §0.1). */
+/** NowView 관리자 모드 — 로그인 뒤에만 열린다. 공개 화면에는 링크가 없다(`docs/worker-interfaces.md` §1). */
 export default function AdminPage() {
   return (
     <>

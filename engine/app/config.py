@@ -1,6 +1,6 @@
 """
 NowView 설정 — 회사 · 회사 시스템 연결 · BPM 프로세스 매핑 · 일꾼 토픽(`docs/worker-interfaces.md`
-§0.1).
+§5).
 
 NowView는 BPM 패키지와 함께 배포되는 **고정 프로그램**이다. 무엇을 하는지(작업 목록·화면)는
 코드이고, 어느 회사의 어느 BPM 프로세스를 맡는지는 **설정**이다. 설정은 엔진 DB에 두고 **관리자
@@ -11,7 +11,7 @@ NowView는 BPM 패키지와 함께 배포되는 **고정 프로그램**이다. �
   `processes`를 찾아 그 회사·업무(장면)의 처리기로 간다. 매핑에 없는 BPM 프로세스의 일감은
   `not_found`로 거절한다.
 * **처음 뜰 때 설정이 없으면 기본값을 적는다**(`default_config`) — 가상 자동차 부품사 하나. 회사
-  시스템 주소의 기본은 환경의 `COMPANY_AUTOPARTS_URL`이다(옛 설정 호환).
+  시스템 주소의 기본은 환경의 `COMPANY_AUTOPART1_URL`이다(옛 설정 호환).
 * **토픽을 바꾸면 엔진을 다시 띄워야 한다** — 일꾼이 들이기 때 토픽을 Center에 알린다. 승인된 뒤의
   토픽 변경은 Center 쪽 승인도 다시 필요하다.
 """
@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field, model_validator
 
 #: NowView가 아는 업무(장면) — 화면·처리기가 코드에 있는 것만 매핑할 수 있다.
 SCENES = (1, 2, 3, 4, 5, 6)
-#: NowView 고정 확장 — 판마다 하나(§0.1). 옮기기 전 장면은 예전 확장(`nowview-scN`)을 그대로 쓴다.
+#: NowView 고정 확장 — 판마다 하나. 옮기기 전 장면은 예전 확장(`nowview-scN`)을 그대로 쓴다.
 FIXED_TOPIC = "nowview"
 
 
@@ -82,20 +82,20 @@ def default_config() -> NowViewConfig:
     return NowViewConfig(
         companies=[
             CompanyConfig(
-                id="autoparts",
+                id="autopart1",
                 name="가상 자동차 부품사",
                 description=(
                     "매출 약 1조원 · 현대·기아 주요 고객 · A제품 울산공장 a~e 모델 — "
                     "2027년 시나리오 1"
                 ),
-                system_url=os.getenv("COMPANY_AUTOPARTS_URL") or None,
+                system_url=os.getenv("COMPANY_AUTOPART1_URL") or None,
             )
         ],
         processes=[
-            ProcessMapping(bpm_process_id="autoparts.sc01", company="autoparts", scene=1),
-            ProcessMapping(bpm_process_id="autoparts.sc01-intake", company="autoparts", scene=1),
+            ProcessMapping(bpm_process_id="autopart1.sc01", company="autopart1", scene=1),
+            ProcessMapping(bpm_process_id="autopart1.sc01-intake", company="autopart1", scene=1),
             *(
-                ProcessMapping(bpm_process_id=f"nowview.sc0{n}", company="autoparts", scene=n)
+                ProcessMapping(bpm_process_id=f"autopart1.sc0{n}", company="autopart1", scene=n)
                 for n in (2, 3, 4, 5, 6)
             ),
         ],

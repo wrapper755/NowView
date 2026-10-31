@@ -49,7 +49,7 @@ app = FastAPI(
     version="0.2.0",
     description=(
         "회사별 BPM 프로세스(Chaeksas Center)의 서비스 태스크를 수행하는 일꾼과 회사별 대시보드의 "
-        "자료. 지금 회사는 가상 자동차 부품사(autoparts) 하나 — 시나리오 1의 장면 1~6. "
+        "자료. 지금 회사는 가상 자동차 부품사(autopart1) 하나 — 시나리오 1의 장면 1~6. "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -67,10 +67,10 @@ center = CenterClient(CenterConfig.from_env())
 # 고친다.
 settings = Settings(ConfigStore(backend))
 # 회사 시스템(가상 자동차 부품사 시뮬레이터, `company-sim/`) — 장면 1의 회사 자료·원천·상태. 주소는
-# 설정에서, 키는 환경(`COMPANY_AUTOPARTS_KEY`)에서 온다. 관리자 모드가 주소를 바꾸면 바로 따른다.
-company = CompanyClient.from_env("autoparts")
+# 설정에서, 키는 환경(`COMPANY_AUTOPART1_KEY`)에서 온다. 관리자 모드가 주소를 바꾸면 바로 따른다.
+company = CompanyClient.from_env("autopart1")
 settings.on_change(
-    lambda config: company.set_url(getattr(config.company("autoparts"), "system_url", None))
+    lambda config: company.set_url(getattr(config.company("autopart1"), "system_url", None))
 )
 sc01 = Sc01Process(
     build_sc01_store(backend), publish=notifier.publish, center=center, company=company
@@ -101,7 +101,7 @@ poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
 _SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06}
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _SCENES))
 app.include_router(
-    build_companies_router(settings, consumer, center, poller, {"autoparts": company})
+    build_companies_router(settings, consumer, center, poller, {"autopart1": company})
 )
 
 

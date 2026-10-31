@@ -2,7 +2,7 @@
 회사 — 공개 목록(`GET /companies`)과 관리자 모드(`/admin/*`).
 
 NowView는 회사 사이트가 아니다. 두 가지 일을 한다(2026-10-31 사용자 정의,
-`docs/worker-interfaces.md` §0.1):
+`docs/worker-interfaces.md` §1):
 
 * **일꾼** — Center에 올린 회사별 BPM 프로세스의 서비스 태스크 일감을 가져가 수행한다
   (`app/consumer.py`). 일꾼이 제공하는 작업은 NowView 고정 확장 `nowview` 하나이고, 어느 회사의 어느

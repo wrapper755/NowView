@@ -20,7 +20,7 @@
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc03">
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
-  <bpmn:process id="nowview.sc03" name="SC03 통합 손익영향 검토와 대응안 분석 지시" isExecutable="true">
+  <bpmn:process id="autopart1.sc03" name="SC03 통합 손익영향 검토와 대응안 분석 지시" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{"run_location": "server", "extensions": [{"id": "nowview-sc03", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
     </bpmn:extensionElements>

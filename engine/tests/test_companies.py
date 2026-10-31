@@ -1,5 +1,5 @@
 """
-NowView 설정과 회사(`app/config.py` · `app/companies.py`, `docs/worker-interfaces.md` §0.1).
+NowView 설정과 회사(`app/config.py` · `app/companies.py`, `docs/worker-interfaces.md` §1).
 
 * **업무 목록은 코드다** — 화면 사본(`lib/companies.ts`의 `SCENES`)과 엔진(`SCENE_WORKS`)이 같다.
 * **설정은 엔진 DB에 있다** — 처음에는 기본값(가상 자동차 부품사)을 적고, 고친 값이 남는다. 회사
@@ -40,9 +40,9 @@ def settings(tmp_path) -> Settings:
 
 def test_config_defaults_then_persists(settings: Settings, tmp_path) -> None:
     assert settings.config == default_config()
-    assert settings.scene_of("autoparts.sc01") == 1
-    assert settings.scene_of("autoparts.sc01-intake") == 1
-    assert settings.scene_of("nowview.sc04") == 4
+    assert settings.scene_of("autopart1.sc01") == 1
+    assert settings.scene_of("autopart1.sc01-intake") == 1
+    assert settings.scene_of("autopart1.sc04") == 4
     assert settings.scene_of("other.bpm") is None
 
     changed = settings.config.model_copy(deep=True)
@@ -98,7 +98,7 @@ class _System:
     configured = False
 
     def describe(self):
-        return {"company": "autoparts", "url": None, "key": False}
+        return {"company": "autopart1", "url": None, "key": False}
 
     def reachable(self):
         return False
@@ -109,7 +109,7 @@ def client(settings: Settings, monkeypatch) -> TestClient:
     monkeypatch.setenv("NOWVIEW_ADMIN_KEY", ADMIN_KEY)
     app = FastAPI()
     app.include_router(
-        build_router(settings, _Worker(), _Center(), _Poller(), {"autoparts": _System()})
+        build_router(settings, _Worker(), _Center(), _Poller(), {"autopart1": _System()})
     )
     return TestClient(app)
 
@@ -119,7 +119,7 @@ def test_public_companies_show_no_registration(client: TestClient) -> None:
     body = response.json()
     assert body == [
         {
-            "id": "autoparts",
+            "id": "autopart1",
             "name": "가상 자동차 부품사",
             "description": body[0]["description"],
             "scenes": [1, 2, 3, 4, 5, 6],
@@ -145,11 +145,11 @@ def test_admin_edits_config(client: TestClient, settings: Settings) -> None:
     assert "assess_supply_risk" in view["extension"]["operations"]
     config = view["config"]
     config["processes"].append(
-        {"bpm_process_id": "autoparts.sc01-v2", "company": "autoparts", "scene": 1}
+        {"bpm_process_id": "autopart1.sc01-v2", "company": "autopart1", "scene": 1}
     )
     saved = client.put("/admin/config", json=config, headers=headers).json()
     assert saved["restartRequired"] is False
-    assert settings.scene_of("autoparts.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
+    assert settings.scene_of("autopart1.sc01-v2") == 1  # 일꾼 매핑에 바로 쓰인다
 
     config["topics"] = ["nowview"]
     assert client.put("/admin/config", json=config, headers=headers).json()["restartRequired"]
@@ -183,8 +183,26 @@ def test_worker_routes_by_the_sending_bpm_process(settings: Settings) -> None:
             }
         )
 
-    assert resolve(request("autoparts.sc01")) == "scene-1"
-    assert resolve(request("nowview.sc05")) == "scene-5"
+    assert resolve(request("autopart1.sc01")) == "scene-1"
+    assert resolve(request("autopart1.sc05")) == "scene-5"
     with pytest.raises(OpError) as missing:
         resolve(request("someone.else"))
     assert missing.value.code == "not_found" and "관리자" in missing.value.message
+
+
+def test_bpmn_copies_match_autopart1() -> None:
+    """
+    엔진의 BPMN은 사본이다 — 원본은 autopart1 리포의 `bpm/`(가상 자동차 부품사의 업무 정의). 옆에
+    autopart1이 있으면(`AUTOPART1_DIR`, 기본 `../autopart1`) 사본이 원본과 같은지 본다. 다르면
+    `scripts/sync-bpm.sh`로 가져온다.
+    """
+    import os
+
+    source = Path(os.getenv("AUTOPART1_DIR") or ROOT.parent / "autopart1") / "bpm" / "autopart1"
+    if not source.is_dir():
+        pytest.skip(f"autopart1 BPM 원본이 없다: {source}")
+    drawings = sorted(source.glob("*/process/*.bpmn"))
+    assert drawings, source
+    for original in drawings:
+        copy = ROOT / "engine" / "processes" / original.name
+        assert copy.read_bytes() == original.read_bytes(), f"{copy.name} — scripts/sync-bpm.sh"

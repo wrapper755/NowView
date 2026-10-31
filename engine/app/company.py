@@ -1,10 +1,10 @@
 """
 회사 시스템 클라이언트 — 일꾼이 회사의 자료를 읽고 확정 기록을 돌려 적는
-길(`docs/worker-interfaces.md` §3.2).
+길(`docs/worker-interfaces.md` §4.2).
 
 NowView는 회사 사이트가 아니다. 회사의 조직·계획·실적·원가·고객계획 원천은 회사 시스템에 있고,
 NowView는 그것을 읽어 규칙 계산(R01)을 하고 경영 기록(이슈·업무·검토)을 남긴다. 지금 회사는 가상
-자동차 부품사(`autoparts`) 하나 — 그 회사 시스템은 별도 서버로 도는 시뮬레이터다(`company-sim/`).
+자동차 부품사(`autopart1`) 하나 — 그 회사 시스템은 별도 서버로 도는 시뮬레이터다(`company-sim/`).
 
 * **연결은 늘 NowView → 회사다.** 회사 시스템은 NowView 주소를 모른다 — 받은 원천은 수신함에 쌓이고
   NowView가 묻는다.
@@ -14,7 +14,7 @@ NowView는 그것을 읽어 규칙 계산(R01)을 하고 경영 기록(이슈·�
 * **회사가 늦거나 죽으면 `CompanyUnavailable`(503)이다** — 업무 규칙 위반이 아니다. 일꾼은 C15
   `dependency_down` (다시 내줄 일)으로 돌려준다. 조용히 엑셀 시드로 되돌아가지 않는다.
 
-설정 — `COMPANY_AUTOPARTS_URL`(예 `http://localhost:8091`) · `COMPANY_AUTOPARTS_KEY`(회사 시스템
+설정 — `COMPANY_AUTOPART1_URL`(예 `http://localhost:8091`) · `COMPANY_AUTOPART1_KEY`(회사 시스템
 키).
 """
 
@@ -70,7 +70,7 @@ class CompanyClient:
         url: str | None,
         key: str | None = None,
         *,
-        company_id: str = "autoparts",
+        company_id: str = "autopart1",
         client: httpx.Client | None = None,
         timeout_s: float = 10.0,
     ) -> None:
@@ -84,7 +84,7 @@ class CompanyClient:
         self._guard = threading.Lock()
 
     @classmethod
-    def from_env(cls, company_id: str = "autoparts") -> CompanyClient:
+    def from_env(cls, company_id: str = "autopart1") -> CompanyClient:
         prefix = f"COMPANY_{company_id.upper()}"
         return cls(
             os.getenv(f"{prefix}_URL"), os.getenv(f"{prefix}_KEY"), company_id=company_id

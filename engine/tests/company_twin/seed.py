@@ -1,20 +1,12 @@
 """
-회사 기준 자료 — `seed/SYN-SC01-v0.2.xlsx`의 **원천
-시트**(버전기준·고객원천·물량스냅샷·실적·단위원가·고정비)와 `seed/org.json`(조직·사용자).
-
-회사가 가진 자료만 읽는다. 버전기준 시트 안의 규칙 표(`rule_key`, R01 임계값)는 NowView의 규칙이라
-읽지 않는다 — 규칙 계산은 NowView 몫이다(`docs/worker-interfaces.md` §0). 파생 시트(손익계산·검증)도
-읽지 않는다 — 그것은 NowView 엔진 시험의 기대값이다.
-
-* **버전은 불변이다.** T01·F01·C01·FC01은 회사가 확정한 기록이라 세계(world)와 무관하게 하나다.
-  세계마다 다른 것은 수신함·원천 상태·시각뿐이다(`store.py`).
-* **행 번호를 키로 쓰지 않는다.** 시트마다 영문 헤더 행을 찾아 열 이름으로 읽는다(엔진 시드와 같은
-  원칙).
+회사 시스템 쌍둥이의 기준 자료 — 엔진 시험 전용. 회사 시스템의 원본은 autopart1 리포의
+기간계(`legacy/`)이고, 이것은 그 HTTP 계약(`docs/worker-interfaces.md` §4.2)을 같은 프로세스에서
+흉내 내 엔진 시험이 회사 API를 지나게 한다. 자료는 엔진 엑셀(`engine/seed/SYN-SC01-v0.2.xlsx`)의
+원천 시트와 엔진 명단(`domain.USERS`)에서 읽는다 — 기간계의 사본과 같은 내용이다.
 """
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -24,9 +16,7 @@ from typing import Any
 
 from openpyxl import load_workbook
 
-SEED_DIR = Path(__file__).resolve().parents[1] / "seed"
-WORKBOOK = SEED_DIR / "SYN-SC01-v0.2.xlsx"
-ORG = SEED_DIR / "org.json"
+WORKBOOK = Path(__file__).resolve().parents[2] / "seed" / "SYN-SC01-v0.2.xlsx"
 
 
 def _as_date(v: Any) -> date:
@@ -150,7 +140,13 @@ def load() -> CompanyData:
         for r in _rows(wb["고정비"], "plant_id")
     ]
     wb.close()
-    org = json.loads(ORG.read_text("utf-8"))
+    from app.sc01.domain import USERS
+
+    org = {
+        "users": [
+            {"user_id": uid, **u} for uid, u in USERS.items() if u["role"] != "시연관리자"
+        ]
+    }
     return CompanyData(
         users=org["users"],
         versions=versions,
