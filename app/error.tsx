@@ -61,7 +61,7 @@ export default function RouteError({
               다시 시도
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <Link href="/">Cockpit으로</Link>
+              <Link href="/">회사 목록으로</Link>
             </Button>
           </div>
         </div>

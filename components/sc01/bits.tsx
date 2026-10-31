@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import {
   AlertTriangle,
   BellRing,
@@ -116,7 +116,7 @@ function MyAlerts() {
   if (count === 0) return null;
   return (
     <Link
-      href="/tasks"
+      href="/sc01/tasks"
       className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium text-foreground"
     >
       <BellRing aria-hidden className="size-3" style={{ color: "var(--viz-status-critical)" }} />

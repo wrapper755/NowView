@@ -31,10 +31,19 @@ uv run pytest -m llm                               # ollama 실호출 (OLLAMA_UR
 uv run ruff check .
 ```
 
-**로컬 프로세스 제어 (웹 · 엔진 · DB)**
+**회사 시스템 시뮬레이터 (Python · `company-sim/`)** — 가상 자동차 부품사의 회사 시스템. 엔진이 회사 자료를 여기서 읽는다
 
 ```bash
-npm run stack:start            # 엔진 → 웹 순서로 띄운다 (db는 별도: stack:start db)
+cd company-sim
+uv sync
+uv run uvicorn autoparts_sim.main:build_app --factory --port 8091   # 키: --env-file .env.local (AUTOPARTS_SIM_KEY)
+uv run pytest
+```
+
+**로컬 프로세스 제어 (웹 · 엔진 · 회사 시스템 · DB)**
+
+```bash
+npm run stack:start            # 회사 시스템(sim) → 엔진 → 웹 순서로 띄운다 (db는 별도: stack:start db)
 npm run stack:status
 npm run stack:restart engine
 npm run stack:stop             # 시작과 반대 순서로 내린다
@@ -122,6 +131,16 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 ## 1. Project Overview
 * **Project Name**: NowView (INNONOW Management Reference Model Pilot Web Platform)
 * **Description**: 매출 약 1조원 규모 가상 자동차 부품사를 대상으로, 체계화된 Management Framework 및 BPM 프로세스 위에서 사람과 AI Agent가 협업하는 경영 운영 플랫폼 프로토타입.
+* **NowView의 역할**(2026-10-31 사용자 정의): **회사 사이트가 아니다.** 둘이다 — ① Chaeksas Center에 올린 **회사별 BPM 프로세스의
+  서비스 태스크를 수행하는 일꾼**(C15, `engine/app/consumer.py`), ② **N개 회사의 운영 현황 대시보드**(`/` 회사 목록 → `/c/{회사}`).
+  가상 자동차 부품사(가칭, id `autoparts`)는 그 회사들 중 하나이고, 그 회사의 업무(장면 1~6)를 BPM 프로세스로 정의해 대시보드로
+  운영 현황을 보인다. 회사 등록부는 `engine/app/companies.py`(화면 사본 `lib/companies.ts`, 시험이 대조). Center에 올리는 이름에
+  회사가 들어간다 — 패키지 `autoparts.sc01`, 일꾼 토픽 `autoparts-sc01`. **장면은 하나씩 옮긴다** — 지금 장면 1만 회사 이름이고
+  장면 2~6은 예전 이름(`nowview-scN`)이다(`migrated`). 옮길 때 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복한다.
+* **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
+  계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
+  몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 서버**(`company-sim/`, :8091)이고 엔진이 `app/company.py`로 읽고 적는다.
+  연결은 늘 NowView에서 나간다(Center도 회사도 NowView 주소를 모른다). 지금 장면 1만 이 길이다.
 * **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). Center 실행에서는 고객계획 접수를 **가상 직원**(접수 Bot)이 맡고 감독자가 승인한 건만 SC01이 된다(4.5 N5).
   **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. **Studio 시험 실행·Center 서버 실행**에서 돈다(외부 확장 `nowview-sc02`).
   **장면 3(SC03)** — 장면 1 물량 감소와 장면 2 승인 단가를 한 수익성 검토건(MR-2706-01)에 잇고, 통합 분석 → 영업·구매·생산
@@ -237,33 +256,37 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # 바깥 Chaeksas에 올릴 외부 확장 정의 — 장면마다 한 벌(nowview-sc01~sc06, 로컬은 Center가 주소를 덮어쓴다, 4.3)
+├── company-sim/                  # 가상 자동차 부품사 회사 시스템 시뮬레이터(별도 서버, :8091) — autoparts_sim(seed · store · main)
+│                                 #   · seed/(엑셀 원천 시트 사본 · org.json) · tests · Dockerfile. 세계(world) = 데모 실행
+├── chaeksas/                     # Center에 올릴 외부 확장 정의 — 장면마다 한 벌(autoparts-sc01 · 아직 옮기기 전 nowview-sc02~sc06, 4.3)
 ├── docs/                         # chaeksas-integration.md(바깥 Chaeksas 연계 설계 — 제안) · handoff/(Chaeksas 요청서)
 ├── app/
-│   ├── layout.tsx                # 세 단(왼쪽 업무 · 가운데 머리·본문 · 오른쪽 데모 플레이어) · 역할 전환 · 테마 · 세션 동기화
+│   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
-│   ├── page.tsx                  # UI01 A제품 경영 현황
-│   ├── plans/page.tsx            # UI02·UI03 고객 생산계획 수신 · 원천 확인
-│   ├── risk/page.tsx             # UI04 공급전망 변동 · 위험 검토
-│   ├── tasks/page.tsx            # UI05 검토·승인 업무
-│   ├── handoff/page.tsx          # UI06 경영이슈 · 인계 현황
-│   ├── process/page.tsx          # BPM 흐름 (BPMN 캔버스)
-│   ├── sc02/                     # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
-│   │                             #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
-│   ├── sc03/                     # 장면 3 — page(업무함 U31) · analysis(U32) · confirm(U33) · meeting(U34·U35)
-│   │                             #   · tasks(U36) · handoff(U37) · process(BPM)
-│   ├── sc04/                     # 장면 4 — page(결과 업무함 U401) · verify(U402) · recommend(U403) · report(U404)
-│   │                             #   · meeting(U405) · approval(U406) · actions(U407) · handoff(U408) · process(BPM)
-│   ├── sc05/                     # 장면 5 — page(과제 현황 U501) · plan(U502) · ready(U503 조건·품의·착수) · changes(U504)
-│   │                             #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
-│   ├── sc06/                     # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · confirm(확인 절차 결재)
-│   │                             #   · report(U602 보고 요약) · process(BPM)
-│   └── api/engine/[scene]/[...path]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01~sc06만 중계)
+│   ├── page.tsx                  # 회사 목록 — 회사별 BPM 프로세스 등록 현황 · 일꾼 상태 한 줄
+│   ├── worker/page.tsx           # 일꾼 — Center 들이기(요청 코드)·맡은 토픽·Center 연동·최근 일감
+│   ├── c/[company]/              # 회사 화면(정적 경로 — 등록부의 회사만, `dynamicParams=false`)
+│   │   ├── layout.tsx        # 공통 줄(회사 이름·역할·해설) · 업무 사이드바 · 화면 메뉴 · 데모 플레이어 · 세션 동기화
+│   │   ├── page.tsx          # 회사 운영 현황 — 업무(BPM 프로세스)별 Center 패키지·토픽
+│   │   ├── sc01/             # 장면 1 — page(UI01 경영 현황) · plans(UI02·03) · risk(UI04) · tasks(UI05) · handoff(UI06) · process(BPM)
+│   │   ├── sc02/                 # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
+│   │   │                         #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
+│   │   ├── sc03/                 # 장면 3 — page(업무함 U31) · analysis(U32) · confirm(U33) · meeting(U34·U35)
+│   │   │                         #   · tasks(U36) · handoff(U37) · process(BPM)
+│   │   ├── sc04/                 # 장면 4 — page(결과 업무함 U401) · verify(U402) · recommend(U403) · report(U404)
+│   │   │                         #   · meeting(U405) · approval(U406) · actions(U407) · handoff(U408) · process(BPM)
+│   │   ├── sc05/                 # 장면 5 — page(과제 현황 U501) · plan(U502) · ready(U503 조건·품의·착수) · changes(U504)
+│   │   │                         #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
+│   │   ├── sc06/                 # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · confirm(확인 절차 결재)
+│   │   │                         #   · report(U602 보고 요약) · process(BPM)
+│   └── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — 유일한 라우트(sc01~sc06 + 읽기 전용 companies·worker)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
 │   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
 │   │                             #   scenario-nav(업무 사이드바 · 머리의 업무 · 화면 메뉴), demo-player-switch(장면별 플레이어),
-│   │                             #   preparation-note(장면 시작 준비 중 — 앞 업무 진행 표시)
+│   │                             #   preparation-note(장면 시작 준비 중 — 앞 업무 진행 표시), top-bar(공통 줄),
+│   │                             #   company-link(장면 경로 → 회사 주소 링크), worker-status(일꾼 상태)
+│   │                             #   brand-hero(첫 화면 머리 — Center 로그인 상단과 같은 INNONOW 로고·문구, 로고는 `public/brand/`)
 │   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
 │   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
 │   │                             #   intake-card — 접수 가상 직원, N5)
@@ -278,6 +301,8 @@ NowView/
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
+│   ├── companies.ts              # 회사 등록부 화면 사본(엔진 `app/companies.py`와 시험이 대조) · companyPath
+│   ├── company-nav.ts            # 장면 경로 ↔ 회사 주소 — useScenePath · useCompanyRouter(장면 코드는 회사를 모른다)
 │   ├── preparation.ts            # 장면 시작 202(준비 중) → 준비 상태를 읽다가 문서를 받는다(4.3)
 │   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
 │   ├── sc02/                     # types · client · format · scenes(엔진 각본 → 장면)
@@ -305,6 +330,8 @@ NowView/
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
+    │   ├── companies.py          # 회사 등록부 — 회사·장면별 Center 패키지·일꾼 토픽 · GET /companies · GET /worker
+    │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
@@ -444,6 +471,14 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
      403 ACCESS_DENIED · 다른 보고 버전 409 VERSION_MISMATCH · 없음 404 NOT_FOUND(`detail.error_code`)
 ```
 
+* **회사 시스템**(`app/company.py` ↔ `company-sim/`, `docs/worker-interfaces.md` §3.2) — 장면 1의 회사 자료(T01·F01·실적·C01·FC01·
+  CP01)는 엔진 엑셀이 아니라 회사에서 읽는다(불변 버전이라 한 번 읽어 둔다, 규칙 R01만 엔진 엑셀 `load_rules`). 「수신」은 회사에
+  고객 원천을 보내고(`POST /worlds/{w}/sim/customer-plans`) 그 원천을 들인다(`company_doc_id`). 원천 확인 결정(VERIFIED·NEEDS_INFO)은
+  저장 직전에 회사에 적는다(`_company_writes` → `_commit`, `ref` 멱등) — 회사가 받지 못하면 그 조작은 저장되지 않는다(503). 일꾼은
+  503을 C15 `dependency_down`(재시도)으로 돌려준다. 데모 실행을 만들 때·초기화·시계 이동 때 회사 세계도 함께 바뀐다. 설정
+  `COMPANY_AUTOPARTS_URL`·`COMPANY_AUTOPARTS_KEY`(엔진) = `AUTOPARTS_SIM_KEY`(시뮬레이터), 로컬은 두 `.env.local`. **설정이 없으면
+  엑셀로 되돌아가지 않고 503이다.** 엔진 시험은 시뮬레이터 앱을 같은 프로세스에 띄운다(`tests/conftest.py`, 개발 의존성
+  `autoparts-sim` 경로). `/health.companies`·`/companies[].system.reachable`이 연결을 드러낸다.
 * **장면 2~6 시작은 오래 걸리면 202다**(`app/preparation.py`, 2026-10-27). 시작은 앞 장면을 각본으로 끝까지 실제로 실행한다 —
   Center 실행이면 장면 3 시작이 약 7분이라 BFF의 `fetch`(undici 응답 헤더 기본 300초)가 503을 냈다(엔진은 끝까지 갔다). 운영계는
   Cloudflare가 약 100초에 끊는다(4.15) — 시간 늘리기로는 안 된다.
@@ -459,7 +494,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
 * **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
   `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
-  `nowview-sc01`~`sc06`(= BPMN `app_id`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
+  (= BPMN `app_id`, 회사 등록부의 장면마다 하나 — `autoparts-sc01`, 옮기기 전 장면은 `nowview-sc02`~`sc06`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
   `complete`·`fail`로 알린다. 연결은 늘 엔진 → Center다 — **Center는 NowView 주소도 키도 모른다.**
   내장 BPM의 `_InProcessCalls`와 일꾼이 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다.
   예전(Push)에는 Center 쪽 HTTP 어댑터가 BFF의 `/operations/…`를 키로 찔렀다 — 그 경로·키 검사(N6,
@@ -488,21 +523,28 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     `PUT …/consumers/self/manifest`로 올리고, Center가 일감의 작업을 대조하고 출력 필수 칸을 막는다(422
     `output_invalid`). 그래서 **정의는 Center에 등록해 둔다**(외부 확장 토픽은 등록된 정의가 있어야 승인된다).
     정의 위치는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포 `chaeksas/`, 도커 이미지는 `additional_contexts`로 복사).
+  * **장면 1 정의(`autoparts-sc01`)는 요청 템플릿을 자리만 채운다**(운영계 주소·`path: "/"`·키 없음) — C13이 HTTP 어댑터 모양을
+    요구해서다. 작업 이름도 업무 언어로 바꿨다(`assess_supply_risk`·`record_plan_review`·`assign_follow_up` …,
+    `docs/worker-interfaces.md` §3.1). 장면 2~6 정의는 아래처럼 옛 템플릿이 남아 있다.
   * **확장 정의의 요청 템플릿(`path`·`body`·`allowed_hosts`·`auth`)은 이 길에서 쓰지 않는다.** Chaeksas 범용
     어댑터 일꾼(`chk-adapter-consumer`)을 대신 돌릴 때만 읽힌다. 고치면 다시 서명해야 해서 그대로 뒀다 —
     `test_extension_definition_matches_the_bpmn_service_calls`가 여전히 템플릿 ↔ 그림을 잠근다.
-  * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 서비스 앱 id가 `nowview.sc01` →
-    `nowview-sc01`이 됐다(BPMN `app_id`, `process.APP_ID`). BPM 프로세스 id는 그대로다.
+  * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 그래서 토픽(서비스 앱 id)은 `autoparts-sc01`,
+    BPM 프로세스(패키지) id는 `autoparts.sc01`이다 — 둘 다 회사 이름이 앞이다(`companies.py`, 2026-10-31). 장면 1을 옮기며
+    정의도 새 id로 다시 냈다(`chaeksas/autoparts-sc01.extension.json` 0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다).
+  * **`/worker`**(BFF `/api/engine/worker`)가 일꾼 상태·맡은 토픽·요청 코드·최근 일감 50건(엔진 메모리)을 보인다.
+    **토픽을 바꾸면 들이기를 다시 해야 한다** — 승인 전 요청은 옛 토픽으로 나간 것이라 `engine/.consumer/`를 지우고 새 코드를
+    받는다(승인 뒤라면 Center에서 일꾼의 토픽을 바꾼다).
   * **BPMN은 `chk:process.extensions`에 `nowview-scN`을 선언한다** — Studio가 이것을 패키지
     `requires.extensions`로 옮기고, Center는 그 줄로 「이 실행이 이 토픽에 올려도 되나」를 본다(C15
     `topic_not_required`). `service_keys`·`key_ref`는 걷었다(ADR-0102 — 쓰는 곳이 없다, B7이 경고한다).
     **그래서 그림이 바뀌었다 — Studio에서 패키지를 다시 내보내 승인·배포해야 한다.**
-  * `chaeksas-core`·`chaeksas-service-kit`은 같은 커밋(`554d7fa`)에 고정한다(`engine/pyproject.toml`).
+  * `chaeksas-core`·`chaeksas-service-kit`은 같은 커밋(`d479226`, 2026-10-31 로컬 Center와 같은 판)에 고정한다(`engine/pyproject.toml`).
 * **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
   없다). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
   `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태,
   `GET /virtual-workers/{id}` 가상 직원) · `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-CHK-On-Behalf-Of` =
-  행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `nowview.sc01`) · `CHAEKSAS_INTAKE_WORKER`(접수 가상 직원 id — 있으면
+  행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `autoparts.sc01`) · `CHAEKSAS_INTAKE_WORKER`(접수 가상 직원 id — 있으면
   수신이 `/jobs` 대신 메시지 시작으로 접수 Bot을 깨운다, N5). 키가 둘인 것은
   Chaeksas 권한표 그대로다 — 대리 답용 키는 결재만, 연동용 키는 결재를 못 읽는다. `/health.center`가 설정·폴링
   여부를 드러낸다(값은 싣지 않는다). C15 일꾼 토큰과는 다른 키다(일꾼 토큰은 가져가기·끝내기만 연다).
@@ -520,7 +562,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
-* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 목록 밖의 장면은 404 —
+* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 그 밖에는 읽기 전용 `companies`·`worker`(하위 경로 없이 GET)뿐이다. 목록 밖은 404 —
   엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 BFF를 부르는 길은 없다(C15 일꾼). 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
   입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
   `X-Demo-Actor`·`Idempotency-Key`뿐이다.
@@ -747,12 +789,12 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 
 | 경로 | 화면 | 핵심 |
 |---|---|---|
-| `/` | UI01 경영 현황 | T01·F01·(계산 후) F02 손익, 목표 차이 vs 사건 영향, 모델별 표, 이슈·업무 요약 |
-| `/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산, (Center) **접수 가상 직원** 카드 — 오늘 접수·승인 대기·기동된 SC01, 일괄 결재 대리 답 |
-| `/risk` | UI04 위험 검토 | 계산 선택(정정 시 이전 결과·정정 이력), 상태 칩, 지표 타일(임계값은 `/rules`), 경보 행 비교(15행은 접기), 이슈 이력, **AI 초안 ↔ 담당자 검토 의견**, 배정·Review 요청 |
-| `/tasks` | UI05 업무 | 알림, 업무 목록(기한 초과·재확인 요청), 상세·계산별 확인·이력, 인수·재확인 |
-| `/handoff` | UI06 인계 | 이슈 근거, 장면 완료 조건, 후속 업무, 정정 이력, 감사 이력, 다음 장면(이야기만) |
-| `/process` | BPM 흐름 | BPMN 캔버스, 지금 기다리는 사람 업무, 노드 상세(분기 조건) |
+| `/c/autoparts/sc01` | UI01 경영 현황 | T01·F01·(계산 후) F02 손익, 목표 차이 vs 사건 영향, 모델별 표, 이슈·업무 요약 |
+| `…/sc01/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산, (Center) **접수 가상 직원** 카드 — 오늘 접수·승인 대기·기동된 SC01, 일괄 결재 대리 답 |
+| `…/sc01/risk` | UI04 위험 검토 | 계산 선택(정정 시 이전 결과·정정 이력), 상태 칩, 지표 타일(임계값은 `/rules`), 경보 행 비교(15행은 접기), 이슈 이력, **AI 초안 ↔ 담당자 검토 의견**, 배정·Review 요청 |
+| `…/sc01/tasks` | UI05 업무 | 알림, 업무 목록(기한 초과·재확인 요청), 상세·계산별 확인·이력, 인수·재확인 |
+| `…/sc01/handoff` | UI06 인계 | 이슈 근거, 장면 완료 조건, 후속 업무, 정정 이력, 감사 이력, 다음 장면(이야기만) |
+| `…/sc01/process` | BPM 흐름 | BPMN 캔버스, 지금 기다리는 사람 업무, 노드 상세(분기 조건) |
 
 * **변경을 받는 곳은 `Sc01SessionSync` 하나다**(레이아웃 상주). 화면·패널마다 받으면 같은 화면의 두
   패널이 서로 다른 순간을 보고 요청이 패널 수만큼 는다(이전 구현에서 겪었다). SSE가 기본, 서 있지
@@ -833,6 +875,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc06_external.py` | 확장 정의 `nowview-sc06` ↔ BPMN(계약 검사·본문 입력·답한 사람·오류 경계), Studio 흉내로 대표 보고까지(늦게 연 업무·같은 기록), 결론 숫자 틀린 확정 → 기록 거절 → 같은 결재(남은 항목은 감사 이력), `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·담당 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc03_external.py` | 확장 정의 `nowview-sc03` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **콘솔 답 거절 → 같은 업무에 잇고 사유가 폼에·반영 중(`inflight`)·화면 답이 각본 지점을 옮김**, 회신기한 형식 사전 검사 |
 | `engine/tests/test_consumer.py` | C15 일꾼 — manifest가 여섯 장면 그림의 서비스 호출·입력·출력을 다 덮는다, 가짜 Center와 들이기(요청 코드 → 승인 → 봉한 토큰) → manifest → 가져가기 → `complete`, `origin`이 선언과 다르면 사유와 함께 `fail`(conflict), 같은 멱등 칸 다른 본문 `idempotency_conflict`, Center 없으면 꺼짐. 장면별 바깥 실행 시험의 Studio·서버 실행기 흉내도 이 수행기를 지난다(`conftest.C15Calls` — Center처럼 출력 필수 칸을 본다) |
+| `engine/tests/test_companies.py` | 회사 등록부 — 화면 사본(`lib/companies.ts`)과 같다, 토픽 중복 없음, 옮긴 장면은 확장 정의 id = 토픽 · 그림 프로세스 id = 패키지 · 서비스 호출·확장 선언 = 토픽, `GET /companies`·`/worker` |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |

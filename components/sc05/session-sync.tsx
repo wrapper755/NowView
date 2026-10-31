@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useScenePath as usePathname } from "@/lib/company-nav";
 
 import { sc05Api } from "@/lib/sc05/client";
 import type { Sc05View } from "@/lib/sc05/types";

@@ -340,6 +340,21 @@ NowView 코드는 거의 그대로지만 프로세스가 하나 늘고, HTTP 한
 **아직 하지 않은 것** — 진짜 Center(C15 판)와 서버 실행기·Studio로 돌려 보지 않았다. 시험은 가짜 Center(일꾼
 쪽 엔드포인트)와, 진짜 Chaeksas 엔진이 서비스 태스크를 일감 모양으로 넘기는 흉내(`conftest.C15Calls`)까지다.
 
+### N8. 회사 이름으로 다시 등록한다 (2026-10-31)
+
+NowView는 회사 사이트가 아니라 **회사별 BPM 프로세스의 일꾼 + 회사별 운영 현황 대시보드**다(CLAUDE.md 1장). Center에 올리는
+이름에 회사가 들어간다 — 가상 자동차 부품사(가칭, `autoparts`)의 장면 N은 패키지 `autoparts.scN`, 토픽 `autoparts-scN`이다.
+등록부는 `engine/app/companies.py`. 장면은 하나씩 옮기고, 옮길 때마다 Center에 다시 등록해 실행·시험·수정을 반복한다.
+
+**장면 1을 옮기며 Center에서 할 것**(예전 `nowview-sc01`·`nowview.sc01`·`nowview.sc01-intake`·`nowview-intake`는 쓰지 않는다):
+
+1. CON-07 확장 정의 `chaeksas/autoparts-sc01.extension.json`(0.1.0) 서명·등록 — 키·주소는 없다.
+2. Studio에서 `engine/processes/sc01.bpmn`(→ `autoparts.sc01`)과 `sc01-intake.bpmn`(→ `autoparts.sc01-intake`)을 내보내
+   승인·배포.
+3. CON-13 접수 가상 직원 `autoparts-intake`(접수 Bot = `autoparts.sc01-intake`, 감독자) — 엔진 `CHAEKSAS_INTAKE_WORKER`와 같은 id.
+4. CON-07 「일꾼 승인 대기」에서 엔진의 요청 코드 승인(`/worker` 화면에 보인다). 토픽이 바뀌어 예전 요청은 버렸다.
+5. CON-11 연동용·대리 답용 키 → `engine/.env.local`.
+
 ## 6. 하지 않는 것
 
 * 내장 BPM을 걷어내지 않는다 — 엔진 시험이 업무 규칙을 같은 프로세스에서 잠그는 데 쓴다. **화면에서는 고르지

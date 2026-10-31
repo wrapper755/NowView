@@ -1,5 +1,6 @@
 /**
- * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`~`sc06`뿐이다.
+ * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`~`sc06`이고, 그 밖에 회사 등록부
+ * (`/api/engine/companies`)와 일꾼 상태(`/api/engine/worker`)만 연다.
  *
  * **브라우저가 엔진을 직접 부르지 않는다.** CORS가 생기고 엔진 주소가 드러난다. 운영계에서
  * 엔진은 127.0.0.1에만 바인딩되어 있다(CLAUDE.md 5.4).
@@ -17,14 +18,19 @@ export const dynamic = "force-dynamic";
 
 /** 중계할 장면. 목록 밖의 경로는 엔진에 보내지 않는다 — 엔진의 다른 경로(`/health` 등)가 열리지 않게. */
 const SCENES = new Set(["sc01", "sc02", "sc03", "sc04", "sc05", "sc06"]);
+/** 장면이 아닌 읽기 경로 — 하위 경로 없이 GET만 받는다. */
+const READ_ONLY = new Set(["companies", "worker"]);
 
-type Context = { params: Promise<{ scene: string; path: string[] }> };
+type Context = { params: Promise<{ scene: string; path?: string[] }> };
 
 async function relay(request: Request, { params }: Context): Promise<Response> {
-  const { scene, path } = await params;
-  if (!SCENES.has(scene)) return Response.json({ error: `없는 장면: ${scene}` }, { status: 404 });
+  const { scene, path = [] } = await params;
+  const readOnly = READ_ONLY.has(scene) && path.length === 0 && request.method === "GET";
+  if (!SCENES.has(scene) && !readOnly) return Response.json({ error: `없는 경로: ${scene}` }, { status: 404 });
+  if (SCENES.has(scene) && path.length === 0) return Response.json({ error: "장면 아래 경로가 없다" }, { status: 404 });
   const url = new URL(request.url);
-  const target = `${ENGINE_URL}/${scene}/${path.map(encodeURIComponent).join("/")}${url.search}`;
+  const tail = path.length ? `/${path.map(encodeURIComponent).join("/")}` : "";
+  const target = `${ENGINE_URL}/${scene}${tail}${url.search}`;
   const isStream = path.at(-1) === "events";
 
   const headers: Record<string, string> = { accept: isStream ? "text/event-stream" : "application/json" };

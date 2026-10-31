@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { ArrowRight, Bot, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 
 import { EvidenceChip, LoadGate, Mn, personName, Problem, Sc06Body, Sc06Header, StateTag } from "@/components/sc06/bits";

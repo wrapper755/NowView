@@ -5,9 +5,9 @@ Chaeksas Center 연동(N3) — 엔진 안의 클라이언트. 키는 **엔진만
 * `CHAEKSAS_INTEGRATION_KEY` — 연동용 키: SC01 기동(`POST /jobs`), 정정본(`POST /messages`),
   진행(`GET /runs/{id}/events`), 대체된 작업 거두기(`DELETE /jobs/{id}`)
 * `CHAEKSAS_RELAY_KEY` — 대리 답용 키: 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름, C6·ADR-0081)
-* `CHAEKSAS_SC01_PACKAGE` — SC01 패키지 id(기본 `nowview.sc01`). 실행 기록은 패키지 id로 말한다
+* `CHAEKSAS_SC01_PACKAGE` — SC01 패키지 id(기본 `autoparts.sc01`). 실행 기록은 패키지 id로 말한다
   (ADR-0086)
-* `CHAEKSAS_INTAKE_WORKER` — 고객계획 접수 가상 직원 id(N5, 예: `nowview-intake`). 있으면 원천
+* `CHAEKSAS_INTAKE_WORKER` — 고객계획 접수 가상 직원 id(N5, 예: `autoparts-intake`). 있으면 원천
   수신이 SC01을 직접 기동하지 않고 메시지(`고객계획접수`)로 그 가상 직원의 접수 Bot을 깨운다.
   감독자가 승인한 건만 접수 Bot이 SC01을 위임해 기동한다. 읽기(`GET /virtual-workers/{id}`)는
   연동용 키로 한다.
@@ -59,7 +59,7 @@ class CenterConfig:
     url: str | None = None
     integration_key: str | None = None
     relay_key: str | None = None
-    package: str = "nowview.sc01"
+    package: str = "autoparts.sc01"
     intake_worker: str | None = None
     #: 장면 2 패키지(`processes/sc02.bpmn`을 Studio로 내보낸 서버 Bot)
     sc02_package: str = "nowview.sc02"
@@ -78,7 +78,7 @@ class CenterConfig:
             url=(os.getenv("CHAEKSAS_CENTER_URL") or "").rstrip("/") or None,
             integration_key=os.getenv("CHAEKSAS_INTEGRATION_KEY") or None,
             relay_key=os.getenv("CHAEKSAS_RELAY_KEY") or None,
-            package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "nowview.sc01",
+            package=os.getenv("CHAEKSAS_SC01_PACKAGE") or "autoparts.sc01",
             intake_worker=os.getenv("CHAEKSAS_INTAKE_WORKER") or None,
             sc02_package=os.getenv("CHAEKSAS_SC02_PACKAGE") or "nowview.sc02",
             sc03_package=os.getenv("CHAEKSAS_SC03_PACKAGE") or "nowview.sc03",

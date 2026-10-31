@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useScenePath as usePathname } from "@/lib/company-nav";
 
 import { Sc01DemoPlayer } from "@/components/sc01/demo-player";
 import { Sc02DemoPlayer } from "@/components/sc02/demo-player";

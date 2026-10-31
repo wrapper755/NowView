@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useCompanyRouter as useRouter, useScenePath as usePathname } from "@/lib/company-nav";
 import { ChevronLeft, ChevronRight, ChevronUp, Pause, Play, PlayCircle, RotateCcw, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";

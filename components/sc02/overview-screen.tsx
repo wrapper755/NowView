@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { AlarmClock } from "lucide-react";
 
 import { RiskTag, useUserName } from "@/components/sc01/bits";
@@ -57,7 +57,7 @@ function Overview({ view }: { view: Sc02View }) {
                 외주 단가 인상 검토는 고객 생산계획 변경 대응 인계 시점의 결과를 근거로 쓴다(스냅샷). 고객 생산계획 변경 대응을 초기화해도 외주 단가 인상 검토의 근거는 바뀌지 않는다.
               </p>
             </Commentary>
-            <Link href="/handoff" className="text-xs underline">
+            <Link href="/sc01/handoff" className="text-xs underline">
               고객 생산계획 변경 대응 인계 화면
             </Link>
           </CardContent>

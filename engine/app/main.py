@@ -18,6 +18,9 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from .companies import COMPANIES
+from .companies import build_router as build_companies_router
+from .company import CompanyClient
 from .consumer import ConsumerHost
 from .events import hub
 from .notify import build_notifier
@@ -44,8 +47,8 @@ app = FastAPI(
     title="NowView BPM Engine",
     version="0.2.0",
     description=(
-        "Chaeksas BPM(BPMN 2.0) 위의 시나리오 1 — 고객 생산계획 변경 대응(SC01)~결정 실행·계획 "
-        "갱신(SC05)와 조회 완료·성과 검토(SC06). "
+        "회사별 BPM 프로세스(Chaeksas Center)의 서비스 태스크를 수행하는 일꾼과 회사별 대시보드의 "
+        "자료. 지금 회사는 가상 자동차 부품사(autoparts) 하나 — 시나리오 1의 장면 1~6. "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -59,7 +62,11 @@ notifier = build_notifier(hub, backend, os.getenv("DATABASE_URL"))
 
 # Center 연동(N3) — 키는 엔진만 쥔다. 설정이 없으면 center 데모 실행의 대리 답·기동이 503이다.
 center = CenterClient(CenterConfig.from_env())
-sc01 = Sc01Process(build_sc01_store(backend), publish=notifier.publish, center=center)
+# 회사 시스템(가상 자동차 부품사 시뮬레이터, `company-sim/`) — 장면 1의 회사 자료·원천·상태.
+company = CompanyClient.from_env("autoparts")
+sc01 = Sc01Process(
+    build_sc01_store(backend), publish=notifier.publish, center=center, company=company
+)
 app.include_router(build_sc01_router(sc01, hub))
 # 장면 2 — 장면 1 인계 결과에서 시작한다. 같은 데모 실행 id, 다른 테이블(`sc02_*`). 내장 실행만.
 sc02 = Sc02Process(build_sc01_store(backend, "sc02"), sc01, publish=notifier.publish)
@@ -81,17 +88,13 @@ app.include_router(build_sc06_router(sc06, hub))
 # 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 여섯 장면
 # 모두.
 poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
-# 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다.
+# 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만
+# 뜬다. 토픽은 회사 등록부(`companies.py`)의 장면마다 하나다 — 장면 번호로 프로세스를 잇는다.
+_SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06}
 consumer = ConsumerHost.from_env(
-    {
-        "nowview-sc01": sc01,
-        "nowview-sc02": sc02,
-        "nowview-sc03": sc03,
-        "nowview-sc04": sc04,
-        "nowview-sc05": sc05,
-        "nowview-sc06": sc06,
-    }
+    {scene.topic: _SCENES[scene.no] for company in COMPANIES for scene in company.scenes}
 )
+app.include_router(build_companies_router(consumer, center, poller, {"autoparts": company}))
 
 
 @app.on_event("startup")
@@ -134,6 +137,8 @@ def health() -> dict[str, Any]:
         "demoRuns": len(sc01.store.list()),
         # C15 일꾼 — 승인 대기(요청 코드)·가져가는 중·꺼짐. 토큰은 싣지 않는다.
         "consumer": consumer.describe(),
+        # 회사 시스템 — 키 값은 싣지 않는다.
+        "companies": {"autoparts": company.describe()},
         # Center 연동(N3) — 키 값은 싣지 않는다. 폴러가 없으면 center 실행의 진행이 멈춰 보인다.
         "center": {**center.config.describe(), "polling": poller.running},
         "eventSubscribers": hub.subscriber_count,

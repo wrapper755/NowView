@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { ArrowLeft, CalendarClock, Wrench, Lightbulb } from "lucide-react";
 
 import { EvidenceChip, LoadGate, Mn, personName, Problem, Sc06Body, Sc06Header, StateTag } from "@/components/sc06/bits";

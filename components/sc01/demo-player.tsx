@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useCompanyRouter as useRouter, useScenePath as usePathname } from "@/lib/company-nav";
 import {
   ChevronLeft,
   ChevronRight,
@@ -188,7 +188,7 @@ export function Sc01DemoPlayer() {
     useSc01.getState().setLive(r.data);
     useSc01.getState().setPast(null);
     setScene(0);
-    if (pathname !== "/") router.push("/");
+    if (pathname !== "/sc01") router.push("/sc01");
   };
 
   /** 가상시계 이동(시연관리자). 시각만 옮긴다 — 인수·승인은 실행하지 않는다. 기한을 넘기면 알림이 생긴다. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { CheckCircle2, CircleDashed, PlayCircle } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
