@@ -1,6 +1,6 @@
 # NowView ↔ Chaeksas 연계 설계 — SC01을 바깥 Chaeksas에서 돌려도 NowView 전체가 따라온다
 
-- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6·N3 구현(2026-10-25), N5 구현(2026-10-26), 장면 2 같은 틀(2026-10-27) — 아래 7
+- 작성: 2026-10-25 · 상태: **수락**. N1·N4·N2·N6·N3 구현(2026-10-25), N5 구현(2026-10-26), 장면 2 같은 틀(2026-10-27), N7 Pull 전환(2026-10-31 — N6 대체) — 아래 7
 - 관련: CLAUDE.md 4.3(API·외부 확장)·4.5(BPM)·4.6(화면), Chaeksas ADR-0079~0085(가상 직원·결재 담당자·대리 답),
   Chaeksas에 보낼 요청서 [handoff/chaeksas-nowview-integration.md](handoff/chaeksas-nowview-integration.md)
 
@@ -269,6 +269,8 @@ NowView 원천 수신 ──POST /messages──▶ 접수 Bot nowview.sc01-inta
 
 ### N6. 시스템 작업의 인증
 
+> **2026-10-31 N7로 대체됐다** — Center가 NowView를 부르지 않으니 받을 키도 없다. 아래는 당시 기록이다.
+
 지금 시스템 작업 네 개는 **인증 없이 열려 있다.** 운영계는 인터넷에 노출돼 있다. 연계를 붙이기 전에
 확장 정의에 `auth: {type: bearer}`를 두고, 엔진이 키를 검사하게 한다. 키를 어떻게 받는지는 요청서 R6이다.
 
@@ -294,6 +296,49 @@ Studio도 그래서 돌았다. 바로잡는 길은 두 가지다. ① `auth: bea
 * 배포: `deploy/bootstrap.sh`가 **파일이 이미 있어도 빠진 키만** 지어 더한다(있는 값은 그대로 — 바꾸면
   Center에 넣은 키와 어긋난다). 값은 출력하지 않는다. 로컬은 `engine/.env.local`을 `stack.sh`가 읽는다.
 * 내장 경로(`_InProcessCalls`)는 HTTP를 타지 않아 키와 무관하다.
+
+### N7. 일감을 가져간다 — Chaeksas Pull 전환(ADR-0102, C15)에 따라 (2026-10-31)
+
+Chaeksas가 BPM 프로세스에서 바깥 기능을 부르는 길을 모두 Pull로 바꿨다. 서버 실행기·Studio는
+`chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 그 토픽(= `app_id`)을 맡은 **일꾼**이 Center에
+롱폴링을 걸어 가져가 끝낸다. Center는 외부 앱 키·시험용 키·주소 덮어쓰기(ADR-0094·0097)를 걷었다 —
+N6의 키와 R4의 주소가 둘 다 없어졌다.
+
+**선택: 엔진이 직접 일꾼이 된다**(사용자 결정). 다른 길은 Chaeksas 범용 어댑터 일꾼
+(`chk-adapter-consumer`)을 NowView 옆에 띄워 지금 HTTP 어댑터 정의 그대로 BFF를 부르게 하는 것이었다 —
+NowView 코드는 거의 그대로지만 프로세스가 하나 늘고, HTTP 한 번과 키 검사(N6)가 남는다.
+
+**구현에서 정한 것**
+
+* `engine/app/consumer.py` — `service_kit`의 `Consumer`·`Enrollment`·`Service`를 그대로 쓴다. 토픽 여섯
+  (`nowview-sc01`~`sc06`)이 일꾼 하나다. 작업마다 같은 처리기가 `ScNProcess.operate`를 부른다 — 내장
+  `_InProcessCalls`와 같은 `run_operation` 길이다.
+* **실행 위치 = 일감의 `origin`**(`test` → studio, `run` → center). Center가 올린 쪽을 인증해 붙인다. N2의
+  선언 검사(`link_external_run`)는 그대로이고 키 대신 이것을 본다.
+* **일감 입력 = 그림의 `chk:serviceCall.input`.** `demo_run_id`로 데모 실행을 찾고, 바깥 실행 id·노드 id는
+  멱등 칸에서 온다(`{{run_id}}`·`chaeksas_run_id`가 하던 일).
+* **거절은 `fail`에 사유를 싣는다**(`forbidden`·`not_found`·`conflict`·`input_invalid`, 다시 부르지 않음).
+  결재가 보이는 `error_message`에 사유가 온다 — 어댑터 때는 상태 코드뿐이었다(N1의 「사유는 감사 이력」).
+* **manifest는 확장 정의에서 짓는다**(작업·모드·스키마·`timeout_s`). Center가 작업을 대조하고 출력 필수 칸을
+  막는다. 정의는 Center에 계속 등록한다 — 외부 확장 토픽은 등록된 정의가 있어야 일꾼에게 승인된다.
+  **정의의 요청 템플릿은 이 길에서 읽지 않는다** — 다시 서명하지 않으려고 고치지 않았다(어댑터 일꾼을
+  대신 쓸 때를 위한 것이기도 하다).
+* **들이기**: 토큰이 없으면 요청 코드를 로그·`/health.consumer.requestCode`에 보이고, CON-07 「일꾼 승인
+  대기」에서 승인하면 봉한 토큰을 `engine/.consumer/`에 둔다. 운영 배포는 그 폴더를 rsync에서 뺀다.
+* **멱등 저장소는 메모리다** — 잠금이 지나 다시 온 일감은 저장한 결과를 준다. 엔진이 다시 뜨면 비므로 그 사이의
+  재전달은 작업이 **한 번 더 돈다.** 작업마다 두 번 돌아도 안전한지는 확인하지 않았다 — 문서에 저장하는
+  멱등 저장소가 후속 거리다.
+* 걷은 것: BFF의 `/operations/…`·장면 1 시스템 작업 경로, `auth.py`(N6)·`NOWVIEW_SYSTEM_KEY*`, BFF의
+  `Authorization` 전달, BPMN `service_keys`. 그림이 바뀌었으니 **Studio에서 패키지를 다시 내보내야 한다.**
+* `chaeksas-core`·`chaeksas-service-kit` 고정 커밋 `554d7fa`.
+
+**Center에 올리는 순서(바뀐 것)** — ① CON-07 확장 정의 `nowview-sc01`~`sc06` 등록(키·주소 없음) ② Studio에서
+일곱 그림을 다시 내보내 승인·배포 ③ 엔진에 `CHAEKSAS_CENTER_URL` 등(N3와 같다)을 두고 띄운다 ④ 엔진이 낸 요청
+코드를 CON-07 「일꾼 승인 대기」에서 승인(토픽 여섯). 실행기 쪽의 `CHK_SERVER_RUNNER__SVC__NOWVIEW`(N5 실측)는
+쓰지 않는다 — 실행기는 Center에 올릴 뿐이다.
+
+**아직 하지 않은 것** — 진짜 Center(C15 판)와 서버 실행기·Studio로 돌려 보지 않았다. 시험은 가짜 Center(일꾼
+쪽 엔드포인트)와, 진짜 Chaeksas 엔진이 서비스 태스크를 일감 모양으로 넘기는 흉내(`conftest.C15Calls`)까지다.
 
 ## 6. 하지 않는 것
 

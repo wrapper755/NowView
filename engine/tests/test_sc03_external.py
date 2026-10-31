@@ -26,7 +26,7 @@ from chaeksas.contracts._semver import satisfies
 from chaeksas.contracts.bpmn_ext import read_process
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
+from conftest import C15Calls
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
 from app import script_wait
@@ -89,32 +89,6 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
 # ─────────────────────────── 공통 ───────────────────────────
 
 
-class _Calls:
-    """바깥 실행기의 HTTP 어댑터 흉내 — 4xx는 상태 코드만 남긴다(본문을 버린다)."""
-
-    def __init__(self, proc: Sc03Process, via: str) -> None:
-        self.proc, self.via = proc, via
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via=self.via,
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 @pytest.fixture
 def center() -> FakeCenter:
     return FakeCenter()
@@ -170,7 +144,7 @@ def test_studio_run_reaches_completion_through_system_operations(proc: Sc03Proce
         proc.process,
         run_id="run_20270624_100500_a3b3c3",
         log=RunLog(run_id="run_20270624_100500_a3b3c3"),
-        env=RunEnv(services=_Calls(proc, "studio")),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid},
         now=parse_at(doc["clock"]),
@@ -222,7 +196,7 @@ def test_a_rejected_record_returns_to_the_same_approval(proc: Sc03Process) -> No
         proc.process,
         run_id="run_20270624_100500_a4b4c4",
         log=RunLog(run_id="run_20270624_100500_a4b4c4"),
-        env=RunEnv(services=_Calls(proc, "studio")),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid},
     )

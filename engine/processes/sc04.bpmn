@@ -24,7 +24,7 @@
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="nowview.sc04" name="SC04 수익성 개선 대응안 검토와 실행 승인" isExecutable="true">
     <bpmn:extensionElements>
-      <chk:process>{"run_location": "server", "service_keys": {"nowview-sc04": "nowview"}, "extensions": [{"id": "nowview-sc04", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "nowview-sc04", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="장면 4 착수"/>
     <bpmn:serviceTask id="Task_Open" name="검토건 열기">

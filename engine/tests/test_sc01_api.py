@@ -16,13 +16,9 @@ from fastapi.testclient import TestClient
 from app import main
 from app.sc01 import demo
 from app.sc01.api import build_router
-from app.sc01.auth import SystemAuth
 from app.sc01.process import Sc01Process
 from app.sc01.store import SqliteSc01Store
 from app.store import build_sqlite_backend
-
-#: 시스템 작업 키(N6) — 운영 키는 Center 실행, 시험용 키는 Studio 시험 실행이 싣는다.
-RUN_KEY, TEST_KEY = "run-key-0123456789abcdef", "test-key-fedcba9876543210"
 
 
 @pytest.fixture
@@ -34,13 +30,10 @@ def client(tmp_path):
         inline_agent=True,
     )
     app = main.FastAPI()
-    app.include_router(
-        build_router(process, main.hub, SystemAuth(run_key=RUN_KEY, test_key=TEST_KEY))
-    )
+    app.include_router(build_router(process, main.hub))
     try:
         with TestClient(app) as c:
-            # 바깥 작업은 Studio에서 오는 것으로 — 데모 실행도 studio로 만든다(_received).
-            c.headers["Authorization"] = f"Bearer {TEST_KEY}"
+            c.process = process  # 시스템 작업은 HTTP가 아니라 C15 일꾼으로 온다(_op)
             yield c
     finally:
         backend.close()
@@ -264,11 +257,59 @@ def test_ts_fixture_matches_the_bpmn(client) -> None:
     assert json.loads(fixture.read_text(encoding="utf-8")) == client.get("/sc01/process").json()
 
 
-# ───────────── 시스템 작업 HTTP — 바깥 BPM(Chaeksas HTTP 어댑터)이 부르는 길 ─────────────
+# ───────────── 시스템 작업 — 바깥 BPM의 일감을 C15 일꾼이 가져와 부르는 길 ─────────────
 
 
-#: 바깥 실행의 작업 본문에 늘 실리는 것(N2) — 확장 정의의 `{{run_id}}`·`{{node_id}}`.
-EXT = {"chaeksas_run_id": "run_20270616_090000_a1a1a1", "chaeksas_node_id": "Task_Validate"}
+#: 바깥 실행의 id — 일감의 멱등 칸 `run_id`(C15). 첫 일감이 데모 실행을 이 실행에 묶는다(N2).
+RUN = "run_20270616_090000_a1a1a1"
+
+
+class _Worked:
+    """일꾼이 일감 하나를 끝낸 결과 — `complete`면 200과 출력, `fail`이면 코드의 상태와 사유."""
+
+    def __init__(self, outcome) -> None:
+        from app.consumer import CODE_OF_STATUS
+
+        status_of = {code: status for status, code in CODE_OF_STATUS.items()}
+        status_of["operation_not_found"] = 404
+        self.outcome = outcome
+        self.status_code = 200 if outcome.ok else status_of.get(outcome.code, 500)
+        self.text = "" if outcome.ok else f"{outcome.code}: {outcome.message}"
+
+    def json(self) -> dict:
+        if self.outcome.ok:
+            return dict(self.outcome.response.output)
+        return {"detail": self.outcome.message}
+
+
+def _op(client, rid: str, operation: str, *, origin="test", run=RUN, node="Task_Validate", **args):
+    """그 데모 실행에 시스템 작업 하나를 일감으로 — Center가 일꾼에게 넘기는 모양 그대로."""
+    from chaeksas.contracts.external_task import LockedTask
+
+    from app.consumer import scene_service
+
+    task = LockedTask.model_validate(
+        {
+            "task_id": "xt_test",
+            "topic": "nowview-sc01",
+            "operation": operation,
+            "mode": "deterministic",
+            "origin": origin,
+            "idempotency": {
+                "run_id": run,
+                "node_id": node,
+                "node_instance": 1,
+                "attempt": 1,
+                "call_seq": 1,
+            },
+            "caller": {"type": "studio", "host": "t", "bpm_process_id": "nowview.sc01"},
+            "input": {"demo_run_id": rid, **args},
+            "lock_until": "2099-01-01T00:00:00Z",
+            "deadline": "2099-01-01T00:00:00Z",
+        }
+    )
+    # 일감마다 새 수행기 — 같은 멱등 칸을 다시 보내도 저장된 결과가 아니라 지금 상태를 본다
+    return _Worked(scene_service("nowview-sc01", client.process).execute(task))
 
 
 def _received(client) -> tuple[str, str]:
@@ -283,16 +324,16 @@ def _received(client) -> tuple[str, str]:
 
 
 def _verify(client, rid: str, sid: str = "SRC02") -> None:
-    r = client.post(
-        f"/sc01/demo-runs/{rid}/answers/Approve_DQ",
-        json={
-            **EXT,
-            "chaeksas_node_id": "Record_DQ",
-            "source_id": sid,
-            "result": "확인완료",
-            "opinion": "통과",
-            "evidence": sid,
-        },
+    r = _op(
+        client,
+        rid,
+        "record_dq_review",
+        node="Record_DQ",
+        node_id="Approve_DQ",
+        source_id=sid,
+        result="확인완료",
+        opinion="통과",
+        evidence=sid,
     )
     assert r.status_code == 200, r.text
 
@@ -300,17 +341,17 @@ def _verify(client, rid: str, sid: str = "SRC02") -> None:
 def test_operation_validate_returns_the_in_process_output(client) -> None:
     """출력 모양이 내장 어댑터와 같다 — BPMN `output` 대응(`passed`·`error_count`)이 맞는다."""
     rid, sid = _received(client)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation", json=EXT)
+    r = _op(client, rid, "validate_source", source_id=sid)
     assert r.status_code == 200, r.text
     assert r.json() == {"passed": True, "error_count": 0}
 
 
 def test_operation_compare_needs_a_verified_source(client) -> None:
     rid, sid = _received(client)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT)
+    r = _op(client, rid, "compare", source_id=sid)
     assert r.status_code == 409  # 확인 전 계산
     _verify(client, rid)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT)
+    r = _op(client, rid, "compare", source_id=sid)
     assert r.status_code == 200, r.text
     out = r.json()
     assert set(out) == {"run_id", "risk", "issue_id"} and out["run_id"] == "RUN-F02-001"
@@ -321,31 +362,26 @@ def test_operation_compare_needs_a_verified_source(client) -> None:
 def test_operation_agent_draft_and_handoff(client) -> None:
     rid, sid = _received(client)
     _verify(client, rid)
-    run_id = client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/comparison", json=EXT).json()[
-        "run_id"
-    ]
+    run_id = _op(client, rid, "compare", source_id=sid).json()["run_id"]
 
-    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/agent-draft", json=EXT)
+    r = _op(client, rid, "request_agent_draft", run_id=run_id)
     assert r.status_code == 200, r.text
     output_id = r.json()["output_id"]
     drafts = client.get(f"/sc01/demo-runs/{rid}").json()["agentOutputs"]
     assert any(d["output_id"] == output_id for d in drafts)
 
     # 현업 인수 전 — 인계 조건 미충족
-    r = client.post(f"/sc01/demo-runs/{rid}/calc-runs/{run_id}/handoff", json=EXT)
+    r = _op(client, rid, "hand_off", run_id=run_id)
     assert r.status_code == 409 and "인계 조건 미충족" in r.json()["detail"]
 
 
 def test_operation_unknown_targets_are_404(client) -> None:
     rid, _ = _received(client)
-    assert client.post("/sc01/demo-runs/nope/sources/SRC-1/validation").status_code == 404
-    assert (
-        client.post(f"/sc01/demo-runs/{rid}/sources/SRC-ZZ/validation", json=EXT).status_code == 404
-    )
-    assert (
-        client.post(f"/sc01/demo-runs/{rid}/calc-runs/RUN-ZZ/agent-draft", json=EXT).status_code
-        == 404
-    )
+    assert _op(client, "nope", "validate_source", source_id="SRC-1").status_code == 404
+    assert _op(client, rid, "validate_source", source_id="SRC-ZZ").status_code == 404
+    assert _op(client, rid, "request_agent_draft", run_id="RUN-ZZ").status_code == 404
+    # 확장 정의에 없는 작업 — 수행기가 받지 않는다(Center도 manifest로 먼저 막는다)
+    assert _op(client, rid, "record_nothing").status_code == 404
 
 
 # ─────── 결정 기록(N1)·결재 담당자(N4) — 바깥 Chaeksas에서 돌려도 업무 효과가 난다 ───────
@@ -471,17 +507,17 @@ def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> 
     """
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
-    assert client.post(f"{base}/sources/{sid}/comparison", json=EXT).status_code == 409
+    assert _op(client, rid, "compare", source_id=sid).status_code == 409
 
-    r = client.post(
-        f"{base}/answers/Approve_DQ",
-        json={
-            **EXT,
-            "source_id": sid,
-            "result": "확인완료",
-            "opinion": "자동 검증 통과",
-            "evidence": "SRC02",
-        },
+    r = _op(
+        client,
+        rid,
+        "record_dq_review",
+        node_id="Approve_DQ",
+        source_id=sid,
+        result="확인완료",
+        opinion="자동 검증 통과",
+        evidence="SRC02",
     )
     assert r.status_code == 200, r.text
     doc = client.get(base).json()
@@ -490,40 +526,31 @@ def test_record_dq_review_unblocks_compare_without_the_embedded_hook(client) -> 
     recorded = next(a for a in doc["audit"] if a["action"] == "answer_recorded")
     assert recorded["actor"] == "u-sales" and recorded["detail"]["guessed"] is True
 
-    assert client.post(f"{base}/sources/{sid}/comparison", json=EXT).status_code == 200
+    assert _op(client, rid, "compare", source_id=sid).status_code == 200
 
 
 def test_record_answer_keeps_the_business_rules(client) -> None:
     """콘솔 답은 NowView의 사전 검사를 거치지 않는다 — 기록 작업이 마지막 관문이다."""
-    rid, sid = _received(client)
-    base = f"/sc01/demo-runs/{rid}"
+    rid, _ = _received(client)
     # 배정한 사람이 그 역할이 아니면 422 (이름으로 와도 id로 와도 같다)
-    r = client.post(
-        f"{base}/answers/Approve_Dispatch", json={**EXT, "prod": "최유나", "mat": "u-mat"}
-    )
+    r = _op(client, rid, "record_dispatch", node_id="Approve_Dispatch", prod="최유나", mat="u-mat")
     assert r.status_code == 422 and "생산 담당" in r.json()["detail"]
-    r = client.post(
-        f"{base}/answers/Approve_Dispatch", json={**EXT, "prod": "김태오", "mat": "u-mat"}
-    )
+    r = _op(client, rid, "record_dispatch", node_id="Approve_Dispatch", prod="김태오", mat="u-mat")
     assert r.status_code == 200 and r.json() == {
         "prod_name": "김태오",
         "mat_name": "최유나",
         "error_message": None,  # 기록이 성공하면 직전 거절 사유를 비운다(N1)
     }
-    # 의견·근거 없는 영업 검토 422, 기록할 결재가 아닌 노드 404
-    r = client.post(
-        f"{base}/answers/Approve_Sales", json={**EXT, "run_id": "RUN-F01-001", "opinion": " "}
+    # 의견·근거 없는 영업 검토 422
+    r = _op(
+        client,
+        rid,
+        "record_sales_review",
+        node_id="Approve_Sales",
+        run_id="RUN-F01-001",
+        opinion=" ",
     )
     assert r.status_code == 422
-    assert (
-        client.post(
-            f"{base}/answers/Task_Calc",
-            json={
-                **EXT,
-            },
-        ).status_code
-        == 404
-    )
 
 
 def test_record_writes_who_answered_without_guessing(client) -> None:
@@ -534,15 +561,16 @@ def test_record_writes_who_answered_without_guessing(client) -> None:
     """
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
-    body = {**EXT, "source_id": sid, "opinion": "확인", "evidence": "SRC02"}
-    r = client.post(
-        f"{base}/answers/Approve_DQ",
-        json={
-            **body,
-            "result": "보완요청",
-            "answered_by": "이도윤",
-            "answered_via": "nowview-relay",
-        },
+    body = {"node_id": "Approve_DQ", "opinion": "확인", "evidence": "SRC02"}
+    r = _op(
+        client,
+        rid,
+        "record_dq_review",
+        **body,
+        source_id=sid,
+        result="보완요청",
+        answered_by="이도윤",
+        answered_via="nowview-relay",
     )
     assert r.status_code == 200, r.text
     doc = client.get(base).json()
@@ -556,15 +584,15 @@ def test_record_writes_who_answered_without_guessing(client) -> None:
 
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
-    r = client.post(
-        f"{base}/answers/Approve_DQ",
-        json={
-            **body,
-            "source_id": sid,
-            "result": "확인완료",
-            "answered_by": "관리자",
-            "answered_via": None,
-        },
+    r = _op(
+        client,
+        rid,
+        "record_dq_review",
+        **body,
+        source_id=sid,
+        result="확인완료",
+        answered_by="관리자",
+        answered_via=None,
     )
     assert r.status_code == 200, r.text
     doc = client.get(base).json()
@@ -604,18 +632,15 @@ def test_external_demo_run_does_not_start_the_embedded_bpm(client) -> None:
 def test_first_call_links_the_external_run_and_others_are_409(client) -> None:
     rid, sid = _received(client)
     base = f"/sc01/demo-runs/{rid}"
-    # 실행 id 없는 호출(0.2.0 정의) — 묶을 수 없다
-    assert client.post(f"{base}/sources/{sid}/validation", json={}).status_code == 422
-    assert client.post(f"{base}/sources/{sid}/validation", json=EXT).status_code == 200
+    assert _op(client, rid, "validate_source", source_id=sid).status_code == 200
     doc = client.get(base).json()
-    assert doc["bpm"]["externalRunId"] == EXT["chaeksas_run_id"]
+    assert doc["bpm"]["externalRunId"] == RUN
     assert doc["bpm"]["state"] == "running" and doc["bpm"]["visited"] == ["Task_Validate"]
     linked = [a for a in doc["audit"] if a["action"] == "external_run_linked"]
     assert len(linked) == 1 and linked[0]["detail"]["executor"] == "studio"
     # 같은 실행은 다시 와도 된다, 다른 실행은 409
-    assert client.post(f"{base}/sources/{sid}/validation", json=EXT).status_code == 200
-    other = {**EXT, "chaeksas_run_id": "run_20270616_091500_b2b2b2"}
-    r = client.post(f"{base}/sources/{sid}/validation", json=other)
+    assert _op(client, rid, "validate_source", source_id=sid).status_code == 200
+    r = _op(client, rid, "validate_source", source_id=sid, run="run_20270616_091500_b2b2b2")
     assert r.status_code == 409 and "이미 바깥 실행" in r.json()["detail"]
 
 
@@ -624,7 +649,7 @@ def test_embedded_demo_run_refuses_external_calls(client) -> None:
     rid = _run(client)
     h = {"X-Demo-Actor": "u-sales"}
     client.post(f"/sc01/demo-runs/{rid}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
-    r = client.post(f"/sc01/demo-runs/{rid}/sources/SRC02/validation", json=EXT)
+    r = _op(client, rid, "validate_source", source_id="SRC02")
     assert r.status_code == 409 and "내장 BPM" in r.json()["detail"]
 
 
@@ -638,7 +663,7 @@ def test_record_marks_the_decision_as_visited(client) -> None:
 
 def test_reset_keeps_the_executor_and_unlinks(client) -> None:
     rid, sid = _received(client)
-    client.post(f"/sc01/demo-runs/{rid}/sources/{sid}/validation", json=EXT)
+    _op(client, rid, "validate_source", source_id=sid)
     h = {"X-Demo-Actor": "u-demo"}
     doc = client.post(f"/sc01/demo-runs/{rid}/reset", json={}, headers=h).json()
     assert doc["executor"] == "studio" and doc["bpm"]["externalRunId"] is None
@@ -651,59 +676,37 @@ def test_reset_keeps_the_executor_and_unlinks(client) -> None:
     assert client.post("/sc01/demo-runs", json={"executor": "cloud"}).status_code == 422
 
 
-# ───────────── 시스템 작업 인증 (N6) ─────────────
+# ───────────── 실행 위치 — 일감의 origin (C15) ─────────────
 
 
-def test_system_operations_need_the_key(client) -> None:
-    """운영계는 인터넷에 열려 있다 — 키 없는 시스템 작업은 401이다(업무 조작과는 별개)."""
-    rid, sid = _received(client)
-    url = f"/sc01/demo-runs/{rid}/sources/{sid}/validation"
-    assert client.post(url, json=EXT, headers={"Authorization": ""}).status_code == 401
-    r = client.post(url, json=EXT, headers={"Authorization": "Bearer wrong"})
-    assert r.status_code == 401 and "맞지 않는다" in r.json()["detail"]
-    assert client.post(url, json=EXT, headers={"Authorization": TEST_KEY}).status_code == 401
-    assert client.post(url, json=EXT).status_code == 200  # 시험용 키
-
-
-def test_the_key_must_match_the_declared_executor(client) -> None:
+def test_the_origin_must_match_the_declared_executor(client) -> None:
     """
-    실행 위치는 데모 실행을 만들 때 선언한다(N2). 어느 키로 왔는지가 인증된 실행 위치다 — 시험용
-    키는 Studio에만 간다(Chaeksas R6). 어긋나면 409이고 묶이지 않는다.
+    실행 위치는 데모 실행을 만들 때 선언한다(N2). 일감의 `origin`이 인증된 실행 위치다 — Center가
+    올린 쪽을 보고 붙인다(Studio는 `test`, 서버 실행기는 `run`). 어긋나면 409이고 묶이지 않는다.
+    사유가 그대로 간다 — 어댑터가 4xx 본문을 버리던 때와 다르다.
     """
     rid, sid = _received(client)  # studio
-    url = f"/sc01/demo-runs/{rid}/sources/{sid}/validation"
-    r = client.post(url, json=EXT, headers={"Authorization": f"Bearer {RUN_KEY}"})
-    assert r.status_code == 409 and "Center 서버 실행 키로 왔는데" in r.json()["detail"]
+    r = _op(client, rid, "validate_source", source_id=sid, origin="run")
+    assert r.status_code == 409 and "Center 서버 실행에서 왔는데" in r.json()["detail"]
+    assert r.outcome.code == "conflict" and r.outcome.retryable is False
     assert client.get(f"/sc01/demo-runs/{rid}").json()["bpm"]["externalRunId"] is None
 
     center = client.post("/sc01/demo-runs", json={"executor": "center"}).json()["demoRunId"]
     h = {"X-Demo-Actor": "u-sales"}
     client.post(f"/sc01/demo-runs/{center}/sources/receive", json={"fixtureId": "CP02"}, headers=h)
-    url = f"/sc01/demo-runs/{center}/sources/SRC02/validation"
-    assert client.post(url, json=EXT).status_code == 409  # 시험용 키로 Center 데모 실행
-    r = client.post(url, json=EXT, headers={"Authorization": f"Bearer {RUN_KEY}"})
+    assert _op(client, center, "validate_source", source_id="SRC02").status_code == 409
+    r = _op(client, center, "validate_source", source_id="SRC02", origin="run")
     assert r.status_code == 200, r.text
 
 
-@pytest.mark.parametrize(
-    ("auth", "mode", "status"),
-    [
-        (SystemAuth(), "unconfigured", 503),
-        (SystemAuth(run_key="same", test_key="same"), "unconfigured", 503),
-        (SystemAuth(off=True), "off", 200),
-    ],
-)
-def test_unconfigured_keys_close_the_door(auth, mode, status) -> None:
-    """키가 없으면 조용히 열지 않는다(503). 끄는 것은 명시적이다(`NOWVIEW_SYSTEM_AUTH=off`)."""
-    from app.sc01.domain import DomainError
-
-    assert auth.describe()["mode"] == mode
-    if status == 503:
-        with pytest.raises(DomainError) as err:
-            auth.executor_of("Bearer same")
-        assert err.value.status == 503
-    else:
-        assert auth.executor_of(None) is None  # 꺼 두면 실행 위치를 검사하지 않는다
+def test_system_operations_have_no_http_path(client) -> None:
+    """바깥에서 HTTP로 업무를 적는 길은 없다 — 일감은 Center를 거쳐 일꾼만 가져간다(ADR-0102)."""
+    rid, sid = _received(client)
+    for path in (
+        f"/sc01/demo-runs/{rid}/sources/{sid}/validation",
+        f"/sc01/demo-runs/{rid}/answers/Approve_DQ",
+    ):
+        assert client.post(path, json={}).status_code in (404, 405)
 
 
 def test_the_default_executor_is_center(client) -> None:

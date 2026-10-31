@@ -2109,7 +2109,7 @@ def note_rejection(doc: dict, node_id: str, *, status: int, reason: str) -> None
     """
     기록 작업이 거절한 답의 사유를 그 업무에 남긴다 — 화면이 다시 열린 결재 폼 위에 보인다.
     Center·Studio 콘솔 답은 사전 검사를 거치지 않으므로 기록이 막는 수밖에 없는데, 그림은 같은
-    결재로 돌아갈 뿐 사유를 싣지 않는다(HTTP 어댑터가 4xx 본문을 버린다, 4.5).
+    결재로 돌아갈 뿐 사유를 폼에 싣지 않는다(4.5).
     """
     task = task_for_node(doc, node_id)
     if task is not None:

@@ -19,8 +19,7 @@ import httpx
 import pytest
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
-from conftest import require_postgres
+from conftest import C15Calls, require_postgres
 
 from app.sc01 import demo
 from app.sc01.center import CenterClient, CenterConfig
@@ -113,32 +112,6 @@ def _err(status: int, code: str, message: str) -> httpx.Response:
     return httpx.Response(status, json={"code": code, "message": message, "detail": {}})
 
 
-class _SystemCalls:
-    """서버 실행기의 HTTP 어댑터 흉내 — 4xx는 본문을 버리고 상태 코드만 말한다."""
-
-    def __init__(self, proc: Sc01Process) -> None:
-        self.proc = proc
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via="center",
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 class FakeRunner:
     """서버 실행기 — 작업 하나로 같은 BPMN을 돌리고, 결재를 Center에 올리고 답을 받아 넣는다."""
 
@@ -160,7 +133,7 @@ class FakeRunner:
         self.proc, self.center, self.engine = proc, center, Engine()
         inputs = job["inputs"]
         demo_run_id = inputs.get("데모실행ID") or inputs["원천목록"][0]["데모실행ID"]
-        env = RunEnv(services=_SystemCalls(proc), **({"delegate": delegate} if delegate else {}))
+        env = RunEnv(services=C15Calls(proc), **({"delegate": delegate} if delegate else {}))
         self.run = self.engine.start(
             process or proc.process,
             run_id=run_id,

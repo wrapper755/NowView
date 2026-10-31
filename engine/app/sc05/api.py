@@ -9,7 +9,7 @@ SC05 HTTP 경계 — `/sc05/*`. Next의 `/api/engine/sc05/*`가 그대로 중계
 대사(FORECAST_INVALID)·종료 요건
 (COMPLETION_BLOCKED)은 422에 `error_code`·`blocking_items`를 싣는다. 쓰기의 `Idempotency-Key`도
 같다.
-시스템 작업(`/operations/{이름}`)은 바깥 Chaeksas가 부르고 키를 검사한다(N6).
+시스템 작업은 HTTP로 받지 않는다 — 엔진의 C15 일꾼이 Center에서 가져간다(`app/consumer.py`).
 """
 
 from __future__ import annotations
@@ -26,7 +26,6 @@ from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
 from app.preparation import Preparations, begin_scene, preparing
-from app.sc01.auth import SystemAuth
 from app.sc01.domain import DomainError
 from app.sc05 import demo, domain
 from app.sc05.process import Sc05Process
@@ -70,12 +69,10 @@ class ClockBody(BaseModel):
 def build_router(
     process: Sc05Process,
     hub: Hub,
-    auth: SystemAuth | None = None,
     preparations: Preparations | None = None,
 ) -> APIRouter:
     r = APIRouter(prefix="/sc05", tags=["sc05"])
     prep = preparations or Preparations()
-    system_auth = auth or SystemAuth.from_env()
 
     def view(doc: dict, **kwargs: Any) -> dict[str, Any]:
         return render(doc, center=process.center.config, **kwargs)
@@ -272,31 +269,6 @@ def build_router(
                 actor=actor_of(x_demo_actor),
                 executor=body.executor if body else None,
             )
-        )
-
-    @r.post("/demo-runs/{demo_run_id}/operations/{operation}")
-    def operate(
-        demo_run_id: str,
-        operation: str,
-        body: dict[str, Any] = _BODY,
-        authorization: str | None = Header(default=None),
-    ) -> dict[str, Any]:
-        """
-        시스템 작업 — 바깥 BPM(외부 확장 `nowview-sc05`)이 서비스 태스크에서 부른다. 행위자 헤더가
-        없다.
-        `chaeksas_run_id`가 데모 실행을 그 실행에 묶고, 키가 실행 위치를 말한다(N6).
-        """
-        via = guard(system_auth.executor_of, authorization)
-        rest = dict(body)
-        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
-        return guard(
-            process.operate,
-            demo_run_id,
-            operation,
-            rest,
-            external_run_id=run_id,
-            node_id=node_id,
-            via=via,
         )
 
     @r.get("/demo-runs/{demo_run_id}/events")

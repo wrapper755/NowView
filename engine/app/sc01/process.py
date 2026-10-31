@@ -73,8 +73,8 @@ def request_draft(doc: dict, seed: Seed, run_id: str, *, actor: str, manual: boo
     )
 
 
-#: 시스템 작업 — BPMN 서비스 태스크가 부르는 것. 내장 어댑터(`_InProcessCalls`)와 HTTP
-#: (`Sc01Process.operate`, 바깥 Chaeksas의 HTTP 어댑터가 부른다)가 **같은 함수**를 쓴다 —
+#: 시스템 작업 — BPMN 서비스 태스크가 부르는 것. 내장 어댑터(`_InProcessCalls`)와 C15 일꾼
+#: (`Sc01Process.operate`, `app/consumer.py`)이 **같은 함수**를 쓴다 —
 #: 두 길의 출력 모양이 갈라지면 BPMN의 `output` 대응이 한쪽에서만 맞는다.
 #: 사람 결정 뒤의 **기록** 작업. 결재를 어디서 답했든(내장·Studio·Center) 업무 효과는 이 길로만
 #: 난다 — 내장 실행기의 답 훅에만 두면 바깥 실행에서 원천이 확인되지 않아 계산이 409로 막힌다
@@ -123,7 +123,7 @@ def _answerer(
     * **사용자 마스터에 없는 이름은 거절하지 않고 그 이름 그대로 적는다**(`outside_master`).
       콘솔에서 답한 관리자 계정 이름, Studio 케이스가 이름을 적지 않았을 때의 「시험 케이스」가 정상
       경로에서 온다. 「담당자만 답한다」는 Center가 이미 막았고(`assignees`, ADR-0081), 이 이름은
-      키(N6)로 인증된 호출이 실어 온 것이다. 422로 거절하면 오류 경계가 같은 결재로 되돌리는데
+      Center가 인증한 일감(C15)이 실어 온 것이다. 422로 거절하면 오류 경계가 같은 결재로 되돌리는데
       답한 사람은 그것을 고칠 길이 없다 — 같은 답이 영영 기록되지 않는다.
     * **짐작(`guessed`)은 옛 정의(0.5.0 이하) 호환으로만 남는다.** 본문에 `answered_by`가 없던
       판이다 — 그 결재의 담당자로 적고 짐작이라고 표시한다.
@@ -278,9 +278,8 @@ def _apply_record(
 
 def reject_record(doc: dict, operation: str, args: dict[str, Any], exc: DomainError) -> None:
     """
-    거절된 결정 기록을 남긴다. 그림은 오류 경계로 같은 결재에 되돌아가고, Center 결재의
-    `error_message`에는 HTTP 어댑터가 본문을 버려 「…이 409를 돌려줬다」만 남는다 —
-    **사유는 여기**다.
+    거절된 결정 기록을 남긴다. 그림은 오류 경계로 같은 결재에 되돌아간다. 사유는 일꾼의 `fail`
+    글로도 Center에 가지만(C15), 화면·감사가 읽는 것은 **여기**다.
     """
     domain.audit(
         doc,
@@ -776,14 +775,13 @@ class Sc01Process:
         via: str | None = None,
     ) -> dict[str, Any]:
         """
-        시스템 작업을 HTTP로 — 바깥 BPM(Chaeksas HTTP 어댑터)이 서비스 태스크에서 부른다.
+        시스템 작업 — 바깥 BPM의 서비스 태스크가 Center에 올린 일감을 일꾼이 가져와 부른다(C15).
 
-        **바깥 실행에 묶인 데모 실행에서만 받는다**(N2). 첫 호출의 `external_run_id`(`{{run_id}}`)가
+        **바깥 실행에 묶인 데모 실행에서만 받는다**(N2). 첫 호출의 `external_run_id`가
         데모 실행을 그 실행에 묶고, 다른 실행의 호출은 409다. 내장 BPM이 도는 데모 실행에 오면 409다
         — 두 실행이 한 문서에 업무를 적게 두지 않는다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족
-        409)은 내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다(어댑터가 `$.passed` 등으로 꺼낸다).
-        `node_id`(`{{node_id}}`)는 진행 표시에만 쓴다. `via`는 키가 말하는 실행 위치다(N6, 꺼 두면
-        `None`).
+        409)은 내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다. `node_id`는 진행 표시에만 쓴다.
+        `via`는 일감의 `origin`이 말하는 실행 위치다(내장 시험은 `None`).
 
         접수 Bot의 작업(`INTAKE_OPERATIONS`)은 묶지 않는다 — `_intake_operate`.
         """
@@ -847,7 +845,7 @@ class Sc01Process:
                 )
             if via is not None and via != "center":
                 raise DomainError(
-                    f"{domain.EXECUTOR_LABEL[via]} 키로 왔다 — 접수 가상 직원은 Center에서만 돈다",
+                    f"{domain.EXECUTOR_LABEL[via]}에서 왔다 — 접수 가상 직원은 Center에서만 돈다",
                     409,
                 )
             try:

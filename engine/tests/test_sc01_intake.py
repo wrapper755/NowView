@@ -181,7 +181,7 @@ def test_intake_bpmn_is_gated_and_names_no_supervisor() -> None:
     접수 Bot은 계약 검사를 통과하고 **B16이 없다** — Center가 가상 직원에 묶는 관문이다
     (`intake_not_gated`). 감독자는 이름이 아니라 가상 직원 출처의 입력이다.
     """
-    assert validate(INTAKE, keyless_apps=[]) == []
+    assert validate(INTAKE) == []
     inputs = {i.name: i for i in INTAKE.info.inputs}
     assert inputs["감독자"].source == "virtual_worker.supervisors" and inputs["감독자"].required
     assert inputs["가상직원"].source == "virtual_worker.name"

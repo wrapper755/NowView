@@ -27,7 +27,6 @@
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
-        "service_keys": {"nowview-sc01": "nowview"},
         "extensions": [{"id": "nowview-sc01", "version": "&gt;=0.7.1,&lt;1"}],
         "inputs": [
           {"name": "데모실행ID", "type": "string", "required": true},

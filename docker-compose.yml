@@ -30,6 +30,9 @@ services:
   engine:
     build:
       context: ./engine
+      # 확장 정의(chaeksas/*.extension.json) — C15 일꾼의 manifest 원천(engine/app/consumer.py)
+      additional_contexts:
+        extensions: ./chaeksas
     environment:
       # 이 값이 있으면 엔진이 Postgres 백엔드로 뜬다. 없으면 SQLite인데,
       # 여러 인스턴스로 띄우면 상태가 갈라지므로 운영에는 부적합하다.

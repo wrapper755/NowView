@@ -28,6 +28,9 @@ COPY app ./app
 # SC01 — BPMN(업무 흐름의 원천)과 엑셀 시드. 둘 다 런타임에 읽는다.
 COPY processes ./processes
 COPY seed ./seed
+# C15 일꾼이 Center에 올리는 manifest의 원천 — 리포 루트의 chaeksas/(compose의 additional_contexts).
+COPY --from=extensions . ./extensions
+ENV NOWVIEW_EXTENSIONS_DIR=/app/extensions
 
 # root로 돌리지 않는다.
 RUN useradd --create-home --uid 1001 engine && chown -R engine:engine /app

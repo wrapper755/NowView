@@ -3,8 +3,8 @@ SC02 HTTP 경계 — `/sc02/*`. Next의 `/api/engine/sc02/*`가 그대로 중계
 
 SC01(`app/sc01/api.py`)과 같은 규칙이다. 행위자는 `X-Demo-Actor` 헤더 — 신뢰 경계가 아니다(5.4).
 오류 코드: 권한 403 · 없음 404 · 상태·버전·멱등키 충돌 409 · 입력·기간·매핑 오류 422(API-23). 쓰기의
-`Idempotency-Key`도 같다. 시스템 작업(바깥 Chaeksas가 부르는 HTTP 길)은 아직 없다 — 내장 실행만
-돈다.
+`Idempotency-Key`도 같다.
+시스템 작업은 HTTP로 받지 않는다 — 엔진의 C15 일꾼이 Center에서 가져간다(`app/consumer.py`).
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
 from app.preparation import Preparations, begin_scene, preparing
-from app.sc01.auth import SystemAuth
 from app.sc01.domain import DomainError
 from app.sc02 import demo, domain
 from app.sc02.process import Sc02Process
@@ -69,13 +68,10 @@ class ClockBody(BaseModel):
 def build_router(
     process: Sc02Process,
     hub: Hub,
-    auth: SystemAuth | None = None,
     preparations: Preparations | None = None,
 ) -> APIRouter:
-    """`auth` — 시스템 작업의 키(N6). 장면 1과 같은 키다. 주지 않으면 환경변수에서 읽는다."""
     r = APIRouter(prefix="/sc02", tags=["sc02"])
     prep = preparations or Preparations()
-    system_auth = auth or SystemAuth.from_env()
 
     def view(doc: dict, **kwargs: Any) -> dict[str, Any]:
         # 화면 답이 되는지(center면 대리 답용 키)는 엔진 설정이 정한다 — 문서에 없다.
@@ -277,32 +273,6 @@ def build_router(
                 actor=actor_of(x_demo_actor),
                 executor=body.executor if body else None,
             )
-        )
-
-    @r.post("/demo-runs/{demo_run_id}/operations/{operation}")
-    def operate(
-        demo_run_id: str,
-        operation: str,
-        body: dict[str, Any] = _BODY,
-        authorization: str | None = Header(default=None),
-    ) -> dict[str, Any]:
-        """
-        시스템 작업 — 바깥 BPM(외부 확장 `nowview-sc02`, HTTP 어댑터)이 서비스 태스크에서 부른다.
-        행위자 헤더가 없다. 본문의 `chaeksas_run_id`(`{{run_id}}`)가 데모 실행을 그 실행에 묶고,
-        키가 실행 위치를 말한다(N6 — 데모 실행의 선언과 어긋나면 409). 돌려주는 것은 작업의
-        출력뿐이다.
-        """
-        via = guard(system_auth.executor_of, authorization)
-        rest = dict(body)
-        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
-        return guard(
-            process.operate,
-            demo_run_id,
-            operation,
-            rest,
-            external_run_id=run_id,
-            node_id=node_id,
-            via=via,
         )
 
     @r.get("/demo-runs/{demo_run_id}/events")
