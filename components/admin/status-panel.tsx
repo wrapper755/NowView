@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 /** 엔진 `GET /admin/status` — 일꾼(C15)·Center 연동(N3)·회사 시스템의 지금 상태. 키·토큰 값은 없다. */
 type AdminStatus = {
   consumer: {
-    state: "off" | "running";
+    state: "off" | "starting" | "running";
     topics: string[];
     problem: string | null;
     lastFetch: string | null;
@@ -30,7 +30,8 @@ type AdminStatus = {
 };
 
 const STATE_LABEL: Record<AdminStatus["consumer"]["state"], string> = {
-  off: "꺼짐 — Center 주소·일꾼 토큰이 없거나 NOWVIEW_CONSUMER=off",
+  off: "꺼짐 — Center 주소·일꾼 토큰이 없거나 WORKER_CONSUMER=off",
+  starting: "확장 정의를 올리는 중",
   running: "일감을 가져가는 중",
 };
 
@@ -87,7 +88,7 @@ export function StatusPanel() {
           {consumer.problem ? <p className="text-destructive">{consumer.problem}</p> : null}
           {status.restartRequired ? (
             <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
-              토픽 설정이 바뀌었다 — Center 확장 폴더의 일꾼 파일을 다시 지어(engine `python -m app.extension_folder`) Center와 엔진을 다시
+              토픽 설정이 바뀌었다 — Center 일꾼 폴더의 일꾼 파일을 다시 지어(engine `python -m app.worker_file`) Center와 엔진을 다시
               띄워야 새 토픽을 가져간다.
             </p>
           ) : null}

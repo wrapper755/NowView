@@ -12,8 +12,8 @@ NowView는 BPM 패키지와 함께 배포되는 **고정 프로그램**이다. �
   `not_found`로 거절한다.
 * **처음 뜰 때 설정이 없으면 기본값을 적는다**(`default_config`) — 가상 자동차 부품사 하나. 회사
   시스템 주소의 기본은 환경의 `COMPANY_COMPANY1_URL`이다(옛 설정 호환).
-* **토픽을 바꾸면 엔진과 Center를 다시 띄워야 한다** — Center는 확장 폴더의 일꾼 파일
-  (`nowview.consumer.json`)에 적힌 토픽만 내준다. 파일은 `app/extension_folder.py`로
+* **토픽을 바꾸면 엔진과 Center를 다시 띄워야 한다** — Center는 일꾼 폴더의 일꾼 파일
+  (`worker.consumer.json`)에 적힌 토픽만 내준다. 파일은 `app/worker_file.py`로
   다시 짓는다.
 """
 
@@ -30,7 +30,8 @@ from pydantic import BaseModel, Field, model_validator
 
 #: NowView가 아는 업무(장면) — 화면·처리기가 코드에 있는 것만 매핑할 수 있다.
 SCENES = (1, 2, 3, 4, 5, 6)
-#: NowView 고정 확장 — 판마다 하나. 옮기기 전 장면은 예전 확장(`nowview-scN`)을 그대로 쓴다.
+#: 기본 확장(External Service) — NowView 판마다 하나. 옮기기 전 장면의 예전 확장(`nowview-scN`)은
+#: 기본으로 맡지 않는다(관리자 모드에서 토픽을 더하면 일꾼 파일도 다시 지어야 한다).
 FIXED_TOPIC = "external"
 
 
@@ -100,7 +101,8 @@ def default_config() -> NowViewConfig:
                 for n in (2, 3, 4, 5, 6)
             ),
         ],
-        topics=[FIXED_TOPIC, *(f"nowview-sc0{n}" for n in (2, 3, 4, 5, 6))],
+        # 장면 2~6의 옛 토픽(`nowview-sc02`~`sc06`)은 맡지 않는다 — 옮길 때까지 Center 실행이 멈춘다
+        topics=[FIXED_TOPIC],
     )
 
 

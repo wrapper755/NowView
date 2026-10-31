@@ -27,14 +27,17 @@ Center다 — Center는 NowView 주소도 키도 모른다.
   저장소가 저장한 결과를 다시 준다. 저장소는 메모리다 — 엔진이 다시 뜨면 비고, 그 사이
   다시 온 일감은 한 번 더 돈다.
 
-설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)과 `NOWVIEW_CONSUMER_TOKEN`이 있으면 뜬다. 끄려면
-`NOWVIEW_CONSUMER=off`.
+설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)과 `WORKER_CONSUMER_TOKEN`이 있으면 뜬다. 끄려면
+`WORKER_CONSUMER=off`.
 
-* **승인 없는 일꾼이다**(Chaeksas ADR-0121, C15 §승인 없는 일꾼). 배포가 Center의 확장 폴더에 확장
-  정의(`chaeksas/*.extension.json`)와 일꾼 파일(`nowview.consumer.json` — 이름·토픽·토큰 해시,
-  `app/extension_folder.py`)을 복사하면 Center가 뜰 때 이 일꾼을 처음부터 안다. 요청 코드·콘솔
-  승인은 없다. 일꾼은 토큰 원문을 `Authorization: Bearer`로 싣는다. 토픽은 그 파일에 적은 것으로
-  고정이다 — 설정의 토픽을 바꾸면 파일도 다시 지어 Center를 다시 띄운다.
+* **승인 없는 일꾼이다**(Chaeksas ADR-0121, C15 §일꾼 들이기). 배포가 Center의 일꾼 폴더에
+  일꾼 파일(`worker.consumer.json` — 이름 `worker`·토픽·토큰 해시, `app/worker_file.py`)을
+  두면 Center가 뜰 때 이 일꾼을 처음부터 안다. 요청 코드·콘솔 승인은 없다. 일꾼은 토큰
+  원문을 `Authorization: Bearer`로 싣는다. 토픽은 그 파일에 적은 것으로 고정이다 — 설정의
+  토픽을 바꾸면 파일도 다시 지어 Center를 다시 띄운다.
+* **확장 정의는 일꾼이 올린다** — 뜰 때 토픽마다 `chaeksas/{topic}.extension.json`을
+  `PUT /consumers/self/extension`으로 올린 뒤 manifest를 올리고 가져가기를 시작한다.
+  콘솔 등록은 없다.
 * 지켜볼 것은 로그다 — 엔진 로그(`nowview.consumer`)와 Center 로그(일꾼 이름·일감·토픽·작업·오류
   코드). 관리자 모드(`/admin`)의 최근 일감은 엔진 메모리의 사본이다.
 * 확장 정의는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포의 `chaeksas/`)에서 읽는다.
@@ -53,6 +56,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+import httpx
 from chaeksas.contracts.service_app import OpRequest, ServiceAppManifest
 from chaeksas.service_kit import Consumer, TokenFile
 from chaeksas.service_kit.app import OpError, Service
@@ -68,6 +72,9 @@ CODE_OF_STATUS = {403: "forbidden", 404: "not_found", 409: "conflict", 422: "inp
 #: 회사 시스템이 닿지 않으면(`app/company.py`, 503) 업무 규칙 위반이 아니다 — C15
 #: `dependency_down`은 Center가 다시 내주는(retryable) 코드다.
 CODE_OF_STATUS[503] = "dependency_down"
+#: 확장 정의를 올리지 못했을 때 다시 해 보는 간격(초).
+RETRY_S = 5.0
+
 DEFAULT_EXTENSIONS_DIR = Path(__file__).resolve().parents[2] / "chaeksas"
 
 
@@ -236,9 +243,9 @@ class ConsumerHost:
     @classmethod
     def from_env(cls, topics: list[str], resolve: Resolve) -> ConsumerHost:
         """`topics` — 설정의 일꾼 토픽. `resolve` — 일감 → 장면 프로세스(`routed_by`)."""
-        tokens = TokenFile(path=None, env_value=os.getenv("NOWVIEW_CONSUMER_TOKEN") or None)
+        tokens = TokenFile(path=None, env_value=os.getenv("WORKER_CONSUMER_TOKEN") or None)
         center_url = (os.getenv("CHAEKSAS_CENTER_URL") or "").rstrip("/") or None
-        enabled = os.getenv("NOWVIEW_CONSUMER", "").lower() != "off"
+        enabled = os.getenv("WORKER_CONSUMER", "").lower() != "off"
         # 뜨지 않을 때는 확장 정의를 읽지 않는다 — 정의가 없는 자리(내장 시험·화면만)에서 엔진이
         # 기동조차 못 하면 안 된다. 뜰 때 정의가 없으면 기동에서 바로 드러난다.
         host = cls(center_url=center_url, services=[], tokens=tokens, enabled=enabled)
@@ -267,9 +274,9 @@ class ConsumerHost:
         if not self.tokens.token():
             self._state = "off"
             self._problem = (
-                "NOWVIEW_CONSUMER_TOKEN이 없다 — 일꾼 토큰을 환경에 두고, 같은 토큰의 해시로 "
-                "지은 nowview.consumer.json을 Center 확장 폴더에 둔다"
-                "(engine `python -m app.extension_folder`)"
+                "WORKER_CONSUMER_TOKEN이 없다 — 일꾼 토큰을 환경에 두고, 같은 토큰의 "
+                "해시로 지은 worker.consumer.json을 Center 일꾼 폴더에 둔다"
+                "(engine `python -m app.worker_file`)"
             )
             log.warning("일꾼을 띄우지 않는다: %s", self._problem)
             return
@@ -279,7 +286,45 @@ class ConsumerHost:
     def stop(self) -> None:
         self._stop.set()
 
+    def _put_extensions(self) -> bool:
+        """
+        토픽마다 확장 정의를 올린다(C15 §외부 확장 정의 올리기). 409(같은 판 다른 내용·
+        철회된 판·더 높은 판)는 사람이 판을 올릴 일이라 경고만 하고 넘어간다. Center가 없거나
+        거절하면 기다렸다 다시 한다. 멈추라고 하면 거짓.
+        """
+        http = self.client or httpx.Client(base_url=self.center_url or "", timeout=30.0)
+        headers = {"Authorization": f"Bearer {self.tokens.token()}"}
+        pending = list(self.topics)
+        while pending and not self._stop.is_set():
+            topic = pending[0]
+            try:
+                definition = json.loads(
+                    (extensions_dir() / f"{topic}.extension.json").read_text("utf-8")
+                )
+                answer = http.put(
+                    "/api/v1/consumers/self/extension",
+                    json={"definition": definition},
+                    headers=headers,
+                )
+                if answer.status_code == 409:
+                    log.warning(
+                        "Center가 확장 %s의 정의를 받지 않았다: %s", topic, answer.text[:300]
+                    )
+                else:
+                    answer.raise_for_status()
+                    log.info("확장 %s %s판을 올렸다", topic, definition.get("version"))
+                pending.pop(0)
+                self._problem = None
+            except Exception as exc:  # noqa: BLE001 — Center가 잠시 없어도 엔진은 산다
+                self._problem = f"확장 {topic} 정의를 올리지 못했다: {exc}"
+                log.warning("%s", self._problem)
+                self._stop.wait(RETRY_S)
+        return not self._stop.is_set()
+
     def _run(self) -> None:
+        self._state = "starting"
+        if not self._put_extensions():
+            return
         self._consumer = Consumer(
             services=self.services,
             center_url=self.center_url or "",
