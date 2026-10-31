@@ -27,8 +27,9 @@ Center다 — Center는 NowView 주소도 키도 모른다.
   저장소가 저장한 결과를 다시 준다. 저장소는 메모리다 — 엔진이 다시 뜨면 비고, 그 사이
   다시 온 일감은 한 번 더 돈다.
 
-설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)과 `WORKER_CONSUMER_TOKEN`이 있으면 뜬다. 끄려면
-`WORKER_CONSUMER=off`.
+설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)과 일꾼 토큰이 있으면 뜬다. 토큰은 설치가 지은
+보관 파일(`engine/.consumer/keys.json`, `app/worker_file.py`)에서 읽고,
+`WORKER_CONSUMER_TOKEN`이 있으면 그것이 이긴다. 끄려면 `WORKER_CONSUMER=off`.
 
 * **승인 없는 일꾼이다**(Chaeksas ADR-0121, C15 §일꾼 들이기). 배포가 Center의 일꾼 폴더에
   일꾼 파일(`worker.consumer.json` — 이름 `worker`·토픽·토큰 해시, `app/worker_file.py`)을
@@ -62,6 +63,7 @@ from chaeksas.service_kit import Consumer, TokenFile
 from chaeksas.service_kit.app import OpError, Service
 
 from app.sc01.domain import DomainError
+from app.worker_file import center_key
 
 log = logging.getLogger("nowview.consumer")
 
@@ -243,7 +245,7 @@ class ConsumerHost:
     @classmethod
     def from_env(cls, topics: list[str], resolve: Resolve) -> ConsumerHost:
         """`topics` — 설정의 일꾼 토픽. `resolve` — 일감 → 장면 프로세스(`routed_by`)."""
-        tokens = TokenFile(path=None, env_value=os.getenv("WORKER_CONSUMER_TOKEN") or None)
+        tokens = TokenFile(path=None, env_value=center_key("worker"))
         center_url = (os.getenv("CHAEKSAS_CENTER_URL") or "").rstrip("/") or None
         enabled = os.getenv("WORKER_CONSUMER", "").lower() != "off"
         # 뜨지 않을 때는 확장 정의를 읽지 않는다 — 정의가 없는 자리(내장 시험·화면만)에서 엔진이
@@ -274,9 +276,8 @@ class ConsumerHost:
         if not self.tokens.token():
             self._state = "off"
             self._problem = (
-                "WORKER_CONSUMER_TOKEN이 없다 — 일꾼 토큰을 환경에 두고, 같은 토큰의 "
-                "해시로 지은 worker.consumer.json을 Center 일꾼 폴더에 둔다"
-                "(engine `python -m app.worker_file`)"
+                "일꾼 토큰이 없다 — engine `python -m app.worker_file <Center 폴더>`로 키를 "
+                "짓고 Center·엔진을 다시 띄운다"
             )
             log.warning("일꾼을 띄우지 않는다: %s", self._problem)
             return
