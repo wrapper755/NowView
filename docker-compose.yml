@@ -42,9 +42,9 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k3:cloud}
       LOG_LEVEL: INFO
-      # 회사 시스템 — autopart1 기간계(autopart1 리포)를 호스트에서 띄워 두면 그것을 읽는다.
-      COMPANY_AUTOPART1_URL: ${COMPANY_AUTOPART1_URL:-http://host.docker.internal:8191}
-      COMPANY_AUTOPART1_KEY: ${COMPANY_AUTOPART1_KEY:-}
+      # 회사 시스템 — Company1 기간계(Company1 리포)를 호스트에서 띄워 두면 그것을 읽는다.
+      COMPANY_COMPANY1_URL: ${COMPANY_COMPANY1_URL:-http://host.docker.internal:8191}
+      COMPANY_COMPANY1_KEY: ${COMPANY_COMPANY1_KEY:-}
     extra_hosts:
       # Linux에서는 이 별칭이 기본 제공되지 않는다 — 명시해야 호스트 ollama에 닿는다.
       - "host.docker.internal:host-gateway"

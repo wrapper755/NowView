@@ -8,9 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 /** 엔진 `GET /admin/status` — 일꾼(C15)·Center 연동(N3)·회사 시스템의 지금 상태. 키·토큰 값은 없다. */
 type AdminStatus = {
   consumer: {
-    state: "off" | "enrolling" | "running";
+    state: "off" | "running";
     topics: string[];
-    requestCode: string | null;
     problem: string | null;
     lastFetch: string | null;
   };
@@ -31,8 +30,7 @@ type AdminStatus = {
 };
 
 const STATE_LABEL: Record<AdminStatus["consumer"]["state"], string> = {
-  off: "꺼짐 — Center 주소가 없거나 NOWVIEW_CONSUMER=off",
-  enrolling: "승인 대기",
+  off: "꺼짐 — Center 주소·일꾼 토큰이 없거나 NOWVIEW_CONSUMER=off",
   running: "일감을 가져가는 중",
 };
 
@@ -68,7 +66,7 @@ function useAdminStatus(): { status: AdminStatus | null; error: string | null } 
   return { status, error };
 }
 
-/** 관리자 화면의 상태 — 들이기(요청 코드)·토픽·Center 연동·회사 시스템·최근 일감. */
+/** 관리자 화면의 상태 — 일꾼 상태·토픽·Center 연동·회사 시스템·최근 일감. */
 export function StatusPanel() {
   const { status, error } = useAdminStatus();
   if (error) return <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">{error}</p>;
@@ -86,17 +84,11 @@ export function StatusPanel() {
             상태 <span className="font-semibold">{STATE_LABEL[consumer.state]}</span>
             {consumer.lastFetch ? <span className="text-muted-foreground"> · 마지막 보고 {consumer.lastFetch}</span> : null}
           </p>
-          {consumer.state === "enrolling" && consumer.requestCode ? (
-            <p className="rounded-md border border-brand/40 bg-brand-soft/50 p-3">
-              Center 콘솔 「배포·자원 › 리소스」의 「일꾼 승인 대기」에서 요청 코드{" "}
-              <span className="font-mono text-base font-semibold tracking-wider">{consumer.requestCode}</span>를 승인하면 일감을
-              가져가기 시작한다.
-            </p>
-          ) : null}
           {consumer.problem ? <p className="text-destructive">{consumer.problem}</p> : null}
           {status.restartRequired ? (
             <p className="rounded-md border border-amber-500/50 bg-amber-500/10 p-3">
-              토픽 설정이 바뀌었다 — 엔진을 다시 띄워야 일꾼이 새 토픽으로 들이기를 한다(승인된 일꾼이면 Center 쪽 토픽도 바꾼다).
+              토픽 설정이 바뀌었다 — Center 확장 폴더의 일꾼 파일을 다시 지어(engine `python -m app.extension_folder`) Center와 엔진을 다시
+              띄워야 새 토픽을 가져간다.
             </p>
           ) : null}
           <div>

@@ -4,8 +4,9 @@ C15 일꾼(`app/consumer.py`) — Center가 NowView를 부르지 않고 일감�
 
 * **manifest ↔ 그림** — 일꾼이 Center에 올리는 작업 목록이 여섯 장면 그림의 서비스 호출을 다
   덮는다. 빠지면 Center가 올리기를 422 `operation_not_found`로 막는다.
-* **가짜 Center와 한 바퀴** — 들이기 요청(요청 코드) → 관리자 승인(봉한 토큰) → manifest 올리기 →
-  가져가기 → `complete`/`fail`. 실행 위치는 일감의 `origin`이고 거절 사유가 `fail` 글로 간다.
+* **가짜 Center와 한 바퀴** — 승인 없는 일꾼(Chaeksas ADR-0121): 환경의 토큰으로 바로
+  manifest 올리기 → 가져가기 → `complete`/`fail`. 들이기(요청 코드)를 부르지 않는다. 실행
+  위치는 일감의 `origin`이고 거절 사유가 `fail` 글로 간다. 토큰이 없으면 뜨지 않고 사유를 남긴다.
 """
 
 from __future__ import annotations
@@ -19,7 +20,6 @@ import time
 import httpx
 import pytest
 from chaeksas.contracts.bpmn_ext import read_process
-from chaeksas.contracts.enrollment import request_code, seal
 from chaeksas.service_kit import TokenFile
 
 from app.consumer import ConsumerHost, manifest_of, scene_service
@@ -33,7 +33,7 @@ from app.sc05.process import PROCESS_PATH as SC05_PATH
 from app.sc06.process import PROCESS_PATH as SC06_PATH
 
 DRAWINGS = {
-    "nowview": [SC01_PATH, INTAKE_PATH],
+    "external": [SC01_PATH, INTAKE_PATH],
     "nowview-sc02": [SC02_PATH],
     "nowview-sc03": [SC03_PATH],
     "nowview-sc04": [SC04_PATH],
@@ -70,46 +70,24 @@ def test_manifest_covers_every_service_call_of_the_drawings(topic: str) -> None:
 # ───────────────────────────
 
 TOKEN = "consumer-token-0123456789"
-ENROLLMENT = "enr_" + "a" * 32
 RUN = "run_20270616_090000_c3c3c3"
 
 
 class FakeCenter:
-    """C15의 일꾼 쪽 엔드포인트만 — 들이기·manifest·가져가기·끝내기."""
+    """C15의 일꾼 쪽 엔드포인트만 — manifest·가져가기·끝내기. 들이기 요청은 세기만 한다."""
 
     def __init__(self) -> None:
-        self.public_key: str | None = None
-        self.enrolled: dict | None = None
-        self.approved = False
+        self.enroll_calls = 0
         self.manifests: list[str] = []
         self.queue: list[dict] = []
         self.finished: dict[str, tuple[str, dict]] = {}
         self.done = threading.Event()
 
-    def code(self) -> str:
-        assert self.public_key
-        return request_code(self.public_key, ENROLLMENT)
-
-    def status(self) -> dict:
-        body = {
-            "enrollment_id": ENROLLMENT,
-            "state": "approved" if self.approved else "pending",
-            "code": self.code(),
-            "expires_at": "2099-01-01T00:00:00Z",
-        }
-        if self.approved:
-            sealed = seal(self.public_key, TOKEN, salt=ENROLLMENT)
-            body["sealed_key"] = sealed.to_json_dict()
-        return body
-
     def handle(self, request: httpx.Request) -> httpx.Response:
         path = request.url.path
-        if path == "/api/v1/consumers/enroll":
-            self.enrolled = json.loads(request.content)
-            self.public_key = self.enrolled["public_key"]
-            return httpx.Response(200, json=self.status())
-        if path == f"/api/v1/consumers/enroll/{ENROLLMENT}":
-            return httpx.Response(200, json=self.status())
+        if path.startswith("/api/v1/consumers/enroll"):
+            self.enroll_calls += 1
+            return httpx.Response(404, json={"code": "not_found", "message": path, "detail": {}})
         if request.headers.get("authorization") != f"Bearer {TOKEN}":
             return httpx.Response(401, json={"code": "token_invalid", "message": "", "detail": {}})
         if path == "/api/v1/consumers/self/manifest":
@@ -134,7 +112,7 @@ class FakeCenter:
         self.queue.append(
             {
                 "task_id": task_id,
-                "topic": "nowview",
+                "topic": "external",
                 "operation": operation,
                 "mode": "deterministic",
                 "origin": origin,
@@ -145,7 +123,7 @@ class FakeCenter:
                     "attempt": 1,
                     "call_seq": 1,
                 },
-                "caller": {"type": "studio", "host": "t", "bpm_process_id": "autopart1.sc01"},
+                "caller": {"type": "studio", "host": "t", "bpm_process_id": "company1.sc01"},
                 "input": input,
                 "lock_until": "2099-01-01T00:00:00Z",
                 "deadline": "2099-01-01T00:00:00Z",
@@ -175,29 +153,23 @@ def proc(tmp_path) -> Sc01Process:
     return Sc01Process(SqliteSc01Store(db), inline_agent=True)
 
 
-def test_consumer_enrolls_then_takes_tasks_and_reports_reasons(proc: Sc01Process, tmp_path) -> None:
+def test_consumer_takes_tasks_with_its_token_and_reports_reasons(proc: Sc01Process) -> None:
     """
-    처음에는 토큰이 없어 들이기를 청하고 요청 코드를 `/health`에 보인다 — 관리자가 같은 코드를
-    승인하면 봉한 토큰을 열어 파일에 두고, manifest를 올리고, 일감을 가져간다. Studio 일감
+    승인 없는 일꾼 — 환경의 토큰으로 들이기 없이 manifest를 올리고 일감을 가져간다. Studio 일감
     (`origin: test`)이 Studio 데모 실행을 묶고, 서버 실행 일감(`run`)은 사유와 함께 `fail`이다.
     """
     center = FakeCenter()
     host = ConsumerHost(
         center_url="http://center",
-        services=[scene_service("nowview", proc)],
-        tokens=TokenFile(path=tmp_path / "consumer" / "consumer-token.json"),
+        services=[scene_service("external", proc)],
+        tokens=TokenFile(path=None, env_value=TOKEN),
         client=httpx.Client(base_url="http://center", transport=httpx.MockTransport(center.handle)),
-        enroll_every_s=0.05,
     )
     host.start()
     try:
-        code = _until(lambda: host.describe()["requestCode"] or host.describe()["problem"])
-        assert code == center.code() and host.describe()["state"] == "enrolling"
-        assert center.enrolled["topics"] == ["nowview"]
-        center.approved = True
-        _until(lambda: host.describe()["state"] == "running")
-        assert host.tokens.token() == TOKEN  # 원문은 토큰 파일에만 있다
-        _until(lambda: center.manifests == ["nowview"])
+        assert host.describe()["state"] == "running"
+        _until(lambda: center.manifests == ["external"])
+        assert center.enroll_calls == 0
 
         rid = proc.create(executor="studio")["demo_run_id"]
         sid = proc.receive(rid, "CP02", actor="u-sales")["sources"]["SRC02"]["source_id"]
@@ -228,12 +200,51 @@ def test_consumer_enrolls_then_takes_tasks_and_reports_reasons(proc: Sc01Process
         host.stop()
 
 
-def test_consumer_stays_off_without_a_center(proc: Sc01Process, tmp_path) -> None:
+def test_consumer_stays_off_without_a_center(proc: Sc01Process) -> None:
     """Center 주소가 없으면 뜨지 않는다 — 내장 시험·로컬 화면만 쓸 때."""
     host = ConsumerHost(
         center_url=None,
-        services=[scene_service("nowview", proc)],
-        tokens=TokenFile(path=tmp_path / "t.json"),
+        services=[scene_service("external", proc)],
+        tokens=TokenFile(path=None, env_value=TOKEN),
     )
     host.start()
     assert host.describe()["state"] == "off"
+
+
+def test_consumer_stays_off_without_a_token(proc: Sc01Process) -> None:
+    """토큰이 없으면 들이기를 청하지 않고 꺼진 채 사유를 남긴다 — 승인 대기는 없다."""
+    host = ConsumerHost(
+        center_url="http://center",
+        services=[scene_service("external", proc)],
+        tokens=TokenFile(path=None, env_value=None),
+    )
+    host.start()
+    found = host.describe()
+    assert found["state"] == "off" and "NOWVIEW_CONSUMER_TOKEN" in found["problem"]
+
+
+def test_extension_folder_files(tmp_path) -> None:
+    """
+    Center 확장 폴더(ADR-0121)에 둘 파일 — 확장 정의는 리포 그대로, 일꾼 파일은 토큰 **해시**와
+    설정의 토픽. 원문은 어디에도 쓰지 않는다.
+    """
+    import hashlib
+
+    from app.config import default_config
+    from app.consumer import extensions_dir
+    from app.extension_folder import CONSUMER_FILE, new_token, write_folder
+
+    token = new_token()
+    assert token.startswith("chk_ctr_") and len(token) == len("chk_ctr_") + 40
+    topics = list(default_config().topics)
+    written = write_folder(tmp_path, token, topics, extensions_dir())
+    names = sorted(p.name for p in written)
+    assert "external.extension.json" in names and CONSUMER_FILE in names
+    assert (tmp_path / "external.extension.json").read_bytes() == (
+        extensions_dir() / "external.extension.json"
+    ).read_bytes()
+    body = json.loads((tmp_path / CONSUMER_FILE).read_text("utf-8"))
+    assert set(body) == {"name", "topics", "token_sha256"}
+    assert body["topics"] == topics and body["topics"][0] == "external"
+    assert body["token_sha256"] == hashlib.sha256(token.encode()).hexdigest()
+    assert all(token not in p.read_text("utf-8") for p in written)

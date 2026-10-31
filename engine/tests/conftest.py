@@ -1,7 +1,7 @@
 """
 테스트 고정물 — 두 저장 백엔드를 고르는 규칙, 같은 프로세스의 회사 시스템.
 
-**회사 시스템은 autopart1 기간계의 쌍둥이다**(`tests/company_twin/` — 원본은 autopart1 리포
+**회사 시스템은 Company1 기간계의 쌍둥이다**(`tests/company_twin/` — 원본은 Company1 리포
 `legacy/`). 엔진의 회사 자료·원천 수신·원천 상태 쓰기는 회사 시스템 API를 지난다(`app/company.py`) —
 시험은 쌍둥이 앱을 같은 프로세스에 띄워 HTTP 대신 ASGI로 붙인다. 세계는 데모 실행 id라 시험끼리
 섞이지 않는다.

@@ -3,7 +3,7 @@ C15 일꾼 — Center에 쌓인 NowView 서비스 태스크의 일감을 가져�
 수행한다.
 
 Chaeksas는 바깥 기능을 부르는 길을 모두 Pull로 바꿨다(ADR-0102, 계약 C15). 서버 실행기·Studio는
-`chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` — NowView 고정 확장 `nowview`,
+`chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` — 고정 확장 `external`,
 옮기기 전 업무는 `nowview-sc02`~`sc06`, 설정 `topics`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고
 알린다. 일감을 보낸 BPM 프로세스 id로 설정에서 회사·업무를 찾는다(`routed_by`). 연결은 늘 NowView →
 Center다 — Center는 NowView 주소도 키도 모른다.
@@ -27,22 +27,24 @@ Center다 — Center는 NowView 주소도 키도 모른다.
   저장소가 저장한 결과를 다시 준다. 저장소는 메모리다 — 엔진이 다시 뜨면 비고, 그 사이
   다시 온 일감은 한 번 더 돈다.
 
-설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)이 있으면 뜬다. 끄려면 `NOWVIEW_CONSUMER=off`.
+설정 — `CHAEKSAS_CENTER_URL`(N3와 같은 값)과 `NOWVIEW_CONSUMER_TOKEN`이 있으면 뜬다. 끄려면
+`NOWVIEW_CONSUMER=off`.
 
-* 토큰은 `NOWVIEW_CONSUMER_DIR`(기본 `engine/.consumer`)의 파일에 둔다. 처음에는
-  **들이기 요청**을 보내고 요청 코드를 로그·`/health.consumer.requestCode`에 보인다 —
-  관리자가 Center 콘솔 「리소스」의 「일꾼 승인 대기」에서 같은 코드를 승인하면 토큰이 내려온다.
-  `NOWVIEW_CONSUMER_TOKEN`이 있으면 그것이 이긴다.
+* **승인 없는 일꾼이다**(Chaeksas ADR-0121, C15 §승인 없는 일꾼). 배포가 Center의 확장 폴더에 확장
+  정의(`chaeksas/*.extension.json`)와 일꾼 파일(`nowview.consumer.json` — 이름·토픽·토큰 해시,
+  `app/extension_folder.py`)을 복사하면 Center가 뜰 때 이 일꾼을 처음부터 안다. 요청 코드·콘솔
+  승인은 없다. 일꾼은 토큰 원문을 `Authorization: Bearer`로 싣는다. 토픽은 그 파일에 적은 것으로
+  고정이다 — 설정의 토픽을 바꾸면 파일도 다시 지어 Center를 다시 띄운다.
+* 지켜볼 것은 로그다 — 엔진 로그(`nowview.consumer`)와 Center 로그(일꾼 이름·일감·토픽·작업·오류
+  코드). 관리자 모드(`/admin`)의 최근 일감은 엔진 메모리의 사본이다.
 * 확장 정의는 `NOWVIEW_EXTENSIONS_DIR`(기본 리포의 `chaeksas/`)에서 읽는다.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
-import platform
 import threading
 from collections import deque
 from collections.abc import Callable, Mapping
@@ -52,7 +54,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from chaeksas.contracts.service_app import OpRequest, ServiceAppManifest
-from chaeksas.service_kit import Consumer, Enrollment, TokenFile
+from chaeksas.service_kit import Consumer, TokenFile
 from chaeksas.service_kit.app import OpError, Service
 
 from app.sc01.domain import DomainError
@@ -66,11 +68,7 @@ CODE_OF_STATUS = {403: "forbidden", 404: "not_found", 409: "conflict", 422: "inp
 #: 회사 시스템이 닿지 않으면(`app/company.py`, 503) 업무 규칙 위반이 아니다 — C15
 #: `dependency_down`은 Center가 다시 내주는(retryable) 코드다.
 CODE_OF_STATUS[503] = "dependency_down"
-#: 들이기 요청의 상태를 다시 묻는 간격(초).
-ENROLL_EVERY_S = 5.0
-
 DEFAULT_EXTENSIONS_DIR = Path(__file__).resolve().parents[2] / "chaeksas"
-DEFAULT_TOKEN_DIR = Path(__file__).resolve().parents[1] / ".consumer"
 
 
 class Operates(Protocol):
@@ -219,7 +217,7 @@ def scene_service(
 
 @dataclass
 class ConsumerHost:
-    """엔진 안에서 도는 일꾼 하나 — 들이기 → manifest 올리기 → 가져가기 루프(데몬 스레드)."""
+    """엔진 안에서 도는 일꾼 하나 — manifest 올리기 → 가져가기 루프(데몬 스레드). 들이기는 없다."""
 
     center_url: str | None
     services: list[Service]
@@ -227,12 +225,10 @@ class ConsumerHost:
     enabled: bool = True
     name: str = "NowView 엔진"
     client: Any = None  # httpx.Client (시험이 끼운다)
-    enroll_every_s: float = ENROLL_EVERY_S
     _stop: threading.Event = field(default_factory=threading.Event, init=False)
     _thread: threading.Thread | None = field(default=None, init=False)
     _consumer: Consumer | None = field(default=None, init=False)
     _state: str = field(default="off", init=False)
-    _code: str | None = field(default=None, init=False)
     #: 최근 일감(새것이 앞) — 엔진 메모리에만 있다. 다시 뜨면 빈다.
     _recent: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=50), init=False)
     _problem: str | None = field(default=None, init=False)
@@ -240,11 +236,7 @@ class ConsumerHost:
     @classmethod
     def from_env(cls, topics: list[str], resolve: Resolve) -> ConsumerHost:
         """`topics` — 설정의 일꾼 토픽. `resolve` — 일감 → 장면 프로세스(`routed_by`)."""
-        folder = Path(os.getenv("NOWVIEW_CONSUMER_DIR") or DEFAULT_TOKEN_DIR)
-        tokens = TokenFile(
-            path=folder / "consumer-token.json",
-            env_value=os.getenv("NOWVIEW_CONSUMER_TOKEN") or None,
-        )
+        tokens = TokenFile(path=None, env_value=os.getenv("NOWVIEW_CONSUMER_TOKEN") or None)
         center_url = (os.getenv("CHAEKSAS_CENTER_URL") or "").rstrip("/") or None
         enabled = os.getenv("NOWVIEW_CONSUMER", "").lower() != "off"
         # 뜨지 않을 때는 확장 정의를 읽지 않는다 — 정의가 없는 자리(내장 시험·화면만)에서 엔진이
@@ -272,53 +264,22 @@ class ConsumerHost:
         if not self.enabled or not self.center_url:
             self._state = "off"
             return
+        if not self.tokens.token():
+            self._state = "off"
+            self._problem = (
+                "NOWVIEW_CONSUMER_TOKEN이 없다 — 일꾼 토큰을 환경에 두고, 같은 토큰의 해시로 "
+                "지은 nowview.consumer.json을 Center 확장 폴더에 둔다"
+                "(engine `python -m app.extension_folder`)"
+            )
+            log.warning("일꾼을 띄우지 않는다: %s", self._problem)
+            return
         self._thread = threading.Thread(target=self._run, name="nowview-consumer", daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
         self._stop.set()
 
-    def _machine_id(self) -> str:
-        where = self.tokens.path.resolve() if self.tokens.path is not None else "env"
-        return hashlib.sha256(f"{platform.node()}|{where}".encode()).hexdigest()
-
-    def _enroll(self) -> bool:
-        """토큰을 받을 때까지 — 요청 코드가 바뀔 때만 로그에 찍는다. 멈추라고 하면 거짓."""
-        step = Enrollment(
-            center_url=self.center_url or "",
-            name=self.name,
-            topics=self.topics,
-            manifests=[one.manifest.to_json_dict() for one in self.services],
-            tokens=self.tokens,
-            machine_id=self._machine_id(),
-            client=self.client,
-        )
-        while not self._stop.is_set():
-            try:
-                code = step.step()
-            except Exception as exc:  # noqa: BLE001 — Center가 잠시 없어도 엔진은 산다
-                self._problem = f"들이기 실패: {exc}"
-                log.warning("일꾼 들이기: %s", self._problem)
-                self._stop.wait(self.enroll_every_s)
-                continue
-            if code is None:
-                self._code = None
-                self._problem = None
-                return True
-            if code != self._code:
-                log.warning(
-                    "Center 콘솔 「리소스 › 일꾼 승인 대기」에서 요청 코드 %s를 승인하라 (토픽 %s)",
-                    code,
-                    ", ".join(self.topics),
-                )
-            self._state, self._code, self._problem = "enrolling", code, None
-            self._stop.wait(self.enroll_every_s)
-        return False
-
     def _run(self) -> None:
-        self._state = "enrolling"
-        if not self._enroll():
-            return
         self._consumer = Consumer(
             services=self.services,
             center_url=self.center_url or "",
@@ -330,12 +291,11 @@ class ConsumerHost:
         self._consumer.run(self._stop)
 
     def describe(self) -> dict[str, Any]:
-        """`/health`용 — 토큰은 싣지 않는다. 요청 코드는 관리자가 승인할 때 대조할 값이라 싣는다."""
+        """`/health`·관리자 모드용 — 토큰은 싣지 않는다."""
         registration = self._consumer.registration() if self._consumer is not None else None
         return {
             "state": self._state,
             "topics": self.topics,
-            "requestCode": self._code,
             "problem": self._problem,
             "lastFetch": registration.last_reported_at if registration is not None else None,
         }
