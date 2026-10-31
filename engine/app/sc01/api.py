@@ -16,16 +16,15 @@ import asyncio
 import json
 from typing import Any
 
-from fastapi import APIRouter, Body, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from app.events import KEEPALIVE_SECONDS, Hub
 from app.sc01 import demo, domain
-from app.sc01.auth import SystemAuth
 from app.sc01.domain import USERS, DomainError
-from app.sc01.process import RECORD_OF_NODE, Sc01Process
+from app.sc01.process import Sc01Process
 from app.sc01.view import dashboard, topology
 from app.sc01.view import view as render
 
@@ -57,10 +56,8 @@ class ClockBody(BaseModel):
     at: str
 
 
-def build_router(process: Sc01Process, hub: Hub, auth: SystemAuth | None = None) -> APIRouter:
-    """`auth` — 시스템 작업의 키(N6). 주지 않으면 환경변수에서 읽는다(`SystemAuth.from_env`)."""
+def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     r = APIRouter(prefix="/sc01", tags=["sc01"])
-    system_auth = auth or SystemAuth.from_env()
 
     def view(doc: dict, **kwargs: Any) -> dict[str, Any]:
         # 화면 답이 되는지(center면 대리 답용 키)는 엔진 설정이 정한다 — 문서에 없다(N3).
@@ -207,115 +204,8 @@ def build_router(process: Sc01Process, hub: Hub, auth: SystemAuth | None = None)
             )
         )
 
-    # 시스템 작업 — 바깥 BPM(Chaeksas 외부 확장 `nowview-sc01`, HTTP 어댑터)이 서비스 태스크에서
-    # 부른다. 내장 BPM의 `_InProcessCalls`와 같은 함수·같은 출력이다(`process.run_operation`).
-    # 사람의 업무가 아니라서 행위자 헤더를 받지 않는다 — 감사 이력에는 `system`으로 남는다.
-    # 본문에는 언제나 바깥 실행의 `chaeksas_run_id`(`{{run_id}}`)와 `chaeksas_node_id`
-    # (`{{node_id}}`)가 실린다 — 데모 실행을 그 실행에 묶는 열쇠다(N2). `Authorization: Bearer`의
-    # 키가 어느 실행 위치에서 왔는지 말한다(N6, `auth.py`) — 데모 실행의 선언과 어긋나면 409다.
-    def operate(
-        demo_run_id: str,
-        operation: str,
-        body: dict[str, Any],
-        authorization: str | None,
-        **args: Any,
-    ):
-        via = guard(system_auth.executor_of, authorization)
-        rest = dict(body)
-        run_id, node_id = rest.pop("chaeksas_run_id", None), rest.pop("chaeksas_node_id", None)
-        return guard(
-            process.operate,
-            demo_run_id,
-            operation,
-            {**rest, **args},
-            external_run_id=run_id,
-            node_id=node_id,
-            via=via,
-        )
-
-    link = Body(default_factory=dict)
-    key = Header(default=None)
-
-    @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/validation")
-    def validate_source(
-        demo_run_id: str,
-        source_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """원천 자동 검증(UI03-01) → `{passed, error_count}`."""
-        return operate(demo_run_id, "validate_source", body, authorization, source_id=source_id)
-
-    @r.post("/demo-runs/{demo_run_id}/sources/{source_id}/comparison")
-    def compare(
-        demo_run_id: str,
-        source_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """확인된 원천으로 전망 생성·지표 계산 → `{run_id, risk, issue_id}`. 확인 전이면 409."""
-        return operate(demo_run_id, "compare", body, authorization, source_id=source_id)
-
-    @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/agent-draft")
-    def request_agent_draft(
-        demo_run_id: str,
-        run_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """Agent 검토 초안 요청(AG-01) → `{output_id}`. 기다리지 않는다 — 초안은 배경에서 만든다."""
-        return operate(demo_run_id, "request_agent_draft", body, authorization, run_id=run_id)
-
-    @r.post("/demo-runs/{demo_run_id}/calc-runs/{run_id}/handoff")
-    def hand_off(
-        demo_run_id: str,
-        run_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """장면 인계 기록(UI06-01) → `{handed_off}`. 조건 미충족이면 409."""
-        return operate(demo_run_id, "hand_off", body, authorization, run_id=run_id)
-
-    @r.post("/demo-runs/{demo_run_id}/answers/{node_id}")
-    def record_answer(
-        demo_run_id: str,
-        node_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """
-        사람 결정의 기록(N1) — 결재 뒤의 서비스 태스크가 부른다. 결재가 Studio·Center 어디서
-        닫혔든 업무 효과(원천 확인·검토 의견·배정·인수)가 이 길로 난다. 업무 규칙 위반은 409·422다.
-        """
-        operation = RECORD_OF_NODE.get(node_id)
-        if operation is None:
-            raise HTTPException(404, f"기록할 결재가 아니다: {node_id}")
-        return operate(demo_run_id, operation, body, authorization, node_id=node_id)
-
-    # 접수 Bot(N5, `sc01-intake.bpmn`)의 작업 — 같은 키·같은 본문 규칙이지만 데모 실행을
-    # 바깥 실행에 묶지 않는다(`chaeksas_run_id`는 접수 Bot 실행이다). 묶는 것은 승인 뒤 위임된
-    # SC01의 첫 호출이다.
-    @r.post("/demo-runs/{demo_run_id}/intake/sources/{source_id}/screening")
-    def screen_source(
-        demo_run_id: str,
-        source_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """접수 Bot의 원천 검증 → `{summary}`(검증 결과·변경 요약 — 일괄 결재가 보인다)."""
-        return operate(demo_run_id, "screen_source", body, authorization, source_id=source_id)
-
-    @r.post("/demo-runs/{demo_run_id}/intake/sources/{source_id}/decision")
-    def record_intake_review(
-        demo_run_id: str,
-        source_id: str,
-        body: dict[str, Any] = link,
-        authorization: str | None = key,
-    ) -> dict[str, Any]:
-        """감독자 일괄 결정 기록 → `{recorded}`. 반려면 원천 NEEDS_INFO + 보완 요청 업무."""
-        return operate(
-            demo_run_id, "record_intake_review", body, authorization, source_id=source_id
-        )
+    # 시스템 작업(서비스 태스크)은 HTTP로 받지 않는다 — 엔진의 C15 일꾼이 Center에서 가져간다
+    # (`app/consumer.py`, ADR-0102). 내장 BPM의 `_InProcessCalls`와 같은 `process.operate` 길이다.
 
     @r.get("/intake")
     def intake() -> dict[str, Any]:

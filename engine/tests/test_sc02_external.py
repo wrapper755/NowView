@@ -25,7 +25,7 @@ from chaeksas.contracts._semver import satisfies
 from chaeksas.contracts.bpmn_ext import read_process
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
+from conftest import C15Calls
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
 from app.sc01 import demo as sc01_demo
@@ -103,32 +103,6 @@ def _handed_off_sc01(sc01: Sc01Process) -> str:
     return doc["demo_run_id"]
 
 
-class _StudioCalls:
-    """Studio의 HTTP 어댑터 흉내 — 시험용 키(via=studio). 4xx는 상태 코드만 남긴다."""
-
-    def __init__(self, proc: Sc02Process) -> None:
-        self.proc = proc
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via="studio",
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 @pytest.fixture
 def center() -> FakeCenter:
     return FakeCenter()
@@ -178,7 +152,7 @@ def test_studio_run_reaches_the_handoff_through_system_operations(proc: Sc02Proc
         proc.process,
         run_id="run_20270617_090000_a1b1c1",
         log=RunLog(run_id="run_20270617_090000_a1b1c1"),
-        env=RunEnv(services=_StudioCalls(proc)),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid, "요청ID": domain.REQUEST_ID},
         now=parse_at(doc["clock"]),
@@ -228,7 +202,7 @@ def test_a_rejected_record_returns_to_the_same_approval(proc: Sc02Process) -> No
         proc.process,
         run_id="run_20270617_090000_a2b2c2",
         log=RunLog(run_id="run_20270617_090000_a2b2c2"),
-        env=RunEnv(services=_StudioCalls(proc)),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid, "요청ID": domain.REQUEST_ID},
     )
@@ -282,7 +256,7 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     steps = demo.steps_for("BASE")
     doc = demo.run_step(proc, rid, 0)  # D01 접수
     [job] = center.jobs
-    assert job["bpm_process_id"] == "nowview.sc02" and job["target"] == {"type": "server_runner"}
+    assert job["bpm_process_id"] == "autopart1.sc02" and job["target"] == {"type": "server_runner"}
     assert job["inputs"] == {"데모실행ID": rid, "요청ID": domain.REQUEST_ID}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"]
 

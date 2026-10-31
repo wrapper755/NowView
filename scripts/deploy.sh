@@ -28,6 +28,9 @@ EXCLUDES=(
   --exclude=engine/.venv
   --exclude='engine/*.sqlite'
   --exclude='engine/*.sqlite-*'
+  # C15 일꾼 토큰(engine/app/consumer.py) — 서버가 Center 승인으로 받은 것이다. --delete가 지우면
+  # 다시 들이기 승인을 받아야 한다.
+  --exclude=engine/.consumer
   --exclude=.env
   --exclude='.env.*'
   --exclude=.dev

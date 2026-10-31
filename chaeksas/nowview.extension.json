@@ -1,0 +1,532 @@
+{
+  "schema": 2,
+  "id": "nowview",
+  "version": "0.1.0",
+  "name": "NowView 일꾼",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)과 그 접수 Bot의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "publisher": "NowView",
+  "tier": "external",
+  "service": {
+    "protocol": "http-adapter",
+    "base_url": "https://www.nowview.work",
+    "adapter": {
+      "allowed_hosts": [
+        "www.nowview.work"
+      ],
+      "limits": {
+        "timeout_s": 30,
+        "max_response_kb": 256
+      },
+      "operations": [
+        {
+          "name": "validate_customer_plan",
+          "description": "원천 자동 검증 (UI03-01). processed_by는 일괄을 맡긴 가상 직원의 이름이다(혼자 기동하면 null)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "source_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "processed_by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "passed": {
+                "type": "boolean"
+              },
+              "error_count": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "assess_supply_risk",
+          "description": "확인된 원천으로 전망 생성 · 지표 계산. 다시 부르면 새 전망이 생긴다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "source_id",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "run_id": {
+                "type": "string"
+              },
+              "risk": {
+                "type": "string"
+              },
+              "issue_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "request_review_draft",
+          "description": "Agent 검토 초안 요청 (AG-01). 기다리지 않는다 — 초안은 NowView가 배경에서 만든다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "output_id": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "hand_off_case",
+          "description": "장면 인계 기록 (UI06-01). 조건 미충족이면 409",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "handed_off": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_plan_review",
+          "description": "원천 확인 결정 기록 (N1) — 확인완료면 원천 VERIFIED, 보완요청이면 NEEDS_INFO. 검증 오류가 남았으면 409",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "node_id",
+              "source_id",
+              "result",
+              "opinion",
+              "evidence",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "boolean"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_risk_review",
+          "description": "영업 검토 기록 (N1, UI04-02·AG-03). 의견·근거가 없으면 422",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "node_id",
+              "run_id",
+              "opinion",
+              "evidence",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              },
+              "manual_review": {},
+              "agent_output": {},
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "boolean"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "assign_follow_up",
+          "description": "후속 업무 배정 기록 (N1) — 현업 검토(생산·자재, Approve_Dispatch) 또는 Management Review(경영관리, Approve_Review). 담당자가 그 역할이 아니면 422. 담당자 이름을 돌려준다 — 인수 결재의 assignees",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "node_id",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "prod": {
+                "type": "string"
+              },
+              "mat": {
+                "type": "string"
+              },
+              "fin": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "prod_name": {
+                "type": "string"
+              },
+              "mat_name": {
+                "type": "string"
+              },
+              "fin_name": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_acceptance",
+          "description": "인수 기록 (N1) — 생산·자재·경영관리",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "node_id",
+              "run_id",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "run_id": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "boolean"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "screen_customer_plan",
+          "description": "접수 Bot의 원천 자동 검증 (N5) — 검증 결과와 변경 요약을 일괄 결재에 보인다. 데모 실행을 바깥 실행에 묶지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "source_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "processed_by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "object"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_intake_decision",
+          "description": "접수 일괄 결정 기록 (N5) — 반려면 원천 NEEDS_INFO + 보완 요청 업무, 승인이면 감사 이력. 데모 실행을 묶지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "source_id",
+              "decision",
+              "opinion",
+              "answered_by"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "source_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "processed_by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "recorded": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        }
+      ]
+    }
+  }
+}

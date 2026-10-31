@@ -10,7 +10,7 @@ import sqlite3
 from collections.abc import Iterator
 
 import pytest
-from conftest import require_postgres
+from conftest import C15Calls, require_postgres
 
 from app.sc01 import demo
 from app.sc01.domain import DomainError, due_at, parse_at
@@ -346,35 +346,6 @@ def test_deadline_rules() -> None:
 # ───────────── 바깥 실행 — Chaeksas가 그림을 돌리고 NowView는 작업으로만 듣는다 (N1) ─────────────
 
 
-class _ExternalCalls:
-    """Studio·서버 실행기의 HTTP 어댑터 흉내 — 행위자 없이 `operate`만 부른다."""
-
-    def __init__(self, proc: Sc01Process) -> None:
-        self.proc = proc
-
-    def call(self, request):
-        from chaeksas.core.services import OpOutcome, ServiceCallError
-
-        # 확장 정의가 본문에 `{{run_id}}`·`{{node_id}}`를 싣는 것과 같다(N2).
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-            )
-        except DomainError as exc:
-            # 어댑터는 4xx의 본문을 버리고 상태 코드만 말한다(`http_adapter.AdapterCaller.call`).
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 def _run_external(proc: Sc01Process, rid: str, sid: str, run_id: str):
     from chaeksas.core.engine import Engine, RunEnv, State
     from chaeksas.core.run_log import RunLog
@@ -384,7 +355,7 @@ def _run_external(proc: Sc01Process, rid: str, sid: str, run_id: str):
         proc.process,
         run_id=run_id,
         log=RunLog(run_id=run_id),
-        env=RunEnv(services=_ExternalCalls(proc)),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="server_runner",
         inputs={"데모실행ID": rid, "원천ID": sid},
         now=parse_at(proc.get(rid)["clock"]),
@@ -463,7 +434,7 @@ def test_correction_supersedes_the_external_run_and_links_the_next(proc: Sc01Pro
         (first, "studio", "superseded")
     ]
     with pytest.raises(DomainError) as stale:
-        proc.operate(rid, "validate_source", {"source_id": "SRC03"}, external_run_id=first)
+        proc.operate(rid, "validate_customer_plan", {"source_id": "SRC03"}, external_run_id=first)
     assert stale.value.status == 409 and "대체된 실행" in str(stale.value)
 
     second = "run_20270616_100000_f2f2f2"
@@ -494,7 +465,7 @@ def test_rejected_record_returns_to_the_same_approval_then_fix_request_continues
         proc.process,
         run_id=run_id,
         log=RunLog(run_id=run_id),
-        env=RunEnv(services=_ExternalCalls(proc)),
+        env=RunEnv(services=C15Calls(proc, origin="run")),
         executor="server_runner",
         inputs={"데모실행ID": rid, "원천ID": sid},
         now=parse_at(proc.get(rid)["clock"]),
@@ -509,11 +480,11 @@ def test_rejected_record_returns_to_the_same_approval_then_fix_request_continues
     assert run.variables["검증통과"] is False  # EX02 — 필수값 누락
     answer("Approve_DQ", {"확인결과": "확인완료", **dq})
 
-    # 실패로 끝나지 않고 같은 결재가 다시 열린다. 결재가 보이는 `error_message`에는 어댑터가 본문을
-    # 버려 상태 코드만 남는다 — 사유는 NowView 감사 이력에 있다.
+    # 실패로 끝나지 않고 같은 결재가 다시 열린다. 결재가 보이는 `error_message`에 **사유가
+    # 실린다** — 일꾼의 `fail` 글이다(C15). HTTP 어댑터 때는 「…이 409를 돌려줬다」뿐이었다.
     assert engine.run_until_blocked(run) is State.WAITING
     assert [p.node_id for p in run.pendings.values()] == ["Approve_DQ"]
-    assert "record_dq_review이 409를 돌려줬다" in run.variables["error_message"]
+    assert "검증 오류가 남아 있어 확인 완료할 수 없다" in run.variables["error_message"]
     after = proc.get(rid)
     assert after["sources"][sid]["status"] != "VERIFIED"
     [rejected] = [a for a in after["audit"] if a["action"] == "answer_rejected"]

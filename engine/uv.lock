@@ -68,7 +68,7 @@ wheels = [
 [[package]]
 name = "chaeksas-contracts"
 version = "0.1.0"
-source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcontracts&rev=d2e2e4605cebb87ed912bb571196d31e3a4440e2#d2e2e4605cebb87ed912bb571196d31e3a4440e2" }
+source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcontracts&rev=d479226d964b09a800ba305ee761cee4a520cbfc#d479226d964b09a800ba305ee761cee4a520cbfc" }
 dependencies = [
     { name = "cryptography" },
     { name = "pydantic" },
@@ -77,7 +77,7 @@ dependencies = [
 [[package]]
 name = "chaeksas-core"
 version = "0.1.0"
-source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcore&rev=d2e2e4605cebb87ed912bb571196d31e3a4440e2#d2e2e4605cebb87ed912bb571196d31e3a4440e2" }
+source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcore&rev=d479226d964b09a800ba305ee761cee4a520cbfc#d479226d964b09a800ba305ee761cee4a520cbfc" }
 dependencies = [
     { name = "chaeksas-extension-api" },
     { name = "chaeksas-llm" },
@@ -89,7 +89,7 @@ dependencies = [
 [[package]]
 name = "chaeksas-extension-api"
 version = "0.1.0"
-source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fextension_api&rev=d2e2e4605cebb87ed912bb571196d31e3a4440e2#d2e2e4605cebb87ed912bb571196d31e3a4440e2" }
+source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fextension_api&rev=d479226d964b09a800ba305ee761cee4a520cbfc#d479226d964b09a800ba305ee761cee4a520cbfc" }
 dependencies = [
     { name = "chaeksas-contracts" },
 ]
@@ -97,8 +97,19 @@ dependencies = [
 [[package]]
 name = "chaeksas-llm"
 version = "0.1.0"
-source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fllm&rev=d2e2e4605cebb87ed912bb571196d31e3a4440e2#d2e2e4605cebb87ed912bb571196d31e3a4440e2" }
+source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fllm&rev=d479226d964b09a800ba305ee761cee4a520cbfc#d479226d964b09a800ba305ee761cee4a520cbfc" }
 dependencies = [
+    { name = "httpx" },
+]
+
+[[package]]
+name = "chaeksas-service-kit"
+version = "0.1.0"
+source = { git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fservice_kit&rev=d479226d964b09a800ba305ee761cee4a520cbfc#d479226d964b09a800ba305ee761cee4a520cbfc" }
+dependencies = [
+    { name = "chaeksas-contracts" },
+    { name = "chaeksas-llm" },
+    { name = "fastapi" },
     { name = "httpx" },
 ]
 
@@ -271,6 +282,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "chaeksas-core" },
+    { name = "chaeksas-service-kit" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "openpyxl" },
@@ -288,7 +300,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "chaeksas-core", git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcore&rev=d2e2e4605cebb87ed912bb571196d31e3a4440e2" },
+    { name = "chaeksas-core", git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fcore&rev=d479226d964b09a800ba305ee761cee4a520cbfc" },
+    { name = "chaeksas-service-kit", git = "https://github.com/wrapper755/Chaeksas?subdirectory=packages%2Fservice_kit&rev=d479226d964b09a800ba305ee761cee4a520cbfc" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "openpyxl", specifier = ">=3.1" },

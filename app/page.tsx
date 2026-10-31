@@ -1,6 +1,20 @@
-import { OverviewScreen } from "@/components/sc01/overview-screen";
+import { BrandHero } from "@/components/shared/brand-hero";
+import { TopBar } from "@/components/shared/top-bar";
+import { CompanyList } from "@/components/companies/company-list";
 
-/** UI01 — A제품 경영 현황. 데이터는 클라이언트에서 엔진(BFF)으로 받는다 — 페이지는 정적이다(4.3). */
-export default function OverviewPage() {
-  return <OverviewScreen />;
+/**
+ * 회사 목록 — NowView가 운영 현황을 보여 주는 회사들. 회사는 설정(엔진 DB, 관리자 모드)이고 화면은 공개 목록만 받는다 —
+ * BPM 프로세스·토픽·일꾼 상태는 공개하지 않는다(`docs/worker-interfaces.md` §1).
+ */
+export default function CompaniesPage() {
+  return (
+    <>
+      <TopBar />
+      <BrandHero />
+      <main className="mx-auto w-full max-w-5xl space-y-5 px-4 py-6 sm:px-6">
+        <h2 className="text-xl font-semibold">회사</h2>
+        <CompanyList />
+      </main>
+    </>
+  );
 }

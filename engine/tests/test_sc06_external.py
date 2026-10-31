@@ -23,7 +23,7 @@ from chaeksas.contracts._semver import satisfies
 from chaeksas.contracts.bpmn_ext import read_process, validate
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
+from conftest import C15Calls
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
 from app.sc01.center import CenterClient
@@ -53,7 +53,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     assert adapter["auth"] == {"type": "bearer"}
     operations = {o["name"]: o for o in adapter["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
-    assert validate(process, keyless_apps=[]) == []
+    assert validate(process) == []
     for node in process.of_kind("serviceTask"):
         call = node.prop("serviceCall")
         assert call.app_id == manifest.id, node.id
@@ -88,32 +88,6 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
 # ─────────────────────────── 공통 ───────────────────────────
 
 
-class _Calls:
-    """바깥 실행기의 HTTP 어댑터 흉내 — 4xx는 상태 코드만 남긴다(본문을 버린다)."""
-
-    def __init__(self, proc: Sc06Process, via: str) -> None:
-        self.proc, self.via = proc, via
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via=self.via,
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 @pytest.fixture
 def center() -> FakeCenter:
     return FakeCenter()
@@ -146,7 +120,7 @@ def _studio(proc: Sc06Process, rid: str, run_id: str) -> tuple[Engine, object]:
         proc.process,
         run_id=run_id,
         log=RunLog(run_id=run_id),
-        env=RunEnv(services=_Calls(proc, "studio")),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid},
         now=parse_at(proc.get(rid)["clock"]),
@@ -260,7 +234,7 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
     steps = demo.steps_for()
     doc = demo.run_step(proc, rid, 0)  # D601 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc06"]
     assert job["inputs"] == {"데모실행ID": rid} and job["target"] == {"type": "server_runner"}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"]
 
@@ -295,7 +269,7 @@ def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
     """
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
     demo.run_step(proc, rid, 0)  # D601 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc06"]
     runner = FakeRunner(proc, center, job, "run_20280111_090000_c6d6e7")
     # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
     doc = demo.run_step(proc, rid, 1)
@@ -317,7 +291,7 @@ def test_center_relay_prechecks_before_touching_center(
     """담당(403)·업무 규칙(422)은 Center에 묻기 전에 거절한다 — 입력은 지워지지 않는다."""
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc06")
     FakeRunner(proc, center, job, "run_20280111_090000_c7d7e7")
     proc.sync_center(rid)
     before = len(center.calls)
@@ -351,11 +325,11 @@ def test_center_unconfigured_leaves_a_reason(proc: Sc06Process) -> None:
 def test_reset_on_center_cancels_the_started_job(proc: Sc06Process, center: FakeCenter) -> None:
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc06")
     doc = proc.reset(rid, actor="u-demo")
     assert job["job_id"] in center.cancelled
     assert doc["bpm"]["executor"] == "center" and doc["scene_info"]["started_at"] is None
     proc.start(rid, actor="u-fin")
-    jobs = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc06"]
+    jobs = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc06"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
     assert confirm.status(proc.get(rid))["procedure"] == "CONFIRMING"

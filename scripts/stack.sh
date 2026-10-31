@@ -2,6 +2,8 @@
 #
 # 로컬 개발 프로세스 제어 — 웹(:3000) · 엔진(:8077) · DB(docker).
 #
+# 회사 시스템(가상 자동차 부품사 기간계 :8191)은 autopart1 리포의 것이다 — 그쪽 `scripts/stack.sh start`로 띄운다.
+#
 # 왜 스크립트로 두는가. 수동으로 띄우고 죽이다가 두 번 망가뜨렸다:
 #
 #   1. **중복 기동.** 포트가 이미 잡혀 있는데 또 띄우니 새 프로세스가 죽고, 그 과정에서
@@ -141,8 +143,7 @@ start_engine() {
   # `--timeout-graceful-shutdown`: 브라우저가 SSE로 붙어 있으면 uvicorn이 그 연결이 닫히기를
   # 기다리며 **reload가 끝나지 않는다** — 엔진이 응답 없이 멈춘 것처럼 보였고 TERM에도 안 죽었다.
   # 운영 유닛과 같은 이유다(CLAUDE.md 5.4).
-  # `engine/.env.local`(gitignore)이 있으면 읽는다 — 시스템 작업 키(N6)처럼 리포에 넣지 않을 값.
-  # 없으면 시스템 작업은 503이다(engine/app/sc01/auth.py).
+  # `engine/.env.local`(gitignore)이 있으면 읽는다 — Center 키·회사 시스템 키처럼 리포에 넣지 않을 값.
   local env_file=()
   [[ -f $ROOT/engine/.env.local ]] && env_file=(--env-file .env.local)
   start_proc engine "$ENGINE_PORT" health_ok \

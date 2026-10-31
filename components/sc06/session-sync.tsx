@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useScenePath as usePathname } from "@/lib/company-nav";
 
 import { sc06Api } from "@/lib/sc06/client";
 import type { Sc06Meta } from "@/lib/sc06/types";

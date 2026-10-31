@@ -25,7 +25,7 @@ from chaeksas.contracts._semver import satisfies
 from chaeksas.contracts.bpmn_ext import read_process
 from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
-from chaeksas.core.services import OpOutcome, ServiceCallError
+from conftest import C15Calls
 from test_sc01_center import CONFIG, FakeCenter, FakeRunner
 
 from app.sc01.center import CenterClient
@@ -88,32 +88,6 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
 # ─────────────────────────── 공통 ───────────────────────────
 
 
-class _Calls:
-    """바깥 실행기의 HTTP 어댑터 흉내 — 4xx는 상태 코드만 남긴다(본문을 버린다)."""
-
-    def __init__(self, proc: Sc05Process, via: str) -> None:
-        self.proc, self.via = proc, via
-
-    def call(self, request):
-        args = dict(request.input)
-        try:
-            out = self.proc.operate(
-                args.pop("demo_run_id"),
-                request.operation,
-                args,
-                external_run_id=request.run_id,
-                node_id=request.node_id,
-                via=self.via,
-            )
-        except DomainError as exc:
-            raise ServiceCallError(
-                f"{request.app_id}.{request.operation}이 {exc.status}를 돌려줬다",
-                code="http_error",
-                status=exc.status,
-            ) from exc
-        return OpOutcome(output=out)
-
-
 @pytest.fixture
 def center() -> FakeCenter:
     return FakeCenter()
@@ -155,7 +129,7 @@ def _studio(proc: Sc05Process, rid: str, run_id: str) -> tuple[Engine, object]:
         proc.process,
         run_id=run_id,
         log=RunLog(run_id=run_id),
-        env=RunEnv(services=_Calls(proc, "studio")),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
         executor="studio",
         inputs={"데모실행ID": rid},
         now=parse_at(proc.get(rid)["clock"]),
@@ -260,7 +234,7 @@ def test_center_run_follows_the_demo_script_through_relay_answers(
     rid = proc.create(sc01_demo_run_id=_completed_sc04(proc), executor="center")["demo_run_id"]
     steps = demo.steps_for("BASE")
     doc = demo.run_step(proc, rid, 0)  # D501 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05"]
     assert job["inputs"] == {"데모실행ID": rid} and job["target"] == {"type": "server_runner"}
     assert doc["bpm"]["center"]["job"]["job_id"] == job["job_id"]
 
@@ -299,7 +273,7 @@ def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
     rid = proc.create(sc01_demo_run_id=_completed_sc04(proc), executor="center")["demo_run_id"]
     node = demo.steps_for("BASE")[2].node_id
     demo.run_step(proc, rid, 0)  # D501 착수
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05"]
     runner = FakeRunner(proc, center, job, "run_20270713_090000_c7d7e7")
     demo.run_step(proc, rid, 1)  # Agent 초안 — BPM 밖
     # 폴링 없이 바로 대리 답 — 폴러는 아직 결재를 읽지 않았다
@@ -320,7 +294,7 @@ def test_center_relay_prechecks_before_touching_center(
     """역할(403)·업무 규칙(422)은 Center에 묻기 전에 거절한다 — 입력은 지워지지 않는다."""
     rid = proc.create(sc01_demo_run_id=_completed_sc04(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05")
     FakeRunner(proc, center, job, "run_20270713_090000_c6d6e6")
     proc.sync_center(rid)
     before = len(center.calls)
@@ -355,12 +329,12 @@ def test_center_unconfigured_leaves_a_reason(proc: Sc05Process) -> None:
 def test_reset_on_center_cancels_the_started_job(proc: Sc05Process, center: FakeCenter) -> None:
     rid = proc.create(sc01_demo_run_id=_completed_sc04(proc), executor="center")["demo_run_id"]
     proc.start(rid, actor="u-fin")
-    job = next(j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05")
+    job = next(j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05")
     doc = proc.reset(rid, actor="u-demo")
     assert job["job_id"] in center.cancelled
     assert doc["bpm"]["executor"] == "center" and doc["scene"]["started_at"] is None
     proc.start(rid, actor="u-fin")
-    jobs = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
+    jobs = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
 
 
@@ -379,7 +353,7 @@ def test_center_screen_answers_show_inflight_and_move_the_script_marker(
     steps = demo.steps_for("BASE")
     doc = proc.start(rid, actor="u-fin")
     assert (doc["step"], doc["script_index"]) == ("D501", 0)
-    [job] = [j for j in center.jobs if j["bpm_process_id"] == "nowview.sc05"]
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "autopart1.sc05"]
     runner = FakeRunner(proc, center, job, "run_20270713_090000_c7d7e7")
     proc.sync_center(rid)
 

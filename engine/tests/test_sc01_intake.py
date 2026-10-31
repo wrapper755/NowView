@@ -27,10 +27,10 @@ from app.sc01.process import INTAKE_PATH, PROCESS_PATH, Sc01Process, summarize_i
 from app.sc01.view import view
 
 WORKER = {
-    "id": "nowview-intake",
+    "id": "autopart1-intake",
     "name": "고객계획 접수 담당",
     "supervisors": ["이도윤"],
-    "intake": "nowview.sc01-intake",
+    "intake": "autopart1.sc01-intake",
     "state": "active",
 }
 #: Center가 가상 직원 등록에서 붙이는 값 — 접수 Bot의 출처 입력(ADR-0099)
@@ -181,7 +181,7 @@ def test_intake_bpmn_is_gated_and_names_no_supervisor() -> None:
     접수 Bot은 계약 검사를 통과하고 **B16이 없다** — Center가 가상 직원에 묶는 관문이다
     (`intake_not_gated`). 감독자는 이름이 아니라 가상 직원 출처의 입력이다.
     """
-    assert validate(INTAKE, keyless_apps=[]) == []
+    assert validate(INTAKE) == []
     inputs = {i.name: i for i in INTAKE.info.inputs}
     assert inputs["감독자"].source == "virtual_worker.supervisors" and inputs["감독자"].required
     assert inputs["가상직원"].source == "virtual_worker.name"
@@ -190,7 +190,7 @@ def test_intake_bpmn_is_gated_and_names_no_supervisor() -> None:
     assert set(approval.show) >= {"원천목록", "검토목록"}
     sc01 = read_process(PROCESS_PATH.read_bytes())
     call = INTAKE.node("Call_SC01").prop("call")
-    assert call.delegate.bpm_process_id == sc01.id == "nowview.sc01"
+    assert call.delegate.bpm_process_id == sc01.id == "autopart1.sc01"
     assert set(call.input) == {"데모실행ID", "원천ID"}  # 처리자는 넘기지 않는다 — 선언만
     worker = {i.name: i for i in sc01.info.inputs}["처리자"]
     assert worker.source == "virtual_worker.name" and not worker.required
@@ -256,10 +256,10 @@ def test_receive_wakes_the_intake_bot_and_approval_delegates_sc01(
     """
     rid = proc.create(executor="center")["demo_run_id"]
     doc = demo.run_step(proc, rid, 0)  # EV01 수신
-    assert center.jobs[0]["bpm_process_id"] == "nowview.sc01-intake"
+    assert center.jobs[0]["bpm_process_id"] == "autopart1.sc01-intake"
     [message] = center.messages
     assert message["name"] == "고객계획접수" and "correlation" not in message
-    assert message["virtual_worker"] == "nowview-intake"
+    assert message["virtual_worker"] == "autopart1-intake"
     assert message["payload"] == {"원천목록": [{"데모실행ID": rid, "원천ID": "SRC02"}]}
     job = doc["bpm"]["center"]["job"]
     assert (job["via"], job["decision"]) == ("intake", None)
@@ -302,7 +302,7 @@ def test_receive_wakes_the_intake_bot_and_approval_delegates_sc01(
     assert reviewed[-1]["actor"] == "u-sales" and reviewed[-1]["detail"]["decision"] == "승인"
     assert doc["bpm"]["center"]["job"]["decision"] == "승인"
     [call] = intake.run.env.delegate.calls
-    assert call.bpm_process_id == "nowview.sc01" and call.loop_index == 0
+    assert call.bpm_process_id == "autopart1.sc01" and call.loop_index == 0
     assert dict(call.inputs) == {"데모실행ID": rid, "원천ID": "SRC02"}
 
     # 위임된 SC01 — 일괄의 가상 직원을 이어받아 처리자가 들어간다(ADR-0099 §3)
@@ -455,19 +455,25 @@ def test_intake_calls_belong_to_center_demo_runs_only(
     embedded = proc.create()["demo_run_id"]
     proc.receive(embedded, "CP02", actor="u-sales")
     with pytest.raises(DomainError) as inside:
-        proc.operate(embedded, "screen_source", {"source_id": "SRC02"}, external_run_id="run_i")
+        proc.operate(
+            embedded, "screen_customer_plan", {"source_id": "SRC02"}, external_run_id="run_i"
+        )
     assert inside.value.status == 409
     rid = proc.create(executor="center")["demo_run_id"]
     proc.receive(rid, "CP02", actor="u-sales")
     with pytest.raises(DomainError) as studio:
         proc.operate(
-            rid, "screen_source", {"source_id": "SRC02"}, external_run_id="run_i", via="studio"
+            rid,
+            "screen_customer_plan",
+            {"source_id": "SRC02"},
+            external_run_id="run_i",
+            via="studio",
         )
     assert studio.value.status == 409
     with pytest.raises(DomainError) as unknown:
         proc.operate(
             rid,
-            "record_intake_review",
+            "record_intake_decision",
             {"source_id": "SRC02", "decision": "보류", "opinion": "-", "answered_by": "이도윤"},
             external_run_id="run_i",
         )

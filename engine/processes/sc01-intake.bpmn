@@ -25,12 +25,11 @@
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc01_intake">
   <bpmn:message id="Msg_intake" name="고객계획접수"/>
   <bpmn:error id="Err_delegation" name="기동 실패" errorCode="DELEGATION_FAILED"/>
-  <bpmn:process id="nowview.sc01-intake" name="SC01 고객계획 접수" isExecutable="true">
+  <bpmn:process id="autopart1.sc01-intake" name="SC01 고객계획 접수" isExecutable="true">
     <bpmn:extensionElements>
       <chk:process>{
         "run_location": "server",
-        "service_keys": {"nowview-sc01": "nowview"},
-        "extensions": [{"id": "nowview-sc01", "version": "&gt;=0.7.1,&lt;1"}],
+        "extensions": [{"id": "nowview", "version": "&gt;=0.1.0,&lt;1"}],
         "inputs": [
           {"name": "원천목록", "type": "list", "required": true,
            "description": "{데모실행ID, 원천ID} 목록 — NowView 원천 수신이 메시지 본문에 싣는다"},
@@ -54,7 +53,7 @@
     <bpmn:serviceTask id="Task_Screen" name="원천 자동 검증 (건마다)">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview-sc01", "operation": "screen_source",
+          "app_id": "nowview", "operation": "screen_customer_plan",
           "input": {"demo_run_id": "건['데모실행ID']", "source_id": "건['원천ID']", "processed_by": "가상직원"},
           "output": {"검토": "summary"}
         }</chk:serviceCall>
@@ -85,7 +84,7 @@
     <bpmn:serviceTask id="Record_Batch" name="접수 결정 기록 (건마다)">
       <bpmn:extensionElements>
         <chk:serviceCall>{
-          "app_id": "nowview-sc01", "operation": "record_intake_review",
+          "app_id": "nowview", "operation": "record_intake_decision",
           "input": {"demo_run_id": "건['데모실행ID']", "source_id": "건['원천ID']", "decision": "결정", "opinion": "의견", "answered_by": "승인자", "answered_via": "승인경로", "processed_by": "가상직원"},
           "output": {"기록": "recorded"}
         }</chk:serviceCall>
@@ -97,10 +96,10 @@
     <bpmn:exclusiveGateway id="Gw_Decision" name="승인?" default="Flow_rejected"/>
 
     <!-- 승인된 건마다 SC01 위임 — 처리자(가상 직원 이름)는 넘기지 않는다: SC01이 출처로 선언했다 -->
-    <bpmn:callActivity id="Call_SC01" name="SC01 기동 (건마다 위임)" calledElement="nowview.sc01">
+    <bpmn:callActivity id="Call_SC01" name="SC01 기동 (건마다 위임)" calledElement="autopart1.sc01">
       <bpmn:extensionElements>
         <chk:call>{
-          "delegate": {"bpm_process_id": "nowview.sc01"},
+          "delegate": {"bpm_process_id": "autopart1.sc01"},
           "input": {"데모실행ID": "건['데모실행ID']", "원천ID": "건['원천ID']"},
           "output": {}
         }</chk:call>

@@ -36,7 +36,7 @@ app/sc01/
   calc.py      지표·위험 판정·손익 집계 — 규칙 계산. Agent·BPM은 숫자를 만들지 않는다
   agent.py     Agent 검토 초안 — 입력 구성, 계약 검증(숫자·근거 대조), mock·ollama·fail 러너
   domain.py    원천 검증·이슈·업무·기한·인계 (문서 하나 = 데모 실행 하나)
-  process.py   Chaeksas 엔진 래퍼 + 서비스 태스크 어댑터(nowview.sc01)
+  process.py   Chaeksas 엔진 래퍼 + 서비스 태스크 어댑터(nowview)
   store.py     문서·이력 저장 (row_version 낙관적 잠금)
   demo.py      기본 시연 각본 EV01~EV07
   view.py      응답 모양 · UI01 대시보드 · 토폴로지

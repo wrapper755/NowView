@@ -4,9 +4,9 @@ SC05 실행 — `processes/sc05.bpmn`을 **Studio 시험 실행·Center 서버 �
 시스템 작업(외부 확장 `nowview-sc05`)으로 업무를 적는다. 장면 3·4(`app/sc04/process.py`)와 같은
 틀이다.
 
-* **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 `{{run_id}}`가 데모
+* **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 실행 id가 데모
   실행을 그 실행에
-  묶고, 어느 키로 왔는지가 실행 위치다(N6 — 어긋나면 409).
+  묶고, 일감의 `origin`이 실행 위치다(C15 — 어긋나면 409).
 * **착수(S01)는 화면 명령이다** — 경영관리 담당이 「장면 5 착수」를 누르면 HANDOFF41이 이어지고,
   내장이면 BPM을
   시작하고, Center면 SC05 패키지를 기동한다(`POST /jobs`). Studio면 착수만 적는다 — Studio가
@@ -94,7 +94,7 @@ def run_operation(
     doc: dict, seed: Seed, operation: str, args: dict[str, Any], *, actor: str | None = None
 ) -> dict[str, Any]:
     """
-    작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다. 내장 어댑터와 HTTP 길이
+    작업 하나를 문서에 적용하고 출력을 돌려준다. 저장은 부르는 쪽이 한다. 내장 어댑터와 C15 일꾼이
     **같은
     함수**다. 기록 작업은 검사가 먼저고(부수 효과 없음), 출력의 `error_message: None`이 결재에
     보이던 직전
@@ -542,8 +542,8 @@ class Sc05Process:
         via: str | None = None,
     ) -> dict[str, Any]:
         """
-        시스템 작업을 HTTP로 — 바깥 BPM이 서비스 태스크에서 부른다(장면 2 `operate`와 같다). 첫
-        호출이 데모
+        시스템 작업 — 바깥 BPM의 서비스 태스크 일감을 C15 일꾼이 가져와 부른다
+        (장면 2 `operate`와 같다). 첫 호출이 데모
         실행을 묶고, 기록이 거절되면 거절만 남기고(반쯤 적힌 효과는 버린다) 상태 코드를 낸다 —
         그림은 같은
         결재로 돌아간다.

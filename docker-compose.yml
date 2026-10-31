@@ -30,6 +30,9 @@ services:
   engine:
     build:
       context: ./engine
+      # 확장 정의(chaeksas/*.extension.json) — C15 일꾼의 manifest 원천(engine/app/consumer.py)
+      additional_contexts:
+        extensions: ./chaeksas
     environment:
       # 이 값이 있으면 엔진이 Postgres 백엔드로 뜬다. 없으면 SQLite인데,
       # 여러 인스턴스로 띄우면 상태가 갈라지므로 운영에는 부적합하다.
@@ -39,6 +42,9 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-kimi-k3:cloud}
       LOG_LEVEL: INFO
+      # 회사 시스템 — autopart1 기간계(autopart1 리포)를 호스트에서 띄워 두면 그것을 읽는다.
+      COMPANY_AUTOPART1_URL: ${COMPANY_AUTOPART1_URL:-http://host.docker.internal:8191}
+      COMPANY_AUTOPART1_KEY: ${COMPANY_AUTOPART1_KEY:-}
     extra_hosts:
       # Linux에서는 이 별칭이 기본 제공되지 않는다 — 명시해야 호스트 ollama에 닿는다.
       - "host.docker.internal:host-gateway"

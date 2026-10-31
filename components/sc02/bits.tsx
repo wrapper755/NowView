@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { CompanyLink as Link } from "@/components/shared/company-link";
 import { AlertTriangle, BellRing, ExternalLink, History, PlayCircle, WifiOff } from "lucide-react";
 
 import { StatePill } from "@/components/sc01/bits";

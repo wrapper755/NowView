@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { CompanyLink as Link } from "@/components/shared/company-link";
+import { useCompanyRouter as useRouter, useScenePath as usePathname } from "@/lib/company-nav";
 import {
   BadgeCheck,
   ClipboardCheck,
@@ -30,6 +30,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { SCENES } from "@/lib/companies";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,12 +38,12 @@ import { cn } from "@/lib/utils";
  * U401~U408, 장면 5는 U501~U508, 장면 6은 U601·U602다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
  */
 const SC01_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
-  { label: "경영 현황", icon: GaugeCircle, href: "/" },
-  { label: "고객계획", icon: FileInput, href: "/plans" },
-  { label: "위험 검토", icon: TriangleAlert, href: "/risk" },
-  { label: "업무", icon: ClipboardList, href: "/tasks" },
-  { label: "이슈·인계", icon: Handshake, href: "/handoff" },
-  { label: "BPM 흐름", icon: GitBranch, href: "/process" },
+  { label: "경영 현황", icon: GaugeCircle, href: "/sc01" },
+  { label: "고객계획", icon: FileInput, href: "/sc01/plans" },
+  { label: "위험 검토", icon: TriangleAlert, href: "/sc01/risk" },
+  { label: "업무", icon: ClipboardList, href: "/sc01/tasks" },
+  { label: "이슈·인계", icon: Handshake, href: "/sc01/handoff" },
+  { label: "BPM 흐름", icon: GitBranch, href: "/sc01/process" },
 ];
 
 const SC02_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
@@ -111,16 +112,14 @@ export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
 
 /**
  * 장면 = 그 장면이 수행하는 업무. 「장면 1~6」은 시연 순서일 뿐 업무가 무엇인지 말하지 않는다 — 사이드바·좁은 화면의
- * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다.
+ * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다. 업무는 NowView 코드의 목록(`lib/companies.ts`의 `SCENES`)이다.
  */
-export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = [
-  { scene: 1, label: "고객 생산계획 변경 대응", detail: "위험 감지 · 현업 통제 · 인계", href: "/" },
-  { scene: 2, label: "외주 단가 인상 검토", detail: "협상 · 순차 승인 · 원가 등록", href: "/sc02" },
-  { scene: 3, label: "수익성 통합 분석", detail: "부서 확인 · 수시회의 · 분석과제", href: "/sc03" },
-  { scene: 4, label: "개선안 검토·실행 승인", detail: "월간회의 · 대표 승인 · 책임 인수", href: "/sc04" },
-  { scene: 5, label: "결정 실행·계획 갱신", detail: "실행계획 · 착수 · 공식 전망", href: "/sc05" },
-  { scene: 6, label: "완료·성과 검토", detail: "Q4 실현 효과 · 보고", href: "/sc06" },
-];
+export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = SCENES.map((s) => ({
+  scene: s.no,
+  label: s.work,
+  detail: s.detail,
+  href: `/sc0${s.no}`,
+}));
 
 function itemsOf(scene: number) {
   return scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
@@ -128,7 +127,9 @@ function itemsOf(scene: number) {
 
 /** 왼쪽 사이드바(넓은 화면) — 업무 목록. 로고는 그 위 공통 줄에 있다. */
 export function WorkSidebar() {
-  const scene = sceneOf(usePathname());
+  const path = usePathname();
+  // 회사 첫 화면(`/`)은 어느 업무도 아니다 — 회사 운영 현황이다.
+  const scene = path === "/" ? 0 : sceneOf(path);
   return (
     <aside className="chrome-ink fixed top-12 bottom-0 left-0 z-40 hidden w-56 flex-col border-r lg:flex">
       <nav aria-label="업무" className="flex-1 overflow-y-auto px-2 pt-2 pb-4">
@@ -169,8 +170,16 @@ export function WorkSidebar() {
 /** 머리 줄의 지금 업무 — 넓을 때는 이름, 좁을 때(사이드바가 없을 때)는 업무 선택이다. */
 export function WorkHeading() {
   const router = useRouter();
-  const scene = sceneOf(usePathname());
+  const path = usePathname();
+  const scene = sceneOf(path);
   const work = WORKS.find((w) => w.scene === scene) ?? WORKS[0];
+  if (path === "/") {
+    return (
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-base font-semibold">운영 현황</p>
+      </div>
+    );
+  }
   return (
     <div className="min-w-0 flex-1">
       <p className="hidden min-w-0 items-baseline gap-2 lg:flex">
@@ -205,6 +214,7 @@ export function WorkHeading() {
  */
 export function ScreenNav() {
   const pathname = usePathname();
+  if (pathname === "/") return null;
   const items = itemsOf(sceneOf(pathname));
   return (
     <nav aria-label="업무 화면" className="border-t border-brand/15 bg-brand-soft/50">
