@@ -70,8 +70,6 @@ Center ◀──────────────────────▶ 
 | 작업 | 하는 일 | 회사 시스템 호출(②) |
 |---|---|---|
 | `validate_customer_plan` | 원천 자동 검증(UI03-01) | — (원천은 수신 때 들였다) |
-| `screen_customer_plan` | 접수 Bot의 검증 + 직전 원천 대비 변경 요약 | — |
-| `record_intake_decision` | 접수 일괄 승인·반려 기록 | 반려면 원천 상태 NEEDS_INFO |
 | `record_plan_review` | 원천 확인 결정 기록 | 원천 상태 VERIFIED·NEEDS_INFO |
 | `assess_supply_risk` | 검토 전망 생성 · 15행 지표 · 위험 판정 · 이슈 잇기 | T01·F01·실적·C01·FC01 읽기(불변 버전 — 한 번 읽어 둔다) |
 | `request_review_draft` | Agent 검토 초안 요청(기다리지 않음) | — |
@@ -152,7 +150,6 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
   "companies": [{"id": "company1", "name": "가상 자동차 부품사", "description": "…", "system_url": "http://localhost:8191"}],
   "processes": [
     {"bpm_process_id": "company1.sc01",        "company": "company1", "scene": 1},
-    {"bpm_process_id": "company1.sc01-intake", "company": "company1", "scene": 1},
     {"bpm_process_id": "company1.sc02",          "company": "company1", "scene": 2}
   ],
   "topics": ["nowview", "nowview-sc02", "nowview-sc03", "nowview-sc04", "nowview-sc05", "nowview-sc06"]
@@ -168,14 +165,12 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 ```
 1 플레이어 「CP02 수신」 ─▶ 엔진 ─▶ 회사 POST /worlds/{w}/sim/customer-plans ─▶ GET 원천 ─▶ 문서에 사본
-2 엔진 ─▶ Center: 접수 Bot 메시지 시작(company1.sc01-intake)
-3 일감 screen_customer_plan ─▶ 일꾼 ─▶ 검증·변경 요약 ─▶ complete
-4 감독자 일괄 승인(대리 답) ─▶ 일감 record_intake_decision ─▶ 위임: company1.sc01 시작
-5 일감 validate_customer_plan ─▶ 검증
-6 영업담당 확인(결재) ─▶ 일감 record_plan_review ─▶ 회사 POST status VERIFIED
-7 계산 확인(결재) ─▶ 일감 assess_supply_risk ─▶ 회사 자료(T01·F01·실적·C01·FC01) ─▶ 계산 run·F02·이슈
-8 일감 request_review_draft ─▶ Agent 초안(배경)
-9 영업팀장 검토 ─▶ record_risk_review ─▶ assign_follow_up(생산·자재 ∥ 경영관리) ─▶ 인수 ×3 ─▶ hand_off_case
+2 엔진 ─▶ Center: POST /jobs (company1.sc01 시작)
+3 일감 validate_customer_plan ─▶ 일꾼 ─▶ 검증 ─▶ complete
+4 영업담당 확인(결재) ─▶ 일감 record_plan_review ─▶ 회사 POST status VERIFIED
+5 계산 확인(결재) ─▶ 일감 assess_supply_risk ─▶ 회사 자료(T01·F01·실적·C01·FC01) ─▶ 계산 run·F02·이슈
+6 일감 request_review_draft ─▶ Agent 초안(배경)
+7 영업팀장 검토 ─▶ record_risk_review ─▶ assign_follow_up(생산·자재 ∥ 경영관리) ─▶ 인수 ×3 ─▶ hand_off_case
 ```
 
 ## 7. 아직 아닌 것

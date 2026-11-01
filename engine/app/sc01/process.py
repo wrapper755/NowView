@@ -41,8 +41,6 @@ from app.sc01.seed import Seed
 from app.sc01.store import Sc01Store, StaleWrite
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc01.bpmn"
-#: 고객계획 접수 Bot(N5) — Center 서버 Bot으로만 돈다. 엔진은 읽어서 그림·시험에만 쓴다.
-INTAKE_PATH = PROCESS_PATH.with_name("sc01-intake.bpmn")
 #: 바깥 Chaeksas 외부 확장의 id와 같다 — 확장 id에는 점을 쓸 수 없다(C13 `^[a-z][a-z0-9-]{1,49}$`).
 APP_ID = "external"
 #: 초안 결과를 기록할 때 다른 워커와 부딪히면 다시 읽어 쓰는 횟수.
@@ -86,16 +84,12 @@ RECORDS = (
     "assign_follow_up",  # 현업 배정(Approve_Dispatch)·Review 요청(Approve_Review) — 결재로 가른다
     "record_acceptance",
 )
-#: 접수 Bot(`sc01-intake.bpmn`)이 부르는 작업 — 데모 실행을 바깥 실행에 **묶지 않는다**. 접수 Bot의
-#: 실행은 SC01 실행이 아니다 — 묶는 것은 승인 뒤 위임된 SC01의 첫 호출이다(N5).
-INTAKE_OPERATIONS = ("screen_customer_plan", "record_intake_decision")
 OPERATIONS = (
     "validate_customer_plan",
     "assess_supply_risk",
     "request_review_draft",
     "hand_off_case",
     *RECORDS,
-    *INTAKE_OPERATIONS,
 )
 #: 결재 노드 → 기록 작업 (HTTP `POST …/answers/{node_id}`). 계산 실행(Confirm_Calc)은 없다 — 곧바로
 #: `assess_supply_risk`가 요청 기록을 남긴다.
@@ -361,30 +355,7 @@ def run_operation(
     """
     if operation == "validate_customer_plan":
         errors = domain.validate_source(doc, seed, args["source_id"])
-        if args.get("processed_by"):
-            domain.note_processor(doc, str(args["processed_by"]))
         return {"passed": not errors, "error_count": len(errors)}
-    if operation == "screen_customer_plan":
-        summary = domain.screen_source(
-            doc, seed, args["source_id"], processed_by=args.get("processed_by")
-        )
-        return {"summary": summary}
-    if operation == "record_intake_decision":
-        named = _named_answerer(args, None)
-        if named is None:
-            raise DomainError("접수 결정에 답한 사람(answered_by)이 없다", 422)
-        by, how = named
-        domain.record_intake(
-            doc,
-            args["source_id"],
-            decision=str(args.get("decision") or ""),
-            opinion=str(args.get("opinion") or ""),
-            by=by,
-            how=how,
-            intake_run=args.get("intake_run"),
-            processed_by=args.get("processed_by"),
-        )
-        return {"recorded": True}
     if operation == "assess_supply_risk":
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
@@ -812,13 +783,7 @@ class Sc01Process:
         — 두 실행이 한 문서에 업무를 적게 두지 않는다. 업무 규칙(확인 전 계산 409, 인계 조건 미충족
         409)은 내장 길과 같다. 돌려주는 것은 작업의 출력뿐이다. `node_id`는 진행 표시에만 쓴다.
         `via`는 일감의 `origin`이 말하는 실행 위치다(내장 시험은 `None`).
-
-        접수 Bot의 작업(`INTAKE_OPERATIONS`)은 묶지 않는다 — `_intake_operate`.
         """
-        if operation in INTAKE_OPERATIONS:
-            return self._intake_operate(
-                demo_run_id, operation, args, intake_run=external_run_id, via=via
-            )
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
             domain.link_external_run(doc, external_run_id, via=via)
@@ -846,42 +811,6 @@ class Sc01Process:
                 else ("Confirm_Calc" if operation == "assess_supply_risk" else None),
                 done=operation == "hand_off_case" and out["handed_off"],
             )
-            doc = self._commit(doc, version, None, operation)
-        self._dispatch(doc)
-        return out
-
-    def _intake_operate(
-        self,
-        demo_run_id: str,
-        operation: str,
-        args: dict[str, Any],
-        *,
-        intake_run: str | None,
-        via: str | None,
-    ) -> dict[str, Any]:
-        """
-        접수 Bot의 작업(N5) — 검증·결정 기록. **데모 실행을 바깥 실행에 묶지 않는다**: 접수
-        Bot의 실행은 SC01 실행이 아니다. 묶으면 승인 뒤 위임된 SC01의 첫 호출이 「이미 다른 실행에
-        묶였다」 409로 막힌다. 접수 Bot은 Center 서버 Bot으로만 돌므로 center 데모 실행·운영
-        키에서만 받는다.
-        """
-        with self._lock(demo_run_id):
-            doc, version = self._load(demo_run_id)
-            if domain.executor_of(doc) != "center":
-                raise DomainError(
-                    "접수 가상 직원은 Center 서버 실행이다 — 실행 위치를 center로 만든 데모 "
-                    "실행에서 돌려라",
-                    409,
-                )
-            if via is not None and via != "center":
-                raise DomainError(
-                    f"{domain.EXECUTOR_LABEL[via]}에서 왔다 — 접수 가상 직원은 Center에서만 돈다",
-                    409,
-                )
-            try:
-                out = run_operation(doc, self.seed, operation, {**args, "intake_run": intake_run})
-            except KeyError as exc:
-                raise DomainError(f"없는 대상: {exc.args[0]}", 404) from exc
             doc = self._commit(doc, version, None, operation)
         self._dispatch(doc)
         return out
@@ -921,7 +850,7 @@ class Sc01Process:
             return
         if old_job and old_job != (ledger.get("job") or {}).get("job_id"):
             self._cancel_center_job(doc, old_job)
-        elif ledger.get("job") and (ledger["job"].get("decision") != "반려"):
+        elif ledger.get("job"):
             pending = ledger["job"]
             ended = self._job_ended(pending["job_id"])
             if ended is not None:
@@ -934,21 +863,12 @@ class Sc01Process:
                     job_id=pending["job_id"],
                     reason=ended,
                 )
-            elif pending.get("via") == "intake" and pending.get("decision") is None:
-                raise DomainError(
-                    f"접수 가상 직원의 일괄({pending['job_id']})이 아직 감독자 승인을 기다린다 — "
-                    "승인·반려한 뒤 다시 받아라",
-                    409,
-                )
             else:
                 raise DomainError(
                     f"앞서 기동한 Center 작업 {pending['job_id']}이 아직 NowView를 부르지 않았다 "
                     "— 그 실행이 원천을 검증한 뒤 다시 받아라",
                     409,
                 )
-        if self.center.config.intake_worker:
-            self._intake_message(doc, source_id, actor=actor, ledger=ledger)
-            return
         try:
             job = self.center.start_job(
                 {"데모실행ID": doc["demo_run_id"], "원천ID": source_id},
@@ -980,148 +900,6 @@ class Sc01Process:
         if run in ("success", "failed", "cancelled"):
             return f"실행 {run}"
         return None
-
-    def _intake_message(self, doc: dict, source_id: str, *, actor: str, ledger: dict) -> None:
-        """
-        원천 수신 → 접수 가상 직원의 접수 Bot을 깨운다(N5, 메시지 시작). 본문에는 `원천목록`만
-        싣는다 — `감독자`·`가상직원`은 출처가 가상 직원이라 보내면 422 `input_not_from_caller`다
-        (ADR-0099).
-        어느 가상 직원인지는 `virtual_worker`로 고른다. 접수 Bot의 작업 id를 장부에 남긴다 — 정정·
-        초기화로 대체되면 그것을 거둔다(일괄 취소 = 접수 작업 취소, 위임된 SC01도 함께, ADR-0084).
-        """
-        worker = self.center.config.intake_worker
-        try:
-            sent = self.center.send_message(
-                domain.INTAKE_MESSAGE,
-                payload={"원천목록": [{"데모실행ID": doc["demo_run_id"], "원천ID": source_id}]},
-                idempotency_key=_center_key(doc, source_id, "intake"),
-                on_behalf=domain.name_of(actor),
-                virtual_worker=worker,
-            )
-        except CenterError as exc:
-            raise exc.as_domain("접수 가상 직원 깨우기") from exc
-        job_id = sent.get("job_id") or sent.get("message_id")
-        ledger.update(
-            job={
-                "job_id": job_id,
-                "source_id": source_id,
-                "at": doc["clock"],
-                "via": "intake",
-                "worker": worker,
-                "decision": None,
-            },
-            problem=None,
-        )
-        domain.audit(
-            doc,
-            actor=actor,
-            action="center_intake_requested",
-            job_id=job_id,
-            source_id=source_id,
-            worker=worker,
-        )
-
-    def intake_status(self) -> dict[str, Any]:
-        """
-        「접수 가상 직원」 카드(UI02) — `GET /virtual-workers/{id}`(연동용 키)의 최근 일괄을 센다.
-        설정이 없거나 Center가 거절하면 그 사유를 그대로 낸다(조용히 비우지 않는다).
-        """
-        config = self.center.config
-        worker = config.intake_worker
-        base: dict[str, Any] = {"workerId": worker, "configured": False, "problem": None}
-        if not worker:
-            return {
-                **base,
-                "problem": "접수 가상 직원이 설정되지 않았다 (CHAEKSAS_INTAKE_WORKER) — 수신이 "
-                "SC01을 바로 기동한다",
-            }
-        problem = config.missing(integration=True)
-        if problem:
-            return {**base, "problem": problem}
-        try:
-            info = self.center.virtual_worker(worker)
-        except CenterError as exc:
-            return {**base, "configured": True, "problem": str(exc.as_domain("가상 직원 읽기"))}
-        return {**base, "configured": True, **summarize_intake(info, now=datetime.now(UTC))}
-
-    def answer_intake(self, request_id: str, answer: dict[str, Any], *, actor: str) -> dict:
-        """
-        일괄 결재에 NowView 화면에서 답한다 — **대리 답**(N3와 같은 길, `X-CHK-On-Behalf-Of` =
-        행위자 이름). 담당자(감독자)인지는 Center가 대조한다(ADR-0081) — 감독자 이름은 Center의
-        가상 직원 등록에 있고 NowView는 그것을 다시 막지 않는다. 결정의 업무 효과는 접수 Bot의
-        기록 작업이 낸다.
-        """
-        if actor not in USERS:
-            raise DomainError(f"모르는 사용자: {actor}", 403)
-        problem = self.center.config.missing(relay=True)
-        if problem:
-            raise DomainError(f"일괄 결재는 Center 결재함에서 답하라 — {problem}", 503)
-        if answer.get("결정") not in domain.INTAKE_DECISIONS:
-            raise DomainError(f"결정은 {'·'.join(domain.INTAKE_DECISIONS)} 중 하나다", 422)
-        if not str(answer.get("의견") or "").strip():
-            raise DomainError("의견이 필요하다", 422)
-        name = domain.name_of(actor)
-        try:
-            found = self.center.approval(request_id, on_behalf=name)
-            if found is None:
-                raise DomainError(f"{name}의 결재가 아니다: {request_id}", 403)
-            return self.center.answer(
-                request_id, answer, on_behalf=name, digest=found.get("review_digest")
-            )
-        except CenterError as exc:
-            raise exc.as_domain("일괄 결재 대리 답") from exc
-
-    def approve_intake_for_script(self, demo_run_id: str, *, opinion: str) -> bool:
-        """
-        각본이 장면 1을 인계까지 끝낼 때(장면 2 시작) 접수 일괄을 **감독자로** 승인한다 — 화면의
-        대리 답(`answer_intake`)과 같은 길이고 감독자인지는 Center가 대조한다. 기다리는 일괄이
-        없으면 `False`. 실행기가 작업을 받아 검증하고 결재를 올리기까지, 또 승인 뒤 위임된 SC01이
-        첫 호출로 데모 실행을 묶기까지 각각 `center_wait_s`까지 기다린다.
-        """
-        job = (((self.get(demo_run_id)["bpm"] or {}).get("center")) or {}).get("job") or {}
-        if job.get("via") != "intake" or job.get("decision") is not None:
-            return False
-        wait_s = self.center_wait_s
-        deadline = time.monotonic() + wait_s
-        while True:
-            try:
-                run_id = self.center.job(job["job_id"]).get("run_id")
-                worker = job.get("worker") or self.center.config.intake_worker
-                info = self.center.virtual_worker(worker)
-            except CenterError as exc:
-                raise exc.as_domain("접수 일괄 찾기") from exc
-            opened = [
-                rid
-                for b in info.get("batches") or []
-                if run_id and b.get("run_id") == run_id
-                for rid in b.get("open_approvals") or []
-            ]
-            if opened or time.monotonic() >= deadline:
-                break
-            time.sleep(min(1.0, self.center_wait_s))
-        if not opened:
-            raise DomainError(
-                f"접수 가상 직원의 일괄({job['job_id']})에 아직 감독자 결재가 열리지 않았다", 409
-            )
-        names = {u["name"]: uid for uid, u in USERS.items()}
-        supervisor = next((names[n] for n in info.get("supervisors") or [] if n in names), None)
-        if supervisor is None:
-            raise DomainError(
-                "접수 가상 직원의 감독자가 사용자 마스터에 없다 — 고객계획 화면의 "
-                "「접수 가상 직원」에서 승인한다",
-                409,
-            )
-        self.answer_intake(opened[0], {"결정": "승인", "의견": opinion}, actor=supervisor)
-        deadline = time.monotonic() + wait_s
-        while not (self.get(demo_run_id)["bpm"] or {}).get("external_run_id"):
-            if time.monotonic() >= deadline:
-                raise DomainError(
-                    "접수 일괄을 승인했지만 위임된 SC01이 아직 NowView를 부르지 않았다 — 잠시 뒤 "
-                    "다시 한다",
-                    409,
-                )
-            time.sleep(min(1.0, wait_s))
-        return True
 
     def _cancel_center_job(self, doc: dict, job_id: str) -> None:
         """대체된 작업을 거둔다 — 실패해도 조작을 막지 않고 감사 이력에 남긴다."""
@@ -1234,13 +1012,6 @@ class Sc01Process:
                 break
             time.sleep(min(1.0, self.center_wait_s))
         if not ext:
-            job = (((self.get(demo_run_id)["bpm"] or {}).get("center")) or {}).get("job") or {}
-            if job.get("via") == "intake" and job.get("decision") is None:
-                raise DomainError(
-                    "접수 가상 직원의 일괄이 감독자 승인을 기다린다 — 고객계획 화면의 "
-                    "「접수 가상 직원」에서 승인하면 SC01이 기동된다",
-                    409,
-                )
             raise DomainError(
                 "Center 실행이 아직 NowView를 부르지 않았다 — 원천 검증이 끝나면 결재가 열린다", 409
             )
@@ -1431,61 +1202,6 @@ def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "last_seq": last,
     }
 
-
-#: 끝난 일괄 — C3 `RunInfo.status`의 끝 상태(Center `runs.FINAL_STATUSES`와 같다).
-BATCH_FINAL = frozenset({"success", "failed", "cancelled"})
-
-
-def summarize_intake(info: dict[str, Any], *, now: datetime) -> dict[str, Any]:
-    """
-    가상 직원(C5 `VirtualWorkerInfo`) → 카드. 「오늘」은 한국 시각의 실제 날짜다 — Center의
-    일괄은 실제 시각에 생긴다(가상시계가 아니다). 일괄 하나 = 수신 한 번이다(NowView는 수신마다
-    메시지 하나).
-    """
-    today = now.astimezone(domain.KST).date()
-    batches = list(info.get("batches") or [])
-
-    def started_today(b: dict) -> bool:
-        at = b.get("started_at")
-        return bool(at) and datetime.fromisoformat(at).astimezone(domain.KST).date() == today
-
-    children: dict[str, int] = {}
-    for b in batches:
-        for status, n in (b.get("children_by_status") or {}).items():
-            children[status] = children.get(status, 0) + int(n)
-
-    def still_open(b: dict) -> list[str]:
-        # 끝난 일괄의 결재는 승인 대기가 아니다. Center는 실행 상태와 무관하게 `state = 'open'`인
-        # 결재를 세는데, 초기화가 접수 작업을 취소해도 실행기가 그 결재를 회수하지 않는다 — 운영
-        # 카드에 취소된 일괄이 승인 대기로 남았고, 답하면 아무 효과 없이 200이었다(2026-10-28).
-        if b.get("status") in BATCH_FINAL:
-            return []
-        return list(b.get("open_approvals") or [])
-
-    return {
-        "name": info.get("name"),
-        "state": info.get("state"),
-        "supervisors": list(info.get("supervisors") or []),
-        "intake": info.get("intake"),
-        "today": sum(1 for b in batches if started_today(b)),
-        "pendingApprovals": [
-            {"requestId": rid, "runId": b.get("run_id"), "startedAt": b.get("started_at")}
-            for b in batches
-            for rid in still_open(b)
-        ],
-        "started": sum(int(b.get("children") or 0) for b in batches),
-        "startedByStatus": children,
-        "batches": [
-            {
-                "runId": b.get("run_id"),
-                "status": b.get("status"),
-                "startedAt": b.get("started_at"),
-                "children": int(b.get("children") or 0),
-                "openApprovals": len(still_open(b)),
-            }
-            for b in batches
-        ],
-    }
 
 
 def _center_key(doc: dict, source_id: str, kind: str) -> str:

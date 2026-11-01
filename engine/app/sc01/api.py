@@ -207,19 +207,6 @@ def build_router(process: Sc01Process, hub: Hub) -> APIRouter:
     # 시스템 작업(서비스 태스크)은 HTTP로 받지 않는다 — 엔진의 C15 일꾼이 Center에서 가져간다
     # (`app/consumer.py`, ADR-0102). 내장 BPM의 `_InProcessCalls`와 같은 `process.operate` 길이다.
 
-    @r.get("/intake")
-    def intake() -> dict[str, Any]:
-        """「접수 가상 직원」 카드(UI02) — 오늘 접수·승인 대기·기동된 SC01(Center 가상 직원)."""
-        return process.intake_status()
-
-    @r.post("/intake/approvals/{request_id}/answer")
-    def answer_intake(
-        request_id: str, body: ActBody, x_demo_actor: str | None = Header(default=None)
-    ) -> dict[str, Any]:
-        """일괄 결재 대리 답 — 감독자인지는 Center가 대조한다(403 `not_assignee`)."""
-        guard(process.answer_intake, request_id, body.answer, actor=actor_of(x_demo_actor))
-        return process.intake_status()
-
     @r.post("/demo-runs/{demo_run_id}/agent/{run_id}/regenerate")
     def regenerate(
         demo_run_id: str, run_id: str, x_demo_actor: str | None = Header(default=None)

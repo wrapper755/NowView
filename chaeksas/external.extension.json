@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "name": "NowView 일꾼",
   "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)과 그 접수 Bot의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
@@ -20,7 +20,7 @@
       "operations": [
         {
           "name": "validate_customer_plan",
-          "description": "원천 자동 검증 (UI03-01). processed_by는 일괄을 맡긴 가상 직원의 이름이다(혼자 기동하면 null)",
+          "description": "원천 자동 검증 (UI03-01)",
           "modes": [
             "autonomous",
             "deterministic"
@@ -38,12 +38,6 @@
               },
               "source_id": {
                 "type": "string"
-              },
-              "processed_by": {
-                "type": [
-                  "string",
-                  "null"
-                ]
               }
             }
           },
@@ -417,108 +411,6 @@
                 "type": "boolean"
               },
               "error_message": {}
-            }
-          },
-          "request": {
-            "method": "POST",
-            "path": "/"
-          }
-        },
-        {
-          "name": "screen_customer_plan",
-          "description": "접수 Bot의 원천 자동 검증 (N5) — 검증 결과와 변경 요약을 일괄 결재에 보인다. 데모 실행을 바깥 실행에 묶지 않는다",
-          "modes": [
-            "autonomous",
-            "deterministic"
-          ],
-          "idempotent": true,
-          "input_schema": {
-            "type": "object",
-            "required": [
-              "demo_run_id",
-              "source_id"
-            ],
-            "properties": {
-              "demo_run_id": {
-                "type": "string"
-              },
-              "source_id": {
-                "type": "string"
-              },
-              "processed_by": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            }
-          },
-          "output_schema": {
-            "type": "object",
-            "properties": {
-              "summary": {
-                "type": "object"
-              }
-            }
-          },
-          "request": {
-            "method": "POST",
-            "path": "/"
-          }
-        },
-        {
-          "name": "record_intake_decision",
-          "description": "접수 일괄 결정 기록 (N5) — 반려면 원천 NEEDS_INFO + 보완 요청 업무, 승인이면 감사 이력. 데모 실행을 묶지 않는다",
-          "modes": [
-            "autonomous",
-            "deterministic"
-          ],
-          "idempotent": false,
-          "input_schema": {
-            "type": "object",
-            "required": [
-              "demo_run_id",
-              "source_id",
-              "decision",
-              "opinion",
-              "answered_by"
-            ],
-            "properties": {
-              "demo_run_id": {
-                "type": "string"
-              },
-              "source_id": {
-                "type": "string"
-              },
-              "decision": {
-                "type": "string"
-              },
-              "opinion": {
-                "type": "string"
-              },
-              "answered_by": {
-                "type": "string"
-              },
-              "answered_via": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "processed_by": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            }
-          },
-          "output_schema": {
-            "type": "object",
-            "properties": {
-              "recorded": {
-                "type": "boolean"
-              }
             }
           },
           "request": {

@@ -23,8 +23,8 @@ from chaeksas.contracts.bpmn_ext import read_process
 from chaeksas.service_kit import TokenFile
 
 from app.consumer import ConsumerHost, manifest_of, scene_service
-from app.sc01.process import INTAKE_PATH, Sc01Process
 from app.sc01.process import PROCESS_PATH as SC01_PATH
+from app.sc01.process import Sc01Process
 from app.sc01.store import SqliteSc01Store
 from app.sc02.process import PROCESS_PATH as SC02_PATH
 from app.sc03.process import PROCESS_PATH as SC03_PATH
@@ -33,7 +33,7 @@ from app.sc05.process import PROCESS_PATH as SC05_PATH
 from app.sc06.process import PROCESS_PATH as SC06_PATH
 
 DRAWINGS = {
-    "external": [SC01_PATH, INTAKE_PATH],
+    "external": [SC01_PATH],
     "nowview-sc02": [SC02_PATH],
     "nowview-sc03": [SC03_PATH],
     "nowview-sc04": [SC04_PATH],
@@ -175,7 +175,7 @@ def test_consumer_takes_tasks_with_its_token_and_reports_reasons(proc: Sc01Proce
         _until(lambda: host.describe()["state"] == "running")
         _until(lambda: center.manifests == ["external"])
         # 확장 정의는 manifest보다 먼저, 일꾼 토큰으로 올린다 — 콘솔 등록·들이기가 없다
-        assert center.extensions == [("external", "0.1.0")]
+        assert center.extensions == [("external", "0.1.2")]
         assert center.enroll_calls == 0
 
         rid = proc.create(executor="studio")["demo_run_id"]

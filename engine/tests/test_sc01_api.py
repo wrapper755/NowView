@@ -444,7 +444,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from chaeksas.contracts import extension as ext
     from chaeksas.contracts.bpmn_ext import read_process
 
-    from app.sc01.process import INTAKE_PATH, PROCESS_PATH, RECORD_OF_NODE
+    from app.sc01.process import PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
     # 기본 확장 `external`(장면 1) — 옮기기 전 장면 2~6은 `nowview-sc02`~`sc06`
@@ -470,12 +470,10 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     operations = {o["name"]: o for o in adapter["operations"]}
 
     process = read_process(PROCESS_PATH.read_bytes())
-    intake = read_process(INTAKE_PATH.read_bytes())  # 접수 Bot(N5)도 같은 정의를 부른다
     answered = {RECORD_OF_NODE[n]: n for n in RECORD_OF_NODE} | {
         "assess_supply_risk": "Confirm_Calc",
-        "record_intake_decision": "Approve_Batch",
     }
-    for node in [*process.of_kind("serviceTask"), *intake.of_kind("serviceTask")]:
+    for node in process.of_kind("serviceTask"):
         call = node.prop("serviceCall")
         op = operations[call.operation]
         given = set(call.input)
@@ -490,9 +488,8 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     # 정의(주소)를 받아 온다 — 빠지면 「서비스 앱 주소를 모른다」로 실행이 실패했다(실측).
     from chaeksas.contracts._semver import satisfies
 
-    for drawn in (process, intake):
-        [need] = [n for n in drawn.info.extensions if n.id == manifest.id]
-        assert satisfies(manifest.version, need.version), (drawn.id, need.version)
+    [need] = [n for n in process.info.extensions if n.id == manifest.id]
+    assert satisfies(manifest.version, need.version), need.version
     for node_id in [*RECORD_OF_NODE, "Confirm_Calc"]:
         approval = process.node(node_id).prop("approval")
         assert approval.answered_by_as and approval.answered_via_as, node_id

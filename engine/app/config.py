@@ -95,7 +95,6 @@ def default_config() -> NowViewConfig:
         ],
         processes=[
             ProcessMapping(bpm_process_id="company1.sc01", company="company1", scene=1),
-            ProcessMapping(bpm_process_id="company1.sc01-intake", company="company1", scene=1),
             *(
                 ProcessMapping(bpm_process_id=f"company1.sc0{n}", company="company1", scene=n)
                 for n in (2, 3, 4, 5, 6)

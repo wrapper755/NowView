@@ -121,27 +121,18 @@ class FakeRunner:
         center: FakeCenter,
         job: dict,
         run_id: str,
-        *,
-        process: Any = None,
-        sourced: dict[str, Any] | None = None,
-        delegate: Any = None,
     ) -> None:
-        """
-        `process`를 주면 그 그림을 돈다(접수 Bot, N5). `sourced`는 Center가 가상 직원 등록에서
-        붙이는 출처 입력이고(ADR-0099), `delegate`는 위임을 받는 쪽이다.
-        """
         self.proc, self.center, self.engine = proc, center, Engine()
         inputs = job["inputs"]
-        demo_run_id = inputs.get("데모실행ID") or inputs["원천목록"][0]["데모실행ID"]
-        env = RunEnv(services=C15Calls(proc), **({"delegate": delegate} if delegate else {}))
+        demo_run_id = inputs["데모실행ID"]
+        env = RunEnv(services=C15Calls(proc))
         self.run = self.engine.start(
-            process or proc.process,
+            proc.process,
             run_id=run_id,
             log=RunLog(run_id=run_id),
             env=env,
             executor="server_runner",
             inputs=inputs,
-            sourced=sourced,
             now=parse_at(proc.get(demo_run_id)["clock"]),
         )
         self.step()
