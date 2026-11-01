@@ -684,3 +684,23 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc02Process) -> None:
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc02-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
+
+
+def _form(doc: dict, node_id: str) -> dict:
+    (w,) = [w for w in view(doc)["bpm"]["waiting"] if w["nodeId"] == node_id]
+    return {f["key"]: f.get("default") for f in w["fields"]}
+
+
+def test_forms_are_prefilled_with_the_case_script(proc: Sc02Process) -> None:
+    """
+    결재 폼 칸의 기본값은 그 사례 각본의 답이다(장면 1·6과 같다) — 화면에서 직접 진행할 때 의견·
+    근거를 손으로 쓰지 않아도 된다. 같은 결재가 두 번 나오면 지금 각본 지점 뒤의 답을 쓴다.
+    """
+    doc = play(proc, until="D01")
+    assert doc["script_index"] == 0  # 수신만 했다 — 원문 확인이 기다린다
+    form = _form(doc, "Verify_Request")
+    base = next(s for s in demo.steps_for("BASE") if s.node_id == "Verify_Request")
+    assert form["확인결과"] == "확인완료" and form["확인의견"] == base.answer["확인의견"]
+
+    doc = play(proc, case="X07R", until="D07")
+    assert _form(doc, "Draft_Proposal")["인상필요성"].endswith("(물량 가정 근거 첨부)")

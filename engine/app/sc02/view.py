@@ -33,6 +33,29 @@ def selected_run(doc: dict) -> dict | None:
     return app or runs[-1]
 
 
+def _defaults(doc: dict, node_id: str, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    폼 칸의 기본값을 이 사례 각본의 답으로 채운다 — 손으로 쓰기 어려운 의견·근거를 시나리오에 맞는
+    예시로 미리 넣는다(장면 1·6과 같다). 같은 결재가 두 번 나오는 사례(보완 → 재상신)는 지금 각본
+    지점 뒤의 첫 단계를 쓴다. 사람이 고쳐서 내도 되고, 틀리면 엔진이 거절한다.
+    """
+    from app.sc02.demo import steps_for  # demo가 process를 가져온다 — 순환을 피한다
+
+    steps = list(enumerate(steps_for(doc["case_id"])))
+    after = doc.get("script_index", -1)
+    step = next((s for i, s in steps if s.node_id == node_id and i > after), None) or next(
+        (s for _, s in reversed(steps) if s.node_id == node_id), None
+    )
+    if step is None:
+        return fields
+    return [
+        {**f, "default": step.answer[f["key"]]}
+        if step.answer.get(f["key"]) not in (None, "")
+        else f
+        for f in fields
+    ]
+
+
 def view(
     doc: dict, *, historical: bool = False, center: CenterConfig | None = None
 ) -> dict[str, Any]:
@@ -58,7 +81,7 @@ def view(
             "title": p["title"],
             "role": domain.NODE_ROLES.get(p["node_id"], {}).get("role"),
             "review": p["review"],
-            "fields": (p["form"] or {}).get("fields", []),
+            "fields": _defaults(doc, p["node_id"], (p["form"] or {}).get("fields", [])),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
         }
         for p in sorted(pendings.values(), key=lambda p: _node_rank(p["node_id"]))

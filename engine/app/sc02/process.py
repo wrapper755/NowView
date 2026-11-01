@@ -184,6 +184,9 @@ def run_operation(
 
     by, known = _by(args, actor)
     _recheck(doc, seed, operation, args)
+    _clock_to_script(
+        doc, seed, DECIDED_BY.get(operation) or str(args.get("node_id") or "") or None
+    )
     if operation in DECIDED_BY:
         node_id = DECIDED_BY[operation]
         if operation == "analyze_price_request":
@@ -356,6 +359,9 @@ class Sc02Process:
                 "visited": visited,
             }
             domain.sync_tasks(doc, dict(doc["bpm"]["snapshot"]["pendings"]), run.variables)
+        # 바깥 답이 각본을 따라 시계를 옮겼으면 회사 세계의 시각도 — 확정 기록의 시각이 그것이다.
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
         # 회사의 확정 기록(요청 확인 상태·원가 버전)을 먼저 적는다 — 회사가 받지 못하면 이 조작은
         # 저장되지 않는다(503). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
         for record in doc.pop("_company_writes", []):
@@ -557,6 +563,8 @@ class Sc02Process:
                 return doc
             # 요청 원문의 주인은 회사다 — 공급사가 회사 구매 수신함에 보내고 NowView가
             # 사본을 들인다.
+            if script_index is None and doc["request"] is None:
+                _clock_to_script(doc, self.seed, None)
             self.company.set_clock(demo_run_id, doc["clock"])
             sent = self.company.supplier_sends(demo_run_id, fixture_id)
             received = self.company.price_request(demo_run_id, sent["doc_id"])
@@ -1016,6 +1024,27 @@ def _check_expect(doc: dict, expect: dict[str, Any]) -> None:
     bundle = expect.get("bundle")
     if bundle is not None and (doc["handoff"] or {}).get("bundle_hash") != bundle:
         raise DomainError("본 인계 자료가 최신이 아니다 — 새로 고친 뒤 다시 인수한다", 409)
+
+
+def _clock_to_script(doc: dict, seed: Seed, node_id: str | None) -> None:
+    """
+    바깥에서 한 일이 각본의 **바로 다음** 단계면 그 효과를 내기 전에 가상시계를 그 단계의 시각으로
+    옮긴다 — 플레이어가 단계를 실행할 때와 같다(장면 1 `_clock_to_script`와 같은 이유: 회사
+    사이트로만 진행하자 업무·결재·원가 등록이 전부 수신 시각으로 적혔다, 2026-11-01). 뒤로는
+    가지 않는다.
+    """
+    from app.sc02.demo import steps_for  # demo가 이 모듈을 가져온다
+
+    steps = steps_for(doc["case_id"], seed)
+    nxt = doc.get("script_index", -1) + 1
+    if nxt >= len(steps) or steps[nxt].node_id != node_id:
+        return
+    at = parse_at(steps[nxt].at)
+    if at > parse_at(doc["clock"]):
+        doc["clock"] = at.isoformat()
+        doc["_company_clock"] = True
+        domain.audit(doc, actor="system", action="clock_followed_script", to=doc["clock"])
+        domain.raise_overdue_alerts(doc)
 
 
 def _follow_script(doc: dict, seed: Seed, node_id: str | None) -> None:

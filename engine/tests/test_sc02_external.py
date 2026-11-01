@@ -180,6 +180,51 @@ def test_studio_run_reaches_the_handoff_through_system_operations(proc: Sc02Proc
     assert script.value.status == 409
 
 
+def test_answers_outside_nowview_move_the_clock_to_the_script_step(proc: Sc02Process) -> None:
+    """
+    회사 사이트·Studio처럼 NowView를 거치지 않고 답해도 가상시계가 각본 단계의 시각으로 간다 —
+    시계를 옮기지 않았더니 결재·원가 등록·인수가 전부 수신 시각(6/17 09:00)으로 적혔다(2026-11-01
+    회사 사이트 실측). 회사 세계의 시각과 회사 기록도 같은 시각이다.
+    """
+    rid = proc.create(sc01_demo_run_id=_handed_off_sc01(proc.sc01), executor="studio")[
+        "demo_run_id"
+    ]
+    doc = proc.receive(rid, domain.REQUEST_ID, actor="u-buy")  # 화면 수신 — 첫 단계 시각으로
+    steps = demo.steps_for("BASE")
+    assert doc["clock"] == parse_at(steps[0].at).isoformat()
+    engine = Engine()
+    run = engine.start(
+        proc.process,
+        run_id="run_20270617_090000_a3b3c3",
+        log=RunLog(run_id="run_20270617_090000_a3b3c3"),
+        env=RunEnv(services=C15Calls(proc, origin="test")),
+        executor="studio",
+        inputs={"데모실행ID": rid, "요청ID": domain.REQUEST_ID},
+        now=parse_at(doc["clock"]),
+    )
+    engine.run_until_blocked(run)
+    for step in (s for s in steps if s.node_id):  # 시계를 손대지 않는다
+        [pending] = [p for p in run.pendings.values() if p.node_id == step.node_id]
+        engine.answer(run, pending.request_id, _answer(step), answered_by=USERS[step.actor]["name"])
+        assert engine.run_until_blocked(run) is not State.FAILED, step.node_id
+
+    doc = proc.get(rid)
+    at = {s.node_id: parse_at(s.at).isoformat() for s in steps if s.node_id}
+    assert doc["clock"] == at["Accept_Handoff"]
+    assert doc["request"]["verified_at"] == at["Verify_Request"]
+    assert [d["decided_at"] for d in doc["decisions"]] == [
+        at["Approve_Lead"],
+        at["Approve_Exec"],
+        at["Approve_CEO"],
+    ]
+    assert doc["cost_versions"]["C02-APP01"]["registered_at"] == at["Register_Cost"]
+    assert {t["task_id"]: t["completed_at"] for t in doc["tasks"].values()}["TASK-ACCEPT"] == at[
+        "Accept_Handoff"
+    ]
+    (cv,) = proc.company.cost_versions(rid)
+    assert cv["registered_at"] == at["Register_Cost"]
+
+
 def test_a_rejected_record_returns_to_the_same_approval(proc: Sc02Process) -> None:
     """
     Studio 대화상자는 NowView 사전 검사를 거치지 않는다 — 기록이 거절되면 오류 경계로 같은 결재가
