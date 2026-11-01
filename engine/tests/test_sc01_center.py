@@ -374,6 +374,12 @@ def test_answers_outside_nowview_move_the_script_so_the_player_does_not_stall(
     assert after["scene"] == "HANDED_OFF" and runner.run.state is State.DONE
     assert (after["script_index"], after["step"]) == (len(demo.BASE) - 1, "EV07")
     assert after["script_follow"] == {"ahead": [], "pending": []}
+    # 바깥 답도 시계를 그 단계의 시각으로 옮긴다 — 안 그러면 전부 수신 시각으로 적혔다
+    assert after["clock"] == parse_at(demo.BASE[-1].at).isoformat()
+    verified = next(s for s in after["sources"].values() if s.get("verified_at"))
+    assert verified["verified_at"] == parse_at(demo.BASE[1].at).isoformat()
+    accepted = sorted(t["accepted_at"] for t in after["tasks"].values() if t.get("accepted_at"))
+    assert accepted[-1] == parse_at(demo.BASE[8].at).isoformat()
     assert demo.run_step(proc, rid, len(demo.BASE) - 1) == proc.get(rid)  # 지난 단계는 그대로
 
 

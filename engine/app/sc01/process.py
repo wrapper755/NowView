@@ -199,6 +199,7 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
         raise DomainError(f"인수 결재가 아니다: {node_id}", 422)
     answer, variables = _record_answer(operation, args)
     check_answer(doc, node_id, answer, variables)
+    _clock_to_script(doc, node_id)
 
     by, how = _answerer(doc, node_id, args, actor)
     domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, **how)
@@ -361,6 +362,7 @@ def run_operation(
     if operation == "assess_supply_risk":
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
+        _clock_to_script(doc, "Confirm_Calc")
         by, how = _answerer(doc, "Confirm_Calc", args, actor)
         domain.audit(
             doc, actor=by, action="calculation_requested", node_id="Confirm_Calc", **how
@@ -502,6 +504,9 @@ class Sc01Process:
             domain.sync_tasks(
                 doc, {k: v for k, v in doc["bpm"]["snapshot"]["pendings"].items()}, run.variables
             )
+        # 바깥 답이 각본을 따라 시계를 옮겼으면 회사 세계의 시각도 — 확정 기록의 시각이 그것이다.
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
         # 회사의 확정 기록(원천 확인 상태)을 먼저 적는다 — 회사가 받지 못하면 이 조작은 저장되지
         # 않는다(503, 다시 할 일). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
         for record in doc.pop("_company_writes", []):
@@ -511,7 +516,7 @@ class Sc01Process:
             domain.company_exchange(
                 doc,
                 direction="out",
-                what=f"원천 확인 결과 「{label}」을 적었다",
+                what=f"원천 확인 결과를 적었다 — {label}",
                 doc_id=doc_id,
                 by=record["by"],
             )
@@ -699,6 +704,8 @@ class Sc01Process:
             doc, version = self._load(demo_run_id)
             if domain.check_idempotency(doc, idempotency_key, ["receive", fixture_id]):
                 return doc
+            if script_index is None:
+                _clock_to_script(doc, f"receive:{fixture_id}")
             self.company.set_clock(demo_run_id, doc["clock"])
             sent = self.company.customer_sends(demo_run_id, fixture_id)
             plan = self.company.customer_plan(demo_run_id, sent["doc_id"])
@@ -1259,6 +1266,41 @@ def _center_vars(doc: dict) -> dict[str, Any]:
 
 def _script_follow(doc: dict) -> dict[str, list[str]]:
     return doc.setdefault("script_follow", {"ahead": [], "pending": []})
+
+
+def _clock_to_script(doc: dict, done: str) -> None:
+    """
+    바깥에서 한 일(회사 사이트·Center 콘솔·NowView 화면 답)이 각본의 다음 단계를 지나가면
+    **그 효과를 내기 전에** 가상시계를 그 단계의 시각으로 옮긴다 — 플레이어가 단계를 실행할 때와
+    같다. 안 그러면 시계가 움직이지 않아 원천 확인·계산·인수가 전부 수신 시각으로 적혔다(회사
+    사이트 실측 2026-11-01).
+    뒤로는 가지 않는다. 각본이 대리 답한 결재(`pending`)는 각본이 이미 시계를 옮겼다. 회사 세계의
+    시각은 저장 직전에 같이 맞춘다(`_commit`).
+    """
+    from app.sc01.demo import BASE  # demo가 이 모듈을 가져온다
+
+    follow = _script_follow(doc)
+    if done in follow["pending"]:
+        return
+    ahead = [*follow["ahead"], done]
+    i = doc.get("script_index", -1) + 1
+    moved = None
+    while i < len(BASE):
+        step = BASE[i]
+        key = step.node_id or f"receive:{step.answer.get('fixture_id')}"
+        if key not in ahead:
+            break
+        ahead.remove(key)
+        moved = i
+        i += 1
+    if moved is None:
+        return
+    at = domain.parse_at(BASE[moved].at)
+    if at > domain.parse_at(doc["clock"]):
+        doc["clock"] = at.isoformat()
+        doc["_company_clock"] = True
+        domain.audit(doc, actor="system", action="clock_followed_script", to=doc["clock"])
+        domain.raise_overdue_alerts(doc)
 
 
 def _follow_script(doc: dict, done: str | None) -> None:

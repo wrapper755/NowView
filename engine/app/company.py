@@ -86,9 +86,7 @@ class CompanyClient:
     @classmethod
     def from_env(cls, company_id: str = "company1") -> CompanyClient:
         prefix = f"COMPANY_{company_id.upper()}"
-        return cls(
-            os.getenv(f"{prefix}_URL"), os.getenv(f"{prefix}_KEY"), company_id=company_id
-        )
+        return cls(os.getenv(f"{prefix}_URL"), os.getenv(f"{prefix}_KEY"), company_id=company_id)
 
     def set_url(self, url: str | None) -> None:
         """관리자 모드가 회사 시스템 주소를 바꿨다 — 연결·캐시를 새로 한다(키는 환경 그대로)."""
@@ -224,6 +222,38 @@ class CompanyClient:
     def set_plan_status(self, world_id: str, doc_id: str, **record: Any) -> dict[str, Any]:
         """원천 확인 결정을 회사에 적는다 — `ref`가 같으면 회사가 다시 적지 않는다(멱등)."""
         return self._call("POST", f"/worlds/{world_id}/customer-plans/{doc_id}/status", record)
+
+    # ───────────── 구매 (장면 2) ─────────────
+
+    def purchase_master(self) -> dict[str, Any]:
+        """부품·공급사·부품 구성·현행 구매 단가 — 불변 기록이라 부르는 쪽이 한 번 읽어 둔다."""
+        return self._call("GET", "/company/purchase/master")
+
+    def supplier_sends(self, world_id: str, fixture_id: str) -> dict[str, Any]:
+        """시연 — 공급사가 단가 인상 요청을 보냈다. 회사 구매 수신함의 접수 요약을 돌려준다."""
+        self.ensure_world(world_id)
+        return self._call(
+            "POST", f"/worlds/{world_id}/sim/price-requests", {"fixture_id": fixture_id}
+        )
+
+    def price_request(self, world_id: str, doc_id: str) -> dict[str, Any]:
+        return self._call("GET", f"/worlds/{world_id}/price-requests/{doc_id}")
+
+    def set_price_request_status(self, world_id: str, doc_id: str, **record: Any) -> dict[str, Any]:
+        """요청 원문 확인 결정을 회사에 적는다 — `ref`가 같으면 다시 적지 않는다(멱등)."""
+        return self._call("POST", f"/worlds/{world_id}/price-requests/{doc_id}/status", record)
+
+    def register_cost_version(self, world_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """승인 단가의 원가 버전을 회사에 등록한다 — 같은 버전·같은 내용이면 기존 등록이다."""
+        return self._call("POST", f"/worlds/{world_id}/cost-versions", record)
+
+    def cost_versions(self, world_id: str) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/cost-versions")
+
+    def reset_purchase(self, world_id: str) -> None:
+        """장면 2의 세계 기록만 처음으로 — 장면 1의 고객계획·원천 확인은 그대로다."""
+        self.ensure_world(world_id)
+        self._call("POST", f"/worlds/{world_id}/purchase/reset")
 
 
 def _detail(response: httpx.Response) -> str:

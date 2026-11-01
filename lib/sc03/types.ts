@@ -2,7 +2,7 @@
  * SC03 엔진 응답 — `engine/app/sc03/view.py`의 모양 그대로. 금액·비율은 원 단위 DECIMAL 문자열이다(화면은 단위만 바꾼다).
  */
 
-import type { Executor, FormField } from "@/lib/sc01/types";
+import type { CompanyExchange, Executor, FormField } from "@/lib/sc01/types";
 
 export interface Sc03Waiting {
   nodeId: string;
@@ -220,6 +220,8 @@ export interface Sc03View {
     sc01_run: string;
     forecast_approval: string;
   };
+  /** 회사 시스템과 오간 것 — 시작 때 승인 원가 버전(C02-APP01)을 읽었다 */
+  companyLog?: CompanyExchange[];
   review: { review_id: string; state: string; outcome: string | null; started_at: string | null; started_by: string | null; completed_at: string | null };
   schedule: Record<string, string>;
   runs: AnalysisRun[];

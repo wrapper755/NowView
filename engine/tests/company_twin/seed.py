@@ -143,9 +143,7 @@ def load() -> CompanyData:
     from app.sc01.domain import USERS
 
     org = {
-        "users": [
-            {"user_id": uid, **u} for uid, u in USERS.items() if u["role"] != "시연관리자"
-        ]
+        "users": [{"user_id": uid, **u} for uid, u in USERS.items() if u["role"] != "시연관리자"]
     }
     return CompanyData(
         users=org["users"],
@@ -181,3 +179,114 @@ def fixture_rows(fixture_id: str) -> tuple[str, list[dict[str, Any]]]:
         q = overrides.get((row["model_id"], month), row["quantity"])
         rows.append({**row, "customer_plan_id": plan_id, "quantity": q})
     return plan_id, rows
+
+
+# ───────────── 구매 (장면 2 — SYN-SC02-v0.2) ─────────────
+
+PURCHASE_WORKBOOK = WORKBOOK.with_name("SYN-SC02-v0.2.xlsx")
+
+
+@dataclass(frozen=True)
+class PurchaseData:
+    """
+    구매 쪽 회사 기록 — 부품·공급사·부품 구성(BOM)·현행 구매 단가(C01에 들어 있는 부품값), 그리고
+    공급사가 보낼 단가 인상 요청의 원문(시연 원천). 협상·기안·결재·분석은 회사 기록이 아니다 —
+    NowView가 BPM 진행에서 만든다. 원가 버전 등록(C02-APP01)은 결재 뒤 NowView 일꾼이 세계에 적는다.
+    """
+
+    parts: list[dict[str, Any]]
+    suppliers: list[dict[str, Any]]
+    bom: list[dict[str, Any]]
+    prices: list[dict[str, Any]]
+    request: dict[str, Any]  # 기본 요청 원문 REQ-2706-01 (설정 시트의 단가·적용일 + 공문 본문)
+
+
+#: 공급사 이름 — 증빙과협상 시트의 행위자 칸(「SUP-01 가상 정밀부품」)에서 읽는다.
+def _supplier_names(evidence: list[dict[str, Any]]) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for r in evidence:
+        actor = str(r.get("actor") or "")
+        head, _, rest = actor.partition(" ")
+        if head.startswith("SUP-") and rest:
+            names[head] = rest
+    return names
+
+
+@cache
+def load_purchase() -> PurchaseData:
+    wb = load_workbook(PURCHASE_WORKBOOK, data_only=True, read_only=True)
+    settings = {str(r["key"]): r["value"] for r in _rows(wb["설정"], "key")}
+    mapping = list(_rows(wb["부품모델매핑"], "model_id"))
+    evidence = list(_rows(wb["증빙과협상"], "record_id"))
+    wb.close()
+    suppliers = _supplier_names(evidence)
+    bom = [
+        {
+            "model_id": str(r["model_id"]),
+            "part_id": str(r["part_id"]),
+            "supplier_id": str(r["supplier_id"]),
+            "qty_per": str(r["소요량"]),
+            # C01 외주비 = 부품값 × 소요량 + 잔여 외주비 — 단가가 바뀌면 부품값 몫만 바뀐다
+            "outsource": str(r["기존외주비"]),
+            "residual_outsource": str(r["잔여외주비"]),
+        }
+        for r in mapping
+    ]
+    part_ids = sorted({b["part_id"] for b in bom})
+    used = sorted({b["supplier_id"] for b in bom})
+    first = mapping[0]
+    old_price = str(settings["old_price"])
+    if any(str(r["기존부품단가"]) != old_price for r in mapping):
+        raise ValueError("부품모델매핑의 기존부품단가가 설정의 old_price와 다르다")
+    doc_req = next(r for r in evidence if r["record_id"] == "DOC-REQ01")
+    request = {
+        "request_id": str(doc_req["request_id"]),
+        "supplier_id": str(first["supplier_id"]),
+        "supplier_name": suppliers.get(str(first["supplier_id"]), str(first["supplier_id"])),
+        "source_doc_id": "DOC-REQ01",
+        "text": str(doc_req["내용"]),
+        "items": [
+            {
+                "part_id": str(first["part_id"]),
+                "unit": "EA",
+                "currency": "KRW",
+                "tax_basis": "VAT_EXCLUDED",
+                "old_price": old_price,
+                "requested_price": str(settings["request_price"]),
+                "effective_date": _as_date(settings["effective_date"]).isoformat(),
+                "reason": "원재료 및 가공비 상승",
+            }
+        ],
+    }
+    return PurchaseData(
+        parts=[{"part_id": p, "name": "외주 공통부품", "unit": "EA"} for p in part_ids],
+        suppliers=[
+            {"supplier_id": s, "name": n, "in_scope": s in used}
+            for s, n in sorted(suppliers.items())
+        ],
+        bom=bom,
+        prices=[
+            {
+                "price_version": "C01",
+                "part_id": str(first["part_id"]),
+                "supplier_id": str(first["supplier_id"]),
+                "unit_price": old_price,
+                "currency": "KRW",
+                "tax_basis": "VAT_EXCLUDED",
+            }
+        ],
+        request=request,
+    )
+
+
+#: 공급사가 보낼 수 있는 단가 인상 요청 — 시연 사례. 값은 기본 요청 품목의 칸만 바꾼다(None = 누락).
+PRICE_REQUEST_FIXTURES: dict[str, dict[str, Any]] = {
+    "REQ-2706-01": {},
+    "REQ-2706-01-MISSING": {"effective_date": None},
+}
+
+
+def price_request(fixture_id: str) -> dict[str, Any]:
+    base = load_purchase().request
+    item = {**base["items"][0], **PRICE_REQUEST_FIXTURES[fixture_id]}
+    return {**base, "items": [item]}

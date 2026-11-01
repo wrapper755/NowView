@@ -1,6 +1,6 @@
 """
 SC02 실행 — `processes/sc02.bpmn`을 **Studio 시험 실행·Center 서버 실행**이 돌고, NowView는 서비스
-태스크가 부르는 시스템 작업(외부 확장 `nowview-sc02`)으로 업무를 적는다. SC01의 N1~N6과 같은 틀이다
+태스크가 부르는 시스템 작업(기본 확장 `external`)으로 업무를 적는다. SC01의 N1~N6과 같은 틀이다
 (`docs/chaeksas-integration.md`).
 
 * **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 실행 id가 데모
@@ -10,6 +10,12 @@ SC02 실행 — `processes/sc02.bpmn`을 **Studio 시험 실행·Center 서버 �
   먼저), 진행은 실행 기록을 폴링한다. **Studio**: 결재는 Studio에서 답한다 — 화면은 읽기만 한다.
 * **내장 실행기도 남아 있다** — 같은 그림·같은 작업 함수를 같은 프로세스에서 돈다. 화면은 고르지
   않고 시험이 흐름·숫자를 잠그는 데 쓴다(2026-10-27 결정).
+
+**회사 자료는 회사 시스템에 있다**(`app/company.py`, `docs/worker-interfaces.md` §3).
+구매 마스터(부품·공급사·부품 구성·현행 구매 단가)는 회사에서 읽고, 공급사의 단가 인상
+요청은 회사 구매 수신함으로 들어와 NowView가 사본을 들인다. 요청 원문 확인 결정과 승인
+단가의 원가 버전(C02-APP01)은 저장 직전에 회사에 적는다(`_company_writes` → `_commit`) —
+회사가 받지 못하면 그 조작은 저장되지 않는다(503).
 
 **장면 2는 장면 1 인계에서 시작한다.** 데모 실행 id가 장면 1과 같다. 장면 1이 아직 인계 전이면 장면
 1 각본을 끝까지 실제로 실행한 뒤 시작한다 — 지름길로 「인계됨」을 만들지 않는다(4.1의 원칙).
@@ -31,6 +37,7 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app.company import CompanyClient
 from app.sc01 import demo as sc01_demo
 from app.sc01 import process as sc01_process
 from app.sc01.center import CenterClient, CenterConfig, CenterError
@@ -39,6 +46,7 @@ from app.sc01.domain import (
     USERS,
     DomainError,
     check_idempotency,
+    company_exchange,
     executor_of,
     link_external_run,
     name_of,
@@ -51,36 +59,50 @@ from app.sc01.domain import (
 from app.sc01.process import Sc01Process, read_run_events
 from app.sc01.store import Sc01Store, StaleWrite
 from app.sc02 import domain
-from app.sc02.seed import Seed, load_seed
+from app.sc02.seed import Seed, load_seed, with_company
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc02.bpmn"
-APP_ID = "nowview-sc02"
+APP_ID = "external"
 #: 사람 결정 뒤의 기록 작업 — 캔버스가 결재 노드에 접어 그린다(`view.topology`). 거절되면 그림의
 #: 오류 경계가 같은 결재로 되돌린다(`Bnd_Record_*`).
 RECORDS = (
-    "record_verification",
-    "record_report",
-    "record_negotiation",
-    "submit_proposal",
-    "record_decision",
-    "register_cost",
-    "request_handoff",
-    "accept_handoff",
+    "record_price_request_review",
+    "record_purchase_report",
+    "record_price_negotiation",
+    "submit_price_proposal",
+    "record_price_decision",
+    "register_cost_version",
+    "hand_off_cost_review",
+    "accept_cost_review",
 )
 OPERATIONS = (
-    "screen_request",
-    "analyze_request",
-    "analyze_negotiation",
-    "judge_authority",
-    "agent_draft",
+    "screen_price_request",
+    "analyze_price_request",
+    "analyze_price_negotiation",
+    "judge_price_authority",
+    "request_price_review_draft",
     *RECORDS,
 )
 #: 결재 뒤의 계산 작업 — 기록 작업처럼 그 결재를 지나왔고 그 업무를 닫는다.
-DECIDED_BY = {"analyze_request": "Confirm_Analysis", "analyze_negotiation": "Confirm_Reanalysis"}
+DECIDED_BY = {
+    "analyze_price_request": "Confirm_Analysis",
+    "analyze_price_negotiation": "Confirm_Reanalysis",
+}
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — SC01과 같다.
 CENTER_WAIT_S = sc01_process.CENTER_WAIT_S
 
 log = logging.getLogger(__name__)
+
+
+def _note_master(doc: dict) -> None:
+    company_exchange(
+        doc,
+        direction="in",
+        what=(
+            "구매 기준 자료를 읽었다 — 부품 P-COM01 · 공급사 · 부품 구성(a~e 소요량) · "
+            "현행 단가 C01"
+        ),
+    )
 
 
 def _by(args: dict[str, Any], actor: str | None) -> tuple[str, bool]:
@@ -102,15 +124,18 @@ def _by(args: dict[str, Any], actor: str | None) -> tuple[str, bool]:
 #: 콘솔·Studio 대화상자의 답은 NowView 사전 검사를 거치지 않는다(SC01 N1과 같다). 검사가 부수
 #: 효과보다 먼저다.
 _ANSWER_OF = {
-    "record_verification": ("Verify_Request", {"확인결과": "result"}),
-    "record_report": ("Report_Lead", {"검토필요성": "need"}),
-    "analyze_request": ("Confirm_Analysis", {"내부제시단가": "offer_price", "협상기한": "due_at"}),
-    "analyze_negotiation": ("Confirm_Reanalysis", {}),
-    "record_negotiation": (
+    "record_price_request_review": ("Verify_Request", {"확인결과": "result"}),
+    "record_purchase_report": ("Report_Lead", {"검토필요성": "need"}),
+    "analyze_price_request": (
+        "Confirm_Analysis",
+        {"내부제시단가": "offer_price", "협상기한": "due_at"},
+    ),
+    "analyze_price_negotiation": ("Confirm_Reanalysis", {}),
+    "record_price_negotiation": (
         "Record_Negotiation",
         {"협상결과": "outcome", "협상단가": "price", "협상적용일": "effective_date"},
     ),
-    "submit_proposal": (
+    "submit_price_proposal": (
         "Draft_Proposal",
         {
             "기안단가": "price",
@@ -119,7 +144,7 @@ _ANSWER_OF = {
             "차이사유": "diff_reason",
         },
     ),
-    "record_decision": (
+    "record_price_decision": (
         None,
         {
             "결정": "decision",
@@ -128,9 +153,9 @@ _ANSWER_OF = {
             "지시기한": "due_at",
         },
     ),
-    "register_cost": ("Register_Cost", {"대조결과": "check"}),
-    "request_handoff": ("Request_Handoff", {"경영관리담당자": "fin"}),
-    "accept_handoff": ("Accept_Handoff", {"인수의견": "opinion"}),
+    "register_cost_version": ("Register_Cost", {"대조결과": "check"}),
+    "hand_off_cost_review": ("Request_Handoff", {"경영관리담당자": "fin"}),
+    "accept_cost_review": ("Accept_Handoff", {"인수의견": "opinion"}),
 }
 
 
@@ -149,19 +174,22 @@ def run_operation(
     (`app/consumer.py`)이 **같은 함수**를 쓴다 — 출력 모양이 갈라지면 BPMN의 `output` 대응이
     한쪽에서만 맞는다. 기록 작업의 `error_message: None`은 결재가 보이는 직전 거절 사유를 비운다.
     """
-    if operation == "screen_request":
+    if operation == "screen_price_request":
         errors = domain.screen_request(doc, seed, args["request_id"])
         return {"passed": not errors, "error_count": len(errors)}
-    if operation == "agent_draft":
+    if operation == "request_price_review_draft":
         return {"output_id": domain.agent_draft(doc, kind=args["kind"], run_id=args["run_id"])}
-    if operation == "judge_authority":
+    if operation == "judge_price_authority":
         return {"ceo_required": domain.judge_authority(doc, seed)}
 
     by, known = _by(args, actor)
     _recheck(doc, seed, operation, args)
+    _clock_to_script(
+        doc, seed, DECIDED_BY.get(operation) or str(args.get("node_id") or "") or None
+    )
     if operation in DECIDED_BY:
         node_id = DECIDED_BY[operation]
-        if operation == "analyze_request":
+        if operation == "analyze_price_request":
             out = domain.analyze_request(
                 doc, seed, offer_price=args["offer_price"], due_at_text=args["due_at"], by=by
             )
@@ -177,25 +205,25 @@ def run_operation(
     if node_id not in domain.NODE_ROLES:
         raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
     out: dict[str, Any] = {}
-    if operation == "record_verification":
+    if operation == "record_price_request_review":
         domain.record_verification(doc, result=args["result"], opinion=args["opinion"], by=by)
-    elif operation == "record_report":
+    elif operation == "record_purchase_report":
         domain.record_report(doc, args, by=by)
-    elif operation == "record_negotiation":
+    elif operation == "record_price_negotiation":
         out = {"negotiation_id": domain.record_negotiation(doc, args, by=by)}
-    elif operation == "submit_proposal":
+    elif operation == "submit_price_proposal":
         out = domain.submit_proposal(doc, seed, args, by=by)
-    elif operation == "record_decision":
+    elif operation == "record_price_decision":
         domain.record_decision(doc, seed, node_id, args, by=by)
-    elif operation == "register_cost":
+    elif operation == "register_cost_version":
         out = {
             "cost_version_id": domain.register_cost(
                 doc, seed, check=args.get("check"), note=args.get("note") or "", by=by
             )
         }
-    elif operation == "request_handoff":
+    elif operation == "hand_off_cost_review":
         out = domain.request_handoff(doc, fin=args.get("fin"), note=args.get("note") or "", by=by)
-    elif operation == "accept_handoff":
+    elif operation == "accept_cost_review":
         # 마스터 밖의 이름(콘솔 관리자)이면 「담당자만」은 Center가 이미 막았다(ADR-0081).
         domain.accept_handoff(doc, opinion=args.get("opinion") or "", by=by, strict=known)
     else:  # pragma: no cover - OPERATIONS가 막는다
@@ -244,11 +272,16 @@ class Sc02Process:
         publish: Callable[[str], None] = lambda _id: None,
         center: CenterClient | None = None,
         center_wait_s: float = CENTER_WAIT_S,
+        company: CompanyClient | None = None,
     ) -> None:
-        """`center`를 주지 않으면 장면 1의 것을 쓴다(같은 Center·같은 키)."""
+        """
+        `center`·`company`를 주지 않으면 장면 1의 것을 쓴다(같은 Center·같은 회사 시스템). 구매
+        마스터는 처음 쓸 때 회사에서 읽는다 — 엔진이 뜰 때 회사가 꺼져 있어도 기동은 된다.
+        """
         self.store = store
         self.sc01 = sc01
-        self.seed = seed or load_seed()
+        self.company = company or sc01.company
+        self._seed = seed
         self.process = read_process(PROCESS_PATH.read_bytes())
         self.engine = Engine()
         self.publish = publish
@@ -256,6 +289,13 @@ class Sc02Process:
         self.center_wait_s = center_wait_s
         self._locks: dict[str, threading.Lock] = {}
         self._guard = threading.Lock()
+
+    @property
+    def seed(self) -> Seed:
+        """수치 시드(NowView 엑셀) + 회사 구매 마스터. 마스터는 불변이라 한 번 읽어 둔다."""
+        if self._seed is None:
+            self._seed = with_company(load_seed(), self.company.purchase_master())
+        return self._seed
 
     # ───────────── 공통 ─────────────
 
@@ -319,12 +359,38 @@ class Sc02Process:
                 "visited": visited,
             }
             domain.sync_tasks(doc, dict(doc["bpm"]["snapshot"]["pendings"]), run.variables)
+        # 바깥 답이 각본을 따라 시계를 옮겼으면 회사 세계의 시각도 — 확정 기록의 시각이 그것이다.
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
+        # 회사의 확정 기록(요청 확인 상태·원가 버전)을 먼저 적는다 — 회사가 받지 못하면 이 조작은
+        # 저장되지 않는다(503). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
+        for record in doc.pop("_company_writes", []):
+            self._write_company(doc, record)
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
             raise DomainError("다른 요청이 먼저 바꿨다 — 새로 고친 뒤 다시 하라", 409) from exc
         self.publish(f"sc02:{doc['demo_run_id']}")
         return doc
+
+    def _write_company(self, doc: dict, record: dict[str, Any]) -> None:
+        world = doc["demo_run_id"]
+        kind = record.pop("kind")
+        if kind == "request_status":
+            doc_id = record.pop("doc_id")
+            self.company.set_price_request_status(world, doc_id, **record)
+            label = {"VERIFIED": "확인 완료", "NEEDS_INFO": "보완 요청"}[record["status"]]
+            what = f"단가 인상 요청 확인 결과를 적었다 — {label}"
+        else:
+            doc_id = record["cost_version_id"]
+            self.company.register_cost_version(world, record)
+            what = (
+                f"원가 버전을 등록했다 — {doc_id} · {record['part_id']} "
+                f"{int(record['old_price']):,} → {int(record['new_price']):,}원, "
+                f"{record['effective_from']}부터"
+            )
+        by = record.get("by") or record.get("registered_by")
+        company_exchange(doc, direction="out", what=what, doc_id=doc_id, by=by)
 
     # ───────────── 시작 ─────────────
 
@@ -408,6 +474,7 @@ class Sc02Process:
             baseline=baseline,
             executor=executor,
         )
+        _note_master(doc)
         domain.audit(
             doc,
             actor=actor,
@@ -446,6 +513,9 @@ class Sc02Process:
             domain.audit(
                 doc, actor=actor, action="demo_run_reset", event_code="D00", executor=where
             )
+            # 회사 세계의 장면 2 기록만 처음으로 — 장면 1의 고객계획·원천 확인은 그대로 둔다.
+            self.company.reset_purchase(demo_run_id)
+            _note_master(doc)
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
             return self._commit(doc, version, None, "reset")
@@ -467,6 +537,8 @@ class Sc02Process:
                 doc, actor=actor, action="clock_moved", event_code=event_code, to=doc["clock"]
             )
             domain.raise_overdue_alerts(doc)
+            # 회사 세계의 시각도 함께 — 요청 도착·원가 적용일 도래가 회사 쪽 사건이다.
+            self.company.set_clock(demo_run_id, doc["clock"])
             return self._commit(doc, version, None, event_code or "clock")
 
     def receive(
@@ -489,7 +561,25 @@ class Sc02Process:
             doc, version = self._load(demo_run_id)
             if check_idempotency(doc, idempotency_key, ["receive", fixture_id]):
                 return doc
-            request_id, created = domain.receive_request(doc, self.seed, fixture_id, actor=actor)
+            # 요청 원문의 주인은 회사다 — 공급사가 회사 구매 수신함에 보내고 NowView가
+            # 사본을 들인다.
+            if script_index is None and doc["request"] is None:
+                _clock_to_script(doc, self.seed, None)
+            self.company.set_clock(demo_run_id, doc["clock"])
+            sent = self.company.supplier_sends(demo_run_id, fixture_id)
+            received = self.company.price_request(demo_run_id, sent["doc_id"])
+            request_id, created = domain.receive_request(doc, received, actor=actor)
+            if created:
+                company_exchange(
+                    doc,
+                    direction="in",
+                    what=(
+                        f"공급사 {received['supplier_name']}의 단가 인상 요청을 받았다 — "
+                        f"{received['request_id']}"
+                    ),
+                    doc_id=received["doc_id"],
+                    by=name_of(actor) if actor in USERS else actor,
+                )
             if not created:
                 return doc
             _follow_script(doc, self.seed, None)
@@ -934,6 +1024,27 @@ def _check_expect(doc: dict, expect: dict[str, Any]) -> None:
     bundle = expect.get("bundle")
     if bundle is not None and (doc["handoff"] or {}).get("bundle_hash") != bundle:
         raise DomainError("본 인계 자료가 최신이 아니다 — 새로 고친 뒤 다시 인수한다", 409)
+
+
+def _clock_to_script(doc: dict, seed: Seed, node_id: str | None) -> None:
+    """
+    바깥에서 한 일이 각본의 **바로 다음** 단계면 그 효과를 내기 전에 가상시계를 그 단계의 시각으로
+    옮긴다 — 플레이어가 단계를 실행할 때와 같다(장면 1 `_clock_to_script`와 같은 이유: 회사
+    사이트로만 진행하자 업무·결재·원가 등록이 전부 수신 시각으로 적혔다, 2026-11-01). 뒤로는
+    가지 않는다.
+    """
+    from app.sc02.demo import steps_for  # demo가 이 모듈을 가져온다
+
+    steps = steps_for(doc["case_id"], seed)
+    nxt = doc.get("script_index", -1) + 1
+    if nxt >= len(steps) or steps[nxt].node_id != node_id:
+        return
+    at = parse_at(steps[nxt].at)
+    if at > parse_at(doc["clock"]):
+        doc["clock"] = at.isoformat()
+        doc["_company_clock"] = True
+        domain.audit(doc, actor="system", action="clock_followed_script", to=doc["clock"])
+        domain.raise_overdue_alerts(doc)
 
 
 def _follow_script(doc: dict, seed: Seed, node_id: str | None) -> None:

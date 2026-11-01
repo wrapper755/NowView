@@ -154,7 +154,8 @@ def baseline_from_sc01(sc01_doc: dict, seed: Seed) -> dict[str, Any]:
     if sc01_doc["scene"] != "HANDED_OFF" or not sc01_doc.get("handoff"):
         raise DomainError(
             "고객 생산계획 변경 대응이 아직 인계되지 않았다 — 외주 단가 인상 검토는 고객 생산계획 "
-            "변경 대응 인계 결과에서 시작한다", 409
+            "변경 대응 인계 결과에서 시작한다",
+            409,
         )
     run_id = sc01_doc["handoff"]["run_id"]
     run = sc01_doc["calc_runs"][run_id]
@@ -279,33 +280,21 @@ def rows_for(doc: dict, seed: Seed) -> list[MonthRow]:
 
 # ─────────────────────────── 요청 접수 (U21 · S01 · CT21) ───────────────────────────
 
-#: 시연 요청 원천. 기본은 DOC-REQ01(SUP-01 → P-COM01 2,000 → 2,200원, 7/1). 누락 변형은 CT21
-#: 검사용이다.
-REQUEST_FIXTURES: dict[str, dict[str, Any]] = {
-    REQUEST_ID: {},
-    "REQ-2706-01-MISSING": {"effective_date": None},
-}
 
-
-def receive_request(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tuple[str, bool]:
+def receive_request(doc: dict, received: dict[str, Any], *, actor: str) -> tuple[str, bool]:
     """
-    요청 등록. **같은 문서 키 + 같은 내용이면 기존 요청을 돌려준다**(U21-03). 같은 키·다른 내용은
-    정정 버전으로 보존한다 — 이번 범위에서는 기본 경로 시작 전에만 받는다(시작 뒤 정정은 후속 범위).
+    요청 등록 — `received`는 회사 구매 수신함의 요청 원문이다
+    (`GET /worlds/{w}/price-requests/{doc}`). 요청의 주인은 회사이고 NowView는 사본을 들인다.
+    **같은 문서 키 + 같은 내용이면 기존 요청을
+    돌려준다**(U21-03). 같은 키·다른 내용은 정정 버전으로 보존한다 — 이번 범위에서는 기본 경로 시작
+    전에만 받는다(시작 뒤 정정은 후속 범위).
     """
-    if fixture_id not in REQUEST_FIXTURES:
-        raise DomainError(f"모르는 시연 요청: {fixture_id}", 404)
-    item = {
-        "part_id": PART_ID,
-        "unit": "EA",
-        "currency": "KRW",
-        "tax_basis": "VAT_EXCLUDED",
-        "old_price": str(seed.setting_decimal("old_price")),
-        "requested_price": str(seed.setting_decimal("request_price")),
-        "effective_date": seed.setting_date("effective_date").isoformat(),
-        "reason": "원재료 및 가공비 상승",
-        **REQUEST_FIXTURES[fixture_id],
+    items = [dict(it) for it in received["items"]]
+    body = {
+        "supplier_id": received["supplier_id"],
+        "source_doc_id": received["source_doc_id"],
+        "items": items,
     }
-    body = {"supplier_id": SUPPLIER_ID, "source_doc_id": "DOC-REQ01", "items": [item]}
     digest = _hash(body)
     current = doc["request"]
     if current is not None:
@@ -313,16 +302,19 @@ def receive_request(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tu
             return current["request_id"], False
         if bpm_started(doc):
             raise DomainError("이미 진행 중인 요청이다 — 진행 뒤의 정정은 이번 범위 밖이다", 409)
+    request_id = received["request_id"]
     doc["request"] = {
-        "request_id": REQUEST_ID,
+        "request_id": request_id,
         "revision": 1 if current is None else current["revision"] + 1,
         "previous": None
         if current is None
         else {k: v for k, v in current.items() if k != "previous"},
-        "supplier_id": SUPPLIER_ID,
-        "supplier_name": "가상 정밀부품",
-        "source_doc_id": "DOC-REQ01",
-        "source_text": seed.evidence["DOC-REQ01"]["내용"],
+        "supplier_id": received["supplier_id"],
+        "supplier_name": received["supplier_name"],
+        "source_doc_id": received["source_doc_id"],
+        "source_text": received["text"],
+        #: 회사 구매 수신함의 문서 번호 — 확인 결정을 이 문서에 돌려 적는다
+        "company_doc_id": received["doc_id"],
         "received_at": doc["clock"],
         "received_by": actor,
         "status": "RECEIVED",
@@ -330,14 +322,21 @@ def receive_request(doc: dict, seed: Seed, fixture_id: str, *, actor: str) -> tu
         "verified_by": None,
         "opinion": None,
         "source_hash": digest,
-        "items": [item],
+        "items": items,
         "errors": [],
-        "fixture_id": fixture_id,
+        "fixture_id": received["fixture_id"],
     }
     doc["scene"] = "ACTIVE"
-    _evidence(doc, "DOC-REQ01")
-    audit(doc, actor=actor, action="request_received", request_id=REQUEST_ID, fixture=fixture_id)
-    return REQUEST_ID, True
+    _evidence(doc, received["source_doc_id"])
+    audit(
+        doc,
+        actor=actor,
+        action="request_received",
+        request_id=request_id,
+        fixture=received["fixture_id"],
+        company_doc_id=received["doc_id"],
+    )
+    return request_id, True
 
 
 def _evidence(doc: dict, *ids: str) -> None:
@@ -393,8 +392,30 @@ def record_verification(doc: dict, *, result: str, opinion: str, by: str) -> Non
         _price_version(doc, "PV-REQ01", "REQUEST", req, _d(req["items"][0]["requested_price"]))
     else:
         req.update(status="NEEDS_INFO", opinion=opinion)
+    _to_company(doc, req, by=by, opinion=opinion)
     audit(
         doc, actor=by, action="request_verified" if result == "확인완료" else "request_needs_info"
+    )
+
+
+def _to_company(doc: dict, req: dict, *, by: str, opinion: str) -> None:
+    """
+    요청 원문 확인 결정은 회사 구매의 접수 기록이다 — 저장 직전에 프로세스가 회사에 적는다
+    (`Sc02Process._commit`). `ref`가 같으면 회사가 다시 적지 않는다.
+    """
+    doc_id = req.get("company_doc_id")
+    if not doc_id:  # 회사 구매 수신함 전에 받은 요청(옛 문서)
+        return
+    doc.setdefault("_company_writes", []).append(
+        {
+            "kind": "request_status",
+            "doc_id": doc_id,
+            "status": req["status"],
+            "by": name_of(by) if by in USERS else by,
+            "opinion": opinion,
+            "evidence": "",
+            "ref": f"{doc['demo_run_id']}:{doc_id}:{req['status']}",
+        }
     )
 
 
@@ -969,6 +990,26 @@ def register_cost(doc: dict, seed: Seed, *, check: Any, note: str, by: str) -> s
         "registered_at": doc["clock"],
         "note": note,
     }
+    cv = doc["cost_versions"][cv_id]
+    # 원가 버전은 회사의 확정 기록이다 — 저장 직전에 회사에 등록한다(같은 버전·같은 내용은 멱등).
+    doc.setdefault("_company_writes", []).append(
+        {
+            "kind": "cost_version",
+            "cost_version_id": cv_id,
+            "parent_cost_version": cv["parent_cost_version"],
+            "part_id": cv["part_id"],
+            "supplier_id": _request(doc)["supplier_id"],
+            "old_price": cv["old_price"],
+            "new_price": cv["new_price"],
+            "effective_from": cv["effective_from"],
+            "models": cv["models"],
+            "approved_proposal": cv["approved_proposal"],
+            "request_doc_id": _request(doc).get("company_doc_id"),
+            "registered_by": name_of(by) if by in USERS else by,
+            "note": note,
+            "ref": f"{doc['demo_run_id']}:{cv_id}",
+        }
+    )
     _evidence(doc, "REG-C02")
     audit(
         doc,
@@ -1305,12 +1346,12 @@ def ensure_task(doc: dict, node_id: str) -> None:
 #: 이 결정이 기록되면 흐름이 끝난다 — Studio 시험 실행의 진행은 작업 호출로만 아는데, 종료 이벤트는
 #: 작업을 부르지 않는다. (작업, 칸, 값) — 칸이 None이면 그 작업 자체가 마지막이다.
 TERMINAL = (
-    ("record_verification", "result", "보완요청"),
-    ("record_report", "need", "검토종결"),
-    ("record_negotiation", "outcome", "미합의"),
-    ("record_decision", "decision", "반려"),
-    ("record_decision", "decision", "추가협상지시"),
-    ("accept_handoff", None, None),
+    ("record_price_request_review", "result", "보완요청"),
+    ("record_purchase_report", "need", "검토종결"),
+    ("record_price_negotiation", "outcome", "미합의"),
+    ("record_price_decision", "decision", "반려"),
+    ("record_price_decision", "decision", "추가협상지시"),
+    ("accept_cost_review", None, None),
 )
 
 
