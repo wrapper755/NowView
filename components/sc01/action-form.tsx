@@ -35,7 +35,6 @@ export function ActionForm({
    * — 엔진도 409·503으로 거절한다. 버튼은 편의다.
    */
   const external = useSc01((s) => s.live !== null && !s.live.answerHere);
-  const relay = useSc01((s) => s.live?.executor === "center");
   const setLive = useSc01((s) => s.setLive);
 
   const [values, setValues] = useState<Record<string, unknown>>(() => ({
@@ -52,6 +51,7 @@ export function ActionForm({
 
   const me = users.find((u) => u.userId === actor);
   const wrongRole = waiting.role !== null && me?.role !== waiting.role;
+  const answerer = users.find((u) => u.role === waiting.role);
   const missing = waiting.fields.some((f) => isMissing(f, values[f.key]));
 
   const submit = async () => {
@@ -99,12 +99,11 @@ export function ActionForm({
             <Lock aria-hidden className="size-3" />
             바깥 실행이 도는 데모 실행이다 — 결재는 바깥에서 답한다
           </span>
-        ) : relay ? (
-          <span className="text-xs text-muted-foreground">Center 결재함에 대리 답으로 간다</span>
         ) : wrongRole ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Lock aria-hidden className="size-3" />
-            {waiting.role} 역할만 할 수 있다 — 상단에서 역할을 바꾼다
+            {waiting.role}
+            {answerer ? ` ${answerer.name}` : ""}만 답할 수 있다 — 상단에서 역할을 바꾼다
           </span>
         ) : null}
       </div>

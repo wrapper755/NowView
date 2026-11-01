@@ -22,7 +22,7 @@ from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
 from conftest import C15Calls, require_postgres
 
-from app.sc01 import demo
+from app.sc01 import demo, domain
 from app.sc01.center import CenterClient, CenterConfig
 from app.sc01.domain import DomainError, parse_at
 from app.sc01.process import Sc01Process, read_run_events
@@ -323,6 +323,103 @@ def test_center_script_waits_so_task_times_match_embedded(
     after = proc.get(rid)
     assert after["scene"] == "HANDED_OFF"
     assert times(after) == times(proc.get(embedded))
+
+
+def test_answers_outside_nowview_move_the_script_so_the_player_does_not_stall(
+    proc: Sc01Process, center: FakeCenter
+) -> None:
+    """
+    회사 사이트·Center 콘솔에서 결재에 답해도 각본 지점(`script_index`·`step`)이 따라간다 —
+    기록 작업의 효과로 옮긴다. 예전에는 사이트에서 원천을 확인한 뒤 플레이어 「다음」이
+    「단계를 건너뛸 수 없다」(409)였다. 바깥 답과 플레이어를 섞어도 이어지고, 병렬 인수는
+    순서가 바뀌어도 된다.
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)  # EV01 수신 — 회사 밖 사건이라 플레이어에 남는다
+    runner = FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_d4d4d4")
+    proc.sync_center(rid)
+
+    def outside(index: int) -> None:
+        """회사 사이트처럼 — 대리 답용 키로 그 직원의 결재에 바로 답한다(NowView를 안 거친다)."""
+        step = demo.BASE[index]
+        [found] = [
+            a
+            for a in center.approvals.values()
+            if a["node_id"] == step.node_id and a["state"] == "open"
+        ]
+        name = domain.name_of(step.actor)
+        proc.center.answer(
+            found["request_id"], step.answer, on_behalf=name, digest=found["review_digest"]
+        )
+        runner.step()
+        proc.sync_center(rid)
+
+    outside(1)  # 원천 확인 — 사이트에서
+    doc = proc.get(rid)
+    assert (doc["script_index"], doc["step"]) == (1, "EV02")
+    doc = demo.run_step(proc, rid, 2)  # 비교 계산 — 플레이어 「다음」이 막히지 않는다
+    runner.step()
+    proc.sync_center(rid)
+    assert proc.get(rid)["script_index"] == 2
+    for index in (3, 4, 5):  # 영업 검토·배정·Review 요청 — 사이트에서
+        outside(index)
+    assert proc.get(rid)["script_index"] == 5
+    outside(7)  # 자재가 생산보다 먼저 인수해도 — 생산 인수 전에는 앞으로 가지 않는다
+    assert proc.get(rid)["script_index"] == 5
+    outside(6)
+    assert proc.get(rid)["script_index"] == 7
+    outside(8)
+
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF" and runner.run.state is State.DONE
+    assert (after["script_index"], after["step"]) == (len(demo.BASE) - 1, "EV07")
+    assert after["script_follow"] == {"ahead": [], "pending": []}
+    assert demo.run_step(proc, rid, len(demo.BASE) - 1) == proc.get(rid)  # 지난 단계는 그대로
+
+
+def test_an_approval_unreadable_at_first_is_read_again_and_waiting_clears_at_the_end(
+    proc: Sc01Process, center: FakeCenter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    결재가 막 열린 순간 Center가 담당자에게 404를 줘도 폴러가 다시 읽어 업무를 제때 연다 — 회사
+    사이트 실측에서 경영관리 인수가 그렇게 「늦게 열림」이 됐다. 마지막 결재를 바깥에서 답해
+    실행이 끝나면 대기도 비어야 한다(폴러는 끝난 실행을 읽지 않는다).
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)
+    runner = FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_e5e5e5")
+    proc.sync_center(rid)
+    for index in range(1, 8):
+        demo.run_step(proc, rid, index)
+        runner.step()
+        if index < 5:
+            proc.sync_center(rid)
+
+    real = proc.center.approval
+    misses = {"Accept_FIN": 1}
+
+    def flaky(request_id: str, *, on_behalf: str):
+        node = center.approvals[request_id]["node_id"]
+        if misses.get(node):
+            misses[node] -= 1
+            return None
+        return real(request_id, on_behalf=on_behalf)
+
+    monkeypatch.setattr(proc.center, "approval", flaky)
+    proc.sync_center(rid)  # 경영관리 인수를 못 읽었다 — 업무는 아직 없다
+    assert domain.task_for_node(proc.get(rid), "Accept_FIN") is None
+    assert proc.sync_center(rid)  # 다시 읽는다
+    doc = proc.get(rid)
+    task = domain.task_for_node(doc, "Accept_FIN")
+    assert task is not None and not task.get("opened_late")
+
+    step = demo.BASE[8]  # 회사 사이트처럼 바깥에서 답한다
+    [found] = [a for a in center.approvals.values() if a["node_id"] == "Accept_FIN"]
+    proc.center.answer(found["request_id"], step.answer, on_behalf="정하윤", digest=None)
+    runner.step()
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF" and after["bpm"]["state"] == "done"
+    assert after["bpm"]["waiting"] == []
 
 
 def test_relay_prechecks_before_touching_center(proc: Sc01Process, center: FakeCenter) -> None:

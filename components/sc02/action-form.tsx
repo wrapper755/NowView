@@ -96,8 +96,6 @@ export function Sc02ActionForm({
             <Lock aria-hidden className="size-3" />
             바깥 실행이 도는 데모 실행이다 — 결재는 {relay ? "Center 결재함" : "Studio"}에서 답한다
           </span>
-        ) : relay ? (
-          <span className="text-xs text-muted-foreground">Center 결재함에 대리 답으로 간다</span>
         ) : wrongRole ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Lock aria-hidden className="size-3" />

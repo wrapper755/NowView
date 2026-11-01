@@ -7,7 +7,7 @@ import { SectionNav } from "@/components/shared/section-nav";
 import { TopBar } from "@/components/shared/top-bar";
 
 /**
- * 회사 화면 — 공통 줄 아래 세 단이다: 왼쪽 업무(그 회사의 BPM 프로세스, 사이드바 `lg:pl-56`), 가운데 머리·본문, 오른쪽 데모
+ * 회사 화면 — 공통 줄 아래 세 단이다: 왼쪽 업무(그 회사의 BPM 프로세스, 사이드바 — 자리는 globals.css의 `.work-shell`, 첫 화면에는 없다), 가운데 머리·본문, 오른쪽 데모
  * 플레이어(xl, 여백은 globals.css의 `[data-demo-player]`). 좁으면 업무는 가운데 머리의 선택, 플레이어는 하단 바다.
  * 사이드바·플레이어·가운데 머리가 `top-12`에 맞물리므로 공통 줄 높이를 바꾸면 함께 본다.
  */
@@ -16,7 +16,7 @@ export default async function CompanyLayout({ children, params }: LayoutProps<"/
   // 회사 판정은 클라이언트가 공개 목록으로 한다.
   const { company: id } = await params;
   return (
-    <div className="flex flex-1 flex-col lg:pl-56">
+    <div className="work-shell flex flex-1 flex-col">
       <TopBar companyId={id}>
         <ActorSwitcher />
         <CommentaryToggle />

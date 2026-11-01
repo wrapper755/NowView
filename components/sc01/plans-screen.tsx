@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Inbox, XCircle } from "lucide-react";
 
 import { ActionForm } from "@/components/sc01/action-form";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
@@ -73,6 +74,8 @@ export function PlansScreen() {
           </CardContent>
         </Card>
       )}
+
+      <CompanyExchangeCard log={view.companyLog ?? []} />
     </main>
   );
 }

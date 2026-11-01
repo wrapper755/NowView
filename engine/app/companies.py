@@ -24,7 +24,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import ValidationError
 
 from .config import ConfigStore, NowViewConfig
@@ -71,13 +71,17 @@ class Settings:
 
 
 def public_companies(config: NowViewConfig) -> list[dict[str, Any]]:
-    """공개 목록 — 이름·설명·업무 번호만. BPM 프로세스 id·주소는 내지 않는다."""
+    """
+    공개 목록 — 이름·설명·업무 번호·회사 사이트(공개 웹) 주소. BPM 프로세스 id·회사 시스템
+    주소는 내지 않는다.
+    """
     return [
         {
             "id": c.id,
             "name": c.name,
             "description": c.description,
             "scenes": sorted({p.scene for p in config.processes if p.company == c.id}),
+            "siteUrl": c.public_site_url(),
         }
         for c in config.companies
     ]
@@ -89,10 +93,12 @@ def build_router(
     center: Any,
     poller: Any,
     systems: dict[str, Any],
+    scenes: dict[int, Any] | None = None,
 ) -> APIRouter:
     """
     `GET /companies`(공개)와 `/admin/*`(관리자 모드). `systems` — 회사 id → 회사 시스템 클라이언트
-    (`app/company.py`). 키·토큰 값은 어디에도 싣지 않는다.
+    (`app/company.py`). `scenes` — 업무 번호 → 그 장면의 프로세스(문서 저장소를 읽는다).
+    키·토큰 값은 어디에도 싣지 않는다.
     """
     router = APIRouter()
 
@@ -106,6 +112,28 @@ def build_router(
     @router.get("/companies")
     def companies() -> list[dict[str, Any]]:
         return public_companies(settings.config)
+
+    @router.get("/companies/{company_id}/works")
+    def works(company_id: str, demo_run_id: str = Query(alias="demoRunId")) -> list[dict[str, Any]]:
+        """
+        회사 운영 현황 — 그 회사 업무마다 이 데모 실행의 지금 상태(BPM 상태·가상시각). 장면 문서가
+        없으면 `none`(시작 전)이다. 화면이 장면마다 문서를 읽으면 시작 전 업무가 404로 콘솔을 메웠다
+        (2026-11-01) — 한 번에 묻고 없는 것은 상태로 돌려준다.
+        """
+        public = next((c for c in public_companies(settings.config) if c["id"] == company_id), None)
+        if public is None:
+            raise HTTPException(404, f"없는 회사: {company_id}")
+        rows = []
+        for no in public["scenes"]:
+            proc = (scenes or {}).get(no)
+            found = proc.store.load(demo_run_id) if proc is not None else None
+            if found is None:
+                rows.append({"scene": no, "state": "none", "clock": None})
+                continue
+            doc = found[0]
+            state = (doc.get("bpm") or {}).get("state") or "not_started"
+            rows.append({"scene": no, "state": state, "clock": doc.get("clock")})
+        return rows
 
     @router.get("/admin/status", dependencies=[Depends(admin)])
     def status() -> dict[str, Any]:

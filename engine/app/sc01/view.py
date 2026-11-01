@@ -35,6 +35,21 @@ def _node_rank(node_id: str) -> int:
     return nodes.index(node_id) if node_id in nodes else len(nodes)
 
 
+def _defaults(node_id: str, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    폼 칸의 기본값을 기본 시연 각본의 답으로 채운다 — 손으로 쓰기 어려운 의견·근거를 시나리오에 맞는
+    예시로 미리 넣는다(장면 6과 같다). 사람이 고쳐서 내도 되고, 틀리면 엔진이 거절한다.
+    """
+    from app.sc01.demo import BASE  # demo가 이 모듈을 가져온다
+
+    step = next((s for s in BASE if s.node_id == node_id), None)
+    if step is None:
+        return fields
+    return [
+        {**f, "default": step.answer[f["key"]]} if step.answer.get(f["key"]) else f for f in fields
+    ]
+
+
 def view(
     doc: dict, *, historical: bool = False, center: CenterConfig | None = None
 ) -> dict[str, Any]:
@@ -60,7 +75,7 @@ def view(
             "title": p["title"],
             "role": domain.NODE_ROLES.get(p["node_id"], {}).get("role"),
             "review": p["review"],
-            "fields": (p["form"] or {}).get("fields", []),
+            "fields": _defaults(p["node_id"], (p["form"] or {}).get("fields", [])),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
         }
         # BPMN 노드 순서로 — 스냅샷의 키 순서는 저장소(Postgres JSONB)가 바꾼다(CLAUDE.md 4.5).
@@ -129,6 +144,8 @@ def view(
             else None
         ),
         "audit": doc["audit"],
+        # 회사 시스템과 오간 것 — 이 목록 전의 문서에는 없다(빈 목록)
+        "companyLog": doc.get("company_log", []),
     }
 
 

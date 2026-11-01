@@ -99,8 +99,6 @@ export function Sc04ActionForm({
             <Lock aria-hidden className="size-3" />
             {assigneeName ?? waiting.role}만 할 수 있다 — 상단에서 역할을 바꾼다
           </span>
-        ) : relay ? (
-          <span className="text-xs text-muted-foreground">Center 결재함에 대리 답으로 간다</span>
         ) : null}
       </div>
       {error ? (
