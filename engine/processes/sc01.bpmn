@@ -54,7 +54,7 @@
           "answered_by_as": "확인자", "answered_via_as": "확인경로",
           "assignees": ["이도윤"],
           "description": "고객·모델·공장·대상 월, 월 전체/잔여, 당사 배정 여부를 확인한다. 40%를 다시 곱하지 않는다.",
-          "show": ["원천ID", "검증통과", "검증오류수", "error_message"],
+          "show": ["데모실행ID", "원천ID", "검증통과", "검증오류수", "error_message"],
           "fields": [
             {"key": "확인결과", "label": "확인 결과", "type": "choice", "required": true,
              "choices": ["확인완료", "보완요청"]},
@@ -97,7 +97,7 @@
           "answered_by_as": "계산요청자", "answered_via_as": "계산요청경로",
           "assignees": ["이도윤"],
           "description": "T01 · 직전 승인 전망 F01 · 확인된 원천으로 최신 전망을 만들고 지표를 계산한다.",
-          "show": ["원천ID"],
+          "show": ["데모실행ID", "원천ID"],
           "fields": [{"key": "계산메모", "label": "메모", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -137,7 +137,7 @@
           "answered_by_as": "영업검토자", "answered_via_as": "영업검토경로",
           "assignees": ["박서진"],
           "description": "변경의 의미·지속성·고객 재확인 필요성과 후속 처리 경로를 판단한다. 계산 경보는 바꾸지 않는다.",
-          "show": ["계산ID", "위험수준", "이슈ID", "초안ID", "error_message"],
+          "show": ["데모실행ID", "계산ID", "위험수준", "이슈ID", "초안ID", "error_message"],
           "fields": [
             {"key": "영업의견", "label": "검토 의견", "type": "text", "required": true},
             {"key": "영업근거", "label": "근거", "type": "text", "required": true},
@@ -174,7 +174,7 @@
           "title": "생산·자재 영향 검토 배정",
           "answered_by_as": "배정자", "answered_via_as": "배정경로",
           "assignees": ["박서진"],
-          "show": ["계산ID", "이슈ID", "error_message"],
+          "show": ["데모실행ID", "계산ID", "이슈ID", "error_message"],
           "fields": [
             {"key": "생산담당자", "label": "생산 담당", "type": "text", "required": true},
             {"key": "자재담당자", "label": "자재 담당", "type": "text", "required": true},
@@ -207,7 +207,7 @@
           "title": "생산계획 영향 검토 인수",
           "answered_by_as": "생산인수자", "answered_via_as": "생산인수경로",
           "assignees": "생산담당자명",
-          "show": ["계산ID", "이슈ID", "배정사유", "error_message"],
+          "show": ["데모실행ID", "계산ID", "이슈ID", "배정사유", "error_message"],
           "fields": [{"key": "생산인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -232,7 +232,7 @@
           "title": "소요자재·발주 영향 검토 인수",
           "answered_by_as": "자재인수자", "answered_via_as": "자재인수경로",
           "assignees": "자재담당자명",
-          "show": ["계산ID", "이슈ID", "배정사유", "error_message"],
+          "show": ["데모실행ID", "계산ID", "이슈ID", "배정사유", "error_message"],
           "fields": [{"key": "자재인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>
@@ -260,7 +260,7 @@
           "title": "통합 손익 검토 요청",
           "answered_by_as": "검토요청자", "answered_via_as": "검토요청경로",
           "assignees": ["박서진"],
-          "show": ["계산ID", "위험수준", "이슈ID", "error_message"],
+          "show": ["데모실행ID", "계산ID", "위험수준", "이슈ID", "error_message"],
           "fields": [
             {"key": "경영관리담당자", "label": "경영관리 담당", "type": "text", "required": true},
             {"key": "검토요청사유", "label": "요청 사유", "type": "text", "required": true}
@@ -289,7 +289,7 @@
           "answered_by_as": "경영관리인수자", "answered_via_as": "경영관리인수경로",
           "assignees": "경영관리담당자명",
           "description": "장면 1에서는 인수까지다 — 분석 보고 완료로 표시하지 않는다.",
-          "show": ["계산ID", "이슈ID", "검토요청사유", "error_message"],
+          "show": ["데모실행ID", "계산ID", "이슈ID", "검토요청사유", "error_message"],
           "fields": [{"key": "경영관리인수의견", "label": "인수 의견", "type": "text"}]
         }</chk:approval>
       </bpmn:extensionElements>

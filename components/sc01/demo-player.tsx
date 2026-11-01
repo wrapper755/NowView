@@ -147,6 +147,27 @@ export function Sc01DemoPlayer() {
     jumpRef.current = jump;
   }, [jump]);
 
+  /**
+   * 플레이어 위치가 엔진의 각본 지점(`scriptIndex`)을 따라간다 — 회사 사이트·Center 콘솔·화면에서 답해 앞으로 갔을 때
+   * (엔진이 기록 작업의 효과로 각본 지점을 옮긴다), 그리고 데모 실행을 처음 받았을 때. 장면 2~5와 같은 방식이다 —
+   * 위치만 옮기고 라우팅은 하지 않는다(4.1). 뒤로 가는 것은 각자의 핸들러(초기화·되감기)가 정한다.
+   */
+  const liveScript = useSc01((s) => s.live?.scriptIndex ?? null);
+  const liveRun = useSc01((s) => s.live?.demoRunId ?? null);
+  const seenScript = useRef<{ run: string; index: number } | null>(null);
+  useEffect(() => {
+    if (liveRun === null || liveScript === null) return;
+    const seen = seenScript.current;
+    if (seen?.run === liveRun && liveScript <= seen.index) {
+      seen.index = liveScript; // 초기화로 되돌아갔다 — 위치는 초기화 핸들러가 이미 정했다
+      return;
+    }
+    const at = SC01_SCENES.findIndex((s) => s.script === liveScript);
+    if (at < 0) return;
+    setScene(at);
+    seenScript.current = { run: liveRun, index: liveScript };
+  }, [liveRun, liveScript, setScene]);
+
   // 자동 재생 — 고정 간격이 아니라 장면이 반영된 뒤에 머무름을 시작하는 자기 예약 루프다.
   useEffect(() => {
     if (!isPlaying) return;

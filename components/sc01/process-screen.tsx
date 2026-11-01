@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Sc01Canvas } from "@/components/flow/sc01-canvas";
 import { Loading, ScreenHeader } from "@/components/sc01/bits";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EXECUTOR_LABEL } from "@/lib/sc01/format";
@@ -126,6 +127,8 @@ export function ProcessScreen() {
           </CardContent>
         </Card>
       </div>
+
+      {view && <CompanyExchangeCard log={view.companyLog ?? []} />}
     </main>
   );
 }

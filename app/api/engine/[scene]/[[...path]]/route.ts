@@ -1,6 +1,6 @@
 /**
  * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`~`sc06`이고, 그 밖에 공개 회사 목록
- * (`/api/engine/companies` — 이름·설명·업무)만 연다. 관리 API(`/admin/*`)는 여기서 중계하지 않는다 — 관리자 로그인 뒤의
+ * (`/api/engine/companies` — 이름·설명·업무)과 회사 운영 현황(`/api/engine/companies/{회사}/works`)만 연다. 관리 API(`/admin/*`)는 여기서 중계하지 않는다 — 관리자 로그인 뒤의
  * `/api/admin/*`만 부른다(`app/api/admin`).
  *
  * **브라우저가 엔진을 직접 부르지 않는다.** CORS가 생기고 엔진 주소가 드러난다. 운영계에서
@@ -19,14 +19,17 @@ export const dynamic = "force-dynamic";
 
 /** 중계할 장면. 목록 밖의 경로는 엔진에 보내지 않는다 — 엔진의 다른 경로(`/health` 등)가 열리지 않게. */
 const SCENES = new Set(["sc01", "sc02", "sc03", "sc04", "sc05", "sc06"]);
-/** 장면이 아닌 읽기 경로 — 하위 경로 없이 GET만 받는다. */
+/** 장면이 아닌 읽기 경로 — GET만, 하위 경로는 회사 운영 현황(`{회사}/works`) 하나뿐이다. */
 const READ_ONLY = new Set(["companies"]);
 
 type Context = { params: Promise<{ scene: string; path?: string[] }> };
 
 async function relay(request: Request, { params }: Context): Promise<Response> {
   const { scene, path = [] } = await params;
-  const readOnly = READ_ONLY.has(scene) && path.length === 0 && request.method === "GET";
+  const readOnly =
+    READ_ONLY.has(scene) &&
+    request.method === "GET" &&
+    (path.length === 0 || (path.length === 2 && path[1] === "works"));
   if (!SCENES.has(scene) && !readOnly) return Response.json({ error: `없는 경로: ${scene}` }, { status: 404 });
   if (SCENES.has(scene) && path.length === 0) return Response.json({ error: "장면 아래 경로가 없다" }, { status: 404 });
   const url = new URL(request.url);

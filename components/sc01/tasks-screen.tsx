@@ -223,9 +223,10 @@ function TaskDetail({ task }: { task: Task }) {
               {task.reconfirm ? `재확인 — 새 근거 ${task.run_id}` : isAccept ? "인수 — 담당자 본인만" : "처리"} ·{" "}
               {waiting.title}
             </p>
-            {Object.entries(waiting.review).length > 0 ? (
+            {/* 데모실행ID는 회사 사이트가 기간계 세계를 찾는 데 쓴다 — 여기서는 지금 화면 자체라 감춘다 */}
+            {reviewShown(waiting.review).length > 0 ? (
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-                {Object.entries(waiting.review).map(([k, v]) => (
+                {reviewShown(waiting.review).map(([k, v]) => (
                   <div key={k} className="contents">
                     <dt className="text-muted-foreground">{k}</dt>
                     <dd>{String(v)}</dd>
@@ -282,3 +283,5 @@ function TaskDetail({ task }: { task: Task }) {
     </Card>
   );
 }
+
+const reviewShown = (review: Record<string, unknown>) => Object.entries(review).filter(([k]) => k !== "데모실행ID");

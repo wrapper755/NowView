@@ -41,6 +41,13 @@ class CompanyConfig(BaseModel):
     description: str = Field(default="", max_length=200)
     #: 회사 시스템 주소 — 키는 환경 `COMPANY_{ID}_KEY`에만 있다.
     system_url: str | None = None
+    #: 회사 사이트(공개 웹) 주소 — 화면이 회사 시스템과 오간 기록에서 그 문서를 연다. 비우면 환경
+    #: `COMPANY_{ID}_SITE_URL`을 쓴다(이 칸 전에 저장된 설정도 그대로 쓰게).
+    site_url: str | None = None
+
+    def public_site_url(self) -> str | None:
+        url = self.site_url or os.getenv(f"COMPANY_{self.id.upper().replace('-', '_')}_SITE_URL")
+        return url.rstrip("/") if url else None
 
 
 class ProcessMapping(BaseModel):

@@ -24,7 +24,14 @@ export const SCENES: Array<{ no: SceneNo; work: string; detail: string }> = [
 ];
 
 /** 공개 목록의 회사 하나 — `scenes`는 그 회사의 BPM 프로세스가 매핑된 업무 번호다. */
-export type PublicCompany = { id: string; name: string; description: string; scenes: SceneNo[] };
+export type PublicCompany = {
+  id: string;
+  name: string;
+  description: string;
+  scenes: SceneNo[];
+  /** 회사 사이트(공개 웹) 주소 — 없으면 회사 문서로 링크하지 않는다. */
+  siteUrl?: string | null;
+};
 
 /** 회사 안의 화면 경로 — 장면 화면은 `/sc01/…`처럼 회사를 빼고 적고, 실제 주소는 `/c/{회사}/sc01/…`다. */
 export function companyPath(companyId: string, scenePath: string): string {

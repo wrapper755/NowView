@@ -16,11 +16,12 @@ import { Sc06SessionSync } from "@/components/sc06/session-sync";
 import { sceneOf } from "@/components/shared/scenario-nav";
 
 /**
- * 하단 데모 플레이어 — 지금 장면의 것 하나만 둔다(둘 다 두면 본문 아래 자리가 겹친다, 4.12).
+ * 하단 데모 플레이어 — 지금 장면의 것 하나만 둔다(둘 다 두면 본문 아래 자리가 겹친다, 4.12). 회사 첫 화면에는 없다.
  * 장면 2~6 문서 수신(`Sc02SessionSync`~`Sc06SessionSync`)은 그 장면 화면에서만 돈다. 장면 1 수신은 레이아웃이 늘 둔다.
  */
 export function DemoPlayerSwitch() {
-  const scene = sceneOf(usePathname());
+  const path = usePathname();
+  const scene = sceneOf(path);
   return (
     <>
       <Sc02SessionSync />
@@ -28,7 +29,8 @@ export function DemoPlayerSwitch() {
       <Sc04SessionSync />
       <Sc05SessionSync />
       <Sc06SessionSync />
-      {scene === 6 ? <Sc06DemoPlayer /> : scene === 5 ? <Sc05DemoPlayer /> : scene === 4 ? <Sc04DemoPlayer /> : scene === 3 ? <Sc03DemoPlayer /> : scene === 2 ? <Sc02DemoPlayer /> : <Sc01DemoPlayer />}
+      {/* 회사 첫 화면은 어느 업무도 아니다 — 장면 1 플레이어를 띄우면 첫 화면이 장면 1처럼 보였다(2026-11-01). */}
+      {path === "/" ? null : scene === 6 ? <Sc06DemoPlayer /> : scene === 5 ? <Sc05DemoPlayer /> : scene === 4 ? <Sc04DemoPlayer /> : scene === 3 ? <Sc03DemoPlayer /> : scene === 2 ? <Sc02DemoPlayer /> : <Sc01DemoPlayer />}
     </>
   );
 }

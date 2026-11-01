@@ -253,6 +253,17 @@ export interface DemoRunView {
   handoff: { run_id: string; at: string } | null;
   handoffCheck: HandoffCheck | null;
   audit: AuditEntry[];
+  /** 회사 시스템과 오간 것 — `in` 받음 · `out` 적음. `doc_id`는 회사 기간계 문서 번호. */
+  companyLog: CompanyExchange[];
+}
+
+export interface CompanyExchange {
+  seq: number;
+  at: string;
+  direction: "in" | "out";
+  what: string;
+  doc_id: string | null;
+  by: string | null;
 }
 
 export interface Pnl {

@@ -1,7 +1,7 @@
 """
 N3 — Center 연동: SC01 기동 · 대리 답 · 진행 폴링 · 정정본 메시지.
 
-가짜 Center(`FakeCenter`)는 Chaeksas 계약을 그대로 흉내 낸다 — 경로·키 종류·`X-CHK-On-Behalf-Of`
+가짜 Center(`FakeCenter`)는 Chaeksas 계약을 그대로 흉내 낸다 — 경로·키 종류·`X-BPM-On-Behalf-Of`
 대조(C6·ADR-0081), 결재 하나는 한 번만 닫힘(`already_answered`), 실행 기록은 `seq` 차례(C3). 서버
 실행기 몫은 `FakeRunner`가 진짜 Chaeksas 엔진으로 같은 BPMN을 돌려 한다 — 결재는 Center에 올리고,
 답은 Center에서 받아 넣고, 서비스 태스크는 NowView 시스템 작업(HTTP 어댑터 흉내)을 부른다.
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote
@@ -21,7 +22,7 @@ from chaeksas.core.engine import Engine, RunEnv, State
 from chaeksas.core.run_log import RunLog
 from conftest import C15Calls, require_postgres
 
-from app.sc01 import demo
+from app.sc01 import demo, domain
 from app.sc01.center import CenterClient, CenterConfig
 from app.sc01.domain import DomainError, parse_at
 from app.sc01.process import Sc01Process, read_run_events
@@ -50,7 +51,7 @@ class FakeCenter:
         path = request.url.path.removeprefix("/api/v1")
         self.calls.append((request.method, path))
         key = request.headers.get("authorization", "").removeprefix("Bearer ")
-        who = unquote(request.headers.get("x-chk-on-behalf-of", "")) or None
+        who = unquote(request.headers.get("x-bpm-on-behalf-of", "")) or None
         body = json.loads(request.content) if request.content else None
         if key not in (INTEGRATION, RELAY):
             return _err(401, "key_invalid", "모르는 토큰이다")
@@ -58,7 +59,7 @@ class FakeCenter:
             if key != RELAY:
                 return _err(403, "forbidden", "결재는 콘솔 토큰이나 대리 답용 키로 읽는다")
             if not who:
-                return _err(400, "on_behalf_required", "X-CHK-On-Behalf-Of가 필요하다")
+                return _err(400, "on_behalf_required", "X-BPM-On-Behalf-Of가 필요하다")
             return self._approvals(request.method, path, who, body, request.url.params)
         if key == RELAY:
             return _err(403, "forbidden", "대리 답용 키로는 결재만 읽고 답할 수 있다")
@@ -284,6 +285,141 @@ def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
     assert [t for t in doc["tasks"] if t.startswith("TASK-DQ")] == ["TASK-DQ"]
     assert doc["tasks"]["TASK-DQ"]["status"] == "COMPLETED"
     assert not doc["tasks"]["TASK-DQ"].get("opened_late")
+
+
+def test_center_script_waits_so_task_times_match_embedded(
+    proc: Sc01Process, center: FakeCenter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Center 각본은 결재의 기록과 다음 결재가 들어올 때까지 시계를 옮기지 않는다 — 업무가 열리고·
+    인수되고·끝난 시각이 내장 실행과 같다. 기다리지 않았을 때 로컬 Center에서 원천 확인이 10:10,
+    생산·자재 인수가 11:45, 생산·자재 업무가 11:30에 열렸다(2026-11-01 실측).
+    """
+    embedded = proc.create(executor="embedded")["demo_run_id"]
+    for index in range(len(demo.BASE)):
+        demo.run_step(proc, embedded, index)
+
+    rid = proc.create(executor="center")["demo_run_id"]
+    runner: list[FakeRunner] = []
+
+    def tick(_: float) -> None:
+        # 각본이 기다리는 동안 실행기가 나아가고 폴러가 읽는다(진짜 Center에서는 따로 돈다).
+        if not runner and center.jobs:
+            runner.append(FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_b2b2b2"))
+        if runner:
+            runner[0].step()
+            proc.sync_center(rid)
+
+    monkeypatch.setattr(demo, "time", type("T", (), {"monotonic": time.monotonic, "sleep": tick}))
+    proc.center_wait_s = 5
+    for index in range(len(demo.BASE)):
+        demo.run_step(proc, rid, index)
+    tick(0)
+
+    def times(doc: dict) -> dict:
+        keys = ("assigned_at", "accepted_at", "completed_at", "due_at")
+        return {tid: [t[k] for k in keys] for tid, t in doc["tasks"].items()}
+
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF"
+    assert times(after) == times(proc.get(embedded))
+
+
+def test_answers_outside_nowview_move_the_script_so_the_player_does_not_stall(
+    proc: Sc01Process, center: FakeCenter
+) -> None:
+    """
+    회사 사이트·Center 콘솔에서 결재에 답해도 각본 지점(`script_index`·`step`)이 따라간다 —
+    기록 작업의 효과로 옮긴다. 예전에는 사이트에서 원천을 확인한 뒤 플레이어 「다음」이
+    「단계를 건너뛸 수 없다」(409)였다. 바깥 답과 플레이어를 섞어도 이어지고, 병렬 인수는
+    순서가 바뀌어도 된다.
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)  # EV01 수신 — 회사 밖 사건이라 플레이어에 남는다
+    runner = FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_d4d4d4")
+    proc.sync_center(rid)
+
+    def outside(index: int) -> None:
+        """회사 사이트처럼 — 대리 답용 키로 그 직원의 결재에 바로 답한다(NowView를 안 거친다)."""
+        step = demo.BASE[index]
+        [found] = [
+            a
+            for a in center.approvals.values()
+            if a["node_id"] == step.node_id and a["state"] == "open"
+        ]
+        name = domain.name_of(step.actor)
+        proc.center.answer(
+            found["request_id"], step.answer, on_behalf=name, digest=found["review_digest"]
+        )
+        runner.step()
+        proc.sync_center(rid)
+
+    outside(1)  # 원천 확인 — 사이트에서
+    doc = proc.get(rid)
+    assert (doc["script_index"], doc["step"]) == (1, "EV02")
+    doc = demo.run_step(proc, rid, 2)  # 비교 계산 — 플레이어 「다음」이 막히지 않는다
+    runner.step()
+    proc.sync_center(rid)
+    assert proc.get(rid)["script_index"] == 2
+    for index in (3, 4, 5):  # 영업 검토·배정·Review 요청 — 사이트에서
+        outside(index)
+    assert proc.get(rid)["script_index"] == 5
+    outside(7)  # 자재가 생산보다 먼저 인수해도 — 생산 인수 전에는 앞으로 가지 않는다
+    assert proc.get(rid)["script_index"] == 5
+    outside(6)
+    assert proc.get(rid)["script_index"] == 7
+    outside(8)
+
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF" and runner.run.state is State.DONE
+    assert (after["script_index"], after["step"]) == (len(demo.BASE) - 1, "EV07")
+    assert after["script_follow"] == {"ahead": [], "pending": []}
+    assert demo.run_step(proc, rid, len(demo.BASE) - 1) == proc.get(rid)  # 지난 단계는 그대로
+
+
+def test_an_approval_unreadable_at_first_is_read_again_and_waiting_clears_at_the_end(
+    proc: Sc01Process, center: FakeCenter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    결재가 막 열린 순간 Center가 담당자에게 404를 줘도 폴러가 다시 읽어 업무를 제때 연다 — 회사
+    사이트 실측에서 경영관리 인수가 그렇게 「늦게 열림」이 됐다. 마지막 결재를 바깥에서 답해
+    실행이 끝나면 대기도 비어야 한다(폴러는 끝난 실행을 읽지 않는다).
+    """
+    rid = proc.create(executor="center")["demo_run_id"]
+    demo.run_step(proc, rid, 0)
+    runner = FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_e5e5e5")
+    proc.sync_center(rid)
+    for index in range(1, 8):
+        demo.run_step(proc, rid, index)
+        runner.step()
+        if index < 5:
+            proc.sync_center(rid)
+
+    real = proc.center.approval
+    misses = {"Accept_FIN": 1}
+
+    def flaky(request_id: str, *, on_behalf: str):
+        node = center.approvals[request_id]["node_id"]
+        if misses.get(node):
+            misses[node] -= 1
+            return None
+        return real(request_id, on_behalf=on_behalf)
+
+    monkeypatch.setattr(proc.center, "approval", flaky)
+    proc.sync_center(rid)  # 경영관리 인수를 못 읽었다 — 업무는 아직 없다
+    assert domain.task_for_node(proc.get(rid), "Accept_FIN") is None
+    assert proc.sync_center(rid)  # 다시 읽는다
+    doc = proc.get(rid)
+    task = domain.task_for_node(doc, "Accept_FIN")
+    assert task is not None and not task.get("opened_late")
+
+    step = demo.BASE[8]  # 회사 사이트처럼 바깥에서 답한다
+    [found] = [a for a in center.approvals.values() if a["node_id"] == "Accept_FIN"]
+    proc.center.answer(found["request_id"], step.answer, on_behalf="정하윤", digest=None)
+    runner.step()
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF" and after["bpm"]["state"] == "done"
+    assert after["bpm"]["waiting"] == []
 
 
 def test_relay_prechecks_before_touching_center(proc: Sc01Process, center: FakeCenter) -> None:

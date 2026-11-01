@@ -40,6 +40,13 @@ const ACTION_LABEL: Record<string, string> = {
   agent_adopted: "초안을 의견에 가져옴",
   bpm_superseded: "정정본으로 실행 대체",
   overdue_alert: "기한 초과 알림",
+  // Center 실행(N3) — 화면 답은 대리 답이고 업무 효과는 뒤의 기록이 낸다
+  answer_relayed: "Center 결재에 대리 답",
+  center_job_started: "Center 실행 기동",
+  center_job_ended: "Center 앞 작업 끝남 확인",
+  center_job_cancelled: "Center 앞 작업 거둠",
+  center_message_sent: "Center에 정정본 전달",
+  external_run_linked: "Center 실행 연결",
 };
 
 /**

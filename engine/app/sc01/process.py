@@ -203,7 +203,9 @@ def _record(doc: dict, operation: str, args: dict[str, Any], actor: str | None) 
     by, how = _answerer(doc, node_id, args, actor)
     domain.audit(doc, actor=by, action="answer_recorded", node_id=node_id, **how)
     _ensure_task(doc, node_id, args, by)
-    return {**_apply_record(doc, operation, node_id, args, by), "error_message": None}
+    out = _apply_record(doc, operation, node_id, args, by)
+    _follow_script(doc, node_id)
+    return {**out, "error_message": None}
 
 
 def _record_answer(operation: str, args: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -360,8 +362,12 @@ def run_operation(
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
         by, how = _answerer(doc, "Confirm_Calc", args, actor)
-        domain.audit(doc, actor=by, action="calculation_requested", **how)
-        return domain.compare(doc, seed, args["source_id"])
+        domain.audit(
+            doc, actor=by, action="calculation_requested", node_id="Confirm_Calc", **how
+        )
+        out = domain.compare(doc, seed, args["source_id"])
+        _follow_script(doc, "Confirm_Calc")
+        return out
     if operation == "request_review_draft":
         return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}
     if operation == "hand_off_case":
@@ -499,7 +505,16 @@ class Sc01Process:
         # 회사의 확정 기록(원천 확인 상태)을 먼저 적는다 — 회사가 받지 못하면 이 조작은 저장되지
         # 않는다(503, 다시 할 일). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
         for record in doc.pop("_company_writes", []):
-            self.company.set_plan_status(doc["demo_run_id"], record.pop("doc_id"), **record)
+            doc_id = record.pop("doc_id")
+            self.company.set_plan_status(doc["demo_run_id"], doc_id, **record)
+            label = _PLAN_STATUS.get(record["status"], record["status"])
+            domain.company_exchange(
+                doc,
+                direction="out",
+                what=f"원천 확인 결과 「{label}」을 적었다",
+                doc_id=doc_id,
+                by=record["by"],
+            )
         # 초안 작업 대기열은 저장하지 않는다 — 저장이 끝난 뒤 던진다(_dispatch).
         jobs = doc.pop("_agent_queue", [])
         try:
@@ -698,6 +713,8 @@ class Sc01Process:
                 if domain.executor_of(doc) == "center":
                     self._center_receive(doc, source_id, actor=actor, old_job=old_job)
                 _mark(doc, event_code, script_index)
+                if script_index is None:
+                    _follow_script(doc, f"receive:{fixture_id}")
                 doc = self._commit(doc, version, None, event_code or "receive")
                 return self._dispatch(doc)
             run = self._restore(doc) if doc["bpm"] is not None else None
@@ -714,6 +731,8 @@ class Sc01Process:
                 run = self._start(doc, source_id)
             self._advance(doc, run)
             _mark(doc, event_code, script_index)
+            if script_index is None:
+                _follow_script(doc, f"receive:{fixture_id}")
             doc = self._commit(doc, version, run, event_code or "receive")
         return self._dispatch(doc)
 
@@ -926,7 +945,7 @@ class Sc01Process:
         """
         center 데모 실행의 화면 답 = **대리 답**(N3). 엔진 사전 검사(403·409·422, 입력을
         지우지 않는다)
-        → Center에 열린 그 사람의 결재를 찾는다 → `X-CHK-On-Behalf-Of`로 답한다. 업무 효과는 여전히
+        → Center에 열린 그 사람의 결재를 찾는다 → `X-BPM-On-Behalf-Of`로 답한다. 업무 효과는 여전히
         결재 뒤의 기록 작업이 낸다 — 콘솔 답과 같은 길이다(N1).
         """
         problem = self.center.config.missing(relay=True)
@@ -986,6 +1005,10 @@ class Sc01Process:
                 request_id=approval["request_id"],
             )
             _mark(doc, event_code, script_index)
+            if script_index is not None:
+                # 각본이 대리 답했다 — 실행기가 나중에 부르는 이 결재의 기록은 각본 몫이다
+                _script_follow(doc)["pending"].append(node_id)
+                _follow_script(doc, None)
             doc = self._commit(doc, version, None, event_code or node_id)
         return self._dispatch(doc)
 
@@ -1047,15 +1070,24 @@ class Sc01Process:
         events = self.center.run_events(ext)
         progress = read_run_events(events)
         ledger = bpm.get("center") or domain.new_center_ledger()
-        if progress["last_seq"] == ledger.get("last_seq"):
+        same = progress["last_seq"] == ledger.get("last_seq")
+        unread = not self.center.config.missing(relay=True) and any(
+            w.get("variables") is None for w in bpm.get("waiting", [])
+        )
+        if same and not unread:
             return False
         relayed = set(ledger.get("relayed", []))
         known = {w["request_id"]: w for w in bpm.get("waiting", [])}
+        # 처음 읽을 때 못 읽은 결재(`variables: None`)는 다시 읽는다 — 결재가 막 열린 순간 Center가
+        # 담당자에게 404를 준 적이 있다(회사 사이트 실측: 경영관리 인수). 다시 읽지 않으면 업무가
+        # 영영 열리지 않고 답의 기록 때 「늦게 열림」이 됐다.
         opened = {
             rid: self._approval_entry(rid, node_id)
             for rid, node_id in progress["open"].items()
-            if rid not in relayed and rid not in known
+            if rid not in relayed and (rid not in known or known[rid].get("variables") is None)
         }
+        if same and all(e.get("variables") is None for e in opened.values()):
+            return False  # 다시 읽어도 아직 못 읽었다 — 바뀐 것이 없으니 저장·SSE를 내지 않는다
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
             bpm = doc["bpm"]
@@ -1166,6 +1198,10 @@ class Sc01Process:
         return self._dispatch(doc)
 
 
+#: 회사에 적는 원천 확인 상태 — 화면 글
+_PLAN_STATUS = {"VERIFIED": "확인완료", "NEEDS_INFO": "보완요청"}
+
+
 def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     """
     C3 실행 기록 → 진행. `open`은 결재 id → 노드(요청됐고 아직 답·만료·회수가 없는 것), `active`는
@@ -1219,6 +1255,43 @@ def _center_vars(doc: dict) -> dict[str, Any]:
     """사전 검사에 쓸 변수 — 결재를 읽기 전에는 가장 최근 원천이 확인 대상이다."""
     sources = domain.ordered(doc["sources"])
     return {"원천ID": sources[-1]["source_id"]} if sources else {}
+
+
+def _script_follow(doc: dict) -> dict[str, list[str]]:
+    return doc.setdefault("script_follow", {"ahead": [], "pending": []})
+
+
+def _follow_script(doc: dict, done: str | None) -> None:
+    """
+    각본 밖에서 한 일도 각본의 진행 표시(`step`·`script_index`)를 옮긴다 — 회사 사이트·Center
+    콘솔·NowView 화면에서 답한 뒤 플레이어 「다음」이 지나간 단계를 다시 하려다 「단계를 건너뛸 수
+    없다」(409)로 멈췄다. 효과가 난 자리(기록 작업·계산 요청)에서 부르므로 내장·Studio·Center가
+    같다. 장면 3의 같은 이름 함수와 같은 틀이다: 각본 밖의 결정은 `ahead`에 모으고, 각본의 다음
+    단계가 거기 있으면 지나간다(생산·자재 인수는 병렬이라 순서가 바뀌어도 된다). Center 각본이
+    대리 답한 결재의 기록은 `pending`에 있어 각본 몫으로 지운다(두 번 세지 않는다).
+    `done`은 결재 노드 id 또는 `receive:{시연 원천}`이다.
+    """
+    from app.sc01.demo import BASE  # demo가 이 모듈을 가져온다
+
+    follow = _script_follow(doc)
+    if done is not None:
+        if done in follow["pending"]:
+            follow["pending"].remove(done)
+        else:
+            follow["ahead"].append(done)
+    i = doc.get("script_index", -1) + 1
+    moved = None
+    while i < len(BASE):
+        step = BASE[i]
+        key = step.node_id or f"receive:{step.answer.get('fixture_id')}"
+        if key not in follow["ahead"]:
+            break
+        follow["ahead"].remove(key)
+        moved = i
+        i += 1
+    if moved is not None:
+        doc["step"] = BASE[moved].code
+        doc["script_index"] = moved
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:

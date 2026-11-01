@@ -101,7 +101,7 @@ poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
 _SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06}
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _SCENES))
 app.include_router(
-    build_companies_router(settings, consumer, center, poller, {"company1": company})
+    build_companies_router(settings, consumer, center, poller, {"company1": company}, _SCENES)
 )
 
 

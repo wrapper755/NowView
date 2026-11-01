@@ -95,7 +95,7 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
 | | `WORKER_CONSUMER=off` | 일꾼을 끈다 |
 | | `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` | 회사 시스템 주소(설정의 기본값)·키 |
 | | `NOWVIEW_ADMIN_KEY` | 관리 API 키 — 웹과 같은 값 |
-| `engine/.consumer/keys.json` | `worker`·`integration`·`relay` | 설치(`python -m app.worker_file`)가 지은 키 원문(0600). 일꾼 — 일감 가져가기·끝내기 · 연동용 — 기동(`POST /jobs`·`/messages`)·진행 읽기·작업 거두기 · 대리 답용 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
+| `engine/.consumer/keys.json` | `worker`·`integration`·`relay` | 설치(`python -m app.worker_file`)가 지은 키 원문(0600). 일꾼 — 일감 가져가기·끝내기 · 연동용 — 기동(`POST /jobs`·`/messages`)·진행 읽기·작업 거두기 · 대리 답용 — 결재 읽기·답(`X-BPM-On-Behalf-Of` = 행위자 이름, 옛 Center를 위해 `X-CHK-`도 싣는다) |
 | company1 `legacy/.env.local` | `COMPANY1_LEGACY_KEY` | 회사 시스템 키 — 엔진 `COMPANY_COMPANY1_KEY`와 같은 값 |
 | `.env.local`(저장소 루트, 웹) | `NOWVIEW_ADMIN_PASSWORD` | 관리자 로그인 비밀번호 |
 | | `NOWVIEW_ADMIN_SECRET` | 관리자 세션 쿠키 서명 |

@@ -128,10 +128,11 @@ function itemsOf(scene: number) {
 /** 왼쪽 사이드바(넓은 화면) — 업무 목록. 로고는 그 위 공통 줄에 있다. */
 export function WorkSidebar() {
   const path = usePathname();
-  // 회사 첫 화면(`/`)은 어느 업무도 아니다 — 회사 운영 현황이다.
-  const scene = path === "/" ? 0 : sceneOf(path);
+  // 회사 첫 화면(`/`)은 운영 현황 카드가 업무 목록을 겸한다 — 사이드바를 두면 같은 목록이 둘이다(2026-11-01).
+  if (path === "/") return null;
+  const scene = sceneOf(path);
   return (
-    <aside className="chrome-ink fixed top-12 bottom-0 left-0 z-40 hidden w-56 flex-col border-r lg:flex">
+    <aside data-work-sidebar className="chrome-ink fixed top-12 bottom-0 left-0 z-40 hidden w-56 flex-col border-r lg:flex">
       <nav aria-label="업무" className="flex-1 overflow-y-auto px-2 pt-2 pb-4">
         <p className="px-2 pt-2 pb-1.5 text-[11px] font-medium text-muted-foreground">업무</p>
         <ol className="flex flex-col gap-0.5">

@@ -158,6 +158,20 @@ def test_full_base_run_hands_off_without_resolving_anything(proc: Sc01Process) -
     assert [a["action"] for a in doc["audit"]].count("SCENE_HANDED_OFF") == 1
 
 
+def test_company_exchanges_are_listed_in_order(proc: Sc01Process) -> None:
+    """회사 시스템과 오간 것 — 기준 자료 읽기 → 고객계획 받기 → 원천 확인 결과 적기(같은 문서)."""
+    log = play(proc)["company_log"]
+    assert [(e["direction"], e["at"]) for e in log] == [
+        ("in", "2027-06-15T18:00:00+09:00"),
+        ("in", "2027-06-16T09:00:00+09:00"),
+        ("out", "2027-06-16T10:00:00+09:00"),
+    ]
+    received, written = log[1], log[2]
+    assert "CP02" in received["what"] and received["doc_id"]
+    assert written["doc_id"] == received["doc_id"] and "확인완료" in written["what"]
+    assert written["by"] == "이도윤"
+
+
 def test_every_change_is_audited_with_actor_and_time(proc: Sc01Process) -> None:
     """AT15 — 각 상태 변경에 행위자·시각이 있다."""
     doc = play(proc)

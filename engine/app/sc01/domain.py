@@ -240,7 +240,7 @@ def new_demo_run(
                     {"at": clock.isoformat(), "run_id": "RUN-F01-001", "risk": a.risk.value}
                 ],
             }
-    return {
+    doc = {
         "demo_run_id": demo_run_id,
         "seed_id": "SYN-SC01-v0.2",
         "case_id": case_id,
@@ -278,6 +278,36 @@ def new_demo_run(
         "agent_outputs": {},
         "alerts": [],
     }
+    company_exchange(
+        doc,
+        direction="in",
+        what=(
+            "기준 자료를 읽었다 — 목표 T01 · 승인 전망 F01 · 1~5월 실적 · 원가 C01 · "
+            "고정비 FC01 · 고객계획 CP01"
+        ),
+    )
+    return doc
+
+
+def company_exchange(
+    doc: dict, *, direction: str, what: str, doc_id: str | None = None, by: str | None = None
+) -> None:
+    """
+    회사 시스템과 오간 것 — `in`은 회사에서 받은 것, `out`은 회사에 적은 것이다. 감사 이력에 섞어
+    두면 BPM과 회사가 어떻게 이어지는지 보이지 않았다(2026-11-01) — 화면이 이 목록을 따로 보인다.
+    `doc_id`는 회사 기간계 문서 번호(회사 사이트에서 그 문서를 연다).
+    """
+    log = doc.setdefault("company_log", [])
+    log.append(
+        {
+            "seq": len(log) + 1,
+            "at": doc["clock"],
+            "direction": direction,
+            "what": what,
+            "doc_id": doc_id,
+            "by": by,
+        }
+    )
 
 
 def audit(
@@ -343,6 +373,12 @@ def receive_company_plan(doc: dict, plan: dict[str, Any], *, actor: str) -> tupl
         source_id=sid,
         fixture_id=plan.get("fixture_id"),
         company_doc_id=plan["doc_id"],
+    )
+    company_exchange(
+        doc,
+        direction="in",
+        what=f"고객계획 {plan_id}를 받았다 — 원천 {sid}",
+        doc_id=plan["doc_id"],
     )
     return sid, True
 
@@ -918,6 +954,9 @@ def note_external_progress(
             bpm["visited"].append(nid)
     if done:
         bpm["state"] = "done"
+        # 끝난 실행에는 기다리는 결재가 없다 — 폴러는 끝난 실행을 읽지 않아, 남겨 두면 답한 결재가
+        # 화면에 대기로 남았다(회사 사이트에서 마지막 인수를 답한 실측).
+        bpm["waiting"], bpm["position"] = [], []
 
 
 def receive_external(doc: dict, source_id: str) -> None:
