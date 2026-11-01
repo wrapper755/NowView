@@ -11,7 +11,7 @@
 │ Studio(시험 실행)                 │        │ 엔진 :8077                        │     │ 회사 시스템        │
 │ 서버 실행기 ── 일감 올리기 ─▶ Center│◀───────│  · C15 일꾼(토픽 nowview)          │────▶│ (가상 자동차 부품사 │
 │ :8800      ◀─ 결재·실행 기록 ──    │ 가져가기 │  · Center 클라이언트(기동·대리 답·  │ 읽기 │  기간계 :8191)    │
-│            가상 직원·패키지·키      │ 기동·답  │    진행 폴링)                     │ 쓰기 └──────────────────┘
+│            패키지·키               │ 기동·답  │    진행 폴링)                     │ 쓰기 └──────────────────┘
 └──────────────────────────────────┘        │  · 규칙 계산·경영 기록·설정(DB)     │
                                             ├──────────────────────────────────┤
                                             │ 웹 :3000 — 회사별 대시보드 · /admin │
@@ -29,9 +29,8 @@
 | 무엇 | 어디서 (Center 콘솔 http://localhost:8501 의 왼쪽 메뉴) | 값 |
 |---|---|---|
 | 일꾼 | **콘솔이 아니다** — Center 일꾼 폴더에 일꾼 파일을 두고 Center를 다시 띄운다(Chaeksas ADR-0121) | `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) |
-| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.1.0 |
-| BPM 패키지 둘 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`, `company1.sc01-intake` — 그림 원본은 Company1 리포 `bpm/company1/` |
-| 가상 직원 | 업무 › **가상 직원** › 「새 가상 직원」 | id `company1-intake`, 감독자 `이도윤`, 접수 BPM 프로세스 `company1.sc01-intake` |
+| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.1.2 |
+| BPM 패키지 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01` — 그림 원본은 Company1 리포 `bpm/company1/` |
 | Center 키 둘 | 관리 › **Center API 키** › 「새 키...」 | 종류 「연동용」 하나, 「대리 답용」 하나 → `engine/.env.local` |
 | BPM 프로세스 → 회사·업무 | NowView `/admin` 설정 | 기본값에 이미 있다 — 손댈 것 없음 |
 
@@ -42,7 +41,7 @@
 
 **준비**
 * 회사 시스템: Company1 리포에서 `scripts/stack.sh start`. NowView: `npm run stack:start`(엔진 → 웹).
-* Center 콘솔 `http://localhost:8501`에 **관리자 계정**으로 들어간다(패키지 승인·가상 직원은 관리자만 된다).
+* Center 콘솔 `http://localhost:8501`에 **관리자 계정**으로 들어간다(패키지 승인은 관리자만 된다).
 * Studio를 띄우고 이 Center에 연결해 둔다(Studio의 「Center로 올리기」가 그 연결로 올린다).
 
 **1. NowView 키를 Center 폴더로** (NowView → Center) — 콘솔 발급·요청 코드 승인이 없다(Chaeksas ADR-0122)
@@ -59,30 +58,23 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
    `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) · `nowview-integration.key.json` · `nowview-relay.key.json`
    (이름·키 종류·토큰 해시).
 2. Center를 다시 띄운다. 콘솔 **배포·자원 › 리소스**의 「일꾼 폴더」에 일꾼 `worker`와 두 키가 보이면 된다. 확장 정의 `external`은
-   4에서 엔진(일꾼)이 뜰 때 올린다. 빼려면 파일을 지우고 Center를 다시 띄운다(그 키가 폐기된다).
+   3에서 엔진(일꾼)이 뜰 때 올린다. 빼려면 파일을 지우고 Center를 다시 띄운다(그 키가 폐기된다).
 
 > **Chaeksas 쪽이 아직이다**(2026-11-01) — 지금 Center는 `*.consumer.json`(일꾼)만 읽고 `*.key.json`(연동용·대리 답용)은 읽지
 > 않는다. Chaeksas에 요청했고, 그 판이 오기 전에는 콘솔 **관리 › Center API 키**로 발급한 키를 `engine/.env.local`의
 > `CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`에 둔다(환경 변수가 보관 파일을 이긴다).
 
-**2. BPM 패키지 올리기·승인·배포** (Studio → Center 콘솔) — 두 그림 모두 같은 순서다.
+**2. BPM 패키지 올리기·승인·배포** (Studio → Center 콘솔)
 1. Studio에서 Company1 리포의 `bpm/company1/company1.sc01/process/sc01.bpmn`을 연다 → 메뉴 **파일 › Center로 올리기**.
 2. Center 콘솔 **운영 현황 › BPM 프로세스 현황**에서 `company1.sc01` 줄의 「승인」 칸에서 **승인**.
 3. **배포·자원 › 배포** › **새 배포...** → 「BPM 프로세스@버전 (승인된 것)」에서 `company1.sc01@…`를 고르고 **고르기** → 실행기를
    고르고 **배포**.
-4. `bpm/company1/company1.sc01-intake/process/sc01-intake.bpmn`(`company1.sc01-intake`)도 1~3을 한다.
-
-**3. 가상 직원 등록** (Center 콘솔)
-1. **업무 › 가상 직원** 아래 「새 가상 직원」.
-2. id `company1-intake`, 이름 `고객계획 접수 담당`, 감독자 `이도윤`, 접수 BPM 프로세스 `company1.sc01-intake` → **등록**.
-   (id는 `engine/.env.local`의 `CHAEKSAS_INTAKE_WORKER`와 같아야 한다 — 이미 `company1-intake`로 적혀 있다.)
-
-**4. 일꾼 켜기** (NowView)
+**3. 일꾼 켜기** (NowView)
 1. `engine/.env.local`에 `CHAEKSAS_CENTER_URL`이 있고 `WORKER_CONSUMER=off` 줄이 없어야 한다.
-2. `npm run stack:restart engine`. 엔진 로그(`npm run stack:logs engine`)에 「확장 external 0.1.0판을 올렸다」·「일꾼이 토픽 external를
+2. `npm run stack:restart engine`. 엔진 로그(`npm run stack:logs engine`)에 「확장 external 0.1.2판을 올렸다」·「일꾼이 토픽 external를
    가져간다」가 나오면 된다 — 승인 단계는 없다.
 
-**5. 확인** (NowView)
+**4. 확인** (NowView)
 1. `/admin`(비밀번호는 저장소 루트 `.env.local`의 `NOWVIEW_ADMIN_PASSWORD`)에서 일꾼이 「일감을 가져가는 중」, 「연결」의 Center
    연동용 키·대리 답용 키가 「있음」, 회사 시스템이 「응답함」인지 본다.
 2. 회사 화면 `http://localhost:3000/c/company1/sc01`의 데모 플레이어에서 실행 위치 **Center**로 초기화하고 장면 1을 돌린다.
@@ -98,13 +90,12 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
 | 파일 | 값 | 쓰임 |
 |---|---|---|
 | `engine/.env.local` | `CHAEKSAS_CENTER_URL` | Center 주소(일꾼·기동·대리 답 모두) |
-| | `CHAEKSAS_INTAKE_WORKER` | 접수 가상 직원 id. 있으면 원천 수신이 접수 Bot을 메시지로 깨운다. 없으면 SC01을 바로 기동한다 |
 | | `CHAEKSAS_SC01_PACKAGE` | 장면 1 패키지 id(기본 `company1.sc01`) |
 | | `WORKER_CONSUMER_TOKEN`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY` | 두지 않는다 — 키는 보관 파일에 있다. 있으면 보관 파일을 이긴다(콘솔 발급 키를 쓸 때) |
 | | `WORKER_CONSUMER=off` | 일꾼을 끈다 |
 | | `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` | 회사 시스템 주소(설정의 기본값)·키 |
 | | `NOWVIEW_ADMIN_KEY` | 관리 API 키 — 웹과 같은 값 |
-| `engine/.consumer/keys.json` | `worker`·`integration`·`relay` | 설치(`python -m app.worker_file`)가 지은 키 원문(0600). 일꾼 — 일감 가져가기·끝내기 · 연동용 — 기동(`POST /jobs`·`/messages`)·진행 읽기·가상 직원 읽기·작업 거두기 · 대리 답용 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
+| `engine/.consumer/keys.json` | `worker`·`integration`·`relay` | 설치(`python -m app.worker_file`)가 지은 키 원문(0600). 일꾼 — 일감 가져가기·끝내기 · 연동용 — 기동(`POST /jobs`·`/messages`)·진행 읽기·작업 거두기 · 대리 답용 — 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름) |
 | company1 `legacy/.env.local` | `COMPANY1_LEGACY_KEY` | 회사 시스템 키 — 엔진 `COMPANY_COMPANY1_KEY`와 같은 값 |
 | `.env.local`(저장소 루트, 웹) | `NOWVIEW_ADMIN_PASSWORD` | 관리자 로그인 비밀번호 |
 | | `NOWVIEW_ADMIN_SECRET` | 관리자 세션 쿠키 서명 |
@@ -123,7 +114,7 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
 | | Center 서버 실행 (기본) | Studio 시험 실행 | 내장 (엔진 시험용 — 화면에서 고르지 않는다) |
 |---|---|---|---|
 | 누가 BPMN을 도나 | 서버 실행기 | Studio | 엔진 `chaeksas-core` |
-| 누가 시작하나 | NowView — 원천 수신 때 `POST /jobs` 또는 접수 Bot 메시지 | 사람이 Studio에서 | 원천 수신 |
+| 누가 시작하나 | NowView — 원천 수신 때 `POST /jobs` | 사람이 Studio에서 | 원천 수신 |
 | 결재 답 | NowView 화면(대리 답) 또는 Center 결재함 | Studio 대화상자 — NowView 화면은 읽기만 | NowView 화면 |
 | 진행을 NowView가 아는 방법 | 실행 기록 2초 폴링 | 일감이 알려 준 노드만 | 엔진 스냅샷 |
 | 데모 플레이어 각본 | 된다(대리 답) | 안 된다 | 된다 |
@@ -150,20 +141,8 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
   `answer_rejected`가 남는다. 거절된 답은 기록·업무를 남기지 않는다.
 * 업무(`TASK-*`)는 폴러가 결재를 처음 볼 때 연다(대리 답이 먼저면 그때). Studio 실행은 기록 때 연다.
 
-**고객계획 접수 가상 직원**
-
-```
-NowView 원천 수신 ──메시지 「고객계획접수」──▶ 접수 Bot company1.sc01-intake
-                                              ├─ 원천마다 screen_customer_plan
-                                              ├─ 감독자 일괄 결재(승인·반려, 의견 필수)
-                                              ├─ 원천마다 record_intake_decision
-                                              └─ 승인이면 원천마다 company1.sc01 위임 / 반려면 끝(원천 보완 요청)
-```
-
-* 감독자 이름은 그림에 없다 — 가상 직원 등록(업무 › 가상 직원)의 감독자가 입력 `감독자`로 들어온다. 가상 직원 없이 돌리면 시작하지 않는다.
-* 접수 Bot의 일감은 데모 실행을 묶지 않는다. 묶는 것은 위임된 SC01의 첫 일감이다.
-* 고객계획 화면의 「접수 가상 직원」 카드가 오늘 접수·승인 대기·기동된 SC01을 보이고, 감독자가 거기서 일괄 결재에 답할 수 있다.
-* 데모 플레이어 각본은 일괄을 감독자로 대리 승인하고 진행한다(장면 1 각본·장면 2 이후 시작). 화면에서 손으로 할 때는 사람이 승인한다.
+**가상 직원(접수 Bot)은 없다**(2026-11-01 사용자 결정) — 원천을 받으면 NowView가 `company1.sc01`을 바로 기동하고, 그림은 원천 자동
+검증부터 한다. 예전의 접수 Bot(`company1.sc01-intake`)·감독자 일괄 결재·「접수 가상 직원」 카드는 걷었다.
 
 **원천 정정** — 보완 대기 중이면 정정본이 같은 실행에 메시지(`원천정정`, 상관 키 = 데모 실행 id)로 간다. 그 밖이면 앞 실행을 이력으로
 옮기고 앞 작업을 거둔 뒤 새로 기동한다. 초기화도 앞 작업을 거둔다. Center 멱등 키에는 초기화 회차가 들어간다.
@@ -190,7 +169,7 @@ NowView 원천 수신 ──메시지 「고객계획접수」──▶ 접수 B
 4. `scripts/deploy.sh`로 NowView를 올린다.
 5. 서버에서 3장 1의 명령으로 키를 짓고 운영 Center 폴더에 파일을 쓴 뒤 Center를 다시 띄운다(보관 파일은 서버의
    `engine/.consumer/` — 배포 rsync가 빼는 자리다. 배포 스크립트에 아직 이 단계가 없다 — 남은 일).
-6. 운영 Center 콘솔에서 3장 2·3을 한다. `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTAKE_WORKER`·`COMPANY_COMPANY1_*`를
+6. 운영 Center 콘솔에서 3장 2를 한다. `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`COMPANY_COMPANY1_*`를
    넣고 `systemctl restart nowview-engine`.
 
 ## 8. 남은 일

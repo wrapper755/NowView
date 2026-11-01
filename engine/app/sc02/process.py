@@ -347,10 +347,6 @@ class Sc02Process:
             for i in range(doc.get("script_index", -1) + 1, len(sc01_demo.BASE)):
                 doc = sc01_demo.run_step(self.sc01, sc01_id, i)
                 if executor_of(doc) == "center":
-                    # 접수 가상 직원이 있으면 수신 뒤 감독자 일괄 승인이 먼저다(SC01 N5)
-                    self.sc01.approve_intake_for_script(
-                        sc01_id, opinion="장면 2 시작 — 각본이 장면 1을 인계까지 진행"
-                    )
                     try:
                         self.sc01.sync_center(sc01_id)
                     except CenterError as exc:

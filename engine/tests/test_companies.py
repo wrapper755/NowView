@@ -41,7 +41,6 @@ def settings(tmp_path) -> Settings:
 def test_config_defaults_then_persists(settings: Settings, tmp_path) -> None:
     assert settings.config == default_config()
     assert settings.scene_of("company1.sc01") == 1
-    assert settings.scene_of("company1.sc01-intake") == 1
     assert settings.scene_of("company1.sc04") == 4
     assert settings.scene_of("other.bpm") is None
 

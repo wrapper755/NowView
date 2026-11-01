@@ -146,7 +146,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
   몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 리포 Company1의 기간계**(:8191)이고 엔진이 `app/company.py`로 읽고 적는다.
   연결은 늘 NowView에서 나간다(Center도 회사도 NowView 주소를 모른다). 지금 장면 1만 이 길이다.
-* **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). Center 실행에서는 고객계획 접수를 **가상 직원**(접수 Bot)이 맡고 감독자가 승인한 건만 SC01이 된다(4.5 N5).
+* **지금 구현된 것**: 대표 시나리오 1의 **장면 1(SC01)** — 고객 생산계획 변경을 감지해 현업 통제와 Management Review로 인계하기까지. 업무 흐름은 **Chaeksas BPM**이 BPMN을 해석해 돌린다(4.5). 원천을 받으면 SC01이 바로 시작된다 — 예전의 고객계획 접수 가상 직원(접수 Bot·감독자 일괄 결재)은 2026-11-01에 걷었다(4.5).
   **장면 2(SC02)** — 외주 공통부품 단가 인상 요청을 접수·분석·1차 협상·기안·순차 승인(팀장 → 임원 → 금액 기준 대표)하고 원가 버전을 등록해, 장면 1 물량 감소와 함께 경영관리에 인계하기까지(4.16). 장면 1과 **같은 데모 실행**을 잇는다. **Studio 시험 실행·Center 서버 실행**에서 돈다(외부 확장 `nowview-sc02`).
   **장면 3(SC03)** — 장면 1 물량 감소와 장면 2 승인 단가를 한 수익성 검토건(MR-2706-01)에 잇고, 통합 분석 → 영업·구매·생산
   확인 → 쟁점 판단 → 자료 확정 → 경영관리 임원 주재 수시회의(결론·후보 포함/제외) → 분석과제 AT31~34 배정·인수 → 장면 4 인계
@@ -295,8 +295,7 @@ NowView/
 │   ├── companies/company-list.tsx # 공개 회사 목록 · 회사 운영 현황(클라이언트가 공개 목록을 받는다)
 │   │                             #   brand-hero(첫 화면 머리 — Center 로그인 상단과 같은 INNONOW 로고·문구, 로고는 `public/brand/`)
 │   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
-│   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart,
-│   │                             #   intake-card — 접수 가상 직원, N5)
+│   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart)
 │   ├── sc02/                     # SC02 화면들 + bits · action-form · analysis-parts · session-sync · demo-player
 │   ├── sc03/                     # SC03 화면들 + bits · action-form · bridge-chart(손익 브리지) · agent-card · session-sync · demo-player
 │   ├── sc04/                     # SC04 화면들 + bits · action-form · agent-card(AG41~43) · session-sync · demo-player
@@ -324,7 +323,6 @@ NowView/
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
-    ├── processes/sc01-intake.bpmn # 고객계획 접수 Bot(가상 직원, N5) — Center 서버 Bot으로만 돈다
     ├── processes/sc02.bpmn       # SC02 업무 흐름 — Studio·Center 실행(4.16)
     ├── processes/sc03.bpmn       # SC03 업무 흐름 — Studio·Center 실행(4.17)
     ├── processes/sc04.bpmn       # SC04 업무 흐름 — Studio·Center 실행(4.18)
@@ -355,7 +353,7 @@ NowView/
     │   └── sc05/                 # seed · calc(관측·예산·과제 효과·월 손익·FC50 대비 대사) · domain(배경 원천 catch_up) · agent · process · demo · view · api (`sc05_*`)
     │   └── sc06/                 # seed · calc(Q4 기대 대비 확인 효과·원인·운영지표·보조 손익) · domain(적재 검증·판단·조회·재적재)
     │                             #   · confirm(확인 절차 — 결재 검사·기록·업무) · process(내장·Studio·Center) · demo(D601~D607) · view · api (`sc06_*`)
-    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _intake,
+    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center,
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process · _external,
@@ -412,8 +410,6 @@ POST /sc01/demo-runs/{id}/actions/{nodeId} {answer}        → BPM 사람 대기
 POST /sc01/demo-runs/{id}/clock {at} · /script/{i} · /reset {caseId, executor}
 GET  /sc01/demo-runs/{id}/events           → SSE
      시스템 작업(서비스 태스크)은 HTTP 경로가 없다 — 엔진의 C15 일꾼이 Center에서 일감을 가져간다(아래)
-GET  /sc01/intake                          → 「접수 가상 직원」 카드 (Center 가상 직원 그대로)
-POST /sc01/intake/approvals/{requestId}/answer {answer}  → 일괄 결재 대리 답 (감독자는 Center가 대조)
 
      장면 2(4.16) — 데모 실행 id는 장면 1과 같다
 GET  /sc02/process · /cases · /rules · /parts · /script?case_id=
@@ -545,7 +541,9 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     `test_extension_definition_matches_the_bpmn_service_calls`가 여전히 템플릿 ↔ 그림을 잠근다.
   * **확장 id에는 점을 쓸 수 없다**(C13 `^[a-z][a-z0-9-]{1,49}$`). 토픽(서비스 앱 id)은 기본 확장 `external`, BPM
     프로세스(패키지) id는 회사가 짓는다(`company1.sc01`). 장면 1을 옮기며 정의를 새 id로 다시 냈다(`chaeksas/external.extension.json`
-    0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다).
+    0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다). **철회된 판은 되살아나지 않는다**(C2) — 일꾼 파일을 폴더에서 빼면 Center가
+    그 일꾼만 맡던 확장을 철회하므로, 다시 들일 때는 판을 올린다(0.1.0이 그렇게 철회돼 0.1.1, 2026-11-01). BPMN 범위는 `<1`이라 그대로다.
+    같은 날 접수 작업 둘을 빼며 0.1.2다.
   * **관리자 모드 `/admin`**(로그인)이 일꾼 상태·맡은 토픽·최근 일감 50건(엔진 메모리)을 보인다 — 공개 화면·API에는 없다
     (`/health`도 일꾼 상태만 싣는다). **토픽을 바꾸면 일꾼 파일을 다시 지어 Center·엔진을 다시 띄운다** — Center는 그 파일의
     토픽만 내준다(밖이면 403 `topic_not_granted`).
@@ -556,10 +554,9 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   * `chaeksas-core`·`chaeksas-service-kit`은 같은 커밋(`d479226`, 2026-10-31 로컬 Center와 같은 판)에 고정한다(`engine/pyproject.toml`).
 * **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
   없다 — 원문은 설치가 지은 보관 파일 `engine/.consumer/keys.json`, 위 「승인 없는 일꾼」). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
-  `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태,
-  `GET /virtual-workers/{id}` 가상 직원) · `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-CHK-On-Behalf-Of` =
-  행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `company1.sc01`) · `CHAEKSAS_INTAKE_WORKER`(접수 가상 직원 id — 있으면
-  수신이 `/jobs` 대신 메시지 시작으로 접수 Bot을 깨운다, N5). 키가 둘인 것은
+  `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태) ·
+  `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-CHK-On-Behalf-Of` =
+  행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `company1.sc01`). 키가 둘인 것은
   Chaeksas 권한표 그대로다 — 대리 답용 키는 결재만, 연동용 키는 결재를 못 읽는다. `/health.center`가 설정·폴링
   여부를 드러낸다(값은 싣지 않는다). C15 일꾼 토큰과는 다른 키다(일꾼 토큰은 가져가기·끝내기만 연다).
   * **메시지는 `schema: 1`이 있어야 한다**(`MessageRequest`) — 없으면 422 `input_invalid`(실측). 작업(`/jobs`)은
@@ -687,29 +684,12 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     (첫 폴링에서 걷힌다). 화면 답·각본은 503. 화면은 엔진이 정한 `answerHere`로 폼·각본을 켠다.
   * 시험은 가짜 Center(`test_sc01_center.py`)와 **따로 띄운 빈 Center**(실측)로 했다. 진짜 서버 실행기·배포된
     패키지로는 아직 돌려 보지 않았다(기동·메시지 전달이 남았다).
-* **고객계획 접수 가상 직원(N5)** — `engine/processes/sc01-intake.bpmn`, `docs/chaeksas-integration.md` §5.
-  * 메시지 시작 `고객계획접수`(본문 `원천목록`만) → 원천마다 `screen_source` → 감독자 **일괄** 결재 → 원천마다
-    `record_intake_review` → 승인이면 SC01 위임 반복(함께 돈다), 반려면 끝. **감독자 이름을 그림에 적지 않는다** — 입력
-    `감독자`의 값 출처가 `virtual_worker.supervisors`이고 결재가 `assignees: "감독자"`로 받는다(ADR-0099). 출처가 있는 입력은
-    부르는 쪽이 보낼 수 없다(422 `input_not_from_caller`) — NowView도, 접수 Bot의 `chk:call.input`도.
-  * **일괄로 승인·반려한다** — 폼에 다중 선택이 없고, 결재 뒤에 목록을 다시 만들면 B16이라 Center가 가상 직원에 묶지
-    않는다(`intake_not_gated`). 수신 한 번 = 메시지 하나라 일괄 하나가 대개 원천 하나다.
-  * **카드의 승인 대기는 끝나지 않은 일괄의 결재만이다**(`summarize_intake`). Center는 실행 상태와 무관하게 `open`인 결재를
-    세고, 초기화가 접수 작업을 취소해도 실행기가 결재를 회수하지 않는다 — 운영에서 취소된 일괄이 승인 대기로 남았고 답하면
-    효과 없이 200이었다(2026-10-28). 회수는 Chaeksas 쪽 일이다.
-  * **접수 Bot의 작업은 데모 실행을 묶지 않는다**(`_intake_operate`) — 묶으면 위임된 SC01의 첫 호출이 409다.
-  * **반려 = SC01을 시작하지 않는다.** 원천 `NEEDS_INFO` + TASK-DQ 보완 요청(`NEEDS_INFO`). 정정본이 승인되면 위임된 SC01의
-    원천 확인이 같은 업무를 「보완 후 재배정」으로 잇는다.
-  * SC01 입력 `처리자`(`virtual_worker.name`, 필수 아님)를 `validate_source.processed_by`로 받아 실행에 남긴다
-    (`processed_by`, 감사 이력 `processed_by_virtual_worker`). 혼자 기동·내장은 `None`이다.
-  * **`chaeksas-core` `b421880` 이후**는 담당자 변수가 `None`이면 결재를 만들 때 실행이 `assignees_missing`으로 실패한다
-    (예외가 아니라 `run_finished.error_code`). 가상 직원 없이 돌린 접수 Bot은 `감독자`가 필수라 시작조차 하지 않는다.
-  * 실측은 임시 Center(:8810) + **진짜 서버 실행기**로 했다(승인 → 인계, 반려 → 보완 요청). 환경변수 키로 붙은 실행기에는
-    Center가 앱 키를 봉해 줄 수 없다 — `CHK_SERVER_RUNNER__SVC__NOWVIEW`로 준다(아니면 작업이 `not_ready`로 거절된다).
-  * **로컬 Center(docker compose, 실행기 컨테이너) + Studio로 내보낸 패키지로 승인 → 인계까지 갔다**(2026-10-27). 순서: CON-07 정의
-    등록·외부 앱 키·시험용 키·주소(`http://host.docker.internal:3000` — 실행기가 컨테이너다) → Studio 내보내기 두 패키지 승인·배포 →
-    CON-13 가상 직원 → `engine/.env.local`(`CHAEKSAS_*` 키·`NOWVIEW_SYSTEM_KEY*`·`CHAEKSAS_INTAKE_WORKER`) → `uv sync` +
-    `stack:restart engine`. 지금 등록 순서는 `docs/chaeksas-integration.md` §3.
+* **고객계획 접수 가상 직원(N5)은 걷었다**(2026-11-01 사용자 결정 — 사용자에게 효용이 없는 억지 기능이었다). 원천 수신은
+  `company1.sc01`을 `POST /jobs`로 바로 기동하고 그림은 원천 자동 검증부터 한다. 걷은 것: 접수 Bot 그림 `sc01-intake.bpmn`(Company1
+  `bpm/company1/company1.sc01-intake`도), 감독자 일괄 결재와 대리 답(`/sc01/intake`), 「접수 가상 직원」 카드, 작업
+  `screen_customer_plan`·`record_intake_decision`(확장 `external` 0.1.2), SC01 입력 `처리자`(출처 `virtual_worker.name`)·
+  `processed_by`, `CHAEKSAS_INTAKE_WORKER`. 장면 2~6 시작의 각본도 감독자 대리 승인 없이 장면 1을 인계까지 돈다. Center 쪽
+  가상 직원 자원은 Chaeksas가 「직원」(ADR-0125)으로 바꾸는 중이다 — 업무를 직원에 할당하는 모양은 그 구현 뒤에 다시 정한다.
 * **한 데모 실행 = 문서 하나.** 계산 결과·이슈 갱신·BPM 스냅샷이 한 번의 쓰기라 API-04의 원자성이
   저절로 성립한다. 워커 사이는 `row_version`(낙관적 잠금, 409)이 막는다. 데모 실행끼리는 서로
   보지 않는다(DATA-05).
@@ -804,7 +784,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | 경로 | 화면 | 핵심 |
 |---|---|---|
 | `/c/company1/sc01` | UI01 경영 현황 | T01·F01·(계산 후) F02 손익, 목표 차이 vs 사건 영향, 모델별 표, 이슈·업무 요약 |
-| `…/sc01/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산, (Center) **접수 가상 직원** 카드 — 오늘 접수·승인 대기·기동된 SC01, 일괄 결재 대리 답 |
+| `…/sc01/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산 |
 | `…/sc01/risk` | UI04 위험 검토 | 계산 선택(정정 시 이전 결과·정정 이력), 상태 칩, 지표 타일(임계값은 `/rules`), 경보 행 비교(15행은 접기), 이슈 이력, **AI 초안 ↔ 담당자 검토 의견**, 배정·Review 요청 |
 | `…/sc01/tasks` | UI05 업무 | 알림, 업무 목록(기한 초과·재확인 요청), 상세·계산별 확인·이력, 인수·재확인 |
 | `…/sc01/handoff` | UI06 인계 | 이슈 근거, 장면 완료 조건, 후속 업무, 정정 이력, 감사 이력, 다음 장면(이야기만) |
@@ -871,7 +851,6 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_agent.py` | Agent 계약 검증(틀린 금액·비율·물량, 없는 근거, 빠진 항목), EX08, 실패 응답 비노출, 재생성·채택·지연, **잠금 밖 실행**, `-m llm` 실호출 |
 | `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
 | `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
-| `engine/tests/test_sc01_intake.py` | N5 — 접수 Bot 그림(계약 검사·B16 없음·감독자 출처), 출처 입력(`input_required`·`input_not_from_caller`·`assignees_missing`), 가짜 Center 메시지 시작 + 진짜 엔진으로 승인 → 위임 → 인계·반려 → 보완 요청, 거절된 앞 작업·초기화 뒤 멱등 키 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
@@ -1668,15 +1647,15 @@ UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연
 > * **Center에 아직 잇지 않았다** — `/health.center.url`이 null이라 데모 실행(기본 Center)의 화면 진행·각본은 503이다.
 >   같은 서버에 운영 Chaeksas Center(127.0.0.1:8800)·서버 실행기 컨테이너가 있다. 사람이 할 것: CON-07 확장 정의
 >   `nowview-sc01`~`sc06` 서명·등록(외부 앱 키 = `NOWVIEW_SYSTEM_KEY`, 시험용 키 = `NOWVIEW_SYSTEM_KEY_TEST`, 서버 주소는
->   기본값 그대로) → Studio 패키지 7개(SC01·접수 Bot·SC02~06) 승인·배포 → CON-13 접수 가상 직원 → CON-11 연동용·대리 답용
->   키 → `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`·`CHAEKSAS_INTAKE_WORKER`
+>   기본값 그대로) → Studio 패키지 6개(SC01~06) 승인·배포 → CON-11 연동용·대리 답용
+>   키 → `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`
 >   → `systemctl restart nowview-engine`.
 > * 시스템 작업 키 두 개는 `deploy.sh --bootstrap`이 서버에서 지었다 — **2026-10-31 Pull 전환(4.3) 뒤로는 읽는 곳이 없다.**
 >
 > **2026-10-31 Chaeksas가 바깥 호출을 Pull로 바꿨다(ADR-0102, C15) — NowView는 엔진이 C15 일꾼이 됐다**(4.3). 이 판을
 > 올리기 전에 운영 Chaeksas(Center·서버 실행기)도 C15 판(`554d7fa` 이후)이어야 한다 — 옛 Center는 일감을 쌓지 않고
 > 어댑터로 `/operations/…`를 부르는데 그 경로가 없어졌다. 사람이 할 것은 `docs/chaeksas-integration.md` §7이다 — 확장
-> 일꾼은 Center 일꾼 폴더의 파일로 들이고 확장 정의는 일꾼이 올린다(ADR-0121, 콘솔 등록·승인 없음), 패키지·접수 가상 직원·연동용·대리 답용
+> 일꾼은 Center 일꾼 폴더의 파일로 들이고 확장 정의는 일꾼이 올린다(ADR-0121, 콘솔 등록·승인 없음), 패키지·연동용·대리 답용
 > 키는 콘솔에서 한다.
 > * **DB는 비우지 않았다** — 예전 데모 실행 33건·LangGraph 테이블(`checkpoint*`, `instance_spec`)이 남아 있다. 옛 문서는
 >   읽을 때 채우고(`domain.upgrade`) 새 데모 실행과 무관하다. 비우는 명령은 자동 권한 검사가 막았다 — 비우려면 사람이 한다.
@@ -1829,9 +1808,8 @@ scripts/deploy.sh --logs engine 80
   내보낸 패키지 `nowview.sc02` 승인·배포. 엔진 설정은 더 필요 없다(패키지 id 기본값). — **사용자가 올렸고, 로컬 Center + 진짜
   서버 실행기로 장면 1 기동(접수 가상 직원 경유) → 인계 → 장면 2 D00 → D12 인계까지 각본으로 갔다**(2026-10-27, 숫자 12개월
   인상 18,817,440 · 감소 12,544,960). Studio 시험 실행은 아직 돌려 보지 않았다. 실측으로 고친 셋:
-  * **장면 2 시작이 접수 일괄에서 멈췄다** — 각본이 장면 1을 인계까지 끝낼 때 감독자 승인을 넘지 못했다. 이제 각본이 일괄을
-    **감독자(가상 직원 등록의 이름)로 대리 승인**한다(`Sc01Process.approve_intake_for_script`, 장면 2 시작에서만). 장면 1
-    플레이어는 그대로 「접수 가상 직원」 카드에서 사람이 승인한다.
+  * **장면 2 시작이 접수 일괄에서 멈췄다** — 각본이 장면 1을 인계까지 끝낼 때 감독자 승인을 넘지 못했다. 그때는 각본이 일괄을
+    감독자로 대리 승인하게 했다 — 2026-11-01 접수 가상 직원을 걷으며 그 길도 없어졌다(4.5).
   * **대리 답 대기 10초가 모자랐다** — 작업 배정 약 8초, 답을 실행기가 집어 다음 결재를 올리기까지 약 10초다. `CENTER_WAIT_S`를
     30초로 올렸다(찾으면 바로 돌아온다). 실행 기록(`/runs/{id}/events`)도 첫 호출 직후엔 404라 각본은 그것을 넘긴다(폴러가 따라잡는다).
   * **앞 결재 뒤의 계산을 실행기가 아직 안 불렀는데 다음 답의 사전 검사가 돌았다**(재분석 확인 직후 상신 → 「재분석이 최신이
