@@ -3,7 +3,7 @@
  * 화면은 단위만 바꾼다 — 계산하지 않는다.
  */
 
-import type { DemoUser, FormField, ProcessTopology, Risk, Waiting } from "@/lib/sc01/types";
+import type { CompanyExchange, DemoUser, FormField, ProcessTopology, Risk, Waiting } from "@/lib/sc01/types";
 
 export type { DemoUser, FormField, ProcessTopology, Risk, Waiting };
 
@@ -361,6 +361,8 @@ export interface Sc02View {
   decisions: Decision[];
   instruction: Instruction | null;
   costVersions: CostVersion[];
+  /** 회사 시스템과 오간 것(구매 마스터 읽기·요청 수신·확인 결과·원가 버전 등록) — 이 기록 전에 만든 문서는 빈 목록 */
+  companyLog?: CompanyExchange[];
   issue: { issue_id: string; risk: Risk | null; status: string; history: { at: string; run_id: string; risk: Risk | null }[] } | null;
   review: { review_id: string; links: ReviewLink[]; bundles: Bundle[] };
   selectedRunId: string | null;

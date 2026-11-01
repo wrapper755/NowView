@@ -84,6 +84,44 @@ def step_index(case: str, code: str) -> int:
 # ─────────────────────────── 시작 (D00 · T21) ───────────────────────────
 
 
+def test_company_records_follow_the_scene(proc: Sc02Process) -> None:
+    """
+    회사 시스템을 지난다 — 구매 마스터 읽기 → 공급사 요청 받기(회사 구매 수신함) → 원문 확인 결과
+    적기 → 원가 버전 C02-APP01 등록. 회사에 적힌 것과 NowView 문서가 같고, 초기화는 장면 2
+    기록만 지운다.
+    """
+    doc = play(proc)
+    log = doc["company_log"]
+    assert [(e["direction"], e["at"]) for e in log] == [
+        ("in", "2027-06-17T08:50:00+09:00"),
+        ("in", "2027-06-17T09:00:00+09:00"),
+        ("out", "2027-06-17T09:20:00+09:00"),
+        ("out", "2027-06-23T15:00:00+09:00"),
+    ]
+    world = doc["demo_run_id"]
+    company = proc.company
+    (status,) = company._call("GET", f"/worlds/{world}/price-requests/status-log")
+    assert status["doc_id"] == doc["request"]["company_doc_id"] == log[1]["doc_id"]
+    assert (status["status"], status["by"]) == ("VERIFIED", "윤채원")
+    (cv,) = company.cost_versions(world)
+    assert (cv["cost_version_id"], cv["new_price"], cv["status"]) == (
+        "C02-APP01",
+        "2120",
+        "REGISTERED_FUTURE",
+    )
+    assert [m["outsource_after"] for m in cv["models"]] == [
+        "75120",
+        "95120",
+        "60000",
+        "65000",
+        "50000",
+    ]
+    # 장면 2 초기화 — 회사 세계의 구매 기록만 처음으로, 장면 1 고객계획은 그대로
+    proc.reset(world, actor="u-demo")
+    assert company.cost_versions(world) == []
+    assert len(company.inbox(world)) == 1
+
+
 def test_d00_starts_from_the_sc01_handoff_and_exposes_nothing_ahead(proc: Sc02Process) -> None:
     """T21·DEMO-01 — 장면 1 인계 결과만 있다. 요청·협상·승인·원가·인계는 아직 없다."""
     doc = proc.create()

@@ -12,7 +12,8 @@ import { useSc01 } from "@/lib/store/sc01";
 /**
  * 회사 시스템과 오간 것 — NowView가 회사 기간계에서 받은 것(기준 자료·고객계획)과 적은 것(원천 확인 결과).
  * BPM(Center) ↔ NowView ↔ 회사가 이어지는 모습이 화면에서 보이지 않았다(2026-11-01). 회사 사이트 주소가
- * 설정돼 있으면 그 문서를 회사 사이트에서 연다 — 회사 세계 id가 데모 실행 id다.
+ * 설정돼 있으면 그 문서를 회사 사이트에서 연다 — 회사 세계 id가 데모 실행 id다. 고객계획(`DOC-…`)은 문서 화면,
+ * 장면 2의 단가 인상 요청·원가 버전은 그 회차 화면으로 연다(회사 사이트에 문서 화면이 없다).
  */
 export function CompanyExchangeCard({ log }: { log: CompanyExchange[] }) {
   const demoRunId = useSc01((s) => s.demoRunId);
@@ -66,7 +67,7 @@ export function CompanyExchangeCard({ log }: { log: CompanyExchange[] }) {
                         {" "}
                         {world ? (
                           <a
-                            href={`${world}/docs/${encodeURIComponent(e.doc_id)}`}
+                            href={e.doc_id.startsWith("DOC-") ? `${world}/docs/${encodeURIComponent(e.doc_id)}` : world}
                             target="_blank"
                             rel="noreferrer"
                             className="font-mono text-xs underline"

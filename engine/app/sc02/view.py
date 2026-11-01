@@ -96,6 +96,7 @@ def view(
         "decisions": doc["decisions"],
         "instruction": doc["instruction"],
         "costVersions": cost_versions,
+        "companyLog": doc.get("company_log", []),
         "issue": doc["issue"],
         "review": doc["review"],
         "selectedRunId": None if picked is None else picked["run_id"],

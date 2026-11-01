@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Inbox } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { Sc02Body, Sc02Header, StatusPills, WaitingForms } from "@/components/sc02/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Button } from "@/components/ui/button";
@@ -139,6 +140,7 @@ function Request({ view }: { view: Sc02View }) {
           </Commentary>
         </CardContent>
       </Card>
+      <CompanyExchangeCard log={view.companyLog ?? []} />
     </>
   );
 }
@@ -165,7 +167,7 @@ function ReceiveCard() {
     <Card>
       <CardHeader>
         <CardTitle>공문 수신</CardTitle>
-        <CardDescription>SUP-01 가상 정밀부품의 단가 인상 요청 공문(DOC-REQ01)을 등록한다. 구매담당 업무다.</CardDescription>
+        <CardDescription>SUP-01 가상 정밀부품이 회사 구매 수신함에 보낸 단가 인상 요청 공문(DOC-REQ01)을 들인다. 구매담당 업무다.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-2">
         <Button size="sm" onClick={() => void receive("REQ-2706-01")} disabled={busy || historical || !isBuyer}>

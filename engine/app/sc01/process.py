@@ -511,7 +511,7 @@ class Sc01Process:
             domain.company_exchange(
                 doc,
                 direction="out",
-                what=f"원천 확인 결과 「{label}」을 적었다",
+                what=f"원천 확인 결과를 적었다 — {label}",
                 doc_id=doc_id,
                 by=record["by"],
             )

@@ -1,8 +1,8 @@
 """
 SC02 바깥 실행 — Studio 시험 실행 · Center 서버 실행(SC01 N1~N6과 같은 틀).
 
-* **확장 정의 ↔ BPMN** — `chaeksas/nowview-sc02.extension.json`의 본문 템플릿이 그림의 입력과
-  맞는가(어긋나면 어댑터가 실행 중에 멈춘다).
+* **확장 정의 ↔ BPMN** — 기본 확장 `chaeksas/external.extension.json`의 작업이 그림의 서비스 호출·
+  입력을 덮는가(어긋나면 Center가 일감을 막거나 일꾼이 입력 없이 멈춘다).
 * **Studio** — 진짜 Chaeksas 엔진이 같은 그림을 돌고, 서비스 태스크는 시스템 작업(HTTP 어댑터 흉내,
   시험용 키)을 부르고, 결재는 Studio 대화상자처럼 엔진에 바로 답한다. NowView 화면 답·각본은 409다.
 * **Center** — SC01의 가짜 Center·서버 실행기 흉내(`test_sc01_center.py`)를 그대로 쓴다. 요청
@@ -12,7 +12,6 @@ SC02 바깥 실행 — Studio 시험 실행 · Center 서버 실행(SC01 N1~N6�
 from __future__ import annotations
 
 import json
-import re
 import sqlite3
 import threading
 import time
@@ -46,14 +45,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """정의가 최신 계약 검사를 통과하고, 그림의 모든 서비스 호출이 정의의 입력·본문과 맞는다."""
-    raw = (ROOT / "chaeksas" / "nowview-sc02.extension.json").read_bytes()
+    raw = (ROOT / "chaeksas" / "external.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
     adapter = json.loads(raw)["service"]["adapter"]
-    # 운영계가 기본 주소이고 로컬 Center만 덮어쓴다(ADR-0097) — SC01 정의와 같은 범위
-    assert manifest.service.base_url == "https://www.nowview.work"
-    assert adapter["allowed_hosts"] == ["www.nowview.work", "localhost", "host.docker.internal"]
-    assert adapter["auth"] == {"type": "bearer"}
     operations = {o["name"]: o for o in adapter["operations"]}
 
     process = read_process(PROCESS_PATH.read_bytes())
@@ -63,11 +58,8 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
         op = operations[call.operation]
         given = set(call.input)
         assert set(op["input_schema"]["required"]) <= given, node.id
-        used = set(re.findall(r"\{\{input\.(\w+)\}\}", json.dumps(op["request"])))
-        # 본문 템플릿의 입력이 그림에 없으면 어댑터가 호출을 실패시킨다(CLAUDE.md 4.3)
-        assert used <= given, (node.id, used - given)
-        assert op["request"]["path"].startswith("/api/engine/sc02/demo-runs/{{input.demo_run_id}}/")
-        assert op["request"]["body"]["chaeksas_run_id"] == "{{run_id}}"
+        # 기본 확장은 C15 일꾼만 부른다 — 요청은 자리 채움이다(장면 1과 같다)
+        assert op["request"] == {"method": "POST", "path": "/"}, call.operation
         if call.operation in RECORDS or call.operation in DECIDED_BY:
             assert "answered_by" in op["input_schema"]["required"], call.operation
     # 그림이 확장을 선언해야 패키지 `requires.extensions`에 올라 실행기가 정의(주소)를 받는다(SC01
@@ -231,7 +223,7 @@ def test_studio_key_cannot_feed_a_center_demo_run(proc: Sc02Process) -> None:
     with pytest.raises(DomainError) as exc:
         proc.operate(
             rid,
-            "screen_request",
+            "screen_price_request",
             {"request_id": domain.REQUEST_ID},
             external_run_id="run_x",
             via="studio",

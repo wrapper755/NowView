@@ -10,12 +10,16 @@ SC01과 같은 원칙이다(CLAUDE.md 4.5): 원천(설정·물량원가기준·�
 * 「단가버전」 시트는 시드가 아니다 — 단계 실행 때 생길 **기대값**이다(DEMO-01: D00에 미래의
   요청·협상·승인안을 미리 적재하지 않는다).
 * 2027 행은 SC01 시드와 같은 값이어야 한다(SC02-10 장면 1의 F01·F02·C01 재사용) — 테스트가 본다.
+* **구매 마스터의 주인은 회사다**(`with_company`) — 부품 구성(소요량)과 현행 구매 단가는 회사 시스템
+  (`GET /company/purchase/master`)에서 읽어 엑셀의 같은 칸을 대신한다. 물량·원가 행(2028 내부가정
+  포함)·고정비·규칙(임계값)·각본 글은 NowView 엑셀이다. 회사 외주비가 엑셀 C01 행과 다르면 상충하는
+  자료라 막는다(임의 보정하지 않는다 — 구현명세 1장).
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
 from functools import cache
@@ -168,3 +172,35 @@ def load_seed(path: Path = SEED_PATH) -> Seed:
     evidence = {str(r["record_id"]): r for r in _rows(wb["증빙과협상"], "record_id")}
     wb.close()
     return Seed(settings=settings, rows=rows, fixed=fixed, parts=parts, evidence=evidence)
+
+
+def with_company(seed: Seed, master: dict[str, Any]) -> Seed:
+    """
+    회사 구매 마스터로 부품 구성·현행 구매 단가를 바꾼 시드. 회사가 아는 C01 부품 단가가
+    하나여야 하고(기존가 = C01 부품 단가, CT21), 부품 구성의 외주비가 엑셀 C01 행과 같아야 한다.
+    """
+    from app.sc01.domain import DomainError
+
+    prices = [p for p in master["prices"] if p["price_version"] == "C01"]
+    if len(prices) != 1:
+        raise DomainError(f"회사 C01 구매 단가가 하나가 아니다: {len(prices)}건", 409)
+    price = prices[0]
+    parts = [
+        PartLink(
+            model_id=b["model_id"],
+            part_id=b["part_id"],
+            supplier_id=b["supplier_id"],
+            qty_per=Decimal(b["qty_per"]),
+        )
+        for b in master["bom"]
+    ]
+    base = {r.model_id: r.outsource for r in seed.rows if r.period == date(2027, 1, 1)}
+    for b in master["bom"]:
+        if base.get(b["model_id"]) != Decimal(b["outsource"]):
+            raise DomainError(
+                f"회사 부품 구성의 외주비({b['model_id']} {b['outsource']})가 "
+                "수치 시드 C01과 다르다",
+                409,
+            )
+    settings = {**seed.settings, "old_price": price["unit_price"]}
+    return replace(seed, settings=settings, parts=parts)

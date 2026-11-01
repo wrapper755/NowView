@@ -1,7 +1,8 @@
 # NowView 일꾼 · 회사 시스템 · 대시보드 — 인터페이스
 
 지금 구조만 적는다. Center 등록 절차와 실행 중 동작은 [chaeksas-integration.md](chaeksas-integration.md)에 있다.
-지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)뿐이다 — 장면 2~6은 옮길 때마다 이 문서에 더한다.
+지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)·장면 2(외주 단가 인상 검토)다 — 장면 3~6은 옮길 때마다 이
+문서에 더한다.
 
 ## 1. NowView가 하는 일
 
@@ -53,6 +54,17 @@ Center ◀──────────────────────▶ 
 
 검토 전망 F02는 장면 1에서 승인되지 않는다(`UNDER_REVIEW`) — 회사 시스템에 쓰지 않는다.
 
+**장면 2**
+
+| 자료 | 주인 | 어디서 |
+|---|---|---|
+| 부품·공급사·부품 구성(소요량)·현행 구매 단가 C01 | 회사 | `GET /company/purchase/master` — 엔진은 엑셀의 같은 칸 대신 쓴다(`seed.with_company`). 외주비가 엑셀 C01과 다르면 409 |
+| 공급사 단가 인상 요청 원문 | 회사 | 세계 구매 수신함 — NowView 문서에 사본(`request.company_doc_id`) |
+| 요청 원문 확인 상태(VERIFIED·NEEDS_INFO) | 회사 | 원문 확인 기록 때 회사에 적는다(`POST …/price-requests/{doc}/status`) |
+| 원가 버전 C02-APP01(승인 단가, 적용 예정·적용 중) | 회사 | 원가 등록 기록 때 회사에 등록한다(`POST /worlds/{w}/cost-versions`) |
+| 물량·원가 행(2027 = 장면 1 회사 자료, 2028 내부가정)·고정비·임계값·승인권한표 | NowView | 엔진 엑셀(`SYN-SC02-v0.2`) — 2028은 경영관리의 분석 가정이지 회사 확정 계획이 아니다 |
+| 보고·협상·단가안·기안·결재 결정·분석 run·위험·인계 | NowView | 데모 실행 문서 |
+
 ## 4. 경계별 인터페이스
 
 ### 4.1 ① BPM ↔ 일꾼 — 일감 (토픽 `external`)
@@ -77,6 +89,21 @@ Center ◀──────────────────────▶ 
 | `assign_follow_up` | 현업(생산·자재, `Approve_Dispatch`) 또는 경영관리(`Approve_Review`) 배정 — 담당자 이름을 돌려준다 | — |
 | `record_acceptance` | 인수 기록 | — |
 | `hand_off_case` | 인계 조건 확인 · 인계 기록 | — |
+
+장면 2 작업(BPM 프로세스 `company1.sc02` 0.2.0 — 확장 `>=0.2.0`):
+
+| 작업 | 하는 일 | 회사 시스템 호출(②) |
+|---|---|---|
+| `screen_price_request` | 요청 자동 검사(CT21) — 필수값·KRW·VAT 제외·월초 적용·품목 매핑·기존가 = 회사 C01 단가 | — (마스터는 한 번 읽어 둔다) |
+| `record_price_request_review` | 요청 원문 확인 기록 | 요청 상태 VERIFIED·NEEDS_INFO |
+| `record_purchase_report` | 팀장 구두보고 기록 | — |
+| `analyze_price_request` · `analyze_price_negotiation` | 요청안·내부제시안 · 협상안 영향분석 run | — |
+| `request_price_review_draft` | Agent 검토 초안(AG21·22·24) | — |
+| `record_price_negotiation` | 1차 협상 결과 | — |
+| `submit_price_proposal` | 기안 상신(기안 버전·분석 run) | — |
+| `record_price_decision` · `judge_price_authority` | 결재 결정 · 대표 대상 판단 | — |
+| `register_cost_version` | 승인 조건 대조 · 원가 버전 등록 | 원가 버전 C02-APP01 등록 |
+| `hand_off_cost_review` · `accept_cost_review` | 경영관리 인계 요청 · 인수 | — |
 
 **실패** — 업무 규칙 위반은 `forbidden`·`not_found`·`conflict`·`input_invalid`(재시도 없음, 글은 사유). 회사 시스템이 응답하지 않으면
 `dependency_down`(재시도) — 엔진 안에서는 `CompanyUnavailable`(503)이고 그 조작은 저장되지 않는다. 설정에 없는 BPM 프로세스의 일감은
@@ -112,6 +139,22 @@ GET  /worlds/{w}/clock                              → 세계 시각
 ```
 POST /worlds/{w}/customer-plans/{doc_id}/status     {status: VERIFIED|NEEDS_INFO, by, opinion, evidence, ref}
                                                      ref가 같으면 다시 적지 않는다(멱등). 같은 ref·다른 결정은 409
+```
+
+장면 2(구매):
+
+```
+GET  /company/purchase/master                       → {parts, suppliers, bom:[{model_id, part_id, supplier_id, qty_per, outsource, residual_outsource}], prices}
+GET  /worlds/{w}/price-requests/inbox?after=        → 받은 요청 [{doc_id, seq, fixture_id, request_id, supplier_id, received_at, corrects, status}]
+GET  /worlds/{w}/price-requests/{doc_id}            → {…, supplier_name, source_doc_id, text, items:[{part_id, old_price, requested_price, effective_date, …}]}
+GET  /worlds/{w}/price-requests/status-log · /worlds/{w}/cost-versions
+POST /worlds/{w}/price-requests/{doc_id}/status     {status, by, opinion, evidence, ref}   (멱등 — 위와 같다)
+POST /worlds/{w}/cost-versions                      {cost_version_id, parent_cost_version, part_id, supplier_id, old_price, new_price,
+                                                     effective_from, models, approved_proposal, request_doc_id, registered_by, note, ref}
+                                                     같은 버전·같은 내용이면 기존 등록, 다른 내용이면 409. 상태는 세계 시각으로
+                                                     REGISTERED_FUTURE·EFFECTIVE
+POST /worlds/{w}/sim/price-requests  {fixture_id}   (시연) 공급사가 요청을 보냈다 — REQ-2706-01 · REQ-2706-01-MISSING
+POST /worlds/{w}/purchase/reset                     (시연) 장면 2 기록만 처음으로 — 장면 1 수신함·원천 상태는 그대로
 ```
 
 NowView는 이 쓰기를 **데모 실행 문서를 저장하기 직전에** 한다 — 회사가 받지 못하면 그 조작 전체가 저장되지 않는다.
@@ -177,6 +220,7 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 * 엔진이 회사 시스템의 사용자 명단을 읽지 않는다 — 기간계가 사원 명단을 내지만 엔진은 `domain.USERS`를
   쓴다. 장면 2~6도 쓰고 있어 업무를 옮길 때 함께 바꾼다. 결재 담당자 이름(BPMN `assignees`)은 Center 계정과 사람이 맞춘다.
-* 장면 2~6이 회사 시스템에 쓸 기록(원가 버전·실행과제·예산·공식 전망 게시)은 그 업무를 옮길 때 정한다.
+* 장면 3~6이 회사 시스템에 쓸 기록(실행과제·예산·공식 전망 게시)은 그 업무를 옮길 때 정한다. 장면 2의 협상·기안·결재
+  기록은 NowView 문서에만 있다 — 회사 전자결재 기록으로 옮길지는 아직 정하지 않았다.
 * 회사 시스템이 죽으면 업무가 멈추고 일감은 재시도로 돌아간다. 공개 대시보드에는 「회사 시스템 연결 안 됨」 표시가 아직 없다(관리자
   화면에만 있다).
