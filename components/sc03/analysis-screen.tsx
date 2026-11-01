@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useUserName } from "@/components/sc01/bits";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { Mn, Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
 import { BridgeChart } from "@/components/sc03/bridge-chart";
 import { AgentCard } from "@/components/sc03/agent-card";
@@ -244,6 +245,7 @@ function Analysis({ view }: { view: Sc03View }) {
           F01 → F02 물량 영향 뒤에 F02 물량 기준으로 승인 단가를 적용한다 — 교차효과를 따로 더하지 않는다. 요청·협상·승인안을 중복 합산하지 않는다.
         </p>
       </Commentary>
+      <CompanyExchangeCard log={view.companyLog ?? []} />
     </>
   );
 }

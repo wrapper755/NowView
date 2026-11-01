@@ -1847,22 +1847,22 @@ def adopt_agent(doc: dict, output_id: str, *, actor: str) -> None:
 
 #: 결재 뒤의 기록 작업 → 결재 노드. 같은 작업이 여러 결재 뒤에 있으면 입력의 `node_id`로 가른다.
 RECORDS = (
-    "run_analysis",
-    "fix_calc",
-    "request_confirmation",
-    "record_confirmation",
-    "record_revision",
-    "record_gap",
-    "judge_questions",
-    "freeze_report",
-    "distribute_report",
-    "open_meeting",
-    "decide_review",
-    "confirm_minutes",
-    "assign_tasks",
-    "accept_task",
-    "reassign_task",
-    "complete_scene",
+    "analyze_profit_impact",
+    "correct_profit_calculation",
+    "request_department_confirmation",
+    "record_department_confirmation",
+    "revise_profit_report",
+    "record_target_gap",
+    "judge_open_questions",
+    "freeze_profit_report",
+    "distribute_profit_report",
+    "open_review_meeting",
+    "record_review_conclusion",
+    "confirm_meeting_minutes",
+    "assign_analysis_tasks",
+    "accept_analysis_task",
+    "reassign_analysis_task",
+    "hand_off_profit_review",
 )
 
 
@@ -1896,46 +1896,46 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
     작업은
     적기 전에 같은 검사를 한다(Studio·Center 콘솔 답은 NowView 사전 검사를 거치지 않는다).
     """
-    if operation == "fix_calc":
+    if operation == "correct_profit_calculation":
         latest = latest_run(doc)
         if latest is None or latest["result"]["passed"]:
             raise DomainError("정정할 계산 오류가 없다", 409)
-    elif operation == "request_confirmation":
+    elif operation == "request_department_confirmation":
         run = latest_run(doc)
         if run is None or not run["result"]["passed"] or current_draft(doc) is None:
             raise DomainError("정합이 확인된 분석 초안이 없다(CT33)", 409)
         # 형식도 여기서 본다 — 기록 작업에서만 보면 대리 답은 통과하고 기록이 422로 거절되어
         # 같은 결재로 조용히 돌아왔다(화면 직접 진행 실측: 기본값에 이어 친 「…+09:006/28 18:00」)
         _when(args.get("due") or SCHEDULE["confirm_due"], "회신기한")
-    elif operation == "record_confirmation":
+    elif operation == "record_department_confirmation":
         check_confirmation(doc, str(args.get("dept") or ""), args)
-    elif operation == "record_revision":
+    elif operation == "revise_profit_report":
         check_revision(doc, args)
-    elif operation == "record_gap":
+    elif operation == "record_target_gap":
         check_gap(doc, args)
-    elif operation == "judge_questions":
+    elif operation == "judge_open_questions":
         check_judgement(doc, _slots(args))
-    elif operation == "freeze_report":
+    elif operation == "freeze_profit_report":
         problems = freeze_problems(doc)
         if problems:
             raise DomainError("자료를 확정할 수 없다: " + ", ".join(problems), 409)
-    elif operation == "distribute_report":
+    elif operation == "distribute_profit_report":
         if frozen_report(doc) is None:
             raise DomainError("확정된 보고자료가 없다", 409)
-    elif operation == "open_meeting":
+    elif operation == "open_review_meeting":
         check_open_meeting(doc)
-    elif operation == "decide_review":
+    elif operation == "record_review_conclusion":
         check_decision(doc, {**args, "candidates": _candidates(args)})
-    elif operation == "confirm_minutes":
+    elif operation == "confirm_meeting_minutes":
         if doc["decision"] is None or doc["decision"]["outcome"] == "REWORK_REQUIRED":
             raise DomainError("확인할 검토 결론이 없다", 409)
-    elif operation == "assign_tasks":
+    elif operation == "assign_analysis_tasks":
         check_assign(doc)
-    elif operation == "accept_task":
+    elif operation == "accept_analysis_task":
         check_acceptance(doc, str(args.get("task_id") or ""), args)
-    elif operation == "reassign_task":
+    elif operation == "reassign_analysis_task":
         check_reassign(doc, str(args.get("task_id") or ""), args)
-    elif operation == "complete_scene":
+    elif operation == "hand_off_profit_review":
         check_complete(doc)
 
 
@@ -1944,46 +1944,46 @@ def apply(
 ) -> dict[str, Any]:
     """기록 작업 하나의 업무 효과. 검사는 `check`가 먼저 했다. 출력은 그림의 `output` 대응이
     쓴다."""
-    if operation == "run_analysis":
+    if operation == "analyze_profit_impact":
         out = run_analysis(doc, seed, by=by, memo=_text(args, "memo"))
         return {"run_id": out["run_id"], "passed": out["passed"]}
-    if operation == "fix_calc":
+    if operation == "correct_profit_calculation":
         out = fix_calc(doc, seed, note=_text(args, "note"), by=by)
         return {"run_id": out["run_id"], "passed": out["passed"]}
-    if operation == "request_confirmation":
+    if operation == "request_department_confirmation":
         request_confirmation(doc, due=args.get("due"), memo=_text(args, "memo"), by=by)
         return {"report_id": current_draft(doc)["report_id"]}  # type: ignore[index]
-    if operation == "record_confirmation":
+    if operation == "record_department_confirmation":
         record_confirmation(doc, str(args["dept"]), args, by=by, strict=strict)
         return {}
-    if operation == "record_revision":
+    if operation == "revise_profit_report":
         return {"report_id": record_revision(doc, args, by=by)}
-    if operation == "record_gap":
+    if operation == "record_target_gap":
         record_gap(doc, args, by=by, strict=strict)
         return {}
-    if operation == "judge_questions":
+    if operation == "judge_open_questions":
         return judge_questions(doc, _slots(args), by=by)
-    if operation == "freeze_report":
+    if operation == "freeze_profit_report":
         return {"report_id": freeze_report(doc, opinion=_text(args, "opinion"), by=by)}
-    if operation == "distribute_report":
+    if operation == "distribute_profit_report":
         distribute(doc, seed, memo=_text(args, "memo"), by=by)
         return {}
-    if operation == "open_meeting":
+    if operation == "open_review_meeting":
         open_meeting(doc, seed, summary=_text(args, "summary"), by=by)
         return {}
-    if operation == "decide_review":
+    if operation == "record_review_conclusion":
         out = decide_review(doc, seed, {**args, "candidates": _candidates(args)}, by=by)
         return {"rework": out["rework"]}
-    if operation == "confirm_minutes":
+    if operation == "confirm_meeting_minutes":
         return {"minutes_id": confirm_minutes(doc, seed, opinion=_text(args, "opinion"), by=by)}
-    if operation == "assign_tasks":
+    if operation == "assign_analysis_tasks":
         return assign_tasks(doc, memo=_text(args, "memo"), by=by)
-    if operation == "accept_task":
+    if operation == "accept_analysis_task":
         accept_task(doc, str(args["task_id"]), args, by=by, strict=strict)
         return {}
-    if operation == "reassign_task":
+    if operation == "reassign_analysis_task":
         return reassign_task(doc, str(args["task_id"]), args, by=by)
-    if operation == "complete_scene":
+    if operation == "hand_off_profit_review":
         return {"handoff_id": complete_scene(doc, memo=_text(args, "memo"), by=by)}
     raise DomainError(f"모르는 작업: {operation}", 404)  # pragma: no cover
 
@@ -2237,7 +2237,7 @@ def statuses(doc: dict) -> dict[str, Any]:
 
 #: Studio는 끝을 작업 호출로만 안다 — 이 작업이 기록되면 흐름이 끝난다.
 def ends_flow(operation: str) -> bool:
-    return operation == "complete_scene"
+    return operation == "hand_off_profit_review"
 
 
 __all__ = ["CASES", "NODE_ROLES", "RECORDS", "SEED_ID", "check", "apply"]

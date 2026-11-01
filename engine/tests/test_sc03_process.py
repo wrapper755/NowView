@@ -20,9 +20,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.events import Hub
-from app.sc01.domain import USERS, DomainError
+from app.sc01.domain import USERS, DomainError, parse_at
 from app.sc01.process import Sc01Process
 from app.sc01.store import PostgresSc01Store, SqliteSc01Store
+from app.sc02 import demo as sc02_demo
 from app.sc02.process import Sc02Process
 from app.sc03 import demo, domain
 from app.sc03.api import build_router
@@ -659,16 +660,79 @@ def test_screen_answers_move_the_script_marker_even_out_of_order(proc: Sc03Proce
     def act(node: str) -> dict:
         return proc.act(rid, node, answer[node], actor=actor[node])
 
-    proc.set_clock(rid, steps[0].at, actor="u-demo")
     doc = proc.start(rid, actor="u-fin")
     assert (doc["step"], doc["script_index"]) == ("D31", 0)
-    assert act("Save_Analysis")["script_index"] == 1
+    # 화면 착수도 각본 시각으로 — 시계를 손대지 않았다
+    assert doc["clock"] == doc["review"]["started_at"] == parse_at(steps[0].at).isoformat()
+    doc = act("Save_Analysis")
+    assert doc["script_index"] == 1
+    # 시계도 따라간다 — 바깥 답(회사 사이트·콘솔)도 같은 길이다(장면 1·2 `_clock_to_script`)
+    assert doc["clock"] == parse_at(steps[1].at).isoformat()
     assert act("Request_Confirm")["script_index"] == 3  # D33 조회를 건너뛴다
     assert act("Confirm_Prod")["script_index"] == 3  # 영업·구매가 먼저인 각본 — 아직
     assert act("Confirm_Sales")["script_index"] == 4
     doc = act("Confirm_Buy")
     assert (doc["step"], doc["script_index"]) == ("D35", 6)  # 구매·생산을 함께 지나간다
+    assert doc["clock"] == parse_at(steps[6].at).isoformat()
+    assert proc.company._call("GET", f"/worlds/{rid}/clock")["at"] == doc["clock"]
     assert doc["script_follow"]["ahead"] == []
     for index in range(7, len(steps)):
         doc = demo.run_step(proc, rid, index)
     assert doc["review"]["state"] == "SC03_COMPLETED"
+
+
+def test_start_reads_the_approved_cost_version_from_the_company(
+    proc: Sc03Process, monkeypatch
+) -> None:
+    """
+    승인 단가·적용일은 원천 승인 기록에서 읽는다(구현명세 SC03) — 장면 2가 회사에 등록한 원가 버전
+    C02-APP01을 시작 때 읽어 장면 2 기록과 대조하고, 회사와 오간 것에 남긴다. 회사 기록이 다르거나
+    없으면 시작하지 않는다(409 — 임의로 맞추지 않는다). 시계를 옮기면 회사 세계도 따라간다.
+    """
+    doc = proc.create()
+    rid = doc["demo_run_id"]
+    [entry] = doc["company_log"]
+    assert (entry["direction"], entry["doc_id"]) == ("in", "C02-APP01")
+    assert "2,000 → 2,120원" in entry["what"] and "2027-07-01부터" in entry["what"]
+    assert view(doc)["companyLog"] == doc["company_log"]
+    [cv] = proc.company.cost_versions(rid)
+    assert cv["status"] == "REGISTERED_FUTURE"
+    proc.set_clock(rid, "2027-07-01T09:00:00+09:00", actor="u-demo")
+    [cv] = proc.company.cost_versions(rid)
+    assert cv["status"] == "EFFECTIVE"
+    # 초기화해도 회사와 오간 것은 남는다
+    assert proc.reset(rid, actor="u-demo")["company_log"] == doc["company_log"]
+
+    other = proc.sc02.create(executor="embedded")["demo_run_id"]
+    for i in range(len(sc02_demo.steps_for("BASE"))):
+        sc02_demo.run_step(proc.sc02, other, i)
+    real = proc.company.cost_versions
+    monkeypatch.setattr(
+        proc.company, "cost_versions", lambda w: [{**c, "new_price": "2200"} for c in real(w)]
+    )
+    with pytest.raises(DomainError) as exc:
+        proc.create(sc01_demo_run_id=other)
+    assert exc.value.status == 409 and "다르다" in str(exc.value)
+    monkeypatch.setattr(proc.company, "cost_versions", lambda w: [])
+    with pytest.raises(DomainError) as exc:
+        proc.create(sc01_demo_run_id=other)
+    assert exc.value.status == 409 and "없다" in str(exc.value)
+    assert proc.store.load(other) is None
+
+
+def _form(doc: dict, node_id: str) -> dict:
+    (w,) = [w for w in view(doc)["bpm"]["waiting"] if w["nodeId"] == node_id]
+    return {f["key"]: f.get("default") for f in w["fields"]}
+
+
+def test_forms_are_prefilled_with_the_case_script(proc: Sc03Process) -> None:
+    """
+    결재 폼 칸의 기본값은 그 사례 각본의 답이다(장면 1·2·6과 같다) — 화면·회사 사이트에서 직접
+    진행할 때 회신·의견·사유를 손으로 쓰지 않아도 된다.
+    """
+    doc = play(proc, until="Request_Confirm")
+    base = {s.node_id: s.answer for s in demo.steps_for("BASE") if s.node_id}
+    form = _form(doc, "Confirm_Sales")
+    assert form["영업회신"] == base["Confirm_Sales"]["영업회신"]
+    assert form["영업사실"] == base["Confirm_Sales"]["영업사실"]
+    assert form["영업의견"] is None  # 각본의 빈 칸은 기본값을 두지 않는다

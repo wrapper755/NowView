@@ -23,6 +23,29 @@ def _node_rank(node_id: str) -> int:
     return nodes.index(node_id) if node_id in nodes else len(nodes)
 
 
+def _defaults(doc: dict, node_id: str, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    폼 칸의 기본값을 이 사례 각본의 답으로 채운다 — 손으로 쓰기 어려운 회신·의견·사유를 시나리오에
+    맞는 예시로 미리 넣는다(장면 1·2·6과 같다). 같은 결재가 두 번 나오는 사례(E31 재확인·E32
+    재인수)는 지금 각본 지점 뒤의 첫 단계를 쓴다. 고쳐서 내도 되고, 틀리면 엔진이 거절한다.
+    """
+    from app.sc03.demo import steps_for  # demo가 process를 가져온다 — 순환을 피한다
+
+    steps = list(enumerate(steps_for(doc["case_id"])))
+    after = doc.get("script_index", -1)
+    step = next(
+        (s for i, s in steps if s.kind == "act" and s.node_id == node_id and i > after), None
+    ) or next((s for _, s in reversed(steps) if s.kind == "act" and s.node_id == node_id), None)
+    if step is None:
+        return fields
+    return [
+        {**f, "default": step.answer[f["key"]]}
+        if step.answer.get(f["key"]) not in (None, "")
+        else f
+        for f in fields
+    ]
+
+
 def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = None) -> dict:
     bpm = doc["bpm"]
     pendings = dict(((bpm or {}).get("snapshot") or {}).get("pendings", {}))
@@ -43,7 +66,7 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
             if p["node_id"] in domain.NODE_ROLES
             else None,
             "review": p["review"],
-            "fields": (p["form"] or {}).get("fields", []),
+            "fields": _defaults(doc, p["node_id"], (p["form"] or {}).get("fields", [])),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
             # 직전 답이 기록에서 거절됐으면 그 사유 — 같은 결재가 다시 열려도 화면이 말한다
             "rejected": (domain.task_for_node(doc, p["node_id"]) or {}).get("rejected"),
@@ -70,6 +93,8 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
         "historical": historical,
         "status": domain.statuses(doc),
         "sc02": doc["sc02"],
+        # 회사 시스템과 오간 것(원가 버전 읽기) — 장면 1·2와 같다
+        "companyLog": doc.get("company_log", []),
         "review": doc["review"],
         "schedule": domain.SCHEDULE,
         "runs": ordered(doc["runs"]),
