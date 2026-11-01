@@ -360,7 +360,9 @@ def run_operation(
         # 계산 실행 결재(Confirm_Calc)는 기록 작업 없이 곧바로 계산으로 간다 —
         # 요청 기록을 여기서 남긴다.
         by, how = _answerer(doc, "Confirm_Calc", args, actor)
-        domain.audit(doc, actor=by, action="calculation_requested", **how)
+        domain.audit(
+            doc, actor=by, action="calculation_requested", node_id="Confirm_Calc", **how
+        )
         return domain.compare(doc, seed, args["source_id"])
     if operation == "request_review_draft":
         return {"output_id": request_draft(doc, seed, args["run_id"], actor="system", manual=False)}
@@ -926,7 +928,7 @@ class Sc01Process:
         """
         center 데모 실행의 화면 답 = **대리 답**(N3). 엔진 사전 검사(403·409·422, 입력을
         지우지 않는다)
-        → Center에 열린 그 사람의 결재를 찾는다 → `X-CHK-On-Behalf-Of`로 답한다. 업무 효과는 여전히
+        → Center에 열린 그 사람의 결재를 찾는다 → `X-BPM-On-Behalf-Of`로 답한다. 업무 효과는 여전히
         결재 뒤의 기록 작업이 낸다 — 콘솔 답과 같은 길이다(N1).
         """
         problem = self.center.config.missing(relay=True)

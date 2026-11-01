@@ -4,7 +4,7 @@ Chaeksas Center 연동(N3) — 엔진 안의 클라이언트. 키는 **엔진만
 * `CHAEKSAS_CENTER_URL` — Center 주소(`…/api/v1`을 붙이지 않는다)
 * `CHAEKSAS_INTEGRATION_KEY` — 연동용 키: SC01 기동(`POST /jobs`), 정정본(`POST /messages`),
   진행(`GET /runs/{id}/events`), 대체된 작업 거두기(`DELETE /jobs/{id}`)
-* `CHAEKSAS_RELAY_KEY` — 대리 답용 키: 결재 읽기·답(`X-CHK-On-Behalf-Of` = 행위자 이름, C6·ADR-0081)
+* `CHAEKSAS_RELAY_KEY` — 대리 답용 키: 결재 읽기·답(`X-BPM-On-Behalf-Of` = 행위자 이름, C6·ADR-0081)
 * `CHAEKSAS_SC01_PACKAGE` — SC01 패키지 id(기본 `company1.sc01`). 실행 기록은 패키지 id로 말한다
   (ADR-0086)
 
@@ -252,7 +252,11 @@ class CenterClient:
         headers = {"Authorization": f"Bearer {key}"}
         if on_behalf is not None:
             # UTF-8 퍼센트 인코딩 — Center가 풀어 담당자와 같은 정규화로 맞춘다(C6).
-            headers["X-CHK-On-Behalf-Of"] = quote(on_behalf, safe="")
+            # 이름이 X-CHK- → X-BPM-로 바뀌었다(ADR-0126, 옛 이름은 무시한다). 옛 Center는 새 이름을
+            # 모르므로 둘 다 싣는다 — 운영 Center까지 0126 판이 되면 옛 줄을 걷는다.
+            who = quote(on_behalf, safe="")
+            headers["X-BPM-On-Behalf-Of"] = who
+            headers["X-CHK-On-Behalf-Of"] = who
         try:
             with httpx.Client(
                 base_url=f"{self.config.url}{API}", timeout=TIMEOUT_S, transport=self._transport

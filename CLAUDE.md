@@ -555,7 +555,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
 * **반대 방향 — 엔진이 Center를 부른다**(N3, `engine/app/sc01/center.py`). 키는 **엔진만** 쥔다(BFF·브라우저에
   없다 — 원문은 설치가 지은 보관 파일 `engine/.consumer/keys.json`, 위 「승인 없는 일꾼」). `CHAEKSAS_CENTER_URL` · `CHAEKSAS_INTEGRATION_KEY`(연동용 — `POST /jobs` 기동, `POST /messages` 정정본,
   `GET /runs/{id}/events` 진행, `DELETE /jobs/{id}` 대체된 작업 거두기, `GET /jobs/{id}` 앞 작업 상태) ·
-  `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-CHK-On-Behalf-Of` =
+  `CHAEKSAS_RELAY_KEY`(대리 답용 — 결재 읽기·답, `X-BPM-On-Behalf-Of` =
   행위자 이름) · `CHAEKSAS_SC01_PACKAGE`(기본 `company1.sc01`). 키가 둘인 것은
   Chaeksas 권한표 그대로다 — 대리 답용 키는 결재만, 연동용 키는 결재를 못 읽는다. `/health.center`가 설정·폴링
   여부를 드러낸다(값은 싣지 않는다). C15 일꾼 토큰과는 다른 키다(일꾼 토큰은 가져가기·끝내기만 연다).
@@ -677,6 +677,11 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     대체·초기화 때는 앞 작업을 거둔다.
   * 화면 답(`act`)·각본 → **사전 검사가 Center보다 먼저**(403·409·422, 입력 보존) → 열린 결재 찾기(최대 30초 —
     실행기가 결재를 올리는 동안) → 대리 답(`if_review_digest`). 업무 효과는 여전히 기록 작업이 낸다.
+  * **대리 답 헤더는 `X-BPM-On-Behalf-Of`다**(Chaeksas ADR-0126 — 옛 `X-CHK-`는 무시한다). 옛 Center를 위해 둘 다 싣는다 —
+    0126 판 로컬 Center에서 `on_behalf_required`로 막혔다(2026-11-01).
+  * **Center 각본은 그 결재의 기록과 다음 결재를 기다린다**(`demo._await_own_record` → `_await_next_approval`, 다음 결재는 그림에서
+    찾는다). 기다리지 않으면 시계가 먼저 가서 원천 확인이 10:10, 인수가 다음 단계 시각에 적히고 업무가 한 단계 늦게 열렸다(로컬
+    Center 실측 2026-11-01) — 고친 뒤 업무 다섯 건의 열림·인수·완료·기한이 내장 실행과 같다(시험이 잠근다).
   * 폴러(`poller.py`, 2초)는 `bpm.state == running`인 center 데모 실행만 읽는다(`store.running_external`).
     C3 → 지나온 노드·토큰 위치·열린 결재·끝. 새 결재는 대리 답용 키로 읽어 검토 자료·폼을 싣고 **업무를 그때
     연다**(늦게 열지 않는다). 대리 답한 결재는 `human_answered`가 오기 전까지 다시 보이지 않는다(`relayed`).

@@ -705,7 +705,7 @@ class Sc02Process:
     ) -> dict:
         """
         Center 실행의 화면 답 = **대리 답**. 엔진 사전 검사(403·409·422, 입력을 지우지 않는다) →
-        Center에 열린 그 사람의 결재를 찾는다 → `X-CHK-On-Behalf-Of`로 답한다. 업무 효과는 결재 뒤의
+        Center에 열린 그 사람의 결재를 찾는다 → `X-BPM-On-Behalf-Of`로 답한다. 업무 효과는 결재 뒤의
         기록 작업이 낸다.
         """
         problem = self.center.config.missing(relay=True)

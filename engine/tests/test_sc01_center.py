@@ -1,7 +1,7 @@
 """
 N3 — Center 연동: SC01 기동 · 대리 답 · 진행 폴링 · 정정본 메시지.
 
-가짜 Center(`FakeCenter`)는 Chaeksas 계약을 그대로 흉내 낸다 — 경로·키 종류·`X-CHK-On-Behalf-Of`
+가짜 Center(`FakeCenter`)는 Chaeksas 계약을 그대로 흉내 낸다 — 경로·키 종류·`X-BPM-On-Behalf-Of`
 대조(C6·ADR-0081), 결재 하나는 한 번만 닫힘(`already_answered`), 실행 기록은 `seq` 차례(C3). 서버
 실행기 몫은 `FakeRunner`가 진짜 Chaeksas 엔진으로 같은 BPMN을 돌려 한다 — 결재는 Center에 올리고,
 답은 Center에서 받아 넣고, 서비스 태스크는 NowView 시스템 작업(HTTP 어댑터 흉내)을 부른다.
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote
@@ -50,7 +51,7 @@ class FakeCenter:
         path = request.url.path.removeprefix("/api/v1")
         self.calls.append((request.method, path))
         key = request.headers.get("authorization", "").removeprefix("Bearer ")
-        who = unquote(request.headers.get("x-chk-on-behalf-of", "")) or None
+        who = unquote(request.headers.get("x-bpm-on-behalf-of", "")) or None
         body = json.loads(request.content) if request.content else None
         if key not in (INTEGRATION, RELAY):
             return _err(401, "key_invalid", "모르는 토큰이다")
@@ -58,7 +59,7 @@ class FakeCenter:
             if key != RELAY:
                 return _err(403, "forbidden", "결재는 콘솔 토큰이나 대리 답용 키로 읽는다")
             if not who:
-                return _err(400, "on_behalf_required", "X-CHK-On-Behalf-Of가 필요하다")
+                return _err(400, "on_behalf_required", "X-BPM-On-Behalf-Of가 필요하다")
             return self._approvals(request.method, path, who, body, request.url.params)
         if key == RELAY:
             return _err(403, "forbidden", "대리 답용 키로는 결재만 읽고 답할 수 있다")
@@ -284,6 +285,44 @@ def test_center_relay_ahead_of_the_poller_opens_the_task_on_time(
     assert [t for t in doc["tasks"] if t.startswith("TASK-DQ")] == ["TASK-DQ"]
     assert doc["tasks"]["TASK-DQ"]["status"] == "COMPLETED"
     assert not doc["tasks"]["TASK-DQ"].get("opened_late")
+
+
+def test_center_script_waits_so_task_times_match_embedded(
+    proc: Sc01Process, center: FakeCenter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Center 각본은 결재의 기록과 다음 결재가 들어올 때까지 시계를 옮기지 않는다 — 업무가 열리고·
+    인수되고·끝난 시각이 내장 실행과 같다. 기다리지 않았을 때 로컬 Center에서 원천 확인이 10:10,
+    생산·자재 인수가 11:45, 생산·자재 업무가 11:30에 열렸다(2026-11-01 실측).
+    """
+    embedded = proc.create(executor="embedded")["demo_run_id"]
+    for index in range(len(demo.BASE)):
+        demo.run_step(proc, embedded, index)
+
+    rid = proc.create(executor="center")["demo_run_id"]
+    runner: list[FakeRunner] = []
+
+    def tick(_: float) -> None:
+        # 각본이 기다리는 동안 실행기가 나아가고 폴러가 읽는다(진짜 Center에서는 따로 돈다).
+        if not runner and center.jobs:
+            runner.append(FakeRunner(proc, center, center.jobs[0], "run_20270616_090000_b2b2b2"))
+        if runner:
+            runner[0].step()
+            proc.sync_center(rid)
+
+    monkeypatch.setattr(demo, "time", type("T", (), {"monotonic": time.monotonic, "sleep": tick}))
+    proc.center_wait_s = 5
+    for index in range(len(demo.BASE)):
+        demo.run_step(proc, rid, index)
+    tick(0)
+
+    def times(doc: dict) -> dict:
+        keys = ("assigned_at", "accepted_at", "completed_at", "due_at")
+        return {tid: [t[k] for k in keys] for tid, t in doc["tasks"].items()}
+
+    after = proc.get(rid)
+    assert after["scene"] == "HANDED_OFF"
+    assert times(after) == times(proc.get(embedded))
 
 
 def test_relay_prechecks_before_touching_center(proc: Sc01Process, center: FakeCenter) -> None:
