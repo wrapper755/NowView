@@ -38,6 +38,7 @@ SCENE_WORKS: dict[int, str] = {
     4: "개선안 검토·실행 승인",
     5: "결정 실행·계획 갱신",
     6: "완료·성과 검토",
+    7: "관리모델 개선·적용",
 }
 
 EXTENSION = Path(__file__).resolve().parents[2] / "chaeksas" / "external.extension.json"

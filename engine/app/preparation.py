@@ -1,5 +1,5 @@
 """
-장면 시작의 배경 진행 — 장면 2~6의 `POST /scN/demo-runs`.
+장면 시작의 배경 진행 — 장면 2~7의 `POST /scN/demo-runs`.
 
 장면 N을 시작하면 앞 장면들을 각본으로 **끝까지 실제로 실행**한다(역할 검사·업무 규칙
 그대로). Center 실행이면 대리 답마다 실행기를 기다리므로 장면 3 시작이 약 7분이었다 —
@@ -38,7 +38,14 @@ log = logging.getLogger(__name__)
 PREPARE_WAIT_S = float(os.environ.get("NOWVIEW_PREPARE_WAIT_S", "20"))
 
 #: 장면 → 앞 장면 프로세스 속성 이름. 진행 표시는 이 사슬을 따라 앞 장면 문서의 단계를 읽는다.
-PREVIOUS = {"sc06": "sc05", "sc05": "sc04", "sc04": "sc03", "sc03": "sc02", "sc02": "sc01"}
+PREVIOUS = {
+    "sc07": "sc06",
+    "sc06": "sc05",
+    "sc05": "sc04",
+    "sc04": "sc03",
+    "sc03": "sc02",
+    "sc02": "sc01",
+}
 
 
 class Preparations:
@@ -107,7 +114,7 @@ class Preparations:
 
 def root_sc01(process: Any) -> Any:
     """장면 N 프로세스에서 앞 장면 사슬을 따라 장면 1 프로세스를 찾는다."""
-    for name in ("sc05", "sc04", "sc03", "sc02", "sc01"):
+    for name in ("sc06", "sc05", "sc04", "sc03", "sc02", "sc01"):
         previous = getattr(process, name, None)
         if previous is not None:
             return root_sc01(previous)

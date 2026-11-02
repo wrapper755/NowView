@@ -1,0 +1,337 @@
+{
+ "processId": "company1.sc07",
+ "name": "SC07 관리모델 개선 확인·적용",
+ "nodes": [
+  {
+   "id": "Start",
+   "kind": "startEvent",
+   "name": "확인 착수",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Open",
+   "kind": "serviceTask",
+   "name": "개선건 열기",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Task_Verify",
+   "kind": "serviceTask",
+   "name": "개선 버전 검증 실행",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Confirm_Buy",
+   "kind": "userTask",
+   "name": "구매 임원 업무 확인",
+   "role": "구매임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_Buy",
+   "kind": "serviceTask",
+   "name": "구매 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_Buy"
+  },
+  {
+   "id": "Confirm_Finance",
+   "kind": "userTask",
+   "name": "경영관리 임원 정합성 확인",
+   "role": "경영관리임원",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Confirm_Finance",
+   "kind": "serviceTask",
+   "name": "경영관리 임원 확인 기록",
+   "role": null,
+   "recordOf": "Confirm_Finance"
+  },
+  {
+   "id": "Apply_Setting",
+   "kind": "userTask",
+   "name": "운영 설정 반영",
+   "role": "운영담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Apply_Setting",
+   "kind": "serviceTask",
+   "name": "운영 설정 반영 기록",
+   "role": null,
+   "recordOf": "Apply_Setting"
+  },
+  {
+   "id": "Check_Setting",
+   "kind": "userTask",
+   "name": "운영 설정 반영 확인",
+   "role": "경영관리담당",
+   "recordOf": null
+  },
+  {
+   "id": "Record_Check_Setting",
+   "kind": "serviceTask",
+   "name": "운영 설정 반영 확인 기록",
+   "role": null,
+   "recordOf": "Check_Setting"
+  },
+  {
+   "id": "Task_FollowUp",
+   "kind": "serviceTask",
+   "name": "후속 점검 연결",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Verified",
+   "kind": "exclusiveGateway",
+   "name": "검증 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Confirm_Buy",
+   "kind": "exclusiveGateway",
+   "name": "구매 임원 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Confirm_Finance",
+   "kind": "exclusiveGateway",
+   "name": "경영관리 임원 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Gw_Check",
+   "kind": "exclusiveGateway",
+   "name": "설정 확인 결과",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End",
+   "kind": "endEvent",
+   "name": "운영 설정 반영 확인 — 운영 실행 미확인(ST707)",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_NotVerified",
+   "kind": "endEvent",
+   "name": "검증 미통과 — 보완 필요(ST703)",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "End_Rework",
+   "kind": "endEvent",
+   "name": "업무 확인 보완 요청 — 보완 필요(ST703)",
+   "role": null,
+   "recordOf": null
+  },
+  {
+   "id": "Bnd_Record_Confirm_Buy",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_Buy"
+  },
+  {
+   "id": "Bnd_Record_Confirm_Finance",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Confirm_Finance"
+  },
+  {
+   "id": "Bnd_Record_Apply_Setting",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Apply_Setting"
+  },
+  {
+   "id": "Bnd_Record_Check_Setting",
+   "kind": "boundaryEvent",
+   "name": "기록 거절",
+   "role": null,
+   "recordOf": "Check_Setting"
+  }
+ ],
+ "flows": [
+  {
+   "id": "Flow_start",
+   "source": "Start",
+   "target": "Task_Open",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_open",
+   "source": "Task_Open",
+   "target": "Task_Verify",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_verify",
+   "source": "Task_Verify",
+   "target": "Gw_Verified",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_not_verified",
+   "source": "Gw_Verified",
+   "target": "End_NotVerified",
+   "condition": "검증결과 == 'FAIL'",
+   "default": false
+  },
+  {
+   "id": "Flow_verified",
+   "source": "Gw_Verified",
+   "target": "Confirm_Buy",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Confirm_Buy_answered",
+   "source": "Confirm_Buy",
+   "target": "Record_Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_buy_recorded",
+   "source": "Record_Confirm_Buy",
+   "target": "Gw_Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_buy_rework",
+   "source": "Gw_Confirm_Buy",
+   "target": "End_Rework",
+   "condition": "구매확인결정 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_buy_confirmed",
+   "source": "Gw_Confirm_Buy",
+   "target": "Confirm_Finance",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Confirm_Finance_answered",
+   "source": "Confirm_Finance",
+   "target": "Record_Confirm_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_finance_recorded",
+   "source": "Record_Confirm_Finance",
+   "target": "Gw_Confirm_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_finance_rework",
+   "source": "Gw_Confirm_Finance",
+   "target": "End_Rework",
+   "condition": "경영관리확인결정 == '보완요청'",
+   "default": false
+  },
+  {
+   "id": "Flow_finance_confirmed",
+   "source": "Gw_Confirm_Finance",
+   "target": "Apply_Setting",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_Apply_Setting_answered",
+   "source": "Apply_Setting",
+   "target": "Record_Apply_Setting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_applied",
+   "source": "Record_Apply_Setting",
+   "target": "Check_Setting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Check_Setting_answered",
+   "source": "Check_Setting",
+   "target": "Record_Check_Setting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_check_recorded",
+   "source": "Record_Check_Setting",
+   "target": "Gw_Check",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_mismatch",
+   "source": "Gw_Check",
+   "target": "Apply_Setting",
+   "condition": "설정확인결과 == '불일치'",
+   "default": false
+  },
+  {
+   "id": "Flow_checked",
+   "source": "Gw_Check",
+   "target": "Task_FollowUp",
+   "condition": null,
+   "default": true
+  },
+  {
+   "id": "Flow_followed",
+   "source": "Task_FollowUp",
+   "target": "End",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_Buy_rejected",
+   "source": "Bnd_Record_Confirm_Buy",
+   "target": "Confirm_Buy",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Confirm_Finance_rejected",
+   "source": "Bnd_Record_Confirm_Finance",
+   "target": "Confirm_Finance",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Apply_Setting_rejected",
+   "source": "Bnd_Record_Apply_Setting",
+   "target": "Apply_Setting",
+   "condition": null,
+   "default": false
+  },
+  {
+   "id": "Flow_Record_Check_Setting_rejected",
+   "source": "Bnd_Record_Check_Setting",
+   "target": "Check_Setting",
+   "condition": null,
+   "default": false
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 /**
- * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`~`sc06`이고, 그 밖에 공개 회사 목록
+ * 엔진 프록시(BFF) — `/api/engine/{장면}/*` → 엔진 `/{장면}/*`. 장면은 `sc01`~`sc07`이고, 그 밖에 공개 회사 목록
  * (`/api/engine/companies` — 이름·설명·업무)과 회사 운영 현황(`/api/engine/companies/{회사}/works`)만 연다. 관리 API(`/admin/*`)는 여기서 중계하지 않는다 — 관리자 로그인 뒤의
  * `/api/admin/*`만 부른다(`app/api/admin`).
  *
@@ -18,7 +18,7 @@ const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:8077";
 export const dynamic = "force-dynamic";
 
 /** 중계할 장면. 목록 밖의 경로는 엔진에 보내지 않는다 — 엔진의 다른 경로(`/health` 등)가 열리지 않게. */
-const SCENES = new Set(["sc01", "sc02", "sc03", "sc04", "sc05", "sc06"]);
+const SCENES = new Set(["sc01", "sc02", "sc03", "sc04", "sc05", "sc06", "sc07"]);
 /** 장면이 아닌 읽기 경로 — GET만, 하위 경로는 회사 운영 현황(`{회사}/works`) 하나뿐이다. */
 const READ_ONLY = new Set(["companies"]);
 

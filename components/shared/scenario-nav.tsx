@@ -23,6 +23,7 @@ import {
   Receipt,
   RefreshCcw,
   ShieldCheck,
+  Sparkles,
   SquareKanban,
   Stamp,
   TriangleAlert,
@@ -35,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * 업무(장면) 선택 + 그 업무의 화면(시연 순서대로). 업무는 왼쪽 사이드바, 화면은 머리 줄 아래 한 줄이다. 장면 1은 UI01~UI06, 장면 2는 U21~U27, 장면 3은 U31~U37, 장면 4는
- * U401~U408, 장면 5는 U501~U508, 장면 6은 U601·U602다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
+ * U401~U408, 장면 5는 U501~U508, 장면 6은 U601·U602, 장면 7은 U701이다. 화면 경로로 장면을 가른다(`/sc02/*` = 장면 2 …) — 장면을 상태로 따로 들고 있으면 GNB·플레이어·링크가 갈라진다.
  */
 const SC01_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "경영 현황", icon: GaugeCircle, href: "/sc01" },
@@ -100,8 +101,16 @@ const SC06_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "BPM 흐름", icon: GitBranch, href: "/sc06/process" },
 ];
 
+/** 장면 7 — 확인·적용 절차(BPM) 뒤 한 화면(U701)·두 동작의 조회. */
+const SC07_ITEMS: Array<{ label: string; icon: LucideIcon; href: string }> = [
+  { label: "개선 및 적용", icon: Sparkles, href: "/sc07" },
+  { label: "확인·적용 절차", icon: ShieldCheck, href: "/sc07/confirm" },
+  { label: "BPM 흐름", icon: GitBranch, href: "/sc07/process" },
+];
+
 /** 경로 → 장면 번호. */
-export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
+export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 | 7 {
+  if (pathname === "/sc07" || pathname.startsWith("/sc07/")) return 7;
   if (pathname === "/sc06" || pathname.startsWith("/sc06/")) return 6;
   if (pathname === "/sc05" || pathname.startsWith("/sc05/")) return 5;
   if (pathname === "/sc04" || pathname.startsWith("/sc04/")) return 4;
@@ -114,7 +123,7 @@ export function sceneOf(pathname: string): 1 | 2 | 3 | 4 | 5 | 6 {
  * 장면 = 그 장면이 수행하는 업무. 「장면 1~6」은 시연 순서일 뿐 업무가 무엇인지 말하지 않는다 — 사이드바·좁은 화면의
  * 업무 선택은 업무 이름으로 보이고, 순서는 작은 번호로만 남긴다. 업무는 NowView 코드의 목록(`lib/companies.ts`의 `SCENES`)이다.
  */
-export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail: string; href: string }> = SCENES.map((s) => ({
+export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6 | 7; label: string; detail: string; href: string }> = SCENES.map((s) => ({
   scene: s.no,
   label: s.work,
   detail: s.detail,
@@ -122,7 +131,7 @@ export const WORKS: Array<{ scene: 1 | 2 | 3 | 4 | 5 | 6; label: string; detail:
 }));
 
 function itemsOf(scene: number) {
-  return scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
+  return scene === 7 ? SC07_ITEMS : scene === 6 ? SC06_ITEMS : scene === 5 ? SC05_ITEMS : scene === 4 ? SC04_ITEMS : scene === 3 ? SC03_ITEMS : scene === 2 ? SC02_ITEMS : SC01_ITEMS;
 }
 
 /** 왼쪽 사이드바(넓은 화면) — 업무 목록. 로고는 그 위 공통 줄에 있다. */

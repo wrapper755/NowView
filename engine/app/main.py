@@ -40,6 +40,8 @@ from .sc05.api import build_router as build_sc05_router
 from .sc05.process import Sc05Process
 from .sc06.api import build_router as build_sc06_router
 from .sc06.process import Sc06Process
+from .sc07.api import build_router as build_sc07_router
+from .sc07.process import Sc07Process
 from .store import build_backend
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -49,7 +51,7 @@ app = FastAPI(
     version="0.2.0",
     description=(
         "회사별 BPM 프로세스(Chaeksas Center)의 서비스 태스크를 수행하는 일꾼과 회사별 대시보드의 "
-        "자료. 지금 회사는 가상 자동차 부품사(company1) 하나 — 시나리오 1의 장면 1~6. "
+        "자료. 지금 회사는 가상 자동차 부품사(company1) 하나 — 시나리오 1의 장면 1~7. "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -93,12 +95,17 @@ app.include_router(build_sc05_router(sc05, hub))
 # 대표 보고)를 BPM으로 돈다. 같은 데모 실행 id, 다른 테이블(`sc06_*`).
 sc06 = Sc06Process(build_sc01_store(backend, "sc06"), sc05, publish=notifier.publish)
 app.include_router(build_sc06_router(sc06, hub))
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 여섯 장면
+# 장면 7 — 장면 6 대표 보고(RPT61-v1)에서 관리모델 개선 IMP71을 적재하고, 확인·적용 절차
+# (검증 → 구매 임원·경영관리 임원 확인 → 운영 설정 반영 → 설정 확인 → 후속 점검)를 BPM으로
+# 돈다. 테이블은 `sc07_*`.
+sc07 = Sc07Process(build_sc01_store(backend, "sc07"), sc06, publish=notifier.publish)
+app.include_router(build_sc07_router(sc07, hub))
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 일곱 장면
 # 모두.
-poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06)
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07)
 # 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다. 토픽은
 # 설정에서, 일감마다 보낸 BPM 프로세스 id → 설정의 업무(장면) → 그 장면의 프로세스다.
-_SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06}
+_SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _SCENES))
 app.include_router(
     build_companies_router(settings, consumer, center, poller, {"company1": company}, _SCENES)
@@ -140,6 +147,7 @@ def health() -> dict[str, Any]:
                 sc04.process.id,
                 sc05.process.id,
                 sc06.process.id,
+                sc07.process.id,
             ],
         },
         "demoRuns": len(sc01.store.list()),

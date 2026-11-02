@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -5612,6 +5612,302 @@
             "type": "object",
             "properties": {
               "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "open_improvement",
+          "description": "개선건 열기 (SC07-S01~S04) — 착수된 IMP71인지 확인하고 대상 Agent 버전·검증 세트를 돌려준다. 착수는 NowView 화면 명령이다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "agent_version": {
+                "type": "string"
+              },
+              "improvement_id": {
+                "type": "string"
+              },
+              "verification_set": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "verify_improvement_version",
+          "description": "개선 버전 검증 실행 (SC07-S05·TS71-v1) — TC701~708 관측값을 규칙으로 다시 계산해 기대값과 대조한다. 데이터의 가상 PASS를 옮기지 않는다. 실행 id는 Agent 실행 id가 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "passed": {
+                "type": "integer"
+              },
+              "result": {
+                "type": "string"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "confirm_improvement_version",
+          "description": "업무 확인 기록 (SC07-S06·CF71 구매 임원·CF72 경영관리 임원) — 검증 통과 버전만, 확인 대상 버전이 맞아야 한다. 보완 요청이면 개선은 보완 필요로 끝난다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "decision",
+              "demo_run_id",
+              "node_id",
+              "record_id",
+              "version"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "record_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "apply_agent_setting",
+          "description": "운영 설정 반영 기록 (SC07-S07·CFG71) — 두 임원 확인 뒤 active_version·범위·증적 유형을 남긴다. RESERVED는 적용 예정이지 반영이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "active_version",
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "evidence_type",
+              "node_id",
+              "scope",
+              "snapshot_id"
+            ],
+            "properties": {
+              "active_version": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "evidence_type": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "snapshot_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "check_agent_setting",
+          "description": "운영 설정 반영 확인 기록 (SC07-S08) — 「일치」는 대상 버전·범위·스냅샷 증적과 맞아야 한다(422 SETTING_MISMATCH). 설정 반영 확인은 운영 실행 확인이 아니다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "content",
+              "demo_run_id",
+              "node_id",
+              "result"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "content": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "node_id": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "error_message": {},
+              "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "schedule_follow_up_check",
+          "description": "후속 점검 연결 (SC07-S09) — 운영 설정 반영이 확인된 뒤 점검 담당·예정일(AP71 사후 점검)을 잇는다. 장기 효과는 미측정",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "planned_at": {
+                "type": "string"
+              },
               "state": {
                 "type": "string"
               }

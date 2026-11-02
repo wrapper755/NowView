@@ -133,7 +133,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **NowView의 역할**(2026-10-31 사용자 정의): **회사 사이트가 아니다.** 둘이다 — ① **워커(Worker)**: Chaeksas Center에 올린 **회사별 BPM
   프로세스의 서비스 태스크(External Service)를 수행한다**(C15, `engine/app/consumer.py`), ② **대시보드(Dashboard)**: **N개 회사의 운영
   현황**(`/` 회사 목록 → `/c/{회사}`). **NowView의 본체는 대시보드다** — 워커는 대시보드가 보일 운영 기록을 BPM 진행에서 받아 오는 몫이다.
-  가상 자동차 부품사(가칭, id `company1`)는 그 회사들 중 하나이고, 그 회사의 업무(장면 1~6)를 BPM 프로세스로 정의해 대시보드로
+  가상 자동차 부품사(가칭, id `company1`)는 그 회사들 중 하나이고, 그 회사의 업무(장면 1~7)를 BPM 프로세스로 정의해 대시보드로
   운영 현황을 보인다. **NowView는 BPM 패키지와 함께 배포되는 고정 프로그램이다**(2026-10-31 결정, `docs/worker-interfaces.md`
   §1) — 워커의 작업 목록은 **기본 확장 `external` 하나**(파일 `chaeksas/external.extension.json`, 토픽도 `external`, NowView 판과 함께 바뀐다 —
   BPM 서비스 태스크의 External Service다. 일꾼이 뜰 때 Center에 올리는 기본 확장이라 Center 콘솔에서 등록·해제하지 않는다)이고, 어느 회사의 어느 BPM
@@ -141,7 +141,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   설정에서 회사·업무를 찾는다. **등록은 공개하지 않는다** — 공개 화면·API(`/api/engine/companies`)는 회사 이름·설명·업무 번호뿐이고,
   BPM 프로세스 매핑·토픽·회사 시스템 주소·일꾼 상태(요청 코드)는 **관리자 모드 `/admin`**(로그인)에만 있다. 업무(장면) 목록은
   코드다(`lib/companies.ts`의 `SCENES` = 엔진 `SCENE_WORKS`). **장면은 하나씩 옮겼다** — 장면 1~6 모두 `external` 확장이다(2026-11-02 장면 6을 마지막으로
-  옮겼다). 옮길 때마다 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복했다.
+  옮겼다). 장면 7은 처음부터 `external`(0.7.0)로 만들었다(2026-11-03). 옮길 때마다 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복했다.
 * **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
   몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 리포 Company1의 기간계**(:8191)이고 엔진이 `app/company.py`로 읽고 적는다.
@@ -166,6 +166,11 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   (−4.8), ACT42 30.6 → 25.8, 운영 보완 FUP61·추가 검토 발의 PROP61까지(4.20). 같은 데모 실행을 잇고 **Studio·Center 실행**에서 돈다
   (기본 확장 `external` 0.6.0, 2026-11-02 옮김 — 2026-10-28 사용자 요청으로 확인 절차를 BPM으로 돌렸다. 기대 효과의 기준인 공식
   전망 FC51은 회사 기록이라 적재 때 회사에서 읽어 대조한다).
+  **장면 7(SC07)** — 실제 경험을 관리모델 개선으로 연결(Management Evolution). 장면 6에서 사람이 바로잡은 원인 판단(AG62 → PO61-1103,
+  주담당 공란이지만 유효 대행이 10:00 확인 · 정상 공급 11/16 > 요구 11/14)을 개선건 IMP71로 적재하고, **확인·적용 절차**(검증 TS71-v1 → 구매
+  임원 확인 CF71 → 경영관리 임원 확인 CF72 → 운영담당 설정 반영 CFG71 → 경영관리 담당 설정 확인 → 후속 점검)를 BPM으로 돌린 뒤 U701
+  한 화면 두 동작(개선 전후 → 검증·적용)을 **조회**한다. 끝은 「운영 설정 반영 확인 · 운영 실행 미확인」(ST707)이다(4.21). 같은 데모
+  실행을 잇고 **Studio·Center 실행**에서 돈다(기본 확장 `external` 0.7.0 — 회사 시스템에 적는 것은 없다).
   **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
@@ -188,6 +193,8 @@ SC01_SC02_SC03_SC04 통합가상데이터 v0.4 2026-10-23 수정본(→ `engine/
 SC01~SC05 통합가상데이터 v0.5(→ `engine/seed/SYN-SC05-v0.5.xlsx`).
 장면 6(Downloads/장면6): 경영이야기·장면범위 v0.2 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
 SC01~SC06 통합가상데이터 v0.6(→ `engine/seed/SYN-SC06-v0.6.xlsx`).
+장면 7(Downloads/장면7): 경영이야기·장면범위 v0.2 · 업무설계표 v0.2 · 화면구성·시연순서 v0.2 · 구현명세 v0.2 ·
+SC01~SC07 통합가상데이터 v0.7(→ `engine/seed/SYN-SC07-v0.7.xlsx`).
 **문서의 요구사항 ID(UI01-xx, CALC-xx, WF-xx, AT-xx, EX-xx, D-xx, T4xx·T5xx, CT4xx·CT5xx, X5xx)를 코드 주석·테스트 이름에 그대로 쓴다.**
 
 ### 2.1 가상 고객사와 범위
@@ -218,7 +225,9 @@ Rolling은 하지 않고 장면 4(대표 주재 월간회의 MT41)로 넘긴다.
 상세 계획·착수·초기 실행과 5단계(Rolling Plan Update)의 운영계획·**공식 Forecast 갱신**까지다 — 연간 효과의 최종 실현 검증과
 Management Evolution(6단계 공식 개선)은 하지 않는다. **SC06**은 4·5단계의 **실현 검증**(과제 완료 후 차 분기의 기대 대비
 확인 효과)과 그 결과를 운영 보완·추가 과제 발의로 잇는 데까지다 — 발의의 효과·예산은 미산정이고, Target·공식 Forecast를 바꾸지 않으며,
-Management Evolution 상세는 범위 밖이다. 장면 7은 설계표·데이터가 없다 — 화면은 수치를 지어내지 않는다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
+Management Evolution 상세는 범위 밖이다. **SC07**은 6단계(Management Evolution)의 **한 건**이다 — 사람이 보정한 경험을 Agent의 근거
+연결·원인 후보 방식과 기존 지표의 측정·해석 기준에 반영해 검증하고 다음 운영 설정에 적용하기까지. 새 KPI·KRI·Control·임계값·효과 산식은
+없고, 장기 효과(시간 절감·정확도·재무 효과)는 측정하지 않으며, 운영 실행은 미확인으로 남는다. 기획안의 100억 → 85억 → 97억은 **설명용 예시**이고 데이터의 손익
 (공장관리손익 목표 34.77억)과 다르다(D18).
 
 ---
@@ -264,7 +273,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~6)
+├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~7)
 ├── docs/                         # chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
@@ -285,7 +294,9 @@ NowView/
 │   │   │                         #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
 │   │   ├── sc06/                 # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · confirm(확인 절차 결재)
 │   │   │                         #   · report(U602 보고 요약) · process(BPM)
-│   ├── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — sc01~sc06 + 읽기 전용 companies. `/admin`은 중계하지 않는다
+│   │   ├── sc07/                 # 장면 7 — page(관리모델 개선 및 적용 U701, 보기 A 개선 전후·B 검증·적용) · confirm(확인·적용 절차)
+│   │   │                         #   · process(BPM)
+│   ├── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — sc01~sc07 + 읽기 전용 companies. `/admin`은 중계하지 않는다
 │   └── api/admin/                # 관리자 — login(비밀번호 → 서명 쿠키)·session·[...path](세션이 있으면 엔진 /admin/*로, X-Admin-Key)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
@@ -304,6 +315,8 @@ NowView/
 │   ├── sc05/                     # SC05 화면들 + bits(Tile·Requirements) · action-form · agent-card(AG51~58) · session-sync · demo-player
 │   ├── sc06/                     # SC06 화면 — review(U601)·report(U602)·confirm(확인 절차 결재 폼)·process(BPM) + bits(LoadGate·EvidenceChip)
 │   │                             #   · session-sync(머리는 SSE, 조회는 멱등) · demo-player(확인 절차 7단계 각본 + 조회 세 동작)
+│   ├── sc07/                     # SC07 화면 — improvement(U701 A·B)·confirm(확인·적용 결재 폼)·process(BPM) + bits(LoadGate·EvidenceChip)
+│   │                             #   · session-sync(머리는 SSE, 조회 셋은 멱등) · demo-player(확인·적용 5단계 각본 + 두 동작)
 │   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2·3도 같은 캔버스 — `maxColumns`만 다르다)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
@@ -320,8 +333,9 @@ NowView/
 │   ├── sc05/                     # types · client(Agent 검토 기록) · format(미확인·비해당·활동 목록 글) · scenes
 │   ├── sc06/                     # types · client(조회 4개 · 착수·결재·각본·초기화) · format(미확인·산정 보류·미산정·부호)
 │   │                             #   · scenes(확인 절차 7단계 + 세 동작)
-│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02~sc05(장면 사본·플레이어), sc06(조회·펼침), ui-prefs(해설)
-├── tests/                        # Vitest — sc01~sc06.test.ts, fixtures/sc0{1,2,3,4,5,6}-process.json
+│   ├── sc07/                     # types · client(조회 4개 · 착수·결재·각본·초기화) · format(원인 후보 말·미확인) · scenes(5단계 + 두 동작)
+│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02~sc05(장면 사본·플레이어), sc06(조회·펼침), sc07(조회·보기 A/B), ui-prefs(해설)
+├── tests/                        # Vitest — sc01~sc07.test.ts, fixtures/sc0{1,2,3,4,5,6,7}-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
@@ -330,14 +344,16 @@ NowView/
     ├── processes/sc04.bpmn       # SC04 업무 흐름 — Studio·Center 실행(4.18)
     ├── processes/sc05.bpmn       # SC05 업무 흐름 — Studio·Center 실행(4.19)
     ├── processes/sc06.bpmn       # SC06 확인 절차 — Studio·Center 실행(4.20)
+    ├── processes/sc07.bpmn       # SC07 확인·적용 절차 — Studio·Center 실행(4.21)
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
     ├── seed/SYN-SC03-v0.3.xlsx   # SC01_SC02_SC03 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 종료 시점 완성 레코드(기대값)
     ├── seed/SYN-SC04-v0.4.xlsx   # SC01~SC04 v0.4 수정본 — 숫자·SC03 시트는 v0.3과 같다, SC04가정이 원천, 나머지 SC04 시트는 기대값
+    ├── seed/SYN-SC07-v0.7.xlsx   # SC01~SC07 v0.7 — 앞 92개 시트는 v0.6과 같다(값·수식), SC07 원천(개선·기준·버전·검증입력·근거·확인이력·적용)
     ├── seed/SYN-SC06-v0.6.xlsx   # SC01~SC06 v0.6 — 기존 71개 시트는 v0.5와 같다, SC06 원천(기준·실적·거래 180·변경·판단·후속·근거·Agent·보고)을 한 번에 적재
     ├── seed/SYN-SC05-v0.5.xlsx   # SC01~SC05 v0.5 — 기존 45개 시트는 v0.4와 같다, SC05 원천(설정·활동·고객계획·변경·구매·원장·근거)은 시각대로 들인다
     ├── app/
-    │   ├── main.py               # FastAPI — health + /sc01 ~ /sc06 라우터 + C15 일꾼 기동
+    │   ├── main.py               # FastAPI — health + /sc01 ~ /sc07 라우터 + C15 일꾼 기동
     │   ├── worker_file.py        # 설치가 Center 키 셋(일꾼·연동용·대리 답용)을 짓고 Center 폴더에 해시 파일을 쓴다(ADR-0122) · center_key
     │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
     │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
@@ -355,10 +371,12 @@ NowView/
     │   └── sc05/                 # seed · calc(관측·예산·과제 효과·월 손익·FC50 대비 대사) · domain(배경 원천 catch_up) · agent · process · demo · view · api (`sc05_*`)
     │   └── sc06/                 # seed · calc(Q4 기대 대비 확인 효과·원인·운영지표·보조 손익) · domain(적재 검증·판단·조회·재적재)
     │                             #   · confirm(확인 절차 — 결재 검사·기록·업무) · process(내장·Studio·Center) · demo(D601~D607) · view · api (`sc06_*`)
+    │   └── sc07/                 # seed · calc(대행 확인·소요시간·원인 후보·Agent 입력 투영·검증 TS71-v1·적용 상태 ST703~707) · domain(적재 검사·조회)
+    │                             #   · confirm(확인·적용 절차) · process(내장·Studio·Center) · demo(D701~D705) · view · api (`sc07_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center,
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
-                                  #   test_sc06_calc · _process · _external,
+                                  #   test_sc06_calc · _process · _external, test_sc07_calc · _process · _external,
                                   #   test_events · _notify · test_preparation · test_consumer
 ```
 
@@ -485,6 +503,22 @@ GET  /sc06/demo-runs/{id}/evidence/{evidenceId}?report_version=           → �
 GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61·PROP61·FUP62·RISK61·확인 다섯 단계·다음 보고
      모든 조회 응답: review_id · report_version · calculation_version · as_of · data_status. X-Demo-Actor가 검토건 참여자가 아니면
      403 ACCESS_DENIED · 다른 보고 버전 409 VERSION_MISMATCH · 없음 404 NOT_FOUND(`detail.error_code`)
+
+     장면 7(4.21) — 데모 실행 id는 장면 1~6과 같다. 조회 넷은 멱등이고, 쓰기는 적재와 확인·적용 절차(BPM)다
+GET  /sc07/process · /script · /cases
+POST /sc07/demo-runs  {sc01DemoRunId?, executor=center|studio}  → IMP71 적재(확인 전). 장면 6이 대표 보고 전이면 각본으로 끝까지. 이미 있으면 그대로
+GET  /sc07/demo-runs/{id} · /history · /history/{seq} · /events(SSE, 채널 sc07:{id})  → 머리(개선건·버전 묶음·확인·적용 절차·상태 배지)
+POST /sc07/demo-runs/{id}/start                         → 확인 착수(경영관리 담당) = BPM 시작(내장)·SC07 기동(Center)·착수만(Studio)
+POST /sc07/demo-runs/{id}/actions/{nodeId} {answer}     → 결재 답(담당만). 다른 대상 버전 422 · 설정 「일치」가 레코드와 어긋나면 422 SETTING_MISMATCH
+POST /sc07/demo-runs/{id}/script/{i} · /reset {executor?}   → 각본 D701~D705 · 확인·적용 절차만 확인 전으로(적재는 그대로)
+     시스템 작업 6개(토픽 external — open_improvement · verify_improvement_version · confirm_improvement_version · apply_agent_setting ·
+     check_agent_setting · schedule_follow_up_check) — C15 일꾼이 가져간다(HTTP 경로 없음)
+GET  /sc07/demo-runs/{id}/improvements/IMP71?dataset_version=          → U701 A — 개선 사유·기존 검토(AG62 원본·제한 입력)·개선한 검토 방식(IN71)·기준·절차
+GET  /sc07/demo-runs/{id}/improvements/IMP71/verification?dataset_version=  → TC701 상세 · TC702~708 요약(미실행이면 NOT_RUN)
+GET  /sc07/demo-runs/{id}/applications/AP71?dataset_version=           → 범위·버전·확인 이력·설정 반영·다섯 조건·운영 실행(NOT_CONFIRMED)·후속 점검
+GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78 · 대표 사례 E61-1103(화면 조회 — Agent 입력이 아니다)
+     모든 조회 응답: dataset_version · improvement_id · version_bundle · as_of. 403 ACCESS_DENIED(본문·사유 없음) · 다른 데이터
+     버전 409 VERSION_MISMATCH · 없음 404 NOT_FOUND · 적재 검사 실패 422 DATA_INVALID(`detail.error_code`)
 ```
 
 * **회사 시스템**(`app/company.py` ↔ Company1 기간계 :8191, `docs/worker-interfaces.md` §4.2) — 장면 1의 회사 자료(T01·F01·실적·C01·FC01·
@@ -515,7 +549,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
 * **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
   `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
-  (= BPMN `app_id`, 설정 `topics` — 기본 확장 `external` 하나, 장면 1~6)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
+  (= BPMN `app_id`, 설정 `topics` — 기본 확장 `external` 하나, 장면 1~7)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
   `complete`·`fail`로 알린다. 연결은 늘 엔진 → Center다 — **Center는 NowView 주소도 키도 모른다.**
   내장 BPM의 `_InProcessCalls`와 일꾼이 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다.
   예전(Push)에는 Center 쪽 HTTP 어댑터가 BFF의 `/operations/…`를 키로 찔렀다 — 그 경로·키 검사(N6,
@@ -559,7 +593,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     프로세스(패키지) id는 회사가 짓는다(`company1.sc01`). 장면 1을 옮기며 정의를 새 id로 다시 냈다(`chaeksas/external.extension.json`
     0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다). **철회된 판은 되살아나지 않는다**(C2) — 일꾼 파일을 폴더에서 빼면 Center가
     그 일꾼만 맡던 확장을 철회하므로, 다시 들일 때는 판을 올린다(0.1.0이 그렇게 철회돼 0.1.1, 2026-11-01). BPMN 범위는 `<1`이라 그대로다.
-    같은 날 접수 작업 둘을 빼며 0.1.2, 장면 2 작업 13개를 더하며 0.2.0, 장면 3 작업 18개로 0.3.0, 장면 4 작업 18개로 0.4.0, 장면 5 작업 27개로 0.5.0, 장면 6 작업 6개로 0.6.0이다(그림 `company1.sc0N`은 `>=0.N.0`을 선언한다).
+    같은 날 접수 작업 둘을 빼며 0.1.2, 장면 2 작업 13개를 더하며 0.2.0, 장면 3 작업 18개로 0.3.0, 장면 4 작업 18개로 0.4.0, 장면 5 작업 27개로 0.5.0, 장면 6 작업 6개로 0.6.0, 장면 7 작업 6개로 0.7.0이다(그림 `company1.sc0N`은 `>=0.N.0`을 선언한다).
   * **관리자 모드 `/admin`**(로그인)이 일꾼 상태·맡은 토픽·최근 일감 50건(엔진 메모리)을 보인다 — 공개 화면·API에는 없다
     (`/health`도 일꾼 상태만 싣는다). **토픽을 바꾸면 일꾼 파일을 다시 지어 Center·엔진을 다시 띄운다** — Center는 그 파일의
     토픽만 내준다(밖이면 403 `topic_not_granted`).
@@ -897,6 +931,10 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
 | `tests/sc05.test.ts` | 장면 5 배치(기록 태스크·오류 경계 접기, 보완·범위 이탈·반려·대표 변경 고리·대사 실패 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·단계 코드별 화면), 사람 노드 41개 전부 화면, 미확인·비해당 표기, Agent 활동 → 폼 글(빈칸을 0으로 메우지 않는다) |
 | `tests/sc06.test.ts` | 장면 6 표기(null ≠ 0 — 미확인·산정 보류·미산정·비해당, 차이 부호), 세 동작 210초, 화면·펼침 → 장면, 확인 절차 7단계 = 엔진 각본 D601~D607, 확인 절차 화면·BPM 흐름은 엔진 각본 위치 |
+| `engine/tests/test_sc07_calc.py` | **통합가상데이터 v0.7과 대조** — 앞 92개 시트 = v0.6(값·수식), `SC07판단` 5행(유효 확인·소요 분·120분·마감·적시 공급·후보), `SC07검증결과` 8행을 규칙으로 다시 계산(데이터 PASS를 옮기지 않는다), `SC07요약`·`SC07적용` 판정 ST707·운영 실행 미확인, AT703 무효·지정만 대행, AT704 누락 사유(MISSING·ACCESS_DENIED·NOT_JOINED, 0분 아님), AT705 120분·121분·120분 1초·재공유, AT706 마감 초과 추가 검토, 시각 역전 DATA_INVALID, AT707 페이로드 정답 차단, AT709 확인 조건(CFO 미확인·역할 중복·구버전), AT710 적용 증적(예약·버전·범위·미래 시각), 적재 검사(중복·참조 누락·버전 공란), KST 시각 |
+| `engine/tests/test_sc07_process.py` | 장면 6 대표 보고까지 각본 실행 후 적재(확인 전), Studio 장면 6 409, **각본 끝 = SC07확인이력·SC07적용**(행위자·시각·글·버전·업무 완료 시각), AT708 장면 1~6 문서 불변, 장면 6 기록이 바뀌면 TC707 실패 → 「검증 미통과」 끝, 담당 403·대상 버전 422·순서 409, 보완 요청 → 「보완 필요」 끝, 예약 설정 「일치」 422 → 불일치 → 다시 반영, 초기화, 조회 계약 넷·미실행은 NOT_RUN·403·404·409, **조회가 문서·이력을 바꾸지 않는다**, BPMN ↔ 역할표·담당 이름, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc07_external.py` | 기본 확장 `external` 0.7.0 ↔ BPMN(계약 검사·입력·출력·답한 사람·`데모실행ID`·오류 경계), Studio 흉내로 후속 점검까지(늦게 연 업무·같은 기록), 예약 설정 「일치」 → 기록 거절 → 같은 결재, 콘솔 관리자 답은 담당으로 기록, `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·운영담당 이름 결재·거절 0), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, 사이트가 먼저 답한 결재를 각본이 다시 대리 답하지 않음 |
+| `tests/sc07.test.ts` | 장면 7 표기(원인 후보 말·누락은 0분 아님), 두 동작 120초, 확인·적용 5단계 = 엔진 각본 D701~D705, 절차 화면·BPM 흐름은 엔진 각본 위치·U701은 보기 A·B, BPMN 배치(기록 태스크·경계 접기·불일치 고리), 실행 중 안 간 「보완 필요」 끝 보존 |
 | `tests/sc04.test.ts` | 장면 4 배치(기록 태스크·오류 경계 접기, 보완 요청·검증 보완·승인 보완·반려 보완 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·종류·조회 코드별 화면), 모든 사람 노드의 화면, 목표 초과 표기 |
 | `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
@@ -1624,11 +1662,67 @@ MIXED 1) · 확인 지연 5건(복합 포함) · Q4 관리손익(보조) 902,868
 * 대표 주문의 「대행 확인」은 거래·변경근거 칸에 없고 근거 본문(E61-1103 작성자 USR-BUY2)과 AG62 보정 글에만 있다 — 화면이 글자로 지어
   붙이지 않고 근거·보정 글을 보인다.
 
+### 4.21 SC07 — 실제 경험을 관리모델 개선으로 연결 (장면 7)
+
+장면 6 성과 검토에서 Agent(AG62)는 주담당 확인란과 주문 비용만 받아 PO61-1103을 「확인 지연 가능성」으로 짚었고, 구매 담당이 대행 확인
+로그와 공급 가능일을 직접 찾아 「조달 제약」으로 바로잡았다. 장면 7은 그 보정을 개선건 IMP71로 삼아 Agent가 유효 대행의 실제 확인·발주 마감·
+요구납기·정상 공급일을 처음부터 잇도록 개선(AGT71-v2 · 기준 MB71-v2 · 입력 투영 PR71-v2)하고, 검증 세트 TS71-v1으로 검증해 두 임원 확인 뒤
+다음 운영 설정(CFG71 active_version)에 반영한다. **끝은 「운영 설정 반영 확인 · 운영 실행 미확인」(ST707)이다** — 설정 반영 ≠ 운영 실행 ≠ 장기
+효과. 장면 6 보고본·초안·보정·성과 수치와 Target·FC51은 그대로다(CT705).
+
+```
+장면 6 문서(RPT61-v1 REPORTED·AG62·CH61-1103) ─┐
+seed/SYN-SC07-v0.7.xlsx 원천 ─────────────────┴─▶ domain.load_batch(키·참조·버전 검사) → sc07_demo_run(문서 1개, 확인 전)
+engine/processes/sc07.bpmn ──▶ Studio·Center ── external ──▶ app/sc07/process.run_operation → confirm.check → confirm.apply
+                                     improvement · verification · application · evidence ◀── 조회(멱등)
+```
+
+**숫자·판정** — IN71 공유 09:20 → 대행 10:00 = **40분**(120분 기준 내) · 발주 마감 10:30 전 · 요구 11/14 09:00 < 적시 공급 11/16 09:00 →
+**조달 제약 후보**. IN72 180분·마감 초과·적시면 충족 → 내부 지연, IN73 무효 대행 → 근거 보완(INVALID_DELEGATION), IN74 공급일 누락 → 근거
+보완(MISSING), IN75 → 복합. TC701~708 8건 충족(정확도 100%가 아니다).
+
+**경계·범위에서 정한 것**
+
+* **결재는 데이터에 시각·담당이 있는 넷뿐이다**(2026-11-02 사용자 결정) — CF71 구매 임원 문지후 1/24 10:00 → CF72 경영관리 임원 강민서
+  15:00(순서는 시각대로) → 설정 반영 운영담당(USR-OPS71) 1/25 09:00 → 설정 확인 정하윤(USR-FIN) 10:00. 개선 요청·변경 기준·Agent 개선
+  확정(S01~S04)은 적재된 개선건이고, 검증 수행(S05)은 서비스 태스크(`verify_improvement_version`)다. 확인 착수 시각은 IMP71 발의일(1/17)에
+  09:00을 붙였다(구현용 보완 — 데이터는 날짜만 준다).
+* **새 역할은 역할명을 이름으로 쓴다**(2026-11-02 사용자 결정) — `u-ops` 「운영담당」·`u-dev` 「구현담당」(데이터에 이름이 없다, 인명을 지어내지
+  않는다). Center 결재 담당도 「운영담당」이고 Company1 `org.json`에도 더했다(부서 「미지정」). 구현 담당은 결재가 없다.
+* **검증 관측값은 규칙으로 다시 계산한다**(`calc.verify`) — 엑셀 `SC07검증결과`의 가상 결과·PASS는 판정에 쓰지 않고 대조로만 싣는다
+  (구현명세 5장). TC706은 실제 투영 페이로드에 금지 칸·기대 원인 코드가 없는지, TC707은 **지금 장면 6 문서의 지문이 적재 때와 같은지**,
+  TC708은 적용 대상 버전 = 개선 버전인지 본다. 실행 id는 `VR71-n`(가상시계 시각) — Agent 실행 id가 아니다. 데이터의 검증 이력에는
+  실행 일시·id가 없다(null).
+* **원인 후보 규칙은 `SC07판단` 식과 같다** — 내부 제약 = 120분 초과 **이고** 발주 마감 초과, 공급 제약 = 적시 주문 공급일 > 요구납기. 판정은
+  초 단위(120분 1초는 초과)이고 화면 분은 엑셀처럼 반올림한다. 120분 안인데 마감을 넘기면 「내부 영향 추가 검토」를 함께 낸다(AT706).
+  유효 확인이 없거나 공급일이 없으면 NEED_EVIDENCE와 사유(MISSING·ACCESS_DENIED·NOT_JOINED·INVALID_DELEGATION·NOT_CONFIRMED)다.
+* **확인은 대상 버전이 맞아야 한다**(422) — 다른 버전의 확인은 적용 근거가 아니다. 보완 요청이면 흐름이 「보완 필요」(ST703)로 끝난다 — 새
+  버전은 새 실행이다. 검증 미충족이면 확인 결재 없이 「검증 미통과」로 끝난다.
+* **설정 확인의 「일치」는 연결된 레코드로 본다**(구현명세 5장 다섯 조건 — 검증 통과 · 서로 다른 두 필수 역할의 같은 버전 확인 · active_version·
+  범위 · SETTINGS_SNAPSHOT · 반영 뒤·기준시각 전 확인). 예약(RESERVED)만이면 「적용 예정」(ST705)이고 「일치」는 422 SETTING_MISMATCH, 「불일치」면
+  설정 반영으로 돌아간다(앞 반영은 이력). 단순 건수로 판정하지 않는다(AT709·AT710).
+* **회사 시스템에 적는 것은 없다**(2026-11-02 사용자 결정) — Agent 설정은 NowView 기록이고, 대행 위임·확인 로그·공급 조건(EV71~74)은 장면 6
+  구매 거래처럼 아직 NowView 시드다(합성 사례 IN73·74를 회사 이력에 넣지 말라는 명세와도 맞다). 확인 기록이 시계를 옮기면 회사 세계 시각만
+  옮긴다. Company1 사이트는 장면 7 결재에 「회사 기록 없음」 카드(`kind: improvement`)와 각본 예시 값(`scenarios/sc07.json`)을 붙인다.
+* **조회는 아무것도 적지 않는다**(AT712) — 보기 A↔B 전환·근거 펼침·새로고침은 화면 상태다(보기는 localStorage, UI710). 조회 응답은 데이터
+  버전이 다르면 409로 섞지 않는다. 화면은 PASS 건수로 적용 상태를 다시 판정하지 않는다 — 엔진의 `state`를 쓴다.
+* **권한** — 경영관리(담당·팀장·임원)·구매(담당·팀장·임원)·운영담당·구현담당·대표·시연관리자. 그 밖은 403(본문·사유 없음).
+* 설정 매핑은 엔진 DB(`nowview_config`)에 저장된 것이 이긴다 — 이 판을 올린 뒤 이미 설정이 저장된 DB에는 관리자 모드(또는 `PUT /admin/config`)로
+  `company1.sc07 → 7`을 더해야 일꾼이 장면 7 일감을 받는다(로컬 실측에서 그렇게 했다).
+
+**만들며 드러난 것**
+
+* **v0.7 SC07 시트는 헤더가 한글이다**(「개선 ID」·「입력 ID」…) — 장면 6까지의 영문 헤더 행이 없다. `SC07적용`은 세로 항목이라 객체 하나로
+  바꾸고, 담당 계정·스냅샷 id는 「근거 / 해석」 칸의 첫 토큰에서 읽는다.
+* **Company1 기간계는 `org.json`을 뜰 때 한 번 읽는다** — 사용자를 더하면 기간계를 다시 띄워야 사이트 직원 목록에 보인다(`--reload`는 .py만 본다).
+* 역할명이 곧 이름인 계정은 화면에서 「운영담당 운영담당」으로 두 번 찍혔다 — 같으면 한 번만 쓴다.
+* 빈 「회사 시스템과 오간 것」 카드는 「이 기록을 남기기 전에 만든 데모 실행」으로 읽혔다 — 장면 7은 카드 대신 「회사에 적는 것은 없다」 한 줄이다.
+
 ---
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10)은 끝났다(장면 1~6 모두
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10), 장면 7(5.11)은 끝났다(장면 1~7 모두
 로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 장면 1~6 코드를 올렸고, 운영 Center 연결이 남았다.
 
 ### 5.1 CI — 완료
@@ -2094,4 +2188,22 @@ Center + 실행기 흉내로 대표 보고까지 잠갔다. 브라우저에서�
 * **새 보고 버전(RPT61-v2) 흐름** — 재적재가 새 산정과 재확인 대상을 알리는 데까지다. 새 보고본 작성·확인은 없다.
 * **Agent LLM 러너** — AG61~63은 고정 기록 재현뿐이다(장면 2~5와 같다).
 * 운영계는 코드만 올렸다 — 운영 Center 연결은 5.4.
+
+### 5.11 장면 7(SC07) — 완료 (확인·적용 절차 Studio·Center 실행 + U701 조회)
+
+2026-11-03. 설계·데이터는 4.21. 엔진 시험(SQLite·Postgres)으로 v0.7 대조(앞 92개 시트 = v0.6, `SC07판단`·`SC07검증결과`·`SC07적용`),
+AT701~AT712 변형, 확인·적용 절차의 고리(검증 미통과·보완 요청·설정 불일치)와 조회 계약을 잠갔다. Studio 흉내·가짜 Center + 실행기 흉내로 후속 점검까지.
+
+* **로컬 Center에서 끝까지 갔다**(`demo-e718bf82` — 장면 1~6을 Center로 끝낸 실행에서 적재 201, `company1.sc07` 0.7.0 사용자 배포, 확장
+  `external` 0.7.0은 일꾼이 올렸다). 각본 D701~D705 대리 답, 결재 한 단계 약 20초, 합계 약 85초. 검증 VR71-1 8건 충족, CF71·CF72·설정 반영·
+  확인의 행위자·시각·글·버전이 시트와 같고, 업무 4건 제때 열림(늦게 연 것 0)·`answer_rejected` 0, BPM `done`(`End`), ST707·운영 실행 미확인·
+  후속 점검 2/11 10:00.
+* **섞어서 한 번 더 갔다** — 초기화 → 화면 착수 → 회사 사이트 답(구매 임원 CF71, 폼은 `sc07.json` 예시·카드 `kind: improvement`) → 플레이어
+  (각본 위치가 따라가 그 단계는 다시 대리 답하지 않음, CF72) → 회사 사이트 답(운영담당 설정 반영) → 플레이어(설정 확인). 기록·시각·업무가
+  같고 거절 0, 대리 답 2건(나머지 둘은 사이트).
+* 브라우저(:3007 worktree 웹): U701 A(개선 사유·기존/개선 비교·근거 칩·기준·절차 한 줄) → B(TC701 상세·7건 요약·적용 확인·확인 이력·다음
+  점검), 보기 새로고침 유지, 확인·적용 절차·BPM 흐름(모든 노드 완료), 375px(문서 폭 375·좁은 칸 없음).
+* **남은 것**: 실시간 Agent 실행(구현명세 UI702 — 선택 구현, 지금은 규칙 재계산), 운영 실행 확인(UI708 — 실행 id·사용 버전 증적), 적용 실패 시
+  이전 버전 복귀 절차(V708 — 참조만 보인다), 새 보고·개선 버전의 재검증 흐름, Studio 시험 실행 실측, 운영계(5.4) 반영. 첫 렌더에 「관리모델 개선이
+  아직 열리지 않았다」가 잠깐 보인다(데모 실행 id 복원 전 — 장면 6 화면과 같은 모양).
 

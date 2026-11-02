@@ -29,7 +29,7 @@ from typing import Any
 from pydantic import BaseModel, Field, model_validator
 
 #: NowView가 아는 업무(장면) — 화면·처리기가 코드에 있는 것만 매핑할 수 있다.
-SCENES = (1, 2, 3, 4, 5, 6)
+SCENES = (1, 2, 3, 4, 5, 6, 7)
 #: 기본 확장(External Service) — NowView 판마다 하나. 옮기기 전 장면의 예전 확장(`nowview-scN`)은
 #: 기본으로 맡지 않는다(관리자 모드에서 토픽을 더하면 일꾼 파일도 다시 지어야 한다).
 FIXED_TOPIC = "external"
@@ -104,10 +104,10 @@ def default_config() -> NowViewConfig:
             ProcessMapping(bpm_process_id="company1.sc01", company="company1", scene=1),
             *(
                 ProcessMapping(bpm_process_id=f"company1.sc0{n}", company="company1", scene=n)
-                for n in (2, 3, 4, 5, 6)
+                for n in (2, 3, 4, 5, 6, 7)
             ),
         ],
-        # 장면 1~6이 모두 기본 확장 `external` 하나를 부른다(업무별 옛 토픽은 걷었다)
+        # 장면 1~7이 모두 기본 확장 `external` 하나를 부른다(업무별 옛 토픽은 걷었다)
         topics=[FIXED_TOPIC],
     )
 

@@ -121,7 +121,7 @@ def test_public_companies_show_no_registration(client: TestClient, monkeypatch) 
             "id": "company1",
             "name": "가상 자동차 부품사",
             "description": body[0]["description"],
-            "scenes": [1, 2, 3, 4, 5, 6],
+            "scenes": [1, 2, 3, 4, 5, 6, 7],
             # 회사 사이트는 공개 웹이다 — 회사 시스템 주소와 다르다
             "siteUrl": "http://site.example",
         }
@@ -168,7 +168,7 @@ def test_worker_routes_by_the_sending_bpm_process(settings: Settings) -> None:
     from chaeksas.contracts.service_app import OpRequest
     from chaeksas.service_kit.app import OpError
 
-    scenes = {n: f"scene-{n}" for n in range(1, 7)}
+    scenes = {n: f"scene-{n}" for n in range(1, 8)}
     resolve = routed_by(settings.scene_of, scenes)
 
     def request(bpm: str) -> OpRequest:
@@ -226,7 +226,7 @@ def test_works_show_each_scene_state_and_none_for_not_started(settings: Settings
     done = {"bpm": {"state": "done"}, "clock": "2027-06-16T11:45:00+09:00"}
     running = {"bpm": {"state": "running"}, "clock": "2027-06-20T10:00:00+09:00"}
     scenes = {1: _Scene({"demo-1": done}), 2: _Scene({"demo-1": running})}
-    scenes |= {n: _Scene({}) for n in (3, 4, 5, 6)}
+    scenes |= {n: _Scene({}) for n in (3, 4, 5, 6, 7)}
     app = FastAPI()
     app.include_router(
         build_router(settings, _Worker(), _Center(), _Poller(), {"company1": _System()}, scenes)
@@ -238,5 +238,5 @@ def test_works_show_each_scene_state_and_none_for_not_started(settings: Settings
         {"scene": 2, "state": "running", "clock": "2027-06-20T10:00:00+09:00"},
         {"scene": 3, "state": "none", "clock": None},
     ]
-    assert len(rows) == 6
+    assert len(rows) == 7
     assert client.get("/companies/nope/works", params={"demoRunId": "demo-1"}).status_code == 404

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SC07 — 실제 경험을 관리모델 개선으로 연결(장면 7)의 **확인·적용 절차**. 업무 흐름의 유일한 원천이다(장면 1~6과
+  같다).
+
+  BPM이 쥐는 것: 순서 · 사람 대기(구매 임원 업무 확인 · 경영관리 임원 정합성 확인 · 운영 설정 반영 · 설정 반영
+  확인) · 분기(검증 미통과 · 확인의 보완 요청 · 설정 불일치). 쥐지 않는 것: 판단 — 검증 세트 TS71-v1의 관측값은
+  일꾼의 규칙 계산이 만들고(`app/sc07/calc.py`), 설정 확인의 「일치」는 연결된 레코드(대상 버전·범위·스냅샷)와
+  대조된다(구현명세 5장).
+
+  단계 대응(업무설계표 SC07-S05~S09): 확인 착수(화면 명령) → 개선건 열기 → 검증 실행(S05) → 구매 임원 확인 CF71
+  → 경영관리 임원 확인 CF72(S06) → 운영 설정 반영 CFG71(S07) → 설정 반영 확인(S08, 불일치면 다시 반영) → 후속
+  점검 연결(S09). 결재는 데이터에 시각·담당이 있는 넷뿐이다(2026-11-02 결정). 끝나도 운영 실행은 미확인이다 —
+  설정 반영 확인 ≠ 운영 실행 ≠ 장기 효과.
+
+  **Studio 시험 실행·Center 서버 실행에서 돈다**(장면 1~6과 같은 틀). 서비스 태스크는 NowView 일꾼의 기본 확장
+  `external`(NowView `chaeksas/external.extension.json`) 작업이다. 결재에 답한 사람은 `answered_by_as`·
+  `answered_via_as`로 받아 기록 작업에 싣는다. 기록이 거절되면 오류 경계로 **같은 결재로 되돌아간다**.
+  역할은 NowView `app/sc07/confirm.py`의 NODE_ROLES, 결재 담당자 이름은 `chk:approval.assignees` — 시험이 맞춰
+  본다. 운영 담당은 데이터에 이름이 없어 역할명(「운영담당」)을 이름으로 쓴다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_sc07">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:process id="company1.sc07" name="SC07 관리모델 개선 확인·적용" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.7.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="확인 착수"/>
+    <bpmn:serviceTask id="Task_Open" name="개선건 열기">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "open_improvement", "input": {"demo_run_id": "데모실행ID"}, "output": {"개선ID": "improvement_id", "대상버전": "agent_version", "검증세트": "verification_set"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Verify" name="개선 버전 검증 실행">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "verify_improvement_version", "input": {"demo_run_id": "데모실행ID"}, "output": {"검증결과": "result", "검증통과수": "passed", "검증수": "total"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_Buy" name="구매 임원 업무 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U701 업무 확인 — 구매 임원(대행 인정·원인 후보의 업무 타당성)", "answered_by_as": "구매확인자", "answered_via_as": "구매확인경로", "assignees": ["문지후"], "description": "검증을 통과한 개선 버전(대상 버전)의 대행 인정 기준과 원인 후보 방식이 구매 업무에 맞는지 확인한다. 다른 버전의 확인은 적용 근거가 아니다. 보완 요청이면 이 개선은 보완 필요로 끝난다.", "show": ["데모실행ID", "개선ID", "대상버전", "검증결과", "error_message"], "fields": [{"key": "구매확인결정", "label": "업무 확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "구매확인버전", "label": "확인 대상 버전", "type": "text", "required": true}, {"key": "구매확인내용", "label": "확인 내용(보완 요청이면 사유)", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_Buy" name="구매 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_improvement_version", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Buy'", "record_id": "'CF71'", "decision": "구매확인결정", "version": "구매확인버전", "content": "구매확인내용", "answered_by": "구매확인자", "answered_via": "구매확인경로"}, "output": {"구매확인상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Confirm_Finance" name="경영관리 임원 정합성 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U701 업무 확인 — 경영관리 임원(측정 기준 일관성·과거 결과 보존)", "answered_by_as": "경영관리확인자", "answered_via_as": "경영관리확인경로", "assignees": ["강민서"], "description": "120분 기준·KPI·효과 산식은 그대로이고 장면 6 보고본·초안·보정·성과 수치가 바뀌지 않았는지 확인한다. 구매 임원 확인 뒤다.", "show": ["데모실행ID", "개선ID", "대상버전", "검증결과", "error_message"], "fields": [{"key": "경영관리확인결정", "label": "업무 확인", "type": "choice", "required": true, "choices": ["확인", "보완요청"]}, {"key": "경영관리확인버전", "label": "확인 대상 버전", "type": "text", "required": true}, {"key": "경영관리확인내용", "label": "확인 내용(보완 요청이면 사유)", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Confirm_Finance" name="경영관리 임원 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_improvement_version", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Finance'", "record_id": "'CF72'", "decision": "경영관리확인결정", "version": "경영관리확인버전", "content": "경영관리확인내용", "answered_by": "경영관리확인자", "answered_via": "경영관리확인경로"}, "output": {"경영관리확인상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Apply_Setting" name="운영 설정 반영">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U701 다음 운영 적용 — 운영 설정 반영(CFG71)", "answered_by_as": "반영자", "answered_via_as": "반영경로", "assignees": ["운영담당"], "description": "두 임원이 확인한 버전을 다음 운영 설정의 active_version으로 반영하고 스냅샷을 남긴다. 예약(RESERVED)만이면 적용 예정이지 반영이 아니다.", "show": ["데모실행ID", "개선ID", "대상버전", "error_message"], "fields": [{"key": "설정스냅샷", "label": "설정 스냅샷 ID", "type": "text", "required": true}, {"key": "적용버전", "label": "active_version", "type": "text", "required": true}, {"key": "적용범위", "label": "적용 범위", "type": "text", "required": true}, {"key": "증적유형", "label": "증적 유형", "type": "choice", "required": true, "choices": ["SETTINGS_SNAPSHOT", "RESERVED"]}, {"key": "반영내용", "label": "반영 내용(전·후 버전)", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Apply_Setting" name="운영 설정 반영 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "apply_agent_setting", "input": {"demo_run_id": "데모실행ID", "node_id": "'Apply_Setting'", "snapshot_id": "설정스냅샷", "active_version": "적용버전", "scope": "적용범위", "evidence_type": "증적유형", "content": "반영내용", "answered_by": "반영자", "answered_via": "반영경로"}, "output": {"적용상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Check_Setting" name="운영 설정 반영 확인">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "U701 적용 확인 — 설정 읽기 확인(대상 버전·범위·스냅샷)", "answered_by_as": "설정확인자", "answered_via_as": "설정확인경로", "assignees": ["정하윤"], "description": "반영된 설정을 읽어 active_version·적용 범위·증적이 맞는지 확인한다. 설정 반영 확인은 운영 실행 확인이 아니다. 불일치면 설정 반영으로 돌아간다.", "show": ["데모실행ID", "개선ID", "대상버전", "적용상태", "error_message"], "fields": [{"key": "설정확인결과", "label": "설정 확인", "type": "choice", "required": true, "choices": ["일치", "불일치"]}, {"key": "설정확인내용", "label": "확인 내용", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Check_Setting" name="운영 설정 반영 확인 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "check_agent_setting", "input": {"demo_run_id": "데모실행ID", "node_id": "'Check_Setting'", "result": "설정확인결과", "content": "설정확인내용", "answered_by": "설정확인자", "answered_via": "설정확인경로"}, "output": {"적용상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_FollowUp" name="후속 점검 연결">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "schedule_follow_up_check", "input": {"demo_run_id": "데모실행ID"}, "output": {"적용상태": "state", "점검예정": "planned_at"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Verified" name="검증 결과" default="Flow_verified"/>
+    <bpmn:exclusiveGateway id="Gw_Confirm_Buy" name="구매 임원 확인 결과" default="Flow_buy_confirmed"/>
+    <bpmn:exclusiveGateway id="Gw_Confirm_Finance" name="경영관리 임원 확인 결과" default="Flow_finance_confirmed"/>
+    <bpmn:exclusiveGateway id="Gw_Check" name="설정 확인 결과" default="Flow_checked"/>
+    <bpmn:endEvent id="End" name="운영 설정 반영 확인 — 운영 실행 미확인(ST707)"/>
+    <bpmn:endEvent id="End_NotVerified" name="검증 미통과 — 보완 필요(ST703)"/>
+    <bpmn:endEvent id="End_Rework" name="업무 확인 보완 요청 — 보완 필요(ST703)"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_Buy" name="기록 거절" attachedToRef="Record_Confirm_Buy">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Confirm_Finance" name="기록 거절" attachedToRef="Record_Confirm_Finance">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Apply_Setting" name="기록 거절" attachedToRef="Record_Apply_Setting">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Check_Setting" name="기록 거절" attachedToRef="Record_Check_Setting">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Open"/>
+    <bpmn:sequenceFlow id="Flow_open" sourceRef="Task_Open" targetRef="Task_Verify"/>
+    <bpmn:sequenceFlow id="Flow_verify" sourceRef="Task_Verify" targetRef="Gw_Verified"/>
+    <bpmn:sequenceFlow id="Flow_not_verified" name="검증 미통과 — 적용하지 않는다" sourceRef="Gw_Verified" targetRef="End_NotVerified">
+      <bpmn:conditionExpression>검증결과 == 'FAIL'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_verified" name="검증 통과" sourceRef="Gw_Verified" targetRef="Confirm_Buy"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_Buy_answered" sourceRef="Confirm_Buy" targetRef="Record_Confirm_Buy"/>
+    <bpmn:sequenceFlow id="Flow_buy_recorded" sourceRef="Record_Confirm_Buy" targetRef="Gw_Confirm_Buy"/>
+    <bpmn:sequenceFlow id="Flow_buy_rework" name="보완 요청" sourceRef="Gw_Confirm_Buy" targetRef="End_Rework">
+      <bpmn:conditionExpression>구매확인결정 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_buy_confirmed" name="확인" sourceRef="Gw_Confirm_Buy" targetRef="Confirm_Finance"/>
+    <bpmn:sequenceFlow id="Flow_Confirm_Finance_answered" sourceRef="Confirm_Finance" targetRef="Record_Confirm_Finance"/>
+    <bpmn:sequenceFlow id="Flow_finance_recorded" sourceRef="Record_Confirm_Finance" targetRef="Gw_Confirm_Finance"/>
+    <bpmn:sequenceFlow id="Flow_finance_rework" name="보완 요청" sourceRef="Gw_Confirm_Finance" targetRef="End_Rework">
+      <bpmn:conditionExpression>경영관리확인결정 == '보완요청'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_finance_confirmed" name="확인" sourceRef="Gw_Confirm_Finance" targetRef="Apply_Setting"/>
+    <bpmn:sequenceFlow id="Flow_Apply_Setting_answered" sourceRef="Apply_Setting" targetRef="Record_Apply_Setting"/>
+    <bpmn:sequenceFlow id="Flow_applied" sourceRef="Record_Apply_Setting" targetRef="Check_Setting"/>
+    <bpmn:sequenceFlow id="Flow_Check_Setting_answered" sourceRef="Check_Setting" targetRef="Record_Check_Setting"/>
+    <bpmn:sequenceFlow id="Flow_check_recorded" sourceRef="Record_Check_Setting" targetRef="Gw_Check"/>
+    <bpmn:sequenceFlow id="Flow_mismatch" name="불일치 — 다시 반영" sourceRef="Gw_Check" targetRef="Apply_Setting">
+      <bpmn:conditionExpression>설정확인결과 == '불일치'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_checked" name="일치" sourceRef="Gw_Check" targetRef="Task_FollowUp"/>
+    <bpmn:sequenceFlow id="Flow_followed" sourceRef="Task_FollowUp" targetRef="End"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_Buy_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_Buy" targetRef="Confirm_Buy"/>
+    <bpmn:sequenceFlow id="Flow_Record_Confirm_Finance_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Confirm_Finance" targetRef="Confirm_Finance"/>
+    <bpmn:sequenceFlow id="Flow_Record_Apply_Setting_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Apply_Setting" targetRef="Apply_Setting"/>
+    <bpmn:sequenceFlow id="Flow_Record_Check_Setting_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Check_Setting" targetRef="Check_Setting"/>
+  </bpmn:process>
+</bpmn:definitions>

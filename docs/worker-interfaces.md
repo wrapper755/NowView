@@ -2,7 +2,7 @@
 
 지금 구조만 적는다. Center 등록 절차와 실행 중 동작은 [chaeksas-integration.md](chaeksas-integration.md)에 있다.
 지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)·장면 2(외주 단가 인상 검토)·장면 3(수익성 통합 분석과 수시
-경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)·장면 5(결정 실행과 계획 갱신)·장면 6(과제 완료와 성과 실현 검토)다.
+경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)·장면 5(결정 실행과 계획 갱신)·장면 6(과제 완료와 성과 실현 검토)·장면 7(실제 경험을 관리모델 개선으로 연결)이다.
 
 ## 1. NowView가 하는 일
 
@@ -200,6 +200,26 @@ Center ◀──────────────────────▶ 
 | `finalize_performance_report` | 보고본 확정 CF61-R + 남는 사항 NOTE61(결론 숫자 ↔ 산정, 아니면 422 REPORT_INVALID) · 보완 요청 |
 | `report_performance_to_ceo` | 대표 월간 보고 CF61-M — 보고 확정은 발의의 실행·예산 승인이 아니다 |
 
+**장면 7**
+
+| 자료 | 주인 | 어디서 |
+|---|---|---|
+| 장면 6 보고본·AG62 초안과 사람 보정·대표 사례(CH61-1103·PO61-1103·E61-1103) | NowView | 장면 6 문서 스냅샷 — 비교 화면에만 쓰고 바꾸지 않는다(지문으로 TC707) |
+| 대행 위임·확인 로그·공급 조건(EV71~74)·검증 입력 IN71~75 | NowView 시드 | 통합가상데이터 v0.7 SC07 원천 — 회사로 옮기지 않았다(2026-11-02 결정, 합성 사례 IN73·74는 실제 이력에 넣지 않는다) |
+| 검증 결과(TS71-v1)·확인 기록 CF71·CF72·운영 설정 CFG71·후속 점검 | NowView | 데모 실행 문서 — 개선 Agent의 설정은 NowView 기록이다 |
+| 회사 세계 시각 | 회사 | 확인 기록이 시계를 일정으로 옮기면 `set_clock`으로 함께 옮긴다 |
+
+장면 7 작업(BPM 프로세스 `company1.sc07` 0.7.0 — 확장 `>=0.7.0`). 회사 시스템 호출은 없다:
+
+| 작업 | 하는 일 |
+|---|---|
+| `open_improvement` | 착수된 개선건 IMP71 열기 — 대상 Agent 버전·검증 세트를 돌려준다 |
+| `verify_improvement_version` | 검증 세트 TS71-v1 실행(TC701~708 관측값을 규칙으로 다시 계산) — `result` PASS·FAIL |
+| `confirm_improvement_version` | 업무 확인(구매 임원 CF71 · 경영관리 임원 CF72 — 같은 작업, `record_id`로 가른다). 대상 버전이 아니면 422, 보완 요청 |
+| `apply_agent_setting` | 운영 설정 반영 CFG71 — active_version·범위·증적 유형(SETTINGS_SNAPSHOT·RESERVED) |
+| `check_agent_setting` | 설정 반영 확인 — 「일치」는 버전·범위·스냅샷이 맞아야 한다(아니면 422 SETTING_MISMATCH), 「불일치」면 다시 반영 |
+| `schedule_follow_up_check` | 후속 점검 연결(2/11 10:00 경영관리 담당) — 운영 실행은 미확인으로 남는다 |
+
 **실패** — 업무 규칙 위반은 `forbidden`·`not_found`·`conflict`·`input_invalid`(재시도 없음, 글은 사유). 회사 시스템이 응답하지 않으면
 `dependency_down`(재시도) — 엔진 안에서는 `CompanyUnavailable`(503)이고 그 조작은 저장되지 않는다. 설정에 없는 BPM 프로세스의 일감은
 `not_found`.
@@ -284,7 +304,7 @@ POST /worlds/{w}/reset                              → 세계를 S0로
 
 ### 4.3 ③ 웹 ↔ 엔진
 
-* **공개** — 장면 화면 API(`/api/engine/sc01`~`sc06/…`)와 회사 목록 `GET /api/engine/companies`(`{id, name, description, scenes}` —
+* **공개** — 장면 화면 API(`/api/engine/sc01`~`sc07/…`)와 회사 목록 `GET /api/engine/companies`(`{id, name, description, scenes}` —
   이름·설명·업무 번호뿐). BPM 프로세스 id·토픽·회사 시스템 주소·일꾼 상태는 공개하지 않는다.
 * **관리** — `/admin` 화면이 로그인 뒤 `/api/admin/*`를 부르고, 웹 서버가 세션을 확인한 뒤 엔진 `/admin/*`에 관리 키(`X-Admin-Key`)를
   실어 보낸다. 엔진 관리 API:
@@ -310,7 +330,7 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 }
 ```
 
-* 처음 뜰 때 설정이 없으면 이 모양의 기본값을 적는다(장면 1~6 `company1.sc0N` → 업무 N, 토픽은 기본 확장 `external` 하나).
+* 처음 뜰 때 설정이 없으면 이 모양의 기본값을 적는다(장면 1~7 `company1.sc0N` → 업무 N, 토픽은 기본 확장 `external` 하나).
 * 검사: 회사 id·BPM 프로세스·토픽이 겹치지 않을 것, 매핑의 회사가 있을 것, 업무 번호가 NowView에 있는 것(1~6)일 것, NowView에 업무
   코드가 있는 회사일 것.
 * 매핑·회사 시스템 주소는 저장하면 바로 쓰인다. 토픽은 일꾼 파일(`worker.consumer.json`)을 다시 지어 Center와 엔진을 다시 띄워야 한다(Center는 그 파일의 토픽만 내준다).
