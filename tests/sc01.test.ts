@@ -116,6 +116,18 @@ describe("되감기 지점", () => {
     expect(historySeqFor(history, -1)).toBe(1);
   });
 
+  it("같은 지점·같은 시각에 뒤따른 기록(Center 대리 답 뒤 기록 작업)까지 본다", () => {
+    const relayed: HistoryEntry[] = [
+      { seq: 1, event: "D406", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 }, // 대리 답 — 지점만
+      { seq: 2, event: "center_progress", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 },
+      { seq: 3, event: "open_monthly_meeting", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 }, // 기록
+      { seq: 4, event: "D406", clock: "2027-07-12T10:05:00+09:00", scriptIndex: 13 }, // 다음 단계의 시계 이동
+      { seq: 5, event: "D406", clock: "2027-07-12T10:05:00+09:00", scriptIndex: 14 },
+    ];
+    expect(historySeqFor(relayed, 13)).toBe(3);
+    expect(historySeqFor(relayed, 14)).toBe(5);
+  });
+
   it("아직 가지 않은 지점은 없다", () => {
     expect(historySeqFor(history, 5)).toBeNull();
   });

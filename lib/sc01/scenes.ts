@@ -135,10 +135,14 @@ export function nextBusinessEvening(clock: string, days = 1): string {
 }
 
 /**
- * 장면이 가리키는 시점의 이력 seq — 그 지점에 **처음 도달한** 기록이다.
+ * 장면이 가리키는 시점의 이력 seq — 그 지점에 처음 도달한 기록부터 **시각이 같은 동안의 마지막** 기록이다.
  *
- * 마지막 기록을 쓰면 안 된다: 다음 단계를 실행하기 전에 가상시계를 먼저 옮기는데, 그 기록은
+ * 지점의 마지막 기록을 쓰면 안 된다: 다음 단계를 실행하기 전에 가상시계를 먼저 옮기는데, 그 기록은
  * 아직 지점이 그대로라 "이 장면의 상태 + 다음 장면의 시각"이 보인다.
+ *
+ * 처음 기록만으로도 안 된다: Center 실행은 대리 답을 보낸 순간에 지점이 찍히고 그 결재의 기록은 몇 초 뒤
+ * 따로 들어온다(같은 지점·같은 시각) — 처음 기록을 고르자 「MT41 보고」로 되감아도 「개회 전」이었다(2026-11-02,
+ * 장면 4 Center 실측).
  *
  * **마지막 초기화 이후에서만 찾는다.** 초기화는 이력을 지우지 않아 같은 지점 번호가 앞 진행에도 있다 —
  * 처음 것을 고르면 초기화 전 진행을 보였다(2026-10-28, 장면 4 Center 재실행 뒤 되감기).
@@ -148,5 +152,9 @@ export function historySeqFor(history: HistoryEntry[], script: number): number |
   history.forEach((h, i) => {
     if (h.event === "reset") from = i;
   });
-  return history.slice(from).find((h) => h.scriptIndex === script)?.seq ?? null;
+  const after = history.slice(from);
+  let i = after.findIndex((h) => h.scriptIndex === script);
+  if (i < 0) return null;
+  while (i + 1 < after.length && after[i + 1].scriptIndex === script && after[i + 1].clock === after[i].clock) i++;
+  return after[i].seq;
 }
