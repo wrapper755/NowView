@@ -140,7 +140,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   프로세스를 맡는지는 **설정**(엔진 DB `nowview_config`, `app/config.py`)이다. 일꾼은 일감을 보낸 BPM 프로세스 id(`company1.sc01`)로
   설정에서 회사·업무를 찾는다. **등록은 공개하지 않는다** — 공개 화면·API(`/api/engine/companies`)는 회사 이름·설명·업무 번호뿐이고,
   BPM 프로세스 매핑·토픽·회사 시스템 주소·일꾼 상태(요청 코드)는 **관리자 모드 `/admin`**(로그인)에만 있다. 업무(장면) 목록은
-  코드다(`lib/companies.ts`의 `SCENES` = 엔진 `SCENE_WORKS`). **장면은 하나씩 옮긴다** — 지금 장면 1~3이 `external` 확장이고 장면 4~6은
+  코드다(`lib/companies.ts`의 `SCENES` = 엔진 `SCENE_WORKS`). **장면은 하나씩 옮긴다** — 지금 장면 1~4가 `external` 확장이고 장면 5·6은
   예전 확장(`nowview-scN`)이다. 옮길 때 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복한다.
 * **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
@@ -155,7 +155,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   **장면 4(SC04)** — 장면 3 분석과제 AT31~34의 결과를 받아 비용·중복을 검증하고, 담당 임원들이 우선 실행안 3개를 공동 제안하고,
   대표 주재 월간회의(MT41)의 질의로 판단본(DEC41-v2)을 확정한 뒤 대표가 책임·예산 한도·두 기한·조건을 포괄 승인(APR41-v1)하고,
   전체·개별 책임자가 실행과제 ACT41~43·조건·지시를 인수하면 장면 5로 인계(HANDOFF41)까지(4.18). 같은 데모 실행을 잇고 **Studio·
-  Center 실행**에서 돈다(외부 확장 `nowview-sc04`).
+  Center 실행**에서 돈다(기본 확장 `external` 0.4.0, 2026-11-02 옮김).
   **장면 5(SC05)** — 장면 4가 조건부 승인한 ACT42(긴급구매 축소)를 상세 실행계획(PL51-v1 → 범위 내 변경 v2)으로 확정·확인하고,
   CON41·SUP41 이행 확인과 품의(REQ51·OP51) 뒤 9/1 운영 적용, 생산 변경 공유·구매 대응(정상 CH51 · 긴급 CH52), 9월 초기 결과,
   월간 Rolling 운영계획(OPL51~53)과 공식 Forecast(FC50 → FC51) 작성·부서 확인·대표 승인·게시를 거쳐 후속 책임을 넘기기까지
@@ -263,7 +263,7 @@ NowView/
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
-├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~3) · 옮기기 전 nowview-sc04~sc06
+├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~4) · 옮기기 전 nowview-sc05·sc06
 ├── docs/                         # chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
@@ -453,7 +453,7 @@ POST /sc04/demo-runs/{id}/meetings/MT41/records {type, subject, content, related
 POST /sc04/demo-runs/{id}/agent-drafts {kind}  · /agent-outputs/{oid}/adopt          → AG42 질의 후보·AG43 회의록·승인서 초안(경영관리)
 POST /sc04/demo-runs/{id}/budget-policy {kind: transfer|total, …}  → 예산 위임 조회(E407) — 규칙만, 거래·이력 없음
 POST /sc04/demo-runs/{id}/clock {at} · /script/{i} · /reset {executor?}
-     시스템 작업 18개(토픽 nowview-sc04) — C15 일꾼이 가져간다(HTTP 경로 없음)
+     시스템 작업 18개(토픽 external — open_improvement_review … hand_off_execution_plan) — C15 일꾼이 가져간다(HTTP 경로 없음)
 
      장면 5(4.19) — 데모 실행 id는 장면 1~4와 같다
 GET  /sc05/process · /cases · /script?case_id=
@@ -512,7 +512,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
 * **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
   `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
-  (= BPMN `app_id`, 설정 `topics` — 기본 확장 `external`, 옮기기 전 장면은 `nowview-sc04`~`sc06`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
+  (= BPMN `app_id`, 설정 `topics` — 기본 확장 `external`, 옮기기 전 장면은 `nowview-sc05`·`sc06`)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
   `complete`·`fail`로 알린다. 연결은 늘 엔진 → Center다 — **Center는 NowView 주소도 키도 모른다.**
   내장 BPM의 `_InProcessCalls`와 일꾼이 **같은 함수**(`process.run_operation`)를 써서 출력 모양이 같다.
   예전(Push)에는 Center 쪽 HTTP 어댑터가 BFF의 `/operations/…`를 키로 찔렀다 — 그 경로·키 검사(N6,
@@ -538,7 +538,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     적기 없음). 원문은 `engine/.consumer/keys.json`(0600)에만 있고 엔진은 `center_key`로 읽는다 — 같은 이름의 환경 변수가 이긴다.
     Center가 `*.key.json`을 읽는 판은 Chaeksas에 요청 중이다(그 전에는 콘솔 발급 키를 env에 둔다). **확장 정의는 일꾼이 올린다** — 엔진이 뜨면 토픽마다 `chaeksas/{topic}.extension.json`을
     `PUT /consumers/self/extension`으로 올리고(409는 판을 올리라는 경고만) manifest를 올린 뒤 가져가기를 시작한다. 콘솔 등록·
-    해제는 없다. 토큰이 없으면 꺼진 채 사유를 남긴다. **기본 토픽은 `external` 하나다** — 장면 4~6의 옛 토픽은 맡지 않아,
+    해제는 없다. 토큰이 없으면 꺼진 채 사유를 남긴다. **기본 토픽은 `external` 하나다** — 장면 5·6의 옛 토픽은 맡지 않아,
     옮길 때까지 그 장면들의 Center 실행은 서비스 태스크에서 멈춘다. **지켜볼 것은 로그다** — 엔진 로그 `nowview.consumer`와 Center 로그(일꾼·일감·토픽·작업·오류 코드).
     `/health.consumer.state`는 `off`·`starting`(확장 정의 올리는 중)·`running`이다.
   * **manifest는 확장 정의에서 짓는다**(`manifest_of`) — 작업·모드·입출력 스키마·`timeout_s`. 일꾼이 뜰 때
@@ -548,7 +548,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
   * **기본 확장(`external`)은 요청 템플릿을 자리만 채운다**(운영계 주소·`path: "/"`·키 없음) — C13이 HTTP 어댑터 모양을
     요구해서다. 작업 이름도 업무 언어로 바꿨다(`assess_supply_risk`·`record_plan_review`·`assign_follow_up` …,
     `docs/worker-interfaces.md` §4.1). 장면 2도 옮기며 이름을 바꿨다(`screen_price_request`·`record_price_decision`·
-    `register_cost_version` …). 장면 3도 옮기며 이름을 바꿨다(`analyze_profit_impact`·`record_department_confirmation`·`assign_analysis_tasks` …). 장면 4~6 정의는 아래처럼 옛 템플릿이 남아 있다.
+    `register_cost_version` …). 장면 3도 옮기며 이름을 바꿨다(`analyze_profit_impact`·`record_department_confirmation`·`assign_analysis_tasks` …). 장면 4도 옮기며 이름을 바꿨다(`submit_analysis_result`·`record_ceo_decision`·`accept_execution_assignment` …). 장면 5·6 정의는 아래처럼 옛 템플릿이 남아 있다.
   * **확장 정의의 요청 템플릿(`path`·`body`·`allowed_hosts`·`auth`)은 이 길에서 쓰지 않는다.** Chaeksas 범용
     어댑터 일꾼(`chk-adapter-consumer`)을 대신 돌릴 때만 읽힌다. 고치면 다시 서명해야 해서 그대로 뒀다 —
     `test_extension_definition_matches_the_bpmn_service_calls`가 여전히 템플릿 ↔ 그림을 잠근다.
@@ -556,7 +556,7 @@ GET  /sc06/demo-runs/{id}/reports/RPT61-v1                → U602 결론·FUP61
     프로세스(패키지) id는 회사가 짓는다(`company1.sc01`). 장면 1을 옮기며 정의를 새 id로 다시 냈다(`chaeksas/external.extension.json`
     0.1.0 — 예전 `nowview-sc01` 0.7.1을 이었다). **철회된 판은 되살아나지 않는다**(C2) — 일꾼 파일을 폴더에서 빼면 Center가
     그 일꾼만 맡던 확장을 철회하므로, 다시 들일 때는 판을 올린다(0.1.0이 그렇게 철회돼 0.1.1, 2026-11-01). BPMN 범위는 `<1`이라 그대로다.
-    같은 날 접수 작업 둘을 빼며 0.1.2, 장면 2 작업 13개를 더하며 0.2.0이다(그림 `company1.sc02` 0.2.0은 `>=0.2.0`을 선언한다).
+    같은 날 접수 작업 둘을 빼며 0.1.2, 장면 2 작업 13개를 더하며 0.2.0, 장면 3 작업 18개로 0.3.0, 장면 4 작업 18개로 0.4.0이다(그림 `company1.sc0N`은 `>=0.N.0`을 선언한다).
   * **관리자 모드 `/admin`**(로그인)이 일꾼 상태·맡은 토픽·최근 일감 50건(엔진 메모리)을 보인다 — 공개 화면·API에는 없다
     (`/health`도 일꾼 상태만 싣는다). **토픽을 바꾸면 일꾼 파일을 다시 지어 Center·엔진을 다시 띄운다** — Center는 그 파일의
     토픽만 내준다(밖이면 403 `topic_not_granted`).
@@ -878,8 +878,8 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc03_calc.py` | **통합가상데이터 v0.3 파생 시트와 대조** — 통합손익(연간·Q3·잔여·12개월), 통합모델손익 a~e, SC03검증 V31·V32·V39·V40, 숫자 원천 = v0.2, 구매 증가 156,812개·18,817,440원, E33 정합 실패, E34 −1,988,000원, 엑셀 시각 KST·초 반올림 |
 | `engine/tests/test_sc03_process.py` | Chaeksas 위의 기본 시연 D30~D41 — **끝난 문서 = SC03 시트**(사실확인·쟁점·후보·과제·인계·이벤트 시각), T31 재착수, T33 무응답 차단, T34 담당·기한 필수, 차단 → 재분석, T35 제외 사유 누락 시 전체 미저장, T36 C32·C33 → AT32, T37 3/4 완료 422·타부서 403, E35-M 책임자 NULL 전건 보류, T38 구버전 인수 409, 멱등, E31·E33·E34·E36·E37, 화면 답이 각본 지점을 옮김(병렬 순서 바뀜·조회 건너뜀), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc04_calc.py` | **통합가상데이터 v0.4 파생 시트와 대조** — SC04월효과 36행 전부(보고·판단), SC04월손익 월·연간·Q3·Q4·잔여, SC04비교 대안별 효과·정상 연간, SC04검증, 숫자 시트 = v0.3, T403(2,900 → 124.8M)·E401 감가상각 회피 차단·E402 중복 180만원·E403 승인 범위 121.6M, 입력 한도(전망·원가·긴급 역전·일회성비), E407 위임 조회 |
-| `engine/tests/test_sc04_process.py` | Chaeksas 위의 기본 시연 D401~D413 — **끝난 문서 = SC04 시트**(예산과제·조건지시·인계·이벤트 23건 시각·행위자·회의 기록), T401 재착수·재등록, T402 보고본/판단본 분리, 작성자 ≠ 확인자·AT33 제외·Q31·Q32 이력, 다른 부서 403, 보완 요청 새 버전, E401·E402 검증 차단 → 담당 임원 보완, 추천 2~3개·우선순위, 회의 기록 역할, 판단 변경 사유·임원 확인, T403, 대표만 결정·판단본 409, T407 승인서 누락 422 무저장, T406 보류 과제 미생성, T408 2/3 종료 422·타인 403, T409 반려·보완·구버전 409, T411·T412·T413, 시계·초기화·각본, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
-| `engine/tests/test_sc04_external.py` | 확장 정의 `nowview-sc04` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
+| `engine/tests/test_sc04_process.py` | Chaeksas 위의 기본 시연 D401~D413 — **끝난 문서 = SC04 시트**(예산과제·조건지시·인계·이벤트 23건 시각·행위자·회의 기록), T401 재착수·재등록, T402 보고본/판단본 분리, 작성자 ≠ 확인자·AT33 제외·Q31·Q32 이력, 다른 부서 403, 보완 요청 새 버전, E401·E402 검증 차단 → 담당 임원 보완, 추천 2~3개·우선순위, 회의 기록 역할, 판단 변경 사유·임원 확인, T403, 대표만 결정·판단본 409, T407 승인서 누락 422 무저장, T406 보류 과제 미생성, T408 2/3 종료 422·타인 403, T409 반려·보완·구버전 409, T411·T412·T413, 시계·초기화·각본, **바깥 답(회사 사이트·화면)이 각본 지점·시계를 옮김**(순서 바뀜·제 단계 시각·폼 기본값), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc04_external.py` | 기본 확장 `external` ↔ BPMN(입력·출력·답한 사람·오류 경계), Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc05_calc.py` | **통합가상데이터 v0.5 파생 시트와 대조** — v0.4 45개 시트 그대로, 기초 손익 = SC05모델손익 60행, FC50 = 장면 4 판단 가정 손익, SC05월효과 18행, SC05월손익 월·연간·마감·전망·Q3, 모델별 효과, 변경 대사(9월 −1.2M · 11~12월 +2.4M · 차이 0), X506 재가산 대사 실패, X508 3,427,786,680, SC05초기지표, 임계값 같으면 정상·NULL 미확인, X509 중복·비용 NULL, 납기·품질 미수집, SC05예산(정산 이중 차감 없음), 고객계획 a~e 월합계 0 |
 | `engine/tests/test_sc05_process.py` | Chaeksas 위의 기본 시연 D501~D518 — **끝난 문서 = SC05 시트**(계획·활동·조건품의·예산원장·변경공유·구매표본 60건·운영계획·전망버전·인계·이벤트 시각·사람·Agent 상태), SC05착수조건 GT51~55, T501~T532(X501 착수 422·T506 9/1 전 READY·T502 권한·T503 누락 저장·확정 422·T504 v1 유지·T507/X502 범위 이탈·T509 예산 초과·T512/X504·T513 전결 경계·대행 확인·T516/X509·T518·T521/X506·T522·T523/X505·T524/X507·T525/X508·T526 새 RUN·T527 게시 멱등·T528 시계만으로 승인 없음·T530 Agent 실패·T531), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc05_external.py` | 확장 정의 `nowview-sc05` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·구매 확인 대행 담당자), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
@@ -1365,7 +1365,7 @@ engine/processes/sc03.bpmn ──▶ Studio·Center(또는 시험용 내장) ─
 **끝나도 Risk OPEN · Forecast REVIEW_PENDING · Target UNCHANGED이고 CON41은 OPEN이다** — 장면 완료 ≠ 실행 완료 ≠ 위험 해소 ≠ 전망 승인.
 
 ```
-engine/processes/sc04.bpmn ──▶ Studio·Center(또는 시험용 내장) ── 서비스 태스크 nowview-sc04 ──▶ app/sc04/process.run_operation
+engine/processes/sc04.bpmn ──▶ Studio·Center(또는 시험용 내장) ── 서비스 태스크 external ──────▶ app/sc04/process.run_operation
                                                                                                 │ domain.check → domain.apply
                                                                                                 ▼   (calc의 기준은 sc03 period 재사용)
                        sc04_demo_run(id = 장면 1~3 데모 실행 id) · sc04_history → notifier("sc04:{id}") → SSE
@@ -1378,6 +1378,19 @@ Q4 −34,278,880(목표 초과) · 총괄 예산 18,000,000(8·6·4, 예정 7,00
 
 **경계·범위에서 정한 것**
 
+* **기본 확장 `external` 0.4.0으로 옮겼다**(2026-11-02) — 작업 18개를 업무 이름으로 더했다(`open_improvement_review`·
+  `submit_analysis_result`·`confirm_analysis_result`·`verify_improvement_effects`·`correct_improvement_effects`·`request_improvement_draft`·
+  `recommend_priority_actions`·`freeze_improvement_report`·`open_monthly_meeting`·`draft_decision_report`·`confirm_decision_report`·
+  `record_ceo_decision`·`draft_execution_approval`·`finalize_execution_approval`·`register_execution_actions`·`accept_execution_assignment`·
+  `revise_execution_assignment`·`hand_off_execution_plan`). 예전 `nowview-sc04` 0.1.0은 걷었다. 그림은 Company1 `company1.sc04` 0.4.0
+  사본(`>=0.4.0`, 결재 `show`에 `데모실행ID`).
+  * **회사에 적는 것은 없다** — 결과·검증·판단·승인서·실행과제는 경영 기록이고, 실제 실행 품의·예산 거래는 장면 5 범위다(구현명세
+    v0.2 — 장면 4 예산 위임은 정책 조회뿐). 시계를 옮기면 회사 세계 시각만 함께 옮긴다. Company1 사이트는 결재에 장면 3과 같은 근거
+    카드(받은 고객계획·원가 버전)와 각본 예시 값(`scenarios/sc04.json`)을 붙인다.
+  * **바깥 답에도 각본·시계가 따라간다**(장면 3 `_follow_script`·`_clock_to_script`를 들였다). 결재 폼 기본값은 각본 답이고(`view._defaults`),
+    대리 답 뒤 「Center 반영 중」(`inflight`)을 보이고, 플레이어는 `scriptIndex`를 따라간다. **시계는 이번 결정의 단계 시각으로 옮긴다** —
+    먼저 답해 둔 결재와 함께 지나갈 때 지나가는 마지막 단계 시각을 쓰자 AT31 확인이 AT32 제출 시각(15:00)에 적혔다(회사 사이트 실측,
+    장면 3은 아직 마지막 단계 시각이다).
 * **효과는 `SC04가정`에서 계산 서비스가 낸다** — 다른 SC04 시트(월효과·월손익·비교·예산과제·조건지시·회의·이벤트·인계)는 기대값과
   각본 입력이다. 기준 손익은 장면 3 계산(`sc03.calc.period`)을 월마다 다시 부른다 — 장면 3 문서의 숫자를 옮겨 적지 않는다.
 * **가정의 시작은 「보고 시작」이다** — 「판단 시작」(ALT42 9/1)은 회의 뒤에 생기는 값이라 판단 초안의 변경으로만 들어온다. 판단 초안은
@@ -1939,6 +1952,13 @@ v0.3의 파생 시트, 끝난 문서는 SC03 시트와 같다. 바깥 실행은 
   전부 충족 · 보고 효과 137,200,000(REP41-v1) · 판단 효과 127,800,000(DEC41-v2) · 남는 연간 부족 49,503,320 · 조건부 제외 부족
   85,103,320(BASE는 세 안 모두 승인이라 승인 범위도 127.8M — 121.6M은 E403). 업무 24건 늦게 연 것 0, 완료 시각이 각본 시각과 같고
   (인수 7/13 09:00~09:30), 감사 이력 `answer_rejected` 0, 지연 알림 0, Agent 초안 AG41~43 모두 성공(실패 초안 없음).
+* **external·Company1로 옮긴 뒤 로컬 Center에서 HANDOFF41까지 갔다**(2026-11-02, `demo-e718bf82` — `company1.sc04` 0.4.0 배포, 장면 3을
+  Center로 끝낸 실행에서 시작 201, 각본 D401~D413 33단계, 결재 한 단계 10~22초). 일꾼이 장면 4 일감 26건을 모두 `complete`(origin
+  `run`), 업무 24건 늦게 연 것·`answer_rejected`·지연 알림·실패 초안 0, 완료 시각이 각본과 같다. 숫자 보고 효과 137,200,000 · 판단
+  효과 127,800,000 · 남는 부족 49,503,320 · 조건부 제외 85,103,320 · 인수 3/3 + 전체 책임. 장면 4만 초기화한 뒤 **섞어서** 다시 갔다 —
+  화면 착수 → 회사 사이트 답(구매팀장 AT32를 생산팀장 AT31보다 먼저) → 화면 폼(생산임원 AT31 확인) → 플레이어 자동 재생. 같은 결과이고,
+  각본보다 먼저 낸 AT32 제출만 답한 시각(7/1 09:00)에 적혔다. 이때 AT31 확인이 AT32 제출 단계 시각에 적혀 시계를 「이번 결정의
+  단계」로 옮기게 고쳤다(4.18).
 * **승인 이후 수정**(구현명세 11장 — 새 판단·승인 버전, 대표 재확인, 영향받은 인수 STALE) — 반려 보완(승인 범위 안의 명확화)만 있다.
 * **Agent LLM 러너** — mock·fail뿐이다(장면 2·3과 같다).
 * 화면 검수는 내장 BASE만 했다. E 사례는 엔진 시험으로 잠갔고 플레이어의 사례 선택으로 돌릴 수 있다.

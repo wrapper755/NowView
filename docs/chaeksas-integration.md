@@ -29,14 +29,14 @@
 | 무엇 | 어디서 (Center 콘솔 http://localhost:8501 의 왼쪽 메뉴) | 값 |
 |---|---|---|
 | 일꾼 | **콘솔이 아니다** — Center 일꾼 폴더에 일꾼 파일을 두고 Center를 다시 띄운다(Chaeksas ADR-0121) | `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) |
-| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.3.0(장면 1~3) |
-| BPM 패키지 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`·`company1.sc02`·`company1.sc03` — 그림 원본은 Company1 리포 `bpm/company1/` |
+| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.4.0(장면 1~4) |
+| BPM 패키지 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`~`company1.sc04` — 그림 원본은 Company1 리포 `bpm/company1/` |
 | Center 키 둘 | 관리 › **Center API 키** › 「새 키...」 | 종류 「연동용」 하나, 「대리 답용」 하나 → `engine/.env.local` |
 | BPM 프로세스 → 회사·업무 | NowView `/admin` 설정 | 기본값에 이미 있다 — 손댈 것 없음 |
 
-장면 1~3은 `external`로 옮겼다(장면 2는 `company1.sc02` 0.2.0 — 확장 `>=0.2.0`, 장면 3은 `company1.sc03` 0.3.0 — `>=0.3.0`).
-장면 4~6은 아직 옮기기 전이다 — 그림은 예전 확장 `nowview-sc04`~`sc06`을 부르는데 일꾼은 그 토픽을 맡지 않는다(기본 토픽은
-`external` 하나). **옮길 때까지 장면 4~6의 Center 실행은 서비스 태스크에서 멈춘다.**
+장면 1~4는 `external`로 옮겼다(장면 2는 `company1.sc02` 0.2.0 — 확장 `>=0.2.0`, 장면 3은 `company1.sc03` 0.3.0 — `>=0.3.0`,
+장면 4는 `company1.sc04` 0.4.0 — `>=0.4.0`). 장면 5·6은 아직 옮기기 전이다 — 그림은 예전 확장 `nowview-sc05`·`sc06`을 부르는데
+일꾼은 그 토픽을 맡지 않는다(기본 토픽은 `external` 하나). **옮길 때까지 장면 5·6의 Center 실행은 서비스 태스크에서 멈춘다.**
 
 ## 3. 등록 순서 (로컬 Center)
 

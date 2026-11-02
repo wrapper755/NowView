@@ -119,6 +119,27 @@ export function Sc04DemoPlayer() {
     [demoRunId, hasDoc, last, pathname, router, scenes, setScene],
   );
 
+  /**
+   * 플레이어 위치가 엔진의 각본 지점(`scriptIndex`)을 따라간다 — 회사 사이트·화면에서 직접 답해 앞으로 갔을 때(엔진이
+   * 바깥 결정도 각본 지점으로 옮긴다, `process._follow_script`). 장면 3 플레이어와 같다 — 위치만 옮기고 라우팅은
+   * 하지 않는다(4.1).
+   */
+  const liveScript = useSc04((s) => s.live?.scriptIndex ?? null);
+  const liveRun = useSc04((s) => s.live?.demoRunId ?? null);
+  const seenScript = useRef<{ run: string; index: number } | null>(null);
+  useEffect(() => {
+    if (liveRun === null || liveScript === null) return;
+    const seen = seenScript.current;
+    if (seen?.run === liveRun && liveScript <= seen.index) {
+      seen.index = liveScript; // 초기화로 되돌아갔다 — 위치는 초기화 핸들러가 이미 정했다
+      return;
+    }
+    const at = scenes.findIndex((s) => s.script === liveScript);
+    if (at < 0) return; // 각본이 아직 오지 않았다 — 오면 다시 본다
+    setScene(at);
+    seenScript.current = { run: liveRun, index: liveScript };
+  }, [liveRun, liveScript, scenes, setScene]);
+
   const jumpRef = useRef(jump);
   useEffect(() => {
     jumpRef.current = jump;

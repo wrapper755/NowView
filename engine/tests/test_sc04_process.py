@@ -800,3 +800,48 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc04Process) -> None:
     """
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc04-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
+
+
+# ─────────────────────── 바깥 답(회사 사이트·화면)의 단계 추적 ───────────────────────
+
+
+def test_outside_answers_move_the_script_marker_and_clock_even_out_of_order(
+    proc: Sc04Process,
+) -> None:
+    """
+    회사 사이트·화면에서 직접 답해도 플레이어의 단계(`step`·`script_index`)와 가상시계가 각본을
+    따라온다(장면 3과 같다). 결과 제출은 순서가 바뀌어도 되고, 각본보다 먼저 답한 것은 답한 시각에
+    적힌다. 따라온 뒤에는 각본(「다음 단계」)이 남은 단계부터 잇는다. 결재 폼은 각본 답으로
+    미리 찬다.
+    """
+    rid = proc.create()["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    doc = proc.start(rid, actor="u-fin")
+    assert (doc["step"], doc["script_index"]) == ("D401", 0)
+    assert doc["clock"] == doc["review"]["started_at"] == kst(steps[0].at)
+    form = {w["nodeId"]: w for w in view(doc)["bpm"]["waiting"]}["Submit_AT31"]
+    expected = answer("BASE", "Submit_AT31")
+    assert {f["key"]: f.get("default") for f in form["fields"] if f.get("default")} == {
+        k: v for k, v in expected.items() if v not in (None, "")
+    }
+
+    def act(node: str) -> dict:
+        i = step_index("BASE", node)
+        return proc.act(rid, node, dict(steps[i].answer), actor=steps[i].actor)
+
+    doc = act("Submit_AT32")  # 각본보다 먼저 — 아직 따라가지 않는다
+    assert doc["script_index"] == 0 and doc["clock"] == kst(steps[0].at)
+    doc = act("Submit_AT31")
+    assert doc["script_index"] == 1 and doc["clock"] == kst(steps[1].at)
+    doc = act("Confirm_AT31")  # AT31 확인과 먼저 낸 AT32 제출을 함께 지나간다
+    assert (doc["step"], doc["script_index"]) == ("D402", 3)
+    # AT31 확인은 제 단계 시각에 적힌다 — 함께 지나간 AT32 제출 단계 시각이 아니다
+    [confirmed] = [t for t in doc["tasks"].values() if t["node_id"] == "Confirm_AT31"]
+    assert confirmed["completed_at"] == kst(steps[2].at)
+    doc = act("Confirm_AT32")
+    assert doc["script_index"] == 4 and doc["clock"] == kst(steps[4].at)
+    assert proc.company._call("GET", f"/worlds/{rid}/clock")["at"] == doc["clock"]
+    assert doc["script_follow"]["ahead"] == []
+    for index in range(5, len(steps)):
+        doc = demo.run_step(proc, rid, index)
+    assert doc["review"]["state"] == "SC04_COMPLETED"

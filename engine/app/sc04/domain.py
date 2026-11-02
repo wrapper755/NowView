@@ -2231,22 +2231,22 @@ def adopt_agent(doc: dict, output_id: str, *, actor: str) -> None:
 # ─────────────────────────── 작업 → 업무 효과 (기록 작업의 몸통) ───────────────────────────
 
 RECORDS = (
-    "submit_result",
-    "confirm_result",
-    "verify_effects",
-    "correct_effects",
-    "recommend",
-    "freeze_report",
-    "open_meeting",
-    "draft_decision",
-    "confirm_decision",
-    "decide",
-    "draft_approval",
-    "finalize_approval",
-    "register_actions",
-    "accept",
-    "revise_assignment",
-    "complete_scene",
+    "submit_analysis_result",
+    "confirm_analysis_result",
+    "verify_improvement_effects",
+    "correct_improvement_effects",
+    "recommend_priority_actions",
+    "freeze_improvement_report",
+    "open_monthly_meeting",
+    "draft_decision_report",
+    "confirm_decision_report",
+    "record_ceo_decision",
+    "draft_execution_approval",
+    "finalize_execution_approval",
+    "register_execution_actions",
+    "accept_execution_assignment",
+    "revise_execution_assignment",
+    "hand_off_execution_plan",
 )
 
 
@@ -2334,15 +2334,15 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
     작업은 적기 전에
     같은 검사를 한다(Studio·Center 콘솔 답은 NowView 사전 검사를 거치지 않는다).
     """
-    if operation == "submit_result":
+    if operation == "submit_analysis_result":
         check_submit(doc, str(args.get("task_id") or ""), args)
-    elif operation == "confirm_result":
+    elif operation == "confirm_analysis_result":
         check_confirm(doc, str(args.get("task_id") or ""), args)
-    elif operation == "verify_effects":
+    elif operation == "verify_improvement_effects":
         check_verify(doc)
-    elif operation == "correct_effects":
+    elif operation == "correct_improvement_effects":
         check_correct(doc, args)
-    elif operation == "recommend":
+    elif operation == "recommend_priority_actions":
         check_recommend(
             doc,
             {
@@ -2351,27 +2351,27 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
                 "owners": args.get("owners"),
             },
         )
-    elif operation == "freeze_report":
+    elif operation == "freeze_improvement_report":
         check_freeze(doc)
-    elif operation == "open_meeting":
+    elif operation == "open_monthly_meeting":
         check_open_meeting(doc)
-    elif operation == "draft_decision":
+    elif operation == "draft_decision_report":
         check_decision_draft(doc, _decision_args(args))
-    elif operation == "confirm_decision":
+    elif operation == "confirm_decision_report":
         check_confirm_decision(doc, args)
-    elif operation == "decide":
+    elif operation == "record_ceo_decision":
         check_decide(doc, _decide_args(args))
-    elif operation == "draft_approval":
+    elif operation == "draft_execution_approval":
         check_approval_draft(doc, _approval_args(args))
-    elif operation == "finalize_approval":
+    elif operation == "finalize_execution_approval":
         check_finalize(doc, args)
-    elif operation == "register_actions":
+    elif operation == "register_execution_actions":
         check_register(doc)
-    elif operation == "accept":
+    elif operation == "accept_execution_assignment":
         check_acceptance(doc, str(args.get("target") or ""), args)
-    elif operation == "revise_assignment":
+    elif operation == "revise_execution_assignment":
         check_revise(doc, str(args.get("target") or ""), args)
-    elif operation == "complete_scene":
+    elif operation == "hand_off_execution_plan":
         check_complete(doc)
 
 
@@ -2381,19 +2381,19 @@ def apply(
     """
     기록 작업 하나의 업무 효과. 검사는 `check`가 먼저 했다. 출력은 그림의 `output` 대응이 쓴다.
     """
-    if operation == "submit_result":
+    if operation == "submit_analysis_result":
         return {
             "result_ref": submit_result(doc, seed, str(args["task_id"]), args, by=by, strict=strict)
         }
-    if operation == "confirm_result":
+    if operation == "confirm_analysis_result":
         confirm_result(doc, str(args["task_id"]), args, by=by, strict=strict)
         return {}
-    if operation == "verify_effects":
+    if operation == "verify_improvement_effects":
         return verify_effects(doc, seed, memo=_text(args, "memo"), by=by)
-    if operation == "correct_effects":
+    if operation == "correct_improvement_effects":
         correct_effects(doc, args, by=by, strict=strict)
         return {}
-    if operation == "recommend":
+    if operation == "recommend_priority_actions":
         ref = recommend(
             doc,
             {
@@ -2404,7 +2404,7 @@ def apply(
             by=by,
         )
         return {"recommendation_ref": ref}
-    if operation == "freeze_report":
+    if operation == "freeze_improvement_report":
         return {
             "report_id": freeze_report(
                 doc,
@@ -2414,26 +2414,26 @@ def apply(
                 by=by,
             )
         }
-    if operation == "open_meeting":
+    if operation == "open_monthly_meeting":
         return {"meeting_id": open_meeting(doc, summary=_text(args, "summary"), by=by)}
-    if operation == "draft_decision":
+    if operation == "draft_decision_report":
         return {"report_id": draft_decision(doc, seed, _decision_args(args), by=by)}
-    if operation == "confirm_decision":
+    if operation == "confirm_decision_report":
         return {"report_id": confirm_decision(doc, opinion=_text(args, "opinion"), by=by)}
-    if operation == "decide":
+    if operation == "record_ceo_decision":
         return {"decision_id": decide(doc, seed, _decide_args(args), by=by)}
-    if operation == "draft_approval":
+    if operation == "draft_execution_approval":
         return draft_approval(doc, _approval_args(args), by=by)
-    if operation == "finalize_approval":
+    if operation == "finalize_execution_approval":
         return finalize_approval(doc, args, by=by)
-    if operation == "register_actions":
+    if operation == "register_execution_actions":
         return register_actions(doc, memo=_text(args, "memo"), by=by)
-    if operation == "accept":
+    if operation == "accept_execution_assignment":
         accept(doc, str(args["target"]), args, by=by, strict=strict)
         return {}
-    if operation == "revise_assignment":
+    if operation == "revise_execution_assignment":
         return revise_assignment(doc, str(args["target"]), args, by=by)
-    if operation == "complete_scene":
+    if operation == "hand_off_execution_plan":
         return {"handoff_id": complete_scene(doc, memo=_text(args, "memo"), by=by)}
     raise DomainError(f"모르는 작업: {operation}", 404)  # pragma: no cover
 
@@ -2651,7 +2651,7 @@ def statuses(doc: dict) -> dict[str, Any]:
 
 #: Studio는 끝을 작업 호출로만 안다 — 이 작업이 기록되면 흐름이 끝난다.
 def ends_flow(operation: str) -> bool:
-    return operation == "complete_scene"
+    return operation == "hand_off_execution_plan"
 
 
 __all__ = ["CASES", "NODE_ROLES", "RECORDS", "SEED_ID", "apply", "check", "kst"]

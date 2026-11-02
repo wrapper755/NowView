@@ -1,6 +1,6 @@
 """
 SC04 실행 — `processes/sc04.bpmn`을 **Studio 시험 실행·Center 서버 실행**이 돌고, NowView는 서비스
-태스크가 부르는 시스템 작업(외부 확장 `nowview-sc04`)으로 업무를 적는다. 장면
+태스크가 부르는 시스템 작업(기본 확장 `external`)으로 업무를 적는다. 장면
 3(`app/sc03/process.py`)과
 같은 틀이다.
 
@@ -17,6 +17,10 @@ SC04 실행 — `processes/sc04.bpmn`을 **Studio 시험 실행·Center 서버 �
   `domain.check`를 부른다. 기록 작업도 같은 검사를 다시 한다(Studio·콘솔 답은 사전 검사를 거치지
   않는다).
   규칙이 한 벌이다 — 칸 이름 ↔ 입력 표를 따로 적지 않는다.
+* **바깥에서 답해도 각본·시계가 따라간다**(장면 3과 같다) — 회사 사이트·Center 콘솔·NowView
+  화면에서 답한 결재의 기록이 각본 지점(`script_index`)을 옮기고, 그 효과를 내기 전에 가상시계를
+  그 단계 시각으로 옮긴다(`_follow_script`·`_clock_to_script`). 시계를 옮기면 회사 세계의 시각도
+  함께다. 장면 4가 회사에 적는 것은 없다 — 결과·검증·판단·승인·실행과제는 NowView 경영 기록이다.
 * 대표 질의·현업 답변·지원 지시(QA411~)·Agent 질의 후보·회의록 초안(AG42·AG43)·예산 위임
   조회(E407)는
   BPM 밖의 명령이다.
@@ -42,6 +46,7 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app.company import CompanyClient
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     USERS,
@@ -64,9 +69,9 @@ from app.sc04 import agent, domain
 from app.sc04.seed import Seed, load_seed
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc04.bpmn"
-APP_ID = "nowview-sc04"
+APP_ID = "external"
 RECORDS = domain.RECORDS
-OPERATIONS = ("open_review", "agent_draft", *RECORDS)
+OPERATIONS = ("open_improvement_review", "request_improvement_draft", *RECORDS)
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — 장면 1~3과 같은 값이다(10초로는
 #: 실행기가 다음 결재를 올리기 전에 포기했다 — 장면 2·3 실측).
 CENTER_WAIT_S = SC01_CENTER_WAIT_S
@@ -96,9 +101,9 @@ def run_operation(
     보이던 직전
     거절 사유를 비운다.
     """
-    if operation == "open_review":
+    if operation == "open_improvement_review":
         return domain.open_review(doc)
-    if operation == "agent_draft":
+    if operation == "request_improvement_draft":
         return {"output_id": domain.agent_draft(doc, kind=str(args["kind"]))}
     if operation not in RECORDS:
         raise DomainError(f"모르는 작업: {operation}", 404)
@@ -106,6 +111,7 @@ def run_operation(
     if node_id not in domain.NODE_ROLES:
         raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
     by, known = _by(args, actor)
+    _clock_to_script(doc, seed, node_id)
     domain.check(doc, operation, args)
     # 마스터 밖의 이름(콘솔 관리자)이면 「담당자만」은 Center가 결재 담당자로 이미 막았다 — 업무
     # 기록은
@@ -118,6 +124,8 @@ def run_operation(
         domain.audit(doc, actor=by, action="answer_via", node_id=node_id, via=args["answered_via"])
     domain.ensure_task(doc, node_id)
     domain.complete_task(doc, node_id, actor=effective)
+    _follow_script(doc, seed, node_id)
+    _landed(doc, node_id)
     return {**out, "error_message": None}
 
 
@@ -151,10 +159,12 @@ class Sc04Process:
         publish: Callable[[str], None] = lambda _id: None,
         center: CenterClient | None = None,
         center_wait_s: float = CENTER_WAIT_S,
+        company: CompanyClient | None = None,
     ) -> None:
-        """`center`를 주지 않으면 장면 3의 것을 쓴다(같은 Center·같은 키)."""
+        """`center`·`company`를 주지 않으면 장면 3의 것을 쓴다(같은 Center·같은 회사 시스템)."""
         self.store = store
         self.sc03 = sc03
+        self.company = company or sc03.company
         self.seed = seed or load_seed()
         self.process = read_process(PROCESS_PATH.read_bytes())
         self.engine = Engine()
@@ -229,6 +239,9 @@ class Sc04Process:
                 "visited": visited,
             }
             domain.sync_tasks(doc, dict(doc["bpm"]["snapshot"]["pendings"]))
+        # 바깥 답이 각본을 따라 시계를 옮겼으면 회사 세계의 시각도 — 장면 1~3과 같다.
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
@@ -399,6 +412,7 @@ class Sc04Process:
                 doc, actor=actor, action="clock_moved", event_code=event_code, to=doc["clock"]
             )
             domain.raise_overdue_alerts(doc)
+            self.company.set_clock(demo_run_id, doc["clock"])  # 회사 세계의 시각도 함께
             return self._commit(doc, version, None, event_code or "clock")
 
     def mark(self, demo_run_id: str, *, event_code: str, script_index: int, note: str = "") -> dict:
@@ -430,6 +444,8 @@ class Sc04Process:
             doc, version = self._load(demo_run_id)
             if check_idempotency(doc, idempotency_key, ["start"]):
                 return doc
+            if script_index is None and doc["review"]["started_at"] is None:
+                _clock_to_script(doc, self.seed, "start")  # 화면 착수도 각본 시각으로
             if not domain.start_review(doc, by=actor):
                 return doc
             executor = executor_of(doc)
@@ -437,6 +453,8 @@ class Sc04Process:
                 if executor == "center":
                     self._center_start(doc, actor=actor)
                 _mark(doc, event_code, script_index)
+                if script_index is None:
+                    _follow_script(doc, self.seed, "start")
                 return self._commit(doc, version, None, event_code or "start")
             calls = _InProcessCalls(doc, self.seed, actor)
             run_id = new_run_id(now=parse_at(doc["clock"]))
@@ -451,6 +469,8 @@ class Sc04Process:
             )
             self._advance(run, calls)
             _mark(doc, event_code, script_index)
+            if script_index is None:
+                _follow_script(doc, self.seed, "start")
             return self._commit(doc, version, run, event_code or "start")
 
     def act(
@@ -732,6 +752,8 @@ class Sc04Process:
                 domain.sync_tasks(doc, {approval["request_id"]: {"node_id": node_id}})
             bpm = doc["bpm"]
             bpm["center"]["relayed"].append(approval["request_id"])
+            # 이 결재의 기록 작업은 실행기가 따로 부른다 — 그동안 화면이 「반영 중」(장면 3)
+            bpm["center"].setdefault("inflight", []).append(node_id)
             bpm["waiting"] = [
                 w for w in bpm.get("waiting", []) if w["request_id"] != approval["request_id"]
             ]
@@ -743,6 +765,10 @@ class Sc04Process:
                 request_id=approval["request_id"],
             )
             _mark(doc, event_code, script_index)
+            if script_index is not None:
+                # 각본이 대리 답했다 — 실행기가 나중에 부르는 이 결재의 기록은 각본 몫이다
+                _script_follow(doc)["pending"].append(node_id)
+                _follow_script(doc, self.seed, None)
             return self._commit(doc, version, None, event_code or node_id)
 
     def _await_approval(self, demo_run_id: str, node_id: str, name: str) -> tuple[str, dict]:
@@ -889,6 +915,95 @@ def _check_expect(doc: dict, node_id: str, expect: dict[str, Any]) -> None:
                 "새 버전을 인수한다",
                 409,
             )
+
+
+def _landed(doc: dict, node_id: str) -> None:
+    """대리 답한 결재의 기록이 왔다(적혔든 거절됐든) — 「반영 중」에서 뺀다."""
+    inflight = ((doc.get("bpm") or {}).get("center") or {}).get("inflight")
+    if inflight and node_id in inflight:
+        inflight.remove(node_id)
+
+
+def _script_follow(doc: dict) -> dict[str, list[str]]:
+    return doc.setdefault("script_follow", {"ahead": [], "pending": []})
+
+
+def _follow_script(doc: dict, seed: Seed, done: str | None) -> None:
+    """
+    화면·회사 사이트·콘솔에서 직접 한 일도 각본의 진행 표시(`step`·`script_index`)를 옮긴다 —
+    장면 3 `_follow_script`와 같은 규칙이다. 결과 제출·확인과 인수는 병렬이라 순서가 바뀌고,
+    사이의 조회·회의 기록·Agent 요청은 건너뛰어도 된다. 화면이 한 결정을 `ahead`에 모으고, 각본의
+    다음 결재가 거기 있으면 그것과 앞의 비결재 단계를 함께 지나간다. Center 각본이 대리 답한 결재의
+    기록은 `pending`에 있어 각본 몫으로 지운다.
+    """
+    from app.sc04.demo import steps_for  # demo가 이 모듈을 가져온다
+
+    follow = _script_follow(doc)
+    if done is not None:
+        if done in follow["pending"]:
+            follow["pending"].remove(done)
+        else:
+            follow["ahead"].append(done)
+    moved = _passes(doc, seed, follow["ahead"])
+    if moved is not None:
+        steps = steps_for(doc["case_id"], seed)
+        for step in steps[doc.get("script_index", -1) + 1 : moved + 1]:
+            key = _key(step)
+            if key is not None:
+                follow["ahead"].remove(key)
+        doc["step"] = steps[moved].code
+        doc["script_index"] = moved
+
+
+def _key(step: Any) -> str | None:
+    return "start" if step.kind == "start" else step.node_id if step.kind == "act" else None
+
+
+def _passes(doc: dict, seed: Seed, ahead: list[str]) -> int | None:
+    """`ahead`의 결정들로 각본을 어디까지 지나가나 — 마지막으로 지나는 결재·착수 단계"""
+    from app.sc04.demo import steps_for
+
+    left = list(ahead)
+    steps = steps_for(doc["case_id"], seed)
+    moved = None
+    for i in range(doc.get("script_index", -1) + 1, len(steps)):
+        key = _key(steps[i])
+        if key is None:
+            continue
+        if key not in left:
+            break
+        left.remove(key)
+        moved = i
+    return moved
+
+
+def _clock_to_script(doc: dict, seed: Seed, done: str) -> None:
+    """
+    바깥에서 한 일(회사 사이트·Center 콘솔·NowView 화면 답)이 각본의 다음 결재를 지나가면 **그
+    효과를 내기 전에** 가상시계를 그 단계의 시각으로 옮긴다 — 플레이어가 단계를 실행할 때와 같다
+    (장면 1~3 `_clock_to_script`). 뒤로는 가지 않는다. 각본이 대리 답한 결재(`pending`)는 각본이
+    이미 시계를 옮겼다.
+    """
+    from app.sc04.demo import steps_for
+
+    follow = _script_follow(doc)
+    if done in follow["pending"]:
+        return
+    moved = _passes(doc, seed, [*follow["ahead"], done])
+    if moved is None:
+        return
+    # 이번 결정의 단계 시각이다 — 지나가는 마지막 단계가 아니다. 먼저 답해 둔 결재(AT32 제출)와
+    # 함께 지나갈 때 그 단계 시각을 쓰면 이번 기록(AT31 확인)이 뒤 시각으로 적혔다(실측).
+    steps = steps_for(doc["case_id"], seed)
+    own = max(
+        i for i in range(doc.get("script_index", -1) + 1, moved + 1) if _key(steps[i]) == done
+    )
+    at = parse_at(steps[own].at)
+    if at > parse_at(doc["clock"]):
+        doc["clock"] = at.isoformat()
+        doc["_company_clock"] = True
+        domain.audit(doc, actor="system", action="clock_followed_script", to=doc["clock"])
+        domain.raise_overdue_alerts(doc)
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:

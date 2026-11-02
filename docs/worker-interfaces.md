@@ -2,7 +2,7 @@
 
 지금 구조만 적는다. Center 등록 절차와 실행 중 동작은 [chaeksas-integration.md](chaeksas-integration.md)에 있다.
 지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)·장면 2(외주 단가 인상 검토)·장면 3(수익성 통합 분석과 수시
-경영검토)이다 — 장면 4~6은 옮길 때마다 이 문서에 더한다.
+경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)다 — 장면 5·6은 옮길 때마다 이 문서에 더한다.
 
 ## 1. NowView가 하는 일
 
@@ -127,6 +127,29 @@ Center ◀──────────────────────▶ 
 | `assign_analysis_tasks` · `accept_analysis_task` · `reassign_analysis_task` | 분석과제 배정 · 책임자 인수·반려 · 재배정 |
 | `hand_off_profit_review` | 완료 조건 재검증 · HANDOFF31(장면 4 MT41 연결) |
 
+**장면 4**
+
+| 자료 | 주인 | 어디서 |
+|---|---|---|
+| 분석 결과·효과 검증·우선 실행안·보고본·회의 기록·판단본·대표 결정·승인서·회의록·실행과제·조건·지시·인수·인계 | NowView | 데모 실행 문서 — 회사에 적지 않는다(경영 기록). 실제 실행 품의·예산 거래는 장면 5 범위(구현명세 SC04 v0.2 — 장면 4의 예산 위임은 정책 조회뿐) |
+| 회사 세계 시각 | 회사 | 시계를 옮기면(각본·바깥 답이 따라갈 때 포함) `set_clock`으로 함께 옮긴다 |
+
+장면 4 작업(BPM 프로세스 `company1.sc04` 0.4.0 — 확장 `>=0.4.0`). 회사 시스템 호출은 없다:
+
+| 작업 | 하는 일 |
+|---|---|
+| `open_improvement_review` | 착수된 검토건 열기 — HANDOFF31·AT31~34 연결(S01) |
+| `submit_analysis_result` · `confirm_analysis_result` | 분석 결과 제출(부서 책임자) · 담당 임원 확인·보완 요청 |
+| `verify_improvement_effects` · `correct_improvement_effects` | 효과 계산·회피 비용·중복 검증 · 검증이 막으면 담당 임원 보완 |
+| `request_improvement_draft` | Agent 검증 요약 초안(AG41) |
+| `recommend_priority_actions` · `freeze_improvement_report` | 우선 실행안 2~3개 공동 제안 · 보고본 REP41 확정·배포 |
+| `open_monthly_meeting` | 대표 주재 월간회의 MT41 보고 |
+| `draft_decision_report` · `confirm_decision_report` | 판단 초안(가정 변경·조건·지원) · 판단본 DEC41 확정 |
+| `record_ceo_decision` | 대표의 과제별 결정(승인·조건부·보류·반려)·추가 발굴 지시 |
+| `draft_execution_approval` · `finalize_execution_approval` | 승인서·회의록 초안 · APR41·MIN41 확정(누락이면 422) |
+| `register_execution_actions` · `accept_execution_assignment` · `revise_execution_assignment` | 실행과제·조건·지시 등록 · 책임자 인수·반려 · 반려 보완(새 배정버전) |
+| `hand_off_execution_plan` | 종료 요건 재검증 · HANDOFF41(장면 5 상세 실행계획 연결) |
+
 **실패** — 업무 규칙 위반은 `forbidden`·`not_found`·`conflict`·`input_invalid`(재시도 없음, 글은 사유). 회사 시스템이 응답하지 않으면
 `dependency_down`(재시도) — 엔진 안에서는 `CompanyUnavailable`(503)이고 그 조작은 저장되지 않는다. 설정에 없는 BPM 프로세스의 일감은
 `not_found`.
@@ -242,8 +265,8 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 * 엔진이 회사 시스템의 사용자 명단을 읽지 않는다 — 기간계가 사원 명단을 내지만 엔진은 `domain.USERS`를
   쓴다. 장면 2~6도 쓰고 있어 업무를 옮길 때 함께 바꾼다. 결재 담당자 이름(BPMN `assignees`)은 Center 계정과 사람이 맞춘다.
-* 장면 4~6이 회사 시스템에 쓸 기록(실행과제·예산·공식 전망 게시)은 그 업무를 옮길 때 정한다. 장면 3의 회의·분석과제는
-  경영 기록이라 NowView에만 둔다. 장면 2의 협상·기안·결재
+* 장면 5·6이 회사 시스템에 쓸 기록(예산 원장·실행 품의·공식 전망 게시)은 그 업무를 옮길 때 정한다. 장면 3의 회의·분석과제,
+  장면 4의 승인서·실행과제는 경영 기록이라 NowView에만 둔다. 장면 2의 협상·기안·결재
   기록은 NowView 문서에만 있다 — 회사 전자결재 기록으로 옮길지는 아직 정하지 않았다.
 * 회사 시스템이 죽으면 업무가 멈추고 일감은 재시도로 돌아간다. 공개 대시보드에는 「회사 시스템 연결 안 됨」 표시가 아직 없다(관리자
   화면에만 있다).
