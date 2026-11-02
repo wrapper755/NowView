@@ -309,7 +309,7 @@ export function Sc01DemoPlayer() {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap xl:w-full xl:shrink xl:flex-wrap">
+          <div className="flex max-w-full flex-wrap items-center gap-1.5 sm:shrink-0 xl:w-full xl:shrink">
             <Button variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => void jump(0)} disabled={sceneIndex === 0}>
               <Undo2 aria-hidden className="size-3" />
               처음으로

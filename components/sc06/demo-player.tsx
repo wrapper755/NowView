@@ -244,7 +244,7 @@ export function Sc06DemoPlayer() {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0 sm:flex-nowrap xl:w-full xl:shrink xl:flex-wrap">
+          <div className="flex max-w-full flex-wrap items-center gap-1.5 sm:shrink-0 xl:w-full xl:shrink">
             {missing ? (
               <Button size="sm" className="h-7 text-[11px]" onClick={() => void open()} disabled={pending}>
                 <PlayCircle aria-hidden className="size-3" />
