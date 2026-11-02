@@ -447,11 +447,8 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     from app.sc01.process import PROCESS_PATH, RECORD_OF_NODE
 
     root = Path(__file__).resolve().parents[2] / "chaeksas"
-    # 기본 확장 `external`(장면 1~5) — 옮기기 전 장면 6은 `nowview-sc06`
-    assert sorted(p.name for p in root.glob("*.extension.json")) == [
-        "external.extension.json",
-        "nowview-sc06.extension.json",
-    ]
+    # 기본 확장 `external` 하나다(장면 1~6) — 업무별 옛 확장(`nowview-scN`)은 다 걷었다
+    assert sorted(p.name for p in root.glob("*.extension.json")) == ["external.extension.json"]
     raw = (root / "external.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []

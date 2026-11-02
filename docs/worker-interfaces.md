@@ -2,7 +2,7 @@
 
 지금 구조만 적는다. Center 등록 절차와 실행 중 동작은 [chaeksas-integration.md](chaeksas-integration.md)에 있다.
 지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)·장면 2(외주 단가 인상 검토)·장면 3(수익성 통합 분석과 수시
-경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)·장면 5(결정 실행과 계획 갱신)다 — 장면 6은 옮길 때 이 문서에 더한다.
+경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)·장면 5(결정 실행과 계획 갱신)·장면 6(과제 완료와 성과 실현 검토)다.
 
 ## 1. NowView가 하는 일
 
@@ -180,6 +180,26 @@ Center ◀──────────────────────▶ 
 | `draft_rolling_forecast` · `confirm_rolling_forecast` · `submit_rolling_forecast` · `approve_rolling_forecast` · `publish_rolling_forecast` | RUN·검토안 작성·대사 · 부서 가정 확인 · 대표 승인 요청 · 대표 승인 · 공식본 게시 | 게시 → 공식 전망 |
 | `hand_off_follow_up` | 종료 요건 재검증 · HANDOFF51 | — |
 
+**장면 6**
+
+| 자료 | 주인 | 어디서 |
+|---|---|---|
+| 지금 공식 전망(FC51 — 4분기 기대 효과의 기준) | 회사 | `GET /worlds/{w}/forecasts` — 적재 때 읽어 장면 5 기록과 연간·월 손익을 대조한다(공식본이 FC51이 아니거나 다르면 409) |
+| 4분기 구매 거래 180건·운영비·완료 근거·Agent 기록 | NowView 시드 | 통합가상데이터 v0.6 SC06 원천 — 장면 5의 구매 주문처럼 아직 회사로 옮기지 않았다 |
+| 기대 대비 확인 효과·원인·완료 판단·확인 기록(CF61-*)·보고본 RPT61-v1·후속 조치(FUP61·PROP61·FUP62) | NowView | 데모 실행 문서 — 계산과 경영 기록이라 회사에 적지 않는다 |
+| 회사 세계 시각 | 회사 | 확인 기록이 시계를 일정으로 옮기면 `set_clock`으로 함께 옮긴다 |
+
+장면 6 작업(BPM 프로세스 `company1.sc06` 0.6.0 — 확장 `>=0.6.0`). 회사 시스템 호출은 없다 — 공식 전망은 적재(화면 명령) 때 읽는다:
+
+| 작업 | 하는 일 |
+|---|---|
+| `open_performance_review` | 착수된 검토건 RV61 열기 — 보고 버전·산정 버전을 돌려준다 |
+| `confirm_performance_evidence` | 담당 임원 성과 근거 확인(생산 CF61-P · 구매 CF61-B — 같은 작업, `record_id`로 가른다) |
+| `review_performance_summary` | 경영관리 종합 확인 CF61-F(재확인 요청이면 두 확인을 이력으로 옮긴다) |
+| `draft_performance_conclusion` | 보고 결론 TXT61 |
+| `finalize_performance_report` | 보고본 확정 CF61-R + 남는 사항 NOTE61(결론 숫자 ↔ 산정, 아니면 422 REPORT_INVALID) · 보완 요청 |
+| `report_performance_to_ceo` | 대표 월간 보고 CF61-M — 보고 확정은 발의의 실행·예산 승인이 아니다 |
+
 **실패** — 업무 규칙 위반은 `forbidden`·`not_found`·`conflict`·`input_invalid`(재시도 없음, 글은 사유). 회사 시스템이 응답하지 않으면
 `dependency_down`(재시도) — 엔진 안에서는 `CompanyUnavailable`(503)이고 그 조작은 저장되지 않는다. 설정에 없는 BPM 프로세스의 일감은
 `not_found`.
@@ -283,14 +303,14 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 {
   "companies": [{"id": "company1", "name": "가상 자동차 부품사", "description": "…", "system_url": "http://localhost:8191"}],
   "processes": [
-    {"bpm_process_id": "company1.sc01",        "company": "company1", "scene": 1},
-    {"bpm_process_id": "company1.sc02",          "company": "company1", "scene": 2}
+    {"bpm_process_id": "company1.sc01", "company": "company1", "scene": 1},
+    {"bpm_process_id": "company1.sc02", "company": "company1", "scene": 2}
   ],
-  "topics": ["nowview", "nowview-sc02", "nowview-sc03", "nowview-sc04", "nowview-sc05", "nowview-sc06"]
+  "topics": ["external"]
 }
 ```
 
-* 처음 뜰 때 설정이 없으면 이 모양의 기본값을 적는다(장면 2~6은 옮기기 전 이름 `nowview.sc0N`·토픽 `nowview-sc0N`).
+* 처음 뜰 때 설정이 없으면 이 모양의 기본값을 적는다(장면 1~6 `company1.sc0N` → 업무 N, 토픽은 기본 확장 `external` 하나).
 * 검사: 회사 id·BPM 프로세스·토픽이 겹치지 않을 것, 매핑의 회사가 있을 것, 업무 번호가 NowView에 있는 것(1~6)일 것, NowView에 업무
   코드가 있는 회사일 것.
 * 매핑·회사 시스템 주소는 저장하면 바로 쓰인다. 토픽은 일꾼 파일(`worker.consumer.json`)을 다시 지어 Center와 엔진을 다시 띄워야 한다(Center는 그 파일의 토픽만 내준다).
@@ -311,8 +331,8 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 * 엔진이 회사 시스템의 사용자 명단을 읽지 않는다 — 기간계가 사원 명단을 내지만 엔진은 `domain.USERS`를
   쓴다. 장면 2~6도 쓰고 있어 업무를 옮길 때 함께 바꾼다. 결재 담당자 이름(BPMN `assignees`)은 Center 계정과 사람이 맞춘다.
-* 장면 6이 회사 시스템에 쓸 기록은 그 업무를 옮길 때 정한다. 장면 5는 실행 품의·예산 원장·공식 전망을 회사에 적는다 — 고객
-  변경 원문(CP51·CP52)·구매 주문·근거는 아직 NowView 시드다(회사 수신함·구매 시스템으로 옮길지는 아직이다). 장면 3의 회의·분석과제,
+* 장면 5는 실행 품의·예산 원장·공식 전망을 회사에 적고, 장면 6은 그 공식 전망을 기준으로 읽기만 한다 — 고객 변경 원문(CP51·CP52)·
+  구매 주문(장면 5 60건·장면 6 4분기 180건)·근거는 아직 NowView 시드다(회사 수신함·구매 시스템으로 옮길지는 아직이다). 장면 3의 회의·분석과제,
   장면 4의 승인서·실행과제는 경영 기록이라 NowView에만 둔다. 장면 2의 협상·기안·결재
   기록은 NowView 문서에만 있다 — 회사 전자결재 기록으로 옮길지는 아직 정하지 않았다.
 * 회사 시스템이 죽으면 업무가 멈추고 일감은 재시도로 돌아간다. 공개 대시보드에는 「회사 시스템 연결 안 됨」 표시가 아직 없다(관리자

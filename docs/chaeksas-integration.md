@@ -29,15 +29,14 @@
 | 무엇 | 어디서 (Center 콘솔 http://localhost:8501 의 왼쪽 메뉴) | 값 |
 |---|---|---|
 | 일꾼 | **콘솔이 아니다** — Center 일꾼 폴더에 일꾼 파일을 두고 Center를 다시 띄운다(Chaeksas ADR-0121) | `worker.consumer.json`(이름 `worker`·토픽 `external`·토큰 해시) |
-| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.5.0(장면 1~5) |
-| BPM 패키지 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`~`company1.sc05` — 그림 원본은 Company1 리포 `bpm/company1/` |
+| 기본 확장 `external`(일꾼 작업 목록) | **콘솔이 아니다** — 일꾼이 뜰 때 올린다(`PUT /consumers/self/extension`) | `chaeksas/external.extension.json` 0.6.0(장면 1~6) |
+| BPM 패키지 | Studio 「파일 › Center로 올리기」 → 운영 현황 › **BPM 프로세스 현황**에서 승인 → 배포·자원 › **배포** | `company1.sc01`~`company1.sc06` — 그림 원본은 Company1 리포 `bpm/company1/` |
 | Center 키 둘 | 관리 › **Center API 키** › 「새 키...」 | 종류 「연동용」 하나, 「대리 답용」 하나 → `engine/.env.local` |
 | BPM 프로세스 → 회사·업무 | NowView `/admin` 설정 | 기본값에 이미 있다 — 손댈 것 없음 |
 
-장면 1~5는 `external`로 옮겼다(장면 2는 `company1.sc02` 0.2.0 — 확장 `>=0.2.0`, 장면 3은 `company1.sc03` 0.3.0 — `>=0.3.0`,
-장면 4는 `company1.sc04` 0.4.0 — `>=0.4.0`, 장면 5는 `company1.sc05` 0.5.0 — `>=0.5.0`). 장면 6은 아직 옮기기 전이다 — 그림은
-예전 확장 `nowview-sc06`을 부르는데 일꾼은 그 토픽을 맡지 않는다(기본 토픽은 `external` 하나). **옮길 때까지 장면 6의 Center
-실행은 서비스 태스크에서 멈춘다.**
+장면 1~6 모두 `external`로 옮겼다(장면 2는 `company1.sc02` 0.2.0 — 확장 `>=0.2.0`, 장면 3은 `company1.sc03` 0.3.0 — `>=0.3.0`,
+장면 4는 `company1.sc04` 0.4.0 — `>=0.4.0`, 장면 5는 `company1.sc05` 0.5.0 — `>=0.5.0`, 장면 6은 `company1.sc06` 0.6.0 — `>=0.6.0`).
+업무별 옛 확장(`nowview-scN`)은 하나도 남지 않았다.
 
 ## 3. 등록 순서 (로컬 Center)
 
@@ -106,7 +105,7 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
 운영계는 이 값들이 전부 `/etc/nowview.env` 하나에 있다(5장).
 
 **NowView 설정**(엔진 DB, `/admin`에서만 고친다) — 회사(이름·설명·회사 시스템 주소), BPM 프로세스 → 회사·업무, 일꾼 토픽. 처음
-뜰 때 기본값(가상 자동차 부품사, 장면 1~6 매핑, 토픽 `nowview`·`nowview-sc02`~`sc06`)을 적는다. 매핑·주소는 고치면 바로 쓰이고,
+뜰 때 기본값(가상 자동차 부품사, 장면 1~6 매핑, 토픽 `external` 하나)을 적는다. 매핑·주소는 고치면 바로 쓰이고,
 토픽은 엔진을 다시 띄워야 한다(승인된 일꾼이면 Center 쪽 토픽도 바꾼다). 공개 화면·API에는 나오지 않는다.
 
 ## 5. 실행 중에 일어나는 일

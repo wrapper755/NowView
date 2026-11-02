@@ -1,8 +1,8 @@
 """
 SC06 확인 절차의 바깥 실행 — Studio 시험 실행 · Center 서버 실행(장면 1~5 N1~N6과 같은 틀).
 
-* **확장 정의 ↔ BPMN** — `chaeksas/nowview-sc06.extension.json`의 본문 템플릿이 그림의 입력과
-  맞는가.
+* **확장 정의 ↔ BPMN** — 기본 확장 `chaeksas/external.extension.json`의 작업이 그림의 서비스 호출·
+  입력·출력을 덮는가(어긋나면 Center가 일감을 막거나 일꾼이 입력 없이 멈춘다).
 * **Studio** — 진짜 Chaeksas 엔진이 같은 그림을 돌고, 서비스 태스크는 시스템 작업(HTTP 어댑터 흉내,
   시험용 키)을 부르고, 결재는 Studio 대화상자처럼 엔진에 바로 답한다. NowView 화면 답·각본은 409다.
 * **Center** — 장면 1의 가짜 Center·서버 실행기 흉내(`test_sc01_center.py`)를 그대로 쓴다. 착수가
@@ -12,7 +12,6 @@ SC06 확인 절차의 바깥 실행 — Studio 시험 실행 · Center 서버 �
 from __future__ import annotations
 
 import json
-import re
 import sqlite3
 from pathlib import Path
 
@@ -44,13 +43,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """정의가 최신 계약 검사를 통과하고, 그림의 모든 서비스 호출이 정의의 입력·본문과 맞는다."""
-    raw = (ROOT / "chaeksas" / "nowview-sc06.extension.json").read_bytes()
+    raw = (ROOT / "chaeksas" / "external.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
     adapter = json.loads(raw)["service"]["adapter"]
-    assert manifest.service.base_url == "https://www.nowview.work"
-    assert adapter["allowed_hosts"] == ["www.nowview.work", "localhost", "host.docker.internal"]
-    assert adapter["auth"] == {"type": "bearer"}
     operations = {o["name"]: o for o in adapter["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
     assert validate(process) == []
@@ -60,11 +56,9 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
         op = operations[call.operation]
         given = set(call.input)
         assert set(op["input_schema"]["required"]) <= given, node.id
-        used = set(re.findall(r"\{\{input\.(\w+)\}\}", json.dumps(op["request"])))
-        assert used <= given, (node.id, used - given)
-        assert op["request"]["path"].startswith("/api/engine/sc06/demo-runs/{{input.demo_run_id}}/")
-        assert op["request"]["body"]["chaeksas_run_id"] == "{{run_id}}"
-        assert set(call.output.values()) <= set(op["response"]["output"]), node.id
+        # 기본 확장은 C15 일꾼만 부른다 — 요청은 자리 채움이다(장면 1~5와 같다)
+        assert op["request"] == {"method": "POST", "path": "/"}, call.operation
+        assert set(call.output.values()) <= set(op["output_schema"]["properties"]), node.id
         if call.operation in RECORDS:
             assert "answered_by" in op["input_schema"]["required"], call.operation
     [need] = [n for n in process.info.extensions if n.id == manifest.id]
@@ -208,7 +202,7 @@ def test_studio_key_cannot_feed_a_center_demo_run(proc: Sc06Process) -> None:
     """N6 — 시험용 키로 온 호출이 Center용 데모 실행에 오면 409이고 묶이지 않는다."""
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
     with pytest.raises(DomainError) as exc:
-        proc.operate(rid, "open_review", {}, external_run_id="run_x", via="studio")
+        proc.operate(rid, "open_performance_review", {}, external_run_id="run_x", via="studio")
     assert exc.value.status == 409
     assert proc.get(rid)["bpm"]["external_run_id"] is None
 
@@ -217,7 +211,7 @@ def test_unstarted_review_is_not_opened_by_an_external_run(proc: Sc06Process) ->
     """착수는 NowView 화면 명령이다 — 착수 전에 바깥 실행이 열려고 하면 409(묶기는 남는다)."""
     rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="studio")["demo_run_id"]
     with pytest.raises(DomainError) as exc:
-        proc.operate(rid, "open_review", {}, external_run_id="run_y", via="studio")
+        proc.operate(rid, "open_performance_review", {}, external_run_id="run_y", via="studio")
     assert exc.value.status == 409
 
 
@@ -333,3 +327,33 @@ def test_reset_on_center_cancels_the_started_job(proc: Sc06Process, center: Fake
     jobs = [j for j in center.jobs if j["bpm_process_id"] == "company1.sc06"]
     assert len(jobs) == 2 and jobs[1]["idempotency_key"] != jobs[0]["idempotency_key"]
     assert confirm.status(proc.get(rid))["procedure"] == "CONFIRMING"
+
+
+def test_center_script_waits_for_its_record_so_a_site_answer_is_not_relayed_again(
+    proc: Sc06Process, center: FakeCenter
+) -> None:
+    """
+    회사 사이트가 구매 확인을 먼저 답한 뒤 플레이어로 생산 확인을 내면, 각본은 그 결재의 기록이 올
+    때까지 기다린다 — 기다리지 않으면 다음 「다음」이 구매 확인을 남은 단계로 보고 이미 닫힌 결재를
+    다시 대리 답하려다 409였다(로컬 Center 섞어 진행 실측).
+    """
+    import threading
+    import time as clock
+
+    rid = proc.create(sc01_demo_run_id=_completed_sc05(proc), executor="center")["demo_run_id"]
+    slow = Sc06Process(proc.store, proc.sc05, center=proc.center, center_wait_s=0.5)
+    demo.run_step(slow, rid, 0)  # D601 착수
+    [job] = [j for j in center.jobs if j["bpm_process_id"] == "company1.sc06"]
+    runner = FakeRunner(slow, center, job, "run_20280111_090000_c6d6e9")
+    slow.sync_center(rid)
+    # 회사 사이트 — 구매 임원이 각본보다 먼저 답했다(기록은 아직 오지 않았다)
+    buy = next(s for s in demo.steps_for() if s.node_id == "Confirm_Buy")
+    [req] = [a for a in center.approvals.values() if a["node_id"] == "Confirm_Buy"]
+    req.update(state="answered", answer=buy.answer, answered_by="문지후")
+    # 실행기는 대리 답 조금 뒤에 기록 작업들을 부른다
+    worker = threading.Thread(target=lambda: (clock.sleep(0.3), runner.step()))
+    worker.start()
+    doc = demo.run_step(slow, rid, 1)  # 플레이어 — 생산 확인
+    worker.join()
+    assert {"CF61-P", "CF61-B"} <= set(doc["report_records"])
+    assert demo.run_step(slow, rid, 2)["report_records"]["CF61-B"]["actor"] == "EX-BUY"

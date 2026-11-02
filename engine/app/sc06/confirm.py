@@ -1,7 +1,7 @@
 """
 SC06 확인 절차 — 담당 임원 확인 → 경영관리 종합 확인 → 보고 결론 → 보고본 확정 → 대표
-보고(업무설계표 SC06-S11~S13)를 BPM(`processes/sc06.bpmn`)의 결재로 받는다. 결재 뒤의 기록 작업(외부
-확장 `nowview-sc06`)이 이 모듈의 `check` → `apply`를 부른다 — 내장·Studio·Center 어디서 닫았든 같은
+보고(업무설계표 SC06-S11~S13)를 BPM(`processes/sc06.bpmn`)의 결재로 받는다. 결재 뒤의 기록 작업(기본
+확장 `external`)이 이 모듈의 `check` → `apply`를 부른다 — 내장·Studio·Center 어디서 닫았든 같은
 길이다(장면 1~5 N1).
 
 * **적재는 그대로다.** 기준·실적·거래·판단·후속·근거·Agent는 적재 때 들어오고 숫자는 그때 규칙
@@ -41,7 +41,13 @@ NODE_ROLES: dict[str, dict[str, str]] = {
 for _spec in NODE_ROLES.values():
     _spec["role"] = USERS[_spec["user"]]["role"]
 
-RECORDS = ("confirm_owner", "review_finance", "draft_conclusion", "finalize_report", "report_ceo")
+RECORDS = (
+    "confirm_performance_evidence",
+    "review_performance_summary",
+    "draft_performance_conclusion",
+    "finalize_performance_report",
+    "report_performance_to_ceo",
+)
 #: 담당 임원 확인 — 결재마다 그 기록 하나
 OWNER_RECORDS = {"Confirm_Prod": "CF61-P", "Confirm_Buy": "CF61-B"}
 #: 확인 착수 시각 — 데이터에 착수 행이 없다(구현용 보완). 후속 등록(1/10)과 첫 확인(1/11 14:00)
@@ -174,13 +180,13 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
             "이미 대표 보고까지 끝난 보고본이다 — 새 보고 버전에서 다시 확인한다", 409
         )
     node = str(args.get("node_id") or "")
-    if operation == "confirm_owner":
+    if operation == "confirm_performance_evidence":
         if OWNER_RECORDS.get(node) != args.get("record_id"):
             raise DomainError(f"{node}의 기록은 {OWNER_RECORDS.get(node)}이다", 422)
         if not _text(args, "content") or not _text(args, "refs"):
             raise DomainError("확인 내용과 근거 ID를 적는다", 422)
         return
-    if operation == "review_finance":
+    if operation == "review_performance_summary":
         if not (_done(doc, "CF61-P") and _done(doc, "CF61-B")):
             raise DomainError("두 담당 임원 확인이 끝나야 종합 확인을 한다", 409)
         if args.get("decision") not in ("확인", "재확인요청"):
@@ -188,13 +194,13 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
         if not _text(args, "content"):
             raise DomainError("확인 내용(재확인 요청이면 사유)을 적는다", 422)
         return
-    if operation == "draft_conclusion":
+    if operation == "draft_performance_conclusion":
         if not _done(doc, "CF61-F"):
             raise DomainError("경영관리 종합 확인 뒤에 보고 결론을 쓴다", 409)
         if not _text(args, "content"):
             raise DomainError("보고 결론을 적는다", 422)
         return
-    if operation == "finalize_report":
+    if operation == "finalize_performance_report":
         if args.get("decision") not in ("확정", "보완요청"):
             raise DomainError("확정은 확정·보완요청 중 하나다", 422)
         if not _text(args, "content"):
@@ -209,7 +215,7 @@ def check(doc: dict, operation: str, args: dict[str, Any]) -> None:
         if items:
             raise PrerequisiteError("보고본을 확정할 수 없다", items, "REPORT_INVALID")
         return
-    if operation == "report_ceo":
+    if operation == "report_performance_to_ceo":
         if doc["report"]["state"] != "FINALIZED":
             raise DomainError("확정된 보고본만 대표에게 보고한다", 409)
         if not _text(args, "content"):
@@ -234,6 +240,7 @@ def _at(doc: dict, record_id: str) -> str:
     planned = doc["schedule"].get(record_id, {}).get("at")
     if planned and parse_at(planned) > parse_at(doc["clock"]):
         doc["clock"] = parse_at(planned).isoformat()
+        doc["_company_clock"] = True  # 회사 세계 시각도 함께(저장 때)
     return doc["clock"]
 
 
@@ -270,14 +277,14 @@ def _retire(doc: dict, *record_ids: str, reason: str) -> None:
 def apply(doc: dict, operation: str, args: dict[str, Any], *, by: str) -> dict[str, Any]:
     """기록 작업의 몸통 — `check`를 통과한 뒤 부른다."""
     report = doc["report"]
-    if operation == "confirm_owner":
+    if operation == "confirm_performance_evidence":
         rec = _record(
             doc, args["record_id"], by=by, state="CONFIRMED", content=args["content"],
             refs=args["refs"],
         )  # fmt: skip
         domain.audit(doc, actor=by, action="owner_confirmed", record_id=rec["record_id"])
         return {}
-    if operation == "review_finance":
+    if operation == "review_performance_summary":
         if args["decision"] == "재확인요청":
             _at(doc, "CF61-F")
             doc["record_history"].append(
@@ -299,14 +306,14 @@ def apply(doc: dict, operation: str, args: dict[str, Any], *, by: str) -> dict[s
         )  # fmt: skip
         domain.audit(doc, actor=by, action="finance_confirmed")
         return {}
-    if operation == "draft_conclusion":
+    if operation == "draft_performance_conclusion":
         _record(
             doc, "TXT61", by=by, state="DRAFT", content=args["content"],
             refs=args.get("refs") or "",
         )  # fmt: skip
         domain.audit(doc, actor=by, action="conclusion_drafted")
         return {}
-    if operation == "finalize_report":
+    if operation == "finalize_performance_report":
         if args["decision"] == "보완요청":
             _retire(doc, "TXT61", reason=f"확정 보완 요청 — {_text(args, 'content')}")
             domain.audit(doc, actor=by, action="report_rework", reason=_text(args, "content"))
@@ -333,7 +340,7 @@ def apply(doc: dict, operation: str, args: dict[str, Any], *, by: str) -> dict[s
             doc, actor=by, action="report_finalized", calculation=current["calculation_version"]
         )
         return {"state": "FINALIZED"}
-    if operation == "report_ceo":
+    if operation == "report_performance_to_ceo":
         content = _text(args, "content")
         directive = _text(args, "directive")
         _record(
@@ -347,6 +354,7 @@ def apply(doc: dict, operation: str, args: dict[str, Any], *, by: str) -> dict[s
         as_of = doc["settings"]["as_of"]
         if parse_at(as_of) > parse_at(doc["clock"]):
             doc["clock"] = as_of
+            doc["_company_clock"] = True
         domain.audit(doc, actor=by, action="report_reported", directive=directive or None)
         return {"state": "REPORTED"}
     raise DomainError(f"모르는 작업: {operation}", 404)
@@ -354,7 +362,7 @@ def apply(doc: dict, operation: str, args: dict[str, Any], *, by: str) -> dict[s
 
 #: Studio는 끝을 작업 호출로만 안다 — 대표 보고가 기록되면 흐름이 끝난다.
 def ends_flow(operation: str) -> bool:
-    return operation == "report_ceo"
+    return operation == "report_performance_to_ceo"
 
 
 # ─────────────────────────── 업무 ───────────────────────────
@@ -422,10 +430,21 @@ def ensure_task(doc: dict, node_id: str) -> None:
 
 
 def complete_task(doc: dict, node_id: str, *, actor: str) -> None:
+    """
+    업무 완료 시각은 그 결재가 남긴 기록의 시각이다 — 대표 보고는 기록(10:00) 뒤에 시계를 조회 시점
+    (11:00)으로 옮기므로 지금 시각을 쓰면 업무가 기한 뒤에 끝난 것처럼 적혔다(Center 실측).
+    """
     task = task_for_node(doc, node_id)
     if task is None:
         return
-    task.update(status="COMPLETED", completed_at=doc["clock"], completed_by=actor)
+    record = doc["report_records"].get(NODE_ROLES[node_id]["record"])
+    mine = (
+        record is not None
+        and record["version"] == doc["report"]["report_version"]
+        and record["actor"] == _ACCOUNT_OF.get(actor, actor)
+    )
+    at = record["at"] if mine else doc["clock"]
+    task.update(status="COMPLETED", completed_at=at, completed_by=actor)
     domain.audit(doc, actor=actor, action="task_completed", task_id=task["task_id"])
 
 

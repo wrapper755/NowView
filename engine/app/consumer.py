@@ -4,7 +4,7 @@ C15 일꾼 — Center에 쌓인 NowView 서비스 태스크의 일감을 가져�
 
 Chaeksas는 바깥 기능을 부르는 길을 모두 Pull로 바꿨다(ADR-0102, 계약 C15). 서버 실행기·Studio는
 `chk:serviceCall`을 **Center에 외부 작업으로 올리고**, 토픽(`app_id` — 고정 확장 `external`,
-옮기기 전 업무는 `nowview-sc02`~`sc06`, 설정 `topics`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고
+장면 1~6이 모두 이것이다, 설정 `topics`)을 맡은 일꾼이 롱폴링으로 가져가 끝냈다고
 알린다. 일감을 보낸 BPM 프로세스 id로 설정에서 회사·업무를 찾는다(`routed_by`). 연결은 늘 NowView →
 Center다 — Center는 NowView 주소도 키도 모른다.
 

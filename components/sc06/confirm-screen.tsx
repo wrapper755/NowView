@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Lock, PlayCircle, Send } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { Problem, Sc06Body, Sc06Header, StateTag, personName } from "@/components/sc06/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
@@ -153,6 +154,7 @@ function Procedure({ meta }: { meta: Sc06Meta }) {
           ) : null}
         </CardContent>
       </Card>
+      <CompanyExchangeCard log={meta.companyLog ?? []} />
     </>
   );
 }

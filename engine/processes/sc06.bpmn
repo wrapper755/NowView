@@ -11,8 +11,8 @@
   → 보고본 확정 CF61-R + 남는 사항 NOTE61(보완 요청이면 결론을 다시) → 대표 월간 보고 CF61-M. 보고 확정은 과제 실행·예산 승인이
   아니다 — 끝나도 RISK61 OPEN · PROP61 PROPOSED이고 FC51·Target은 그대로다.
 
-  **Studio 시험 실행·Center 서버 실행에서 돈다**(장면 1~5 N1~N6과 같은 틀). 서비스 태스크는 외부 확장 `nowview-sc06`
-  (`chaeksas/nowview-sc06.extension.json`)의 HTTP 작업이고 본문마다 `{{run_id}}`로 데모 실행을 묶는다. 결재에 답한 사람은
+  **Studio 시험 실행·Center 서버 실행에서 돈다**(장면 1~5 N1~N6과 같은 틀). 서비스 태스크는 NowView 일꾼의 기본 확장 `external`
+  (NowView `chaeksas/external.extension.json`) 작업이고, 일꾼은 일감의 실행 id로 데모 실행을 묶는다. 결재에 답한 사람은
   `answered_by_as`·`answered_via_as`로 받아 기록 작업에 싣는다. 기록이 거절되면 오류 경계로 **같은 결재로 되돌아간다**.
   병렬 갈래끼리 변수가 겹치지 않게 폼 칸 이름에 부서를 붙였다(생산확인내용 · 구매확인내용).
   역할은 `app/sc06/domain.py`의 NODE_ROLES, 결재 담당자 이름은 `chk:approval.assignees` — 시험이 맞춰 본다.
@@ -23,72 +23,72 @@
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="company1.sc06" name="SC06 과제 완료·성과 실현 검토 확인" isExecutable="true">
     <bpmn:extensionElements>
-      <chk:process>{"run_location": "server", "extensions": [{"id": "nowview-sc06", "version": "&gt;=0.1.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.6.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}]}</chk:process>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="확인 착수"/>
     <bpmn:serviceTask id="Task_Open" name="검토건 열기">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "open_review", "input": {"demo_run_id": "데모실행ID"}, "output": {"검토ID": "review_id", "보고버전": "report_version", "산정버전": "calculation_version"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "open_performance_review", "input": {"demo_run_id": "데모실행ID"}, "output": {"검토ID": "review_id", "보고버전": "report_version", "산정버전": "calculation_version"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Confirm_Prod" name="생산 임원 성과 근거 확인">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U601 담당 임원 성과 근거 확인 — 생산(ACT41)", "answered_by_as": "생산확인자", "answered_via_as": "생산확인경로", "assignees": ["권태윤"], "description": "ACT41 완료와 Q4 효과를 이 보고 버전·산정 버전 기준으로 확인한다. 확인은 그 과제의 근거 확인이지 보고 확정이 아니다.", "show": ["보고버전", "산정버전", "error_message"], "fields": [{"key": "생산확인내용", "label": "확인 내용·범위", "type": "text", "required": true}, {"key": "생산확인근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": true}]}</chk:approval>
+        <chk:approval>{"title": "U601 담당 임원 성과 근거 확인 — 생산(ACT41)", "answered_by_as": "생산확인자", "answered_via_as": "생산확인경로", "assignees": ["권태윤"], "description": "ACT41 완료와 Q4 효과를 이 보고 버전·산정 버전 기준으로 확인한다. 확인은 그 과제의 근거 확인이지 보고 확정이 아니다.", "show": ["데모실행ID", "보고버전", "산정버전", "error_message"], "fields": [{"key": "생산확인내용", "label": "확인 내용·범위", "type": "text", "required": true}, {"key": "생산확인근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": true}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Confirm_Prod" name="생산 임원 확인 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "confirm_owner", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Prod'", "record_id": "'CF61-P'", "content": "생산확인내용", "refs": "생산확인근거", "answered_by": "생산확인자", "answered_via": "생산확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_performance_evidence", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Prod'", "record_id": "'CF61-P'", "content": "생산확인내용", "refs": "생산확인근거", "answered_by": "생산확인자", "answered_via": "생산확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Confirm_Buy" name="구매 임원 성과 근거 확인">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U601 담당 임원 성과 근거 확인 — 구매(ACT42·43 · JDG61)", "answered_by_as": "구매확인자", "answered_via_as": "구매확인경로", "assignees": ["문지후"], "description": "ACT42·43 효과·원인과 JDG61(일부 보완 중·검토 가능) 판단을 확인한다. 미비 항목·보완 기한은 지우지 않는다.", "show": ["보고버전", "산정버전", "error_message"], "fields": [{"key": "구매확인내용", "label": "확인 내용·범위", "type": "text", "required": true}, {"key": "구매확인근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": true}]}</chk:approval>
+        <chk:approval>{"title": "U601 담당 임원 성과 근거 확인 — 구매(ACT42·43 · JDG61)", "answered_by_as": "구매확인자", "answered_via_as": "구매확인경로", "assignees": ["문지후"], "description": "ACT42·43 효과·원인과 JDG61(일부 보완 중·검토 가능) 판단을 확인한다. 미비 항목·보완 기한은 지우지 않는다.", "show": ["데모실행ID", "보고버전", "산정버전", "error_message"], "fields": [{"key": "구매확인내용", "label": "확인 내용·범위", "type": "text", "required": true}, {"key": "구매확인근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": true}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Confirm_Buy" name="구매 임원 확인 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "confirm_owner", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Buy'", "record_id": "'CF61-B'", "content": "구매확인내용", "refs": "구매확인근거", "answered_by": "구매확인자", "answered_via": "구매확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_performance_evidence", "input": {"demo_run_id": "데모실행ID", "node_id": "'Confirm_Buy'", "record_id": "'CF61-B'", "content": "구매확인내용", "refs": "구매확인근거", "answered_by": "구매확인자", "answered_via": "구매확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Review_Finance" name="경영관리 종합 확인">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U601 경영관리 종합 확인 — 분기 기준·중복·합계·잔여 위험·후속 책임", "answered_by_as": "종합확인자", "answered_via_as": "종합확인경로", "assignees": ["강민서"], "description": "두 담당 임원 확인이 같은 보고 버전인지, 합계·잔여 위험·후속 책임(FUP61·PROP61)을 확인한다. 재확인 요청이면 두 확인을 다시 받는다.", "show": ["보고버전", "산정버전", "error_message"], "fields": [{"key": "종합결정", "label": "종합 확인", "type": "choice", "required": true, "choices": ["확인", "재확인요청"]}, {"key": "종합내용", "label": "확인 내용(재확인 요청이면 사유)", "type": "text", "required": true}, {"key": "종합근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": false}]}</chk:approval>
+        <chk:approval>{"title": "U601 경영관리 종합 확인 — 분기 기준·중복·합계·잔여 위험·후속 책임", "answered_by_as": "종합확인자", "answered_via_as": "종합확인경로", "assignees": ["강민서"], "description": "두 담당 임원 확인이 같은 보고 버전인지, 합계·잔여 위험·후속 책임(FUP61·PROP61)을 확인한다. 재확인 요청이면 두 확인을 다시 받는다.", "show": ["데모실행ID", "보고버전", "산정버전", "error_message"], "fields": [{"key": "종합결정", "label": "종합 확인", "type": "choice", "required": true, "choices": ["확인", "재확인요청"]}, {"key": "종합내용", "label": "확인 내용(재확인 요청이면 사유)", "type": "text", "required": true}, {"key": "종합근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": false}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Review_Finance" name="경영관리 종합 확인 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "review_finance", "input": {"demo_run_id": "데모실행ID", "node_id": "'Review_Finance'", "decision": "종합결정", "content": "종합내용", "refs": "종합근거", "answered_by": "종합확인자", "answered_via": "종합확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "review_performance_summary", "input": {"demo_run_id": "데모실행ID", "node_id": "'Review_Finance'", "decision": "종합결정", "content": "종합내용", "refs": "종합근거", "answered_by": "종합확인자", "answered_via": "종합확인경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Draft_Conclusion" name="보고 결론 작성">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U602 보고 결론 작성 — 성과·남는 차이·후속 대응", "answered_by_as": "결론작성자", "answered_via_as": "결론작성경로", "assignees": ["정하윤"], "description": "결론 문장의 「…백만원」 숫자는 묶인 산정과 대조된다(확정에서 막힌다). 기대·확인 합계와 ACT42 기대·확인만 쓸 수 있다.", "show": ["보고버전", "산정버전", "error_message"], "fields": [{"key": "보고결론", "label": "보고 결론", "type": "text", "required": true}, {"key": "결론근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": false}]}</chk:approval>
+        <chk:approval>{"title": "U602 보고 결론 작성 — 성과·남는 차이·후속 대응", "answered_by_as": "결론작성자", "answered_via_as": "결론작성경로", "assignees": ["정하윤"], "description": "결론 문장의 「…백만원」 숫자는 묶인 산정과 대조된다(확정에서 막힌다). 기대·확인 합계와 ACT42 기대·확인만 쓸 수 있다.", "show": ["데모실행ID", "보고버전", "산정버전", "error_message"], "fields": [{"key": "보고결론", "label": "보고 결론", "type": "text", "required": true}, {"key": "결론근거", "label": "근거 ID(; 로 구분)", "type": "text", "required": false}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Draft_Conclusion" name="보고 결론 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "draft_conclusion", "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Conclusion'", "content": "보고결론", "refs": "결론근거", "answered_by": "결론작성자", "answered_via": "결론작성경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "draft_performance_conclusion", "input": {"demo_run_id": "데모실행ID", "node_id": "'Draft_Conclusion'", "content": "보고결론", "refs": "결론근거", "answered_by": "결론작성자", "answered_via": "결론작성경로"}, "output": {"error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Finalize_Report" name="보고본 확정">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U602 대표 월간 보고본 확정 — 보고 편성 책임", "answered_by_as": "확정자", "answered_via_as": "확정경로", "assignees": ["강민서"], "description": "확인 세 단계가 같은 보고 버전이고 결론 숫자가 묶인 산정과 같아야 확정된다. 확정은 과제 실행·예산 승인이 아니다. 보완 요청이면 결론을 다시 쓴다.", "show": ["보고버전", "산정버전", "error_message"], "fields": [{"key": "확정결정", "label": "확정", "type": "choice", "required": true, "choices": ["확정", "보완요청"]}, {"key": "확정내용", "label": "확정 내용(보완 요청이면 사유)", "type": "text", "required": true}, {"key": "남는사항", "label": "남는 사항 — 보완 기한·다음 보고·미산정(확정이면 필수)", "type": "text", "required": false}]}</chk:approval>
+        <chk:approval>{"title": "U602 대표 월간 보고본 확정 — 보고 편성 책임", "answered_by_as": "확정자", "answered_via_as": "확정경로", "assignees": ["강민서"], "description": "확인 세 단계가 같은 보고 버전이고 결론 숫자가 묶인 산정과 같아야 확정된다. 확정은 과제 실행·예산 승인이 아니다. 보완 요청이면 결론을 다시 쓴다.", "show": ["데모실행ID", "보고버전", "산정버전", "error_message"], "fields": [{"key": "확정결정", "label": "확정", "type": "choice", "required": true, "choices": ["확정", "보완요청"]}, {"key": "확정내용", "label": "확정 내용(보완 요청이면 사유)", "type": "text", "required": true}, {"key": "남는사항", "label": "남는 사항 — 보완 기한·다음 보고·미산정(확정이면 필수)", "type": "text", "required": false}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Finalize_Report" name="보고본 확정 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "finalize_report", "input": {"demo_run_id": "데모실행ID", "node_id": "'Finalize_Report'", "decision": "확정결정", "content": "확정내용", "note": "남는사항", "answered_by": "확정자", "answered_via": "확정경로"}, "output": {"보고상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "finalize_performance_report", "input": {"demo_run_id": "데모실행ID", "node_id": "'Finalize_Report'", "decision": "확정결정", "content": "확정내용", "note": "남는사항", "answered_by": "확정자", "answered_via": "확정경로"}, "output": {"보고상태": "state", "error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Report_CEO" name="대표 월간 보고">
       <bpmn:extensionElements>
-        <chk:approval>{"title": "U602 대표 월간 보고 — 개선 기여·남는 차이·보완·발의·다음 확인", "answered_by_as": "보고받은이", "answered_via_as": "보고경로", "assignees": ["임하준"], "description": "대표가 확정본을 보고받았음을 남긴다. 보고는 PROP61 실행 승인·예산 승인이 아니다 — 발의의 효과·예산은 미산정이다.", "show": ["보고버전", "보고상태", "error_message"], "fields": [{"key": "보고내용", "label": "보고 내용", "type": "text", "required": true}, {"key": "대표지시", "label": "대표 지시(없으면 비움)", "type": "text", "required": false}]}</chk:approval>
+        <chk:approval>{"title": "U602 대표 월간 보고 — 개선 기여·남는 차이·보완·발의·다음 확인", "answered_by_as": "보고받은이", "answered_via_as": "보고경로", "assignees": ["임하준"], "description": "대표가 확정본을 보고받았음을 남긴다. 보고는 PROP61 실행 승인·예산 승인이 아니다 — 발의의 효과·예산은 미산정이다.", "show": ["데모실행ID", "보고버전", "보고상태", "error_message"], "fields": [{"key": "보고내용", "label": "보고 내용", "type": "text", "required": true}, {"key": "대표지시", "label": "대표 지시(없으면 비움)", "type": "text", "required": false}]}</chk:approval>
       </bpmn:extensionElements>
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Report_CEO" name="대표 보고 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "nowview-sc06", "operation": "report_ceo", "input": {"demo_run_id": "데모실행ID", "node_id": "'Report_CEO'", "content": "보고내용", "directive": "대표지시", "answered_by": "보고받은이", "answered_via": "보고경로"}, "output": {"보고상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "report_performance_to_ceo", "input": {"demo_run_id": "데모실행ID", "node_id": "'Report_CEO'", "content": "보고내용", "directive": "대표지시", "answered_by": "보고받은이", "answered_via": "보고경로"}, "output": {"보고상태": "state", "error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gw_Confirm_Merge" name="담당 임원 확인(처음·재확인)"/>

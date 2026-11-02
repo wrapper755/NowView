@@ -1,4 +1,4 @@
-import type { FormField as FormFieldSpec } from "@/lib/sc01/types";
+import type { CompanyExchange, FormField as FormFieldSpec } from "@/lib/sc01/types";
 
 /**
  * SC06 응답 모양 — 엔진 `app/sc06/domain.py`의 조회 서비스(구현명세 10장)를 그대로 옮긴 것이다. 금액은 **원 정수**이고
@@ -336,6 +336,8 @@ export interface Sc06Meta {
   sc05: { handoff_id: string; official: string; annual: string; target: string; gap: string };
   batch: { batch_id: string; seed_id: string; sha256: string; problems: string[] };
   status: { procedure: "LOADED" | "PENDING" | "CONFIRMING" | "REPORTED"; report: string; confirmed: string[]; risk: string };
+  /** 회사 시스템과 오간 것 — 적재 때 읽은 공식 전망(4분기 기대 효과의 기준) */
+  companyLog?: CompanyExchange[];
   executor: Sc06Executor | null;
   answerHere: boolean;
   procedure: {

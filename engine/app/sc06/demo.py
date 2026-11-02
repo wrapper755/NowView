@@ -11,6 +11,7 @@ SC06 확인 절차 각본 — D601 착수 → D602~D607 담당 임원 확인 2 �
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -115,13 +116,48 @@ def run_step(process: Sc06Process, demo_run_id: str, index: int) -> dict:
     if step.kind == "start":
         return process.start(demo_run_id, actor=step.actor, **mark)
     center = (doc.get("bpm") or {}).get("executor") == "center"
-    return _after_record(
-        process,
-        center,
-        lambda: process.act(
-            demo_run_id, step.node_id or "", dict(step.answer), actor=step.actor, **mark
-        ),
-    )
+    since = len(doc["audit"])  # 장면 6 감사 이력에는 seq가 없다 — 길이로 가른다
+    try:
+        done_doc = _after_record(
+            process,
+            center,
+            lambda: process.act(
+                demo_run_id, step.node_id or "", dict(step.answer), actor=step.actor, **mark
+            ),
+        )
+    except DomainError:
+        # 기다리는 동안 바깥 답(회사 사이트·콘솔)의 기록이 이 단계를 지나갔으면 각본은 할 일이
+        # 없다 — 장면 5와 같다.
+        now = process.get(demo_run_id)
+        if done_index(now, steps) >= index:
+            return now
+        raise
+    if not center:
+        return done_doc
+    return _await_own_record(process, demo_run_id, step.node_id or "", since)
+
+
+def _await_own_record(process: Sc06Process, demo_run_id: str, node_id: str, since: int) -> dict:
+    """
+    Center 실행이면 이 단계 결재의 기록 작업이 들어올 때까지 기다린다(기록 또는 거절) — 장면 4·5의
+    같은 이름 함수와 같다. 기다리지 않으면 다음 「다음」이 이 단계를 아직 남은 단계로 보고, 그
+    사이 회사 사이트가 답해 둔 결재를 다시 대리 답하려다 409였다(섞어 진행 실측: 생산 확인 직후
+    구매 확인 단계). 끝내 오지 않으면 지금 문서를 돌려준다.
+    """
+    deadline = time.monotonic() + process.center_wait_s * 3
+    while True:
+        doc = process.get(demo_run_id)
+        tasks = doc["tasks"]
+        for a in doc["audit"][since:]:
+            detail = a.get("detail") or {}
+            if a["action"] == "answer_rejected" and detail.get("node_id") == node_id:
+                return doc
+            task = tasks.get(detail.get("task_id") or "")
+            if a["action"] == "task_completed" and task and task["node_id"] == node_id:
+                return doc
+        if time.monotonic() >= deadline:
+            return doc
+        time.sleep(min(1.0, process.center_wait_s))
 
 
 def done_index(doc: dict, steps: list[Step] | None = None) -> int:

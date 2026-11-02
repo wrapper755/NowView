@@ -54,6 +54,8 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
         "sc05": {k: doc["sc05"][k] for k in ("handoff_id", "official", "annual", "target", "gap")},
         "batch": doc["batch"],
         "status": confirm.status(doc),
+        # 회사 시스템과 오간 것 — 적재 때 읽은 공식 전망(4분기 기대 효과의 기준)
+        "companyLog": doc.get("company_log", []),
     }
     if not confirm.is_bpm(doc):
         return {**head, "executor": None, "answerHere": False, "bpm": None, "procedure": None}

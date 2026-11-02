@@ -562,3 +562,41 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc06Process) -> None:
     """
     fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc06-process.json"
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
+
+
+def test_the_expected_effect_basis_is_the_company_official_forecast(proc: Sc06Process) -> None:
+    """
+    4분기 기대 효과의 기준은 회사의 공식 전망 FC51이다 — 적재가 회사 공식본을 읽어 장면 5 기록과
+    대조하고(회사와 오간 것에 남는다), 확인 기록이 시계를 옮기면 회사 세계 시각도 함께 간다.
+    """
+    doc = reported(proc)
+    rid = doc["demo_run_id"]
+    [read] = doc["company_log"]
+    assert (read["direction"], read["doc_id"]) == ("in", "FC51")
+    assert read["what"] == (
+        "공식 전망을 읽었다 — FC51 2027 연간 3,428,986,680원(4분기 기대 효과의 기준)"
+    )
+    assert doc["clock"] == "2028-01-14T11:00:00+09:00"
+    assert proc.company._call("GET", f"/worlds/{rid}/clock")["at"] == doc["clock"]
+    # 확인 절차만 되돌리는 초기화 — 회사와 오간 것은 남고 회사 세계 시각도 착수 전으로
+    doc = proc.reset(rid, actor="u-demo")
+    assert [e["doc_id"] for e in doc["company_log"]] == ["FC51"]
+    assert proc.company._call("GET", f"/worlds/{rid}/clock")["at"] == confirm.START_AT
+
+
+def test_a_different_company_official_forecast_blocks_loading(proc: Sc06Process) -> None:
+    """회사의 지금 공식본이 FC51이 아니면 적재하지 않는다(409) — 기준을 임의로 맞추지 않는다."""
+    rid = proc._finish_sc05(None, "embedded")["demo_run_id"]
+    fc51 = next(
+        f
+        for f in proc.company.execution_records(rid)["forecasts"]["forecasts"]
+        if f["forecast_id"] == "FC51"
+    )
+    proc.company.publish_forecast(
+        rid, {**fc51, "forecast_id": "FC52", "parent_official": "FC51", "ref": f"{rid}:FC52"}
+    )
+    with pytest.raises(DomainError) as exc:
+        proc.create(sc01_demo_run_id=rid)
+    assert exc.value.status == 409
+    assert "지금 공식 전망이 FC51이 아니다(FC52)" in str(exc.value)
+    assert proc.store.load(rid) is None

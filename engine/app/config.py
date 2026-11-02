@@ -107,7 +107,7 @@ def default_config() -> NowViewConfig:
                 for n in (2, 3, 4, 5, 6)
             ),
         ],
-        # 장면 2~6의 옛 토픽(`nowview-sc02`~`sc06`)은 맡지 않는다 — 옮길 때까지 Center 실행이 멈춘다
+        # 장면 1~6이 모두 기본 확장 `external` 하나를 부른다(업무별 옛 토픽은 걷었다)
         topics=[FIXED_TOPIC],
     )
 

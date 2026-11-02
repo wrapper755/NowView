@@ -5,7 +5,7 @@ SC06 실행 — 장면 5 인계(HANDOFF51)에서 이어 RV61 검토 문서를 �
 상태·이력을 바꾸지 않는다(AT61-09).
 
 * **Studio 시험 실행·Center 서버 실행에서 돈다**(장면 1~5 N1~N6과 같은 틀 — `app/sc05/process.py`).
-  서비스 태스크는 외부 확장 `nowview-sc06`의 시스템 작업이고, 첫 작업 호출의 실행 id가 데모
+  서비스 태스크는 기본 확장 `external`의 시스템 작업이고, 첫 작업 호출의 실행 id가 데모
   실행을 그 실행에 묶는다.
 * **착수는 화면 명령이다** — 경영관리 담당이 「확인 착수」를 누르면 내장이면 BPM을 시작하고,
   Center면 SC06 패키지를 기동하고(`POST /jobs`), Studio면 착수만 적는다.
@@ -15,6 +15,10 @@ SC06 실행 — 장면 5 인계(HANDOFF51)에서 이어 RV61 검토 문서를 �
 * **데모 실행 id가 장면 1~5와 같다.** 장면 5가 완료 전이면 장면 5 각본을 끝까지 실제로 실행한 뒤
   적재한다. Studio 실행이면 409다 — Studio에서 장면 5를 끝낸 뒤 연다.
 * 초기화는 확인 절차만 되돌린다 — 적재(숫자·근거)는 그대로 다시 쓴다.
+* **기대 효과의 기준은 회사의 공식 전망이다**(Company1 기간계) — 적재 때 회사의 지금 공식본이
+  장면 5 스냅샷의 FC51과 같은지 대조한다(없거나 다르면 409 — 장면 3이 원가 버전을 대조하는 것과
+  같다). 확인 효과·원인·확인 기록·보고본·후속 조치는 NowView 계산과 경영 기록이라 회사에 적지
+  않는다. 확인 기록이 가상시계를 옮기면 회사 세계 시각도 함께 옮긴다.
 
 2026-10-28 전에 만든 문서는 확인 기록을 끝난 것으로 적재했다(`confirm.is_bpm`이 거짓) — 조회는
 그대로 되고 확인 절차는 돌지 않는다. 초기화하면 확인 전으로 돌아간다.
@@ -36,11 +40,13 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app.company import CompanyClient
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     USERS,
     DomainError,
     check_idempotency,
+    company_exchange,
     executor_of,
     link_external_run,
     name_of,
@@ -57,9 +63,9 @@ from app.sc06 import confirm, domain
 from app.sc06.seed import Seed, load_seed
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc06.bpmn"
-APP_ID = "nowview-sc06"
+APP_ID = "external"
 RECORDS = confirm.RECORDS
-OPERATIONS = ("open_review", *RECORDS)
+OPERATIONS = ("open_performance_review", *RECORDS)
 #: 대리 답할 결재가 Center에 열리기를 기다리는 시간(초) — 장면 1~5와 같다(장면 2·3 실측).
 CENTER_WAIT_S = SC01_CENTER_WAIT_S
 
@@ -74,7 +80,7 @@ def run_operation(
     **같은 함수**다. 기록 작업은 검사가 먼저고(부수 효과 없음), 출력의 `error_message: None`이
     결재에 보이던 직전 거절 사유를 비운다.
     """
-    if operation == "open_review":
+    if operation == "open_performance_review":
         return confirm.open_review(doc)
     if operation not in RECORDS:
         raise DomainError(f"모르는 작업: {operation}", 404)
@@ -126,10 +132,12 @@ class Sc06Process:
         publish: Callable[[str], None] = lambda _id: None,
         center: CenterClient | None = None,
         center_wait_s: float = CENTER_WAIT_S,
+        company: CompanyClient | None = None,
     ) -> None:
-        """`center`를 주지 않으면 장면 5의 것을 쓴다(같은 Center·같은 키)."""
+        """`center`·`company`를 주지 않으면 장면 5의 것을 쓴다(같은 Center·같은 회사 시스템)."""
         self.store = store
         self.sc05 = sc05
+        self.company = company or sc05.company
         self.seed = seed or load_seed()
         self.process = read_process(PROCESS_PATH.read_bytes())
         self.engine = Engine()
@@ -204,6 +212,9 @@ class Sc06Process:
                 "visited": visited,
             }
             confirm.sync_tasks(doc, dict(doc["bpm"]["snapshot"]["pendings"]))
+        # 확인 기록이 일정대로 시계를 옮겼으면 회사 세계의 시각도 — 장면 1~5와 같다
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
@@ -310,9 +321,39 @@ class Sc06Process:
         sc05_doc = self._finish_sc05(sc01_demo_run_id, executor)
         rid = sc05_doc["demo_run_id"]
         doc = self._new(rid, sc05_doc, executor, datetime.now(UTC))
+        _note_official(doc, self._company_official(rid, doc["sc05"]))
+        self.company.set_clock(rid, doc["clock"])
         self.store.insert(rid, doc)
         self.publish(f"sc06:{rid}")
         return doc
+
+    def _company_official(self, world_id: str, sc05: dict[str, Any]) -> dict[str, Any]:
+        """
+        회사의 지금 공식 전망을 읽어 장면 5 스냅샷(FC51)과 대조한다 — 4분기 기대 효과는 그
+        공식본에서 고정한다(BASE61). 회사 공식본이 다른 판이거나 연간·월 손익이 다르면 409다
+        (임의로 맞추지 않는다).
+        """
+        found = self.company.execution_records(world_id)["forecasts"]
+        official = found.get("official")
+        record = next((f for f in found.get("forecasts", []) if f["forecast_id"] == official), None)
+        if record is None or official != sc05["official"]:
+            raise DomainError(
+                f"회사 시스템의 지금 공식 전망이 {sc05['official']}이 아니다"
+                f"({official or '없음'}) — 결정 실행·계획 갱신을 회사 시스템과 함께 공식 전망 "
+                "게시까지 진행한 뒤 연다",
+                409,
+            )
+        months = {m["month"]: int(m["profit"]) for m in record.get("months", [])}
+        same = int(record["annual"]) == int(sc05["annual"]) and all(
+            months.get(m["period"]) == int(m["profit"]) for m in sc05["months"]
+        )
+        if not same:
+            raise DomainError(
+                f"회사 시스템의 공식 전망 {official}이 결정 실행·계획 갱신의 게시 기록과 다르다 — "
+                f"회사 연간 {int(record['annual']):,}원",
+                409,
+            )
+        return record
 
     def get(self, demo_run_id: str) -> dict:
         return self._load(demo_run_id)[0]
@@ -337,6 +378,8 @@ class Sc06Process:
             )
             confirm.pending_state(doc, executor=where)
             doc["audit"] = old["audit"]
+            doc["company_log"] = list(old.get("company_log", []))
+            doc["_company_clock"] = True  # 확인 착수 전 시각으로
             domain.audit(doc, actor=actor, action="demo_run_reset", executor=where)
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
@@ -721,6 +764,18 @@ class Sc06Process:
             review_digest=info.get("review_digest"),
         )
         return entry
+
+
+def _note_official(doc: dict, record: dict[str, Any]) -> None:
+    company_exchange(
+        doc,
+        direction="in",
+        what=(
+            f"공식 전망을 읽었다 — {record['forecast_id']} 2027 연간 "
+            f"{int(record['annual']):,}원(4분기 기대 효과의 기준)"
+        ),
+        doc_id=record["forecast_id"],
+    )
 
 
 def _center_key(doc: dict) -> str:

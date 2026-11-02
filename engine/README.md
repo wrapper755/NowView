@@ -21,9 +21,7 @@ TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run py
 
 ```
 processes/sc01.bpmn     업무 흐름 — 유일한 원천. Chaeksas Studio(bpmn-js)로 열린다
-processes/sc02.bpmn     장면 2 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc02)
-processes/sc03.bpmn     장면 3 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc03)
-processes/sc04.bpmn     장면 4 업무 흐름 — Studio·Center 실행(외부 확장 nowview-sc04)
+processes/sc02~sc06.bpmn 장면 2~6 업무 흐름 — Studio·Center 실행(기본 확장 external). 원본은 Company1 bpm/(scripts/sync-bpm.sh)
 seed/SYN-SC01-v0.2.xlsx 통합 가상 데이터 설계. 원천 시트 = 시드, 파생 시트 = 테스트 기대값
 seed/SYN-SC02-v0.2.xlsx SC01_SC02 통합가상데이터 v0.2 — 같은 원칙
 seed/SYN-SC03-v0.3.xlsx SC01_SC02_SC03 통합가상데이터 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 기대값·각본 입력
