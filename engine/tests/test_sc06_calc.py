@@ -146,7 +146,7 @@ def test_task_performance_matches_sheet(doc: dict) -> None:
         assert t["performance"] == row["효과판단"]
         assert t["activity_judgment"] == "COMPLETION_CONFIRMED" and row["활동판단"] == "완료 확인"
         assert t["completed_at"] == kst(row["완료일"])
-    assert "TOTAL" not in doc["tasks"]
+    assert "TOTAL" not in doc["task_info"]
 
 
 def test_monthly_effects_match_sheet(doc: dict) -> None:

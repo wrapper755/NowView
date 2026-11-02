@@ -40,7 +40,7 @@ from typing import Any
 from app.sc01.domain import USERS, DomainError
 from app.sc05 import domain as sc05_domain
 from app.sc06 import calc
-from app.sc06.seed import SEED_ID, Seed, kst
+from app.sc06.seed import SEED_ID, Seed, kst, load_seed
 
 REVIEW_ID = "RV61"
 REPORT_VERSION = "RPT61-v1"
@@ -324,7 +324,7 @@ def load_batch(seed: Seed, rows: dict[str, list[dict[str, Any]]] | None = None) 
         "orders": orders,
         "held_orders": held,
         "changes": changes,
-        "tasks": _tasks(src["SC06과제성과"]),
+        "task_info": _tasks(src["SC06과제성과"]),
         "judgments": _judgments(src["SC06완료판단"]),
         "followups": _followups(src["SC06후속조치"]),
         "evidence": _evidence(src["SC06근거"]),
@@ -751,7 +751,7 @@ def new_review(
                 "orders",
                 "held_orders",
                 "changes",
-                "tasks",
+                "task_info",
                 "judgments",
                 "followups",
                 "evidence",
@@ -908,11 +908,20 @@ def _bound(doc: dict) -> dict:
     return doc["calculations"][doc["report"]["calculation_version"]]
 
 
+def task_info(doc: dict) -> dict[str, dict[str, Any]]:
+    """
+    과제 이름·완료일·근거·후속 글. 예전 문서는 이것을 `tasks`에 두었는데 확인 절차의 업무가 같은
+    칸을 비우고 썼다(confirm.pending_state) — 그 문서는 같은 원천에서 다시 읽는다.
+    """
+    return doc.get("task_info") or _tasks(load_seed().rows("SC06과제성과"))
+
+
 def _task_rows(doc: dict, calculation: dict) -> list[dict[str, Any]]:
+    info = task_info(doc)
     by_task = {j["task_id"]: j for j in doc["judgments"].values()}
     rows = []
     for t in calculation["tasks"]:
-        meta = doc["tasks"].get(t["task_id"], {})
+        meta = info.get(t["task_id"], {})
         j = by_task.get(t["task_id"])
         state = (
             judgment_state(j)

@@ -31,6 +31,7 @@ from app.sc05.process import Sc05Process
 from app.sc06 import confirm, demo, domain
 from app.sc06.api import build_router
 from app.sc06.process import PROCESS_PATH, Sc06Process
+from app.sc06.seed import kst, load_seed
 from app.sc06.view import topology
 from app.store import build_postgres_backend
 
@@ -153,6 +154,11 @@ def test_summary_contract(client: TestClient) -> None:
         "COMPLETE",
     )
     assert [t["task_id"] for t in s["tasks"]] == ["ACT41", "ACT42", "ACT43"]
+    # 과제 이름·완료일은 원천(SC06과제성과) 그대로다 — 확인 절차의 업무가 같은 칸을 덮어 비었었다
+    sheet = {r["task_id"]: r for r in load_seed().rows("SC06과제성과")}
+    for t in s["tasks"]:
+        assert t["name"] == sheet[t["task_id"]]["과제명"], t["task_id"]
+        assert t["completed_at"] == kst(sheet[t["task_id"]]["완료일"]), t["task_id"]
     act42 = s["tasks"][1]
     assert act42["focus"] and act42["performance"] == "일부 기대 미달"
     assert act42["activity_judgment"] == "COMPLETION_CONFIRMED"
@@ -600,3 +606,13 @@ def test_a_different_company_official_forecast_blocks_loading(proc: Sc06Process)
     assert exc.value.status == 409
     assert "지금 공식 전망이 FC51이 아니다(FC52)" in str(exc.value)
     assert proc.store.load(rid) is None
+
+
+def test_old_documents_read_task_info_from_the_source() -> None:
+    """
+    예전 문서는 과제 이름·완료일을 `tasks`에 두었는데 확인 절차의 업무가 그 칸을 비우고 썼다 — 그
+    문서도 원천에서 다시 읽어 이름·완료일을 보인다.
+    """
+    info = domain.task_info({"tasks": {"TASK-CONFIRM_PROD": {}}})
+    assert sorted(info) == ["ACT41", "ACT42", "ACT43"]
+    assert all(t["name"] and t["completed_at"] for t in info.values())
