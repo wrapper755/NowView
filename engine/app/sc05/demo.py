@@ -819,7 +819,15 @@ def run_step(process: Sc05Process, demo_run_id: str, index: int) -> dict:
         )
 
     since = max((a["seq"] for a in doc["audit"]), default=0)
-    done_doc = _after_record(process, center, act)
+    try:
+        done_doc = _after_record(process, center, act)
+    except DomainError:
+        # 기다리는 동안 바깥 답(회사 사이트·콘솔)의 기록이 이 단계를 지나갔으면 각본은 할 일이
+        # 없다 — 사이트에서 답한 직후 「다음」을 누르면 결재가 이미 닫혀 409였다(섞어 진행 실측).
+        now = process.get(demo_run_id)
+        if now.get("script_index", -1) >= index:
+            return now
+        raise
     if not center:
         return done_doc
     return _await_own_record(process, demo_run_id, step.node_id or "", since)

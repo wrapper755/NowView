@@ -1,6 +1,7 @@
 "use client";
 
 import { useUserName } from "@/components/sc01/bits";
+import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { AgentCard } from "@/components/sc05/agent-card";
 import { Mn, Requirements, Sc05Body, Sc05Header, WaitingForms } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
@@ -205,6 +206,7 @@ function Body({ view }: { view: Sc05View }) {
           </Commentary>
         </CardContent>
       </Card>
+      <CompanyExchangeCard log={view.companyLog ?? []} />
     </>
   );
 }

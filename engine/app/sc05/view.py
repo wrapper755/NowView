@@ -26,6 +26,32 @@ def _node_rank(node_id: str) -> int:
     return nodes.index(node_id) if node_id in nodes else len(nodes)
 
 
+def _defaults(doc: dict, node_id: str, fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    폼 칸의 기본값을 이 사례 각본의 답으로 채운다 — 손으로 쓰기 어려운 활동 목록·의견·근거를
+    시나리오에
+    맞는 예시로 미리 넣는다(장면 1~4·6과 같다). 같은 결재가 두 번 나오는 결재(대표 변경 고리·범위
+    이탈
+    뒤 재요청)는 지금 각본 지점 뒤의 첫 단계를 쓴다. Agent 초안 자리표시(`@AG51`)·유효
+    계획(`@PLAN`)은
+    각본과 같이 지금 문서로 푼다. 고쳐서 내도 되고, 틀리면 엔진이 거절한다.
+    """
+    from app.sc05.demo import resolve, steps_for  # demo가 process를 가져온다 — 순환을 피한다
+
+    steps = list(enumerate(steps_for(doc["case_id"])))
+    after = doc.get("script_index", -1)
+    step = next(
+        (s for i, s in steps if s.kind == "act" and s.node_id == node_id and i > after), None
+    ) or next((s for _, s in reversed(steps) if s.kind == "act" and s.node_id == node_id), None)
+    if step is None:
+        return fields
+    answer = resolve(doc, step.answer)
+    return [
+        {**f, "default": answer[f["key"]]} if answer.get(f["key"]) not in (None, "") else f
+        for f in fields
+    ]
+
+
 def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = None) -> dict:
     bpm = doc["bpm"]
     pendings = dict(((bpm or {}).get("snapshot") or {}).get("pendings", {}))
@@ -46,7 +72,7 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
             if p["node_id"] in domain.NODE_ROLES
             else None,
             "review": p["review"],
-            "fields": (p["form"] or {}).get("fields", []),
+            "fields": _defaults(doc, p["node_id"], (p["form"] or {}).get("fields", [])),
             "taskId": (domain.task_for_node(doc, p["node_id"]) or {}).get("task_id"),
         }
         for p in sorted(pendings.values(), key=lambda p: _node_rank(p["node_id"]))
@@ -70,6 +96,8 @@ def view(doc: dict, *, historical: bool = False, center: CenterConfig | None = N
         "step": doc["step"],
         "scriptIndex": doc.get("script_index", -1),
         "historical": historical,
+        # 회사 시스템과 오간 것 — 실행 품의·예산 원장·공식 전망을 회사에 적은 기록
+        "companyLog": doc.get("company_log", []),
         "status": domain.statuses(doc),
         "sc04": {
             k: doc["sc04"][k]

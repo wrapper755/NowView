@@ -55,6 +55,55 @@ class StatusBody(BaseModel):
     ref: str  # 멱등 — 같은 ref로 다시 오면 다시 적지 않는다(BPM 실행·노드)
 
 
+class ExecutionRequestBody(BaseModel):
+    """실행 품의의 상태 하나(상신·현업 승인·예산 승인·반려) — 회사 전자결재의 품의 기록이다."""
+
+    request_id: str
+    version: int
+    task_id: str
+    scope: str  # ONEOFF(일회성 준비비) · OPERATING(운영지원비)
+    amount: str
+    reason: str = ""
+    approval_ref: str = ""
+    state: str
+    by: str
+    at: str  # 업무 시각(그 결재가 난 시각) — 기록 시각은 세계 시각이다
+    note: str = ""
+    ref: str  # 멱등 — 같은 ref로 다시 오면 다시 적지 않는다
+
+
+class BudgetTxnBody(BaseModel):
+    """예산 원장 거래 한 줄 — 약정(COMMIT)·정산(SETTLE). 금액은 원 단위 정수 글이다."""
+
+    txn_id: str
+    task_id: str
+    scope: str
+    request_ref: str
+    at: str
+    type: str
+    commitment_delta: str
+    paid_delta: str
+    pnl_cost: str
+    evidence: str = ""
+    ref: str
+
+
+class ForecastBody(BaseModel):
+    """공식 전망 게시 — 대표 승인본을 회사의 공식 전망으로 건다. 앞 공식본은 이력이다."""
+
+    forecast_id: str
+    run_id: str
+    parent_official: str | None = None
+    cutoff: str
+    annual: str
+    months: list[dict[str, Any]]
+    approved_at: str
+    approved_by: str
+    published_at: str
+    published_by: str
+    ref: str
+
+
 class CostVersionBody(BaseModel):
     """승인된 단가를 원가 버전으로 등록한다 — C01은 그대로 두고 부품값 몫만 바꾼 새 버전이다."""
 
@@ -97,6 +146,7 @@ def _new_world(world_id: str) -> dict[str, Any]:
         "inbox": {},
         "status_log": [],
         **_new_purchase(),
+        **_new_execution(),
     }
 
 
@@ -109,6 +159,33 @@ def _purchase(w: dict[str, Any]) -> dict[str, Any]:
     for k, v in _new_purchase().items():
         w.setdefault(k, v)
     return w
+
+
+def _new_execution() -> dict[str, Any]:
+    """장면 5의 세계 기록 — 실행 품의·예산 원장·공식 전망. 옛 세계는 읽을 때 채운다."""
+    return {"execution_requests": {}, "budget_ledger": [], "forecasts": {}, "official": None}
+
+
+def _execution(w: dict[str, Any]) -> dict[str, Any]:
+    for k, v in _new_execution().items():
+        w.setdefault(k, v)
+    return w
+
+
+#: 예산 원장 거래에서 같은 거래인지 가르는 칸
+TXN_FIELDS = (
+    "txn_id",
+    "task_id",
+    "scope",
+    "request_ref",
+    "at",
+    "type",
+    "commitment_delta",
+    "paid_delta",
+    "pnl_cost",
+)
+#: 공식 전망에서 같은 판인지 가르는 칸
+FORECAST_FIELDS = ("forecast_id", "run_id", "parent_official", "cutoff", "annual", "approved_at")
 
 
 def build_app(store: WorldStore) -> FastAPI:
@@ -437,6 +514,131 @@ def build_app(store: WorldStore) -> FastAPI:
         with store.lock():
             w = world(world_id)
             w.update(_new_purchase())
+            store.put(w)
+        return {"world_id": world_id, "clock": w["clock"]}
+
+    # ───────────── 장면 5 — 실행 품의 · 예산 원장 · 공식 전망 ─────────────
+
+    @app.get("/worlds/{world_id}/execution-requests", dependencies=[Depends(auth)])
+    def execution_requests(world_id: str) -> list[dict[str, Any]]:
+        """실행 품의(상신 순서) — 지금 상태와 상태 이력. 반려 뒤 고친 품의는 새 판(version)이다."""
+        w = _execution(world(world_id))
+        return sorted(w["execution_requests"].values(), key=lambda d: d["seq"])
+
+    @app.post("/worlds/{world_id}/execution-requests", dependencies=[Depends(auth)])
+    def record_execution_request(world_id: str, body: ExecutionRequestBody) -> dict[str, Any]:
+        """
+        품의 상태 하나를 적는다(상신 → 현업 승인 → 예산 승인, 또는 반려). 같은 ref는
+        다시 적지 않는다.
+        판(version)이 지금보다 낮으면 409 — 지난 판의 결재가 새 판을 덮지 않는다.
+        """
+        with store.lock():
+            w = _execution(world(world_id))
+            found = w["execution_requests"].get(body.request_id)
+            if found is not None and any(h["ref"] == body.ref for h in found["history"]):
+                return {**found, "recorded": False}
+            if found is not None and body.version < found["version"]:
+                raise HTTPException(
+                    409,
+                    f"{body.request_id} v{body.version}은 지난 판이다(지금 v{found['version']})",
+                )
+            if found is None:
+                found = {
+                    "request_id": body.request_id,
+                    "seq": len(w["execution_requests"]) + 1,
+                    "history": [],
+                }
+                w["execution_requests"][body.request_id] = found
+            found.update(
+                version=body.version,
+                task_id=body.task_id,
+                scope=body.scope,
+                amount=body.amount,
+                reason=body.reason or found.get("reason", ""),
+                approval_ref=body.approval_ref,
+                state=body.state,
+            )
+            found["history"].append(
+                {
+                    "ref": body.ref,
+                    "version": body.version,
+                    "state": body.state,
+                    "by": body.by,
+                    "at": body.at,
+                    "note": body.note,
+                    "recorded_at": w["clock"],
+                }
+            )
+            store.put(w)
+        return {**found, "recorded": True}
+
+    @app.get("/worlds/{world_id}/budget-ledger", dependencies=[Depends(auth)])
+    def budget_ledger(world_id: str) -> dict[str, Any]:
+        """
+        예산 원장(적은 순서)과 범위별 합계 — 약정 잔액(약정증감 합)·집행(집행증감 합)·손익비용.
+        한도·잔여 판정은 NowView 규칙 계산이다(여기는 원장만 둔다).
+        """
+        w = _execution(world(world_id))
+        totals: dict[str, dict[str, int]] = {}
+        for t in w["budget_ledger"]:
+            s = totals.setdefault(t["scope"], {"committed": 0, "paid": 0, "pnl_cost": 0})
+            s["committed"] += int(t["commitment_delta"])
+            s["paid"] += int(t["paid_delta"])
+            s["pnl_cost"] += int(t["pnl_cost"])
+        return {"transactions": w["budget_ledger"], "totals": totals}
+
+    @app.post("/worlds/{world_id}/budget-ledger", dependencies=[Depends(auth)])
+    def record_budget_txn(world_id: str, body: BudgetTxnBody) -> dict[str, Any]:
+        """원장 한 줄 — 같은 거래 id·같은 내용은 기존 줄, 다른 내용은 409(정정 거래로 고친다)."""
+        record = body.model_dump()
+        with store.lock():
+            w = _execution(world(world_id))
+            found = next((t for t in w["budget_ledger"] if t["txn_id"] == body.txn_id), None)
+            if found is not None:
+                if any(found[k] != record[k] for k in TXN_FIELDS):
+                    raise HTTPException(409, f"같은 거래 id에 다른 내용이 이미 있다: {body.txn_id}")
+                return {**found, "recorded": False}
+            found = {**record, "seq": len(w["budget_ledger"]) + 1, "recorded_at": w["clock"]}
+            w["budget_ledger"].append(found)
+            store.put(w)
+        return {**found, "recorded": True}
+
+    @app.get("/worlds/{world_id}/forecasts", dependencies=[Depends(auth)])
+    def forecasts(world_id: str) -> dict[str, Any]:
+        """게시된 공식 전망(게시 순서)과 지금 공식본."""
+        w = _execution(world(world_id))
+        docs = sorted(w["forecasts"].values(), key=lambda d: d["seq"])
+        return {"official": w["official"], "forecasts": docs}
+
+    @app.post("/worlds/{world_id}/forecasts", dependencies=[Depends(auth)])
+    def publish_forecast(world_id: str, body: ForecastBody) -> dict[str, Any]:
+        """
+        공식 전망 게시 — 지금 공식본을 이 판으로 바꾼다. 같은 판·같은 내용은 기존 게시,
+        같은 id에 다른
+        내용은 409(공식본은 고치지 않고 새 판으로). 목표(Target)는 바꾸지 않는다 — 전망만이다.
+        """
+        record = body.model_dump()
+        with store.lock():
+            w = _execution(world(world_id))
+            found = w["forecasts"].get(body.forecast_id)
+            if found is not None:
+                if any(found[k] != record[k] for k in FORECAST_FIELDS):
+                    raise HTTPException(
+                        409, f"같은 전망 판에 다른 내용이 이미 있다: {body.forecast_id}"
+                    )
+                return {**found, "official": w["official"], "recorded": False}
+            found = {**record, "seq": len(w["forecasts"]) + 1, "recorded_at": w["clock"]}
+            w["forecasts"][body.forecast_id] = found
+            w["official"] = body.forecast_id
+            store.put(w)
+        return {**found, "official": w["official"], "recorded": True}
+
+    @app.post("/worlds/{world_id}/execution/reset", dependencies=[Depends(auth)])
+    def reset_execution(world_id: str) -> dict[str, Any]:
+        """장면 5의 세계 기록만 처음으로 — 장면 1·2 기록은 그대로 둔다."""
+        with store.lock():
+            w = world(world_id)
+            w.update(_new_execution())
             store.put(w)
         return {"world_id": world_id, "clock": w["clock"]}
 

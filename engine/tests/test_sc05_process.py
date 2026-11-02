@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.events import Hub
-from app.sc01.domain import USERS, DomainError
+from app.sc01.domain import USERS, DomainError, parse_at
 from app.sc01.process import Sc01Process
 from app.sc01.store import PostgresSc01Store, SqliteSc01Store
 from app.sc02.process import Sc02Process
@@ -635,7 +635,7 @@ def test_t512_x504_urgent_order_cannot_execute_before_approval(proc: Sc05Process
     """X504·T512 — 긴급 기안 뒤 승인 전 실행 기록은 422. 승인 뒤 120만원 추가비로 실행된다."""
     doc = play_before(proc, "Approve_Urgent")
     with pytest.raises(domain.PrerequisiteError) as exc:
-        domain.check(doc, "execute_order", {"ordered_at": "2027-09-10T11:00:00+09:00"})
+        domain.check(doc, "record_purchase_order", {"ordered_at": "2027-09-10T11:00:00+09:00"})
     assert exc.value.code == "URGENT_NOT_APPROVED"
     assert doc["orders"]["PO51-010"]["state"] == "URGENT_SUBMITTED"
 
@@ -649,10 +649,10 @@ def test_t513_urgent_limit_boundary(proc: Sc05Process) -> None:
         o.update(transport=str(extra - 300000), extra=str(extra))
         args = {"decision": "승인", "additional_cost": str(extra), "impacts": "납기 준수"}
         if ok:
-            domain.check(trial, "approve_urgent", args)
+            domain.check(trial, "approve_urgent_purchase", args)
         else:
             with pytest.raises(domain.PrerequisiteError) as exc:
-                domain.check(trial, "approve_urgent", args)
+                domain.check(trial, "approve_urgent_purchase", args)
             assert "상위 전결" in str(exc.value)
 
 
@@ -694,7 +694,7 @@ def test_t516_x509_duplicate_and_unknown_cost_block_result(proc: Sc05Process) ->
         and obs["extra_cost"] is None
     )
     with pytest.raises(domain.PrerequisiteError) as exc:
-        domain.check(trial, "confirm_observation", {"decision": "확인"})
+        domain.check(trial, "confirm_initial_results", {"decision": "확인"})
     assert exc.value.code == "RESULT_INCOMPLETE"
 
 
@@ -707,7 +707,7 @@ def test_t518_results_before_the_month_close_are_unconfirmed(proc: Sc05Process) 
     assert obs["late"] is None and obs["unconfirmed_results"] == obs["orders"]
     assert doc["official"] == "FC50"  # 9/6 배경 승인 뒤
     with pytest.raises(domain.PrerequisiteError):
-        domain.check(doc, "confirm_observation", {"decision": "확인"})
+        domain.check(doc, "confirm_initial_results", {"decision": "확인"})
 
 
 def test_t521_x506_readding_the_approved_effect_is_redone(proc: Sc05Process) -> None:
@@ -1003,12 +1003,12 @@ def test_customer_original_cannot_be_received_before_it_arrives(proc: Sc05Proces
     rid = doc["demo_run_id"]
     for src in ("CP51", "CP52"):
         with pytest.raises(DomainError) as exc:
-            domain.check(proc.get(rid), "receive_change", {"source": src})
+            domain.check(proc.get(rid), "receive_production_change", {"source": src})
         assert exc.value.status == 409 and "아직 수신되지 않았다" in str(exc.value)
     doc = proc.set_clock(rid, "2027-09-02T09:00:00+09:00", actor="u-demo")
-    domain.check(doc, "receive_change", {"source": "CP51"})
+    domain.check(doc, "receive_production_change", {"source": "CP51"})
     with pytest.raises(DomainError):
-        domain.check(doc, "receive_change", {"source": "CP52"})
+        domain.check(doc, "receive_production_change", {"source": "CP52"})
 
 
 def test_screen_answers_move_the_script_marker_even_out_of_order(proc: Sc05Process) -> None:
@@ -1040,3 +1040,69 @@ def test_screen_answers_move_the_script_marker_even_out_of_order(proc: Sc05Proce
     for index in range(14, len(steps)):
         doc = demo.run_step(proc, rid, index)
     assert doc["handoff"]["state_snapshot"]["scene"] == "SC05_COMPLETED"
+
+
+def test_outside_answers_move_the_clock_and_bring_in_background_sources(proc: Sc05Process) -> None:
+    """
+    회사 사이트·화면에서 시계를 옮기지 않고 답해도 가상시계가 각본의 그 단계 시각으로 가고(장면
+    1~4와
+    같다), 그 시각까지의 배경 원천이 들어온다 — 8/20 아침의 조건 근거(DOC51)가 들어와야 CON41 근거
+    결재를 받을 수 있다. 회사 세계 시각도 함께 간다. 결재 폼은 각본 답으로 미리 찬다.
+    """
+    rid = proc.create()["demo_run_id"]
+    steps = demo.steps_for("BASE")
+    doc = proc.start(rid, actor="u-fin")
+    assert doc["clock"] == doc["scene"]["started_at"] == kst(steps[0].at)
+    form = {w["nodeId"]: w for w in view(doc)["bpm"]["waiting"]}["Draft_Plan"]
+    expected = demo.resolve(doc, answer("Draft_Plan"))
+    assert {f["key"]: f.get("default") for f in form["fields"] if f.get("default")} == {
+        k: v for k, v in expected.items() if v not in (None, "")
+    }
+
+    def act(index: int) -> dict:
+        s = steps[index]
+        return proc.act(rid, s.node_id or "", demo.resolve(proc.get(rid), s.answer), actor=s.actor)
+
+    for index, s in enumerate(steps):
+        if s.node_id == "Evidence_CON41":
+            break
+        if s.kind == "act":
+            doc = act(index)
+            assert doc["clock"] == kst(s.at), s.code
+    assert parse_at(doc["clock"]) < parse_at(kst(s.at))
+    doc = act(index)  # 시계가 8/20으로 가며 근거가 들어온다 — 거절되지 않는다
+    assert doc["clock"] == kst(s.at) and doc["script_index"] == index
+    assert proc.company._call("GET", f"/worlds/{rid}/clock")["at"] == doc["clock"]
+    for rest in range(index + 1, len(steps)):
+        doc = demo.run_step(proc, rid, rest)
+    assert doc["handoff"]["state_snapshot"]["scene"] == "SC05_COMPLETED"
+
+
+def test_execution_records_land_in_the_company_system(proc: Sc05Process) -> None:
+    """
+    실행 품의 상태 이력·예산 원장·공식 전망은 회사 기록이다 — 기본 시연이 끝나면 회사(기간계)에
+    문서와
+    같은 품의·거래·공식본(FC50 → FC51)이 있고, 회사와 오간 것에 남는다. 초기화하면 회사 기록도
+    처음이다.
+    """
+    doc = play(proc)
+    rid = doc["demo_run_id"]
+    company = proc.company.execution_records(rid)
+    assert {r["request_id"]: r["state"] for r in company["requests"]} == {
+        r["request_id"]: r["state"] for r in doc["requests"].values()
+    }
+    req51 = next(r for r in company["requests"] if r["request_id"] == "REQ51")
+    assert [h["state"] for h in req51["history"]] == ["SUBMITTED", "FUNCTION_APPROVED", "APPROVED"]
+    assert [t["txn_id"] for t in company["ledger"]["transactions"]] == [
+        t["txn_id"] for t in doc["ledger"]
+    ]
+    forecasts = company["forecasts"]
+    assert forecasts["official"] == "FC51" == doc["official"]
+    assert [f["forecast_id"] for f in forecasts["forecasts"]] == ["FC50", "FC51"]
+    fc51 = forecasts["forecasts"][1]
+    assert fc51["annual"] == "3428986680" and fc51["parent_official"] == "FC50"
+    assert fc51["published_at"] == "2027-10-06T10:05:00+09:00"
+    assert any(e["doc_id"] == "FC51" and e["direction"] == "out" for e in doc["company_log"])
+    proc.reset(rid, actor="u-demo")
+    again = proc.company.execution_records(rid)
+    assert again["requests"] == [] and again["forecasts"]["official"] is None

@@ -3327,61 +3327,61 @@ def review_agent(doc: dict, output_id: str, *, actor: str, note: str = "") -> No
 # ─────────────────────────── 작업 → 업무 효과 (기록 작업의 몸통) ───────────────────────────
 
 RECORDS = (
-    "draft_plan",
-    "coordinate_plan",
-    "confirm_plan",
-    "verify_plan",
-    "request_change",
-    "condition_evidence",
-    "condition_coordinate",
-    "condition_confirm",
-    "submit_request",
-    "approve_request",
-    "start_operation",
-    "receive_change",
-    "share_change",
-    "ack_change",
-    "respond_change",
-    "approve_urgent",
-    "execute_order",
-    "confirm_observation",
-    "confirm_opl",
-    "verify_opl",
-    "draft_forecast",
-    "confirm_forecast",
-    "submit_forecast",
-    "approve_forecast",
-    "publish_forecast",
-    "complete_scene",
+    "draft_execution_plan",
+    "coordinate_execution_plan",
+    "confirm_execution_plan",
+    "verify_execution_plan",
+    "request_plan_change",
+    "submit_condition_evidence",
+    "coordinate_condition_readiness",
+    "confirm_condition",
+    "submit_execution_request",
+    "approve_execution_request",
+    "start_action_operation",
+    "receive_production_change",
+    "share_production_change",
+    "acknowledge_production_change",
+    "respond_production_change",
+    "approve_urgent_purchase",
+    "record_purchase_order",
+    "confirm_initial_results",
+    "confirm_operating_plan",
+    "verify_operating_plan",
+    "draft_rolling_forecast",
+    "confirm_rolling_forecast",
+    "submit_rolling_forecast",
+    "approve_rolling_forecast",
+    "publish_rolling_forecast",
+    "hand_off_follow_up",
 )
 
 _CHECKS = {
-    "draft_plan": check_draft_plan,
-    "coordinate_plan": check_coordinate,
-    "confirm_plan": check_confirm_plan,
-    "verify_plan": check_verify_plan,
-    "request_change": check_request_change,
-    "condition_evidence": check_condition_evidence,
-    "condition_coordinate": check_condition_coordinate,
-    "condition_confirm": check_condition_confirm,
-    "submit_request": check_submit_request,
-    "approve_request": check_approve_request,
-    "start_operation": check_start,
-    "receive_change": check_receive,
-    "share_change": check_share,
-    "ack_change": check_ack,
-    "respond_change": check_respond,
-    "approve_urgent": check_approve_urgent,
-    "execute_order": check_execute,
-    "confirm_observation": check_confirm_observation,
-    "confirm_opl": check_confirm_opl,
-    "verify_opl": check_verify_opl,
-    "draft_forecast": check_draft_forecast,
-    "confirm_forecast": check_confirm_forecast,
-    "submit_forecast": check_submit_forecast,
-    "approve_forecast": check_approve_forecast,
-    "publish_forecast": check_publish,
-    "complete_scene": check_complete,
+    "draft_execution_plan": check_draft_plan,
+    "coordinate_execution_plan": check_coordinate,
+    "confirm_execution_plan": check_confirm_plan,
+    "verify_execution_plan": check_verify_plan,
+    "request_plan_change": check_request_change,
+    "submit_condition_evidence": check_condition_evidence,
+    "coordinate_condition_readiness": check_condition_coordinate,
+    "confirm_condition": check_condition_confirm,
+    "submit_execution_request": check_submit_request,
+    "approve_execution_request": check_approve_request,
+    "start_action_operation": check_start,
+    "receive_production_change": check_receive,
+    "share_production_change": check_share,
+    "acknowledge_production_change": check_ack,
+    "respond_production_change": check_respond,
+    "approve_urgent_purchase": check_approve_urgent,
+    "record_purchase_order": check_execute,
+    "confirm_initial_results": check_confirm_observation,
+    "confirm_operating_plan": check_confirm_opl,
+    "verify_operating_plan": check_verify_opl,
+    "draft_rolling_forecast": check_draft_forecast,
+    "confirm_rolling_forecast": check_confirm_forecast,
+    "submit_rolling_forecast": check_submit_forecast,
+    "approve_rolling_forecast": check_approve_forecast,
+    "publish_rolling_forecast": check_publish,
+    "hand_off_follow_up": check_complete,
 }
 
 
@@ -3404,36 +3404,36 @@ def apply(
     기록 작업 하나의 업무 효과. 검사는 `check`가 먼저 했다. 출력은 그림의 `output` 대응이 쓴다.
     """
     simple = {
-        "draft_plan": draft_plan,
-        "coordinate_plan": coordinate_plan,
-        "confirm_plan": confirm_plan,
-        "verify_plan": verify_plan,
-        "request_change": request_change,
-        "condition_evidence": condition_evidence,
-        "condition_coordinate": condition_coordinate,
-        "condition_confirm": condition_confirm,
-        "submit_request": submit_request,
-        "approve_request": approve_request,
-        "start_operation": start_operation,
-        "share_change": share_change,
-        "ack_change": ack_change,
-        "respond_change": respond_change,
-        "approve_urgent": approve_urgent,
-        "execute_order": execute_order,
-        "confirm_observation": confirm_observation,
-        "confirm_opl": confirm_opl,
-        "verify_opl": verify_opl,
-        "confirm_forecast": confirm_forecast,
-        "submit_forecast": submit_forecast,
-        "approve_forecast": approve_forecast,
-        "publish_forecast": publish_forecast,
-        "complete_scene": complete_scene,
+        "draft_execution_plan": draft_plan,
+        "coordinate_execution_plan": coordinate_plan,
+        "confirm_execution_plan": confirm_plan,
+        "verify_execution_plan": verify_plan,
+        "request_plan_change": request_change,
+        "submit_condition_evidence": condition_evidence,
+        "coordinate_condition_readiness": condition_coordinate,
+        "confirm_condition": condition_confirm,
+        "submit_execution_request": submit_request,
+        "approve_execution_request": approve_request,
+        "start_action_operation": start_operation,
+        "share_production_change": share_change,
+        "acknowledge_production_change": ack_change,
+        "respond_production_change": respond_change,
+        "approve_urgent_purchase": approve_urgent,
+        "record_purchase_order": execute_order,
+        "confirm_initial_results": confirm_observation,
+        "confirm_operating_plan": confirm_opl,
+        "verify_operating_plan": verify_opl,
+        "confirm_rolling_forecast": confirm_forecast,
+        "submit_rolling_forecast": submit_forecast,
+        "approve_rolling_forecast": approve_forecast,
+        "publish_rolling_forecast": publish_forecast,
+        "hand_off_follow_up": complete_scene,
     }
     if operation in simple:
         return simple[operation](doc, args, by=by, strict=strict)
-    if operation == "receive_change":
+    if operation == "receive_production_change":
         return receive_change(doc, seed, args, by=by, strict=strict)
-    if operation == "draft_forecast":
+    if operation == "draft_rolling_forecast":
         return draft_forecast(doc, seed, args, by=by, strict=strict)
     raise DomainError(f"모르는 작업: {operation}", 404)  # pragma: no cover
 
@@ -3527,6 +3527,20 @@ def sync_tasks(doc: dict, pendings: dict[str, dict[str, Any]]) -> None:
             continue
         if task is not None and task["request_id"] is None:
             task["request_id"] = request_id
+            continue
+        if task is not None:
+            # 끝나지 않은 업무에 같은 결재가 새 id로 왔다 — 기록이 거절되어 그림이 같은 결재로
+            # 돌아온 것이다(오류 경계). 새 업무를 열면 앞 업무가 영영 「배정」으로 남았다(9/1 전
+            # 사이트 착수 실측 — TASK-START-2·3). 장면 3과 같이 같은 업무에 잇는다.
+            task["request_id"] = request_id
+            task["history"].append(
+                {
+                    "at": doc["clock"],
+                    "status": task["status"],
+                    "by": "system",
+                    "note": "기록이 거절되어 같은 결재가 다시 열렸다",
+                }
+            )
             continue
         _open_task(doc, p["node_id"], request_id=request_id)
 
@@ -3647,7 +3661,7 @@ def statuses(doc: dict) -> dict[str, Any]:
 
 #: Studio는 끝을 작업 호출로만 안다 — 이 작업이 기록되면 흐름이 끝난다.
 def ends_flow(operation: str) -> bool:
-    return operation == "complete_scene"
+    return operation == "hand_off_follow_up"
 
 
 __all__ = ["CASES", "NODE_ROLES", "RECORDS", "SEED_ID", "apply", "catch_up", "check", "kst"]

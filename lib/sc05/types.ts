@@ -4,7 +4,7 @@
  * FC51-D(검토안)와 FC51(공식본)은 같은 RUN의 승인 전후다 — 화면은 두 버전의 월손익을 더하지 않는다.
  */
 
-import type { Executor, FormField } from "@/lib/sc01/types";
+import type { CompanyExchange, Executor, FormField } from "@/lib/sc01/types";
 
 export interface Sc05Waiting {
   nodeId: string;
@@ -350,6 +350,8 @@ export interface Sc05View {
   step: string;
   scriptIndex: number;
   historical: boolean;
+  /** 회사 시스템과 오간 것 — 실행 품의·예산 원장·공식 전망을 회사 기간계에 적은 기록 */
+  companyLog?: CompanyExchange[];
   status: {
     scene: string;
     plan: string | null;

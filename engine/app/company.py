@@ -255,6 +255,34 @@ class CompanyClient:
         self.ensure_world(world_id)
         self._call("POST", f"/worlds/{world_id}/purchase/reset")
 
+    # ───── 장면 5 — 실행 품의 · 예산 원장 · 공식 전망 ─────
+
+    def record_execution_request(self, world_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """실행 품의의 상태 하나(상신·현업 승인·예산 승인·반려) — `ref`가 같으면 다시 적지
+        않는다."""
+        return self._call("POST", f"/worlds/{world_id}/execution-requests", record)
+
+    def record_budget_txn(self, world_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """예산 원장 한 줄 — 같은 거래·같은 내용이면 기존 줄, 다른 내용은 409다."""
+        return self._call("POST", f"/worlds/{world_id}/budget-ledger", record)
+
+    def publish_forecast(self, world_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """공식 전망 게시 — 회사의 지금 공식본을 바꾼다. 같은 판·같은 내용이면 기존 게시다."""
+        return self._call("POST", f"/worlds/{world_id}/forecasts", record)
+
+    def execution_records(self, world_id: str) -> dict[str, Any]:
+        """회사에 적힌 장면 5 기록 — 시험·대조용."""
+        return {
+            "requests": self._call("GET", f"/worlds/{world_id}/execution-requests"),
+            "ledger": self._call("GET", f"/worlds/{world_id}/budget-ledger"),
+            "forecasts": self._call("GET", f"/worlds/{world_id}/forecasts"),
+        }
+
+    def reset_execution(self, world_id: str) -> None:
+        """장면 5의 세계 기록만 처음으로 — 장면 1·2 기록은 그대로다."""
+        self.ensure_world(world_id)
+        self._call("POST", f"/worlds/{world_id}/execution/reset")
+
 
 def _detail(response: httpx.Response) -> str:
     try:

@@ -2,7 +2,7 @@
 
 지금 구조만 적는다. Center 등록 절차와 실행 중 동작은 [chaeksas-integration.md](chaeksas-integration.md)에 있다.
 지금 회사 이름으로 옮긴 업무는 장면 1(고객 생산계획 변경 대응)·장면 2(외주 단가 인상 검토)·장면 3(수익성 통합 분석과 수시
-경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)다 — 장면 5·6은 옮길 때마다 이 문서에 더한다.
+경영검토)·장면 4(수익성 개선 대응안 검토와 실행 승인)·장면 5(결정 실행과 계획 갱신)다 — 장면 6은 옮길 때 이 문서에 더한다.
 
 ## 1. NowView가 하는 일
 
@@ -150,6 +150,36 @@ Center ◀──────────────────────▶ 
 | `register_execution_actions` · `accept_execution_assignment` · `revise_execution_assignment` | 실행과제·조건·지시 등록 · 책임자 인수·반려 · 반려 보완(새 배정버전) |
 | `hand_off_execution_plan` | 종료 요건 재검증 · HANDOFF41(장면 5 상세 실행계획 연결) |
 
+**장면 5**
+
+| 자료 | 주인 | 어디서 |
+|---|---|---|
+| 실행 품의(상신·현업 승인·예산 승인·반려 — 상태 이력) | 회사 | `POST/GET /worlds/{w}/execution-requests` — 저장 직전에 아직 적지 않은 상태 칸을 적는다(`ref` 멱등) |
+| 예산 원장(약정 COMMIT·정산 SETTLE)과 범위별 합계 | 회사 | `POST/GET /worlds/{w}/budget-ledger` — 거래 id 멱등, 같은 id 다른 내용 409 |
+| 공식 전망 게시(FC50 → FC51)와 지금 공식본 | 회사 | `POST/GET /worlds/{w}/forecasts` — 판 id 멱등, 같은 id 다른 내용 409. 목표는 바꾸지 않는다 |
+| 실행 계획·변경·조건·지원·착수·변경 대응·발주 기록·초기 결과·운영계획·전망 작성·확인·인계 | NowView | 데모 실행 문서 — 경영 기록. 고객 변경 원문(CP51·CP52)·구매 주문 60건·근거는 아직 NowView 시드(배경 원천, `catch_up`) |
+| 회사 세계 시각 | 회사 | 시계를 옮기면(각본·바깥 답이 따라갈 때 포함) `set_clock`으로 함께 옮긴다 |
+
+회사에 적는 것은 BPM 기록 작업이 아니라 **저장 직전의 대조**(`Sc05Process._sync_company`)다 — 결재 기록 작업이 만든 품의·약정·
+게시뿐 아니라 가상시계가 들인 배경 행(ACT41·43 품의, 정산 거래, 9/6 FC50)도 같은 길로 간다. 적은 것은 `company_synced`에 남고
+회사가 받지 못하면 그 조작은 저장되지 않는다(503). 장면 5 초기화는 회사의 장면 5 기록만 지운다(`POST /worlds/{w}/execution/reset`).
+
+장면 5 작업(BPM 프로세스 `company1.sc05` 0.5.0 — 확장 `>=0.5.0`):
+
+| 작업 | 하는 일 | 회사 시스템(저장 직전) |
+|---|---|---|
+| `open_execution_plan` | 착수된 장면 열기 — HANDOFF41·APR41-v1 연결(S01) | — |
+| `draft_execution_plan` · `coordinate_execution_plan` · `confirm_execution_plan` · `verify_execution_plan` | 상세 계획 초안 · 생산 협조 · 구매 임원 확정 · 경영관리 확인(변경안에도 같은 작업) | — |
+| `request_plan_change` | 승인 범위 안 변경 요청(범위 이탈이면 시행 보류) | — |
+| `submit_condition_evidence` · `coordinate_condition_readiness` · `confirm_condition` | CON41·SUP41 근거 · 준비 확인 · 충족·이행 확인 | — |
+| `submit_execution_request` · `approve_execution_request` | 품의 상신 · 현업/예산 승인(예산 승인과 약정이 한 저장) | 품의 상태 · 원장 약정 |
+| `start_action_operation` | 운영 적용 착수(요건 미충족 422, 9/1 전 불가) | — |
+| `receive_production_change` · `share_production_change` · `acknowledge_production_change` · `respond_production_change` | 고객 변경 접수 · 생산 공유 · 구매 확인 · 정상 대응/긴급 기안 | — |
+| `approve_urgent_purchase` · `record_purchase_order` | 긴급 예외 전결 · 발주·처리 기록 | — |
+| `confirm_initial_results` · `confirm_operating_plan` · `verify_operating_plan` | 9월 초기 결과 확인 · OPL51~53 확정 · 경영관리 확인 | — |
+| `draft_rolling_forecast` · `confirm_rolling_forecast` · `submit_rolling_forecast` · `approve_rolling_forecast` · `publish_rolling_forecast` | RUN·검토안 작성·대사 · 부서 가정 확인 · 대표 승인 요청 · 대표 승인 · 공식본 게시 | 게시 → 공식 전망 |
+| `hand_off_follow_up` | 종료 요건 재검증 · HANDOFF51 | — |
+
 **실패** — 업무 규칙 위반은 `forbidden`·`not_found`·`conflict`·`input_invalid`(재시도 없음, 글은 사유). 회사 시스템이 응답하지 않으면
 `dependency_down`(재시도) — 엔진 안에서는 `CompanyUnavailable`(503)이고 그 조작은 저장되지 않는다. 설정에 없는 BPM 프로세스의 일감은
 `not_found`.
@@ -200,6 +230,22 @@ POST /worlds/{w}/cost-versions                      {cost_version_id, parent_cos
                                                      REGISTERED_FUTURE·EFFECTIVE
 POST /worlds/{w}/sim/price-requests  {fixture_id}   (시연) 공급사가 요청을 보냈다 — REQ-2706-01 · REQ-2706-01-MISSING
 POST /worlds/{w}/purchase/reset                     (시연) 장면 2 기록만 처음으로 — 장면 1 수신함·원천 상태는 그대로
+```
+
+장면 5(실행 품의·예산 원장·공식 전망):
+
+```
+GET  /worlds/{w}/execution-requests                 → [{request_id, seq, version, task_id, scope, amount, reason, approval_ref, state,
+                                                       history:[{ref, version, state, by, at, note, recorded_at}]}]
+POST /worlds/{w}/execution-requests                 {request_id, version, task_id, scope, amount, reason, approval_ref, state, by, at, note, ref}
+                                                     상태 한 칸 — ref 멱등, 지난 판(version)이면 409
+GET  /worlds/{w}/budget-ledger                      → {transactions:[…], totals:{scope:{committed, paid, pnl_cost}}}
+POST /worlds/{w}/budget-ledger                      {txn_id, task_id, scope, request_ref, at, type: COMMIT|SETTLE, commitment_delta,
+                                                     paid_delta, pnl_cost, evidence, ref}   같은 거래·같은 내용이면 기존 줄, 다른 내용 409
+GET  /worlds/{w}/forecasts                          → {official, forecasts:[…]}
+POST /worlds/{w}/forecasts                          {forecast_id, run_id, parent_official, cutoff, annual, months:[{month, profit}],
+                                                     approved_at, approved_by, published_at, published_by, ref}   공식본을 이 판으로
+POST /worlds/{w}/execution/reset                    (시연) 장면 5 기록만 처음으로
 ```
 
 NowView는 이 쓰기를 **데모 실행 문서를 저장하기 직전에** 한다 — 회사가 받지 못하면 그 조작 전체가 저장되지 않는다.
@@ -265,7 +311,8 @@ PUT  /admin/config    → 설정 저장(검사 실패 422 + 사유)
 
 * 엔진이 회사 시스템의 사용자 명단을 읽지 않는다 — 기간계가 사원 명단을 내지만 엔진은 `domain.USERS`를
   쓴다. 장면 2~6도 쓰고 있어 업무를 옮길 때 함께 바꾼다. 결재 담당자 이름(BPMN `assignees`)은 Center 계정과 사람이 맞춘다.
-* 장면 5·6이 회사 시스템에 쓸 기록(예산 원장·실행 품의·공식 전망 게시)은 그 업무를 옮길 때 정한다. 장면 3의 회의·분석과제,
+* 장면 6이 회사 시스템에 쓸 기록은 그 업무를 옮길 때 정한다. 장면 5는 실행 품의·예산 원장·공식 전망을 회사에 적는다 — 고객
+  변경 원문(CP51·CP52)·구매 주문·근거는 아직 NowView 시드다(회사 수신함·구매 시스템으로 옮길지는 아직이다). 장면 3의 회의·분석과제,
   장면 4의 승인서·실행과제는 경영 기록이라 NowView에만 둔다. 장면 2의 협상·기안·결재
   기록은 NowView 문서에만 있다 — 회사 전자결재 기록으로 옮길지는 아직 정하지 않았다.
 * 회사 시스템이 죽으면 업무가 멈추고 일감은 재시도로 돌아간다. 공개 대시보드에는 「회사 시스템 연결 안 됨」 표시가 아직 없다(관리자

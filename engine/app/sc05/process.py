@@ -1,7 +1,7 @@
 """
 SC05 실행 — `processes/sc05.bpmn`을 **Studio 시험 실행·Center 서버 실행**이 돌고, NowView는 서비스
 태스크가 부르는
-시스템 작업(외부 확장 `nowview-sc05`)으로 업무를 적는다. 장면 3·4(`app/sc04/process.py`)와 같은
+시스템 작업(기본 확장 `external`)으로 업무를 적는다. 장면 3·4(`app/sc04/process.py`)와 같은
 틀이다.
 
 * **실행 위치는 데모 실행을 만들 때 정한다**(`bpm.executor`). 첫 작업 호출의 실행 id가 데모
@@ -17,6 +17,18 @@ SC05 실행 — `processes/sc05.bpmn`을 **Studio 시험 실행·Center 서버 �
   부른다. 기록 작업도 같은 검사를 다시 한다. 칸 이름 ↔ 입력 표를 따로 적지 않는다.
 * **가상시계를 옮기면 배경 원천이 들어온다**(`domain.catch_up`) — 시각 이동은 사람의 승인·착수를
   만들지 않는다.
+* **바깥에서 답해도 각본·시계가 따라간다**(장면 3·4와 같다) — 회사 사이트·Center 콘솔·NowView
+  화면에서 답한 결재의 기록이 각본 지점(`script_index`)을 옮기고, 그 효과를 내기 전에 가상시계를
+  그 단계 시각으로 옮긴다(`_follow_script`·`_clock_to_script`). 시계가 가면 그 시각까지의 배경
+  원천도 들어온다(`catch_up`) — 8/20 아침의 조건 근거를 기다리는 결재를 사이트에서 답할 수 있다.
+  시계를 옮기면 회사 세계의 시각도 함께다.
+* **실행 품의·예산 원장·공식 전망은 회사 기록이다**(Company1 기간계) — 저장 직전에 아직 회사에 적지
+않은
+  것(품의 상태 이력·원장 거래·공식본)을 적는다(`_sync_company`). 배경 원천으로 들어온 행(ACT41·43
+  품의·
+  정산 거래·9/6 FC50)도 같다. 회사가 받지 못하면 그 조작은 저장되지 않는다(503 — 장면 2와 같다).
+  계획·
+  조건·변경 대응·운영계획은 NowView 경영 기록이라 적지 않는다.
 * Agent 초안(AG51~AG58)과 그 검토 기록은 BPM 밖의 명령이다.
 
 **장면 5는 장면 4 인계(HANDOFF41)에서 시작한다.** 데모 실행 id가 장면 1~4와 같다. 장면 4가 완료
@@ -26,6 +38,7 @@ SC05 실행 — `processes/sc05.bpmn`을 **Studio 시험 실행·Center 서버 �
 
 from __future__ import annotations
 
+import copy
 import logging
 import threading
 import time
@@ -40,16 +53,19 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app.company import CompanyClient
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     USERS,
     DomainError,
     check_idempotency,
+    company_exchange,
     executor_of,
     link_external_run,
     name_of,
     new_center_ledger,
     note_external_progress,
+    ordered,
     parse_at,
     user_id_of,
 )
@@ -62,9 +78,9 @@ from app.sc05 import domain
 from app.sc05.seed import Seed, load_seed
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc05.bpmn"
-APP_ID = "nowview-sc05"
+APP_ID = "external"
 RECORDS = domain.RECORDS
-OPERATIONS = ("open_scene", *RECORDS)
+OPERATIONS = ("open_execution_plan", *RECORDS)
 #: 대기가 아니어도 요건부터 보는 결재 — 착수·대표 승인 요청·장면 완료(422와 남은 항목,
 #: T505·T523·T531)
 GATED = {
@@ -100,7 +116,7 @@ def run_operation(
     보이던 직전
     거절 사유를 비운다.
     """
-    if operation == "open_scene":
+    if operation == "open_execution_plan":
         return domain.open_scene(doc)
     if operation not in RECORDS:
         raise DomainError(f"모르는 작업: {operation}", 404)
@@ -108,6 +124,7 @@ def run_operation(
     if node_id not in domain.NODE_ROLES:
         raise DomainError(f"기록할 결재가 아니다: {node_id or '없음'}", 422)
     by, known = _by(args, actor)
+    _clock_to_script(doc, seed, node_id)
     domain.check(doc, operation, args)
     # 마스터 밖의 이름(콘솔 관리자)이면 「담당자만」은 Center가 결재 담당자로 이미 막았다 — 업무
     # 기록은
@@ -155,10 +172,12 @@ class Sc05Process:
         publish: Callable[[str], None] = lambda _id: None,
         center: CenterClient | None = None,
         center_wait_s: float = CENTER_WAIT_S,
+        company: CompanyClient | None = None,
     ) -> None:
-        """`center`를 주지 않으면 장면 4의 것을 쓴다(같은 Center·같은 키)."""
+        """`center`·`company`를 주지 않으면 장면 4의 것을 쓴다(같은 Center·같은 회사 시스템)."""
         self.store = store
         self.sc04 = sc04
+        self.company = company or sc04.company
         self.seed = seed or load_seed()
         self.process = read_process(PROCESS_PATH.read_bytes())
         self.engine = Engine()
@@ -231,12 +250,37 @@ class Sc05Process:
                 "visited": visited,
             }
             domain.sync_tasks(doc, dict(doc["bpm"]["snapshot"]["pendings"]))
+        # 바깥 답이 각본을 따라 시계를 옮겼으면 회사 세계의 시각도 — 장면 1~4와 같다.
+        if doc.pop("_company_clock", False):
+            self.company.set_clock(doc["demo_run_id"], doc["clock"])
+        self._sync_company(doc)
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
             raise DomainError("다른 요청이 먼저 바꿨다 — 새로 고친 뒤 다시 하라", 409) from exc
         self.publish(f"sc05:{doc['demo_run_id']}")
         return doc
+
+    def _sync_company(self, doc: dict) -> None:
+        """
+        아직 회사에 적지 않은 실행 품의 상태·예산 원장 거래·공식 전망을 적는다. 적은 것은
+        `company_synced`에 남긴다 — 회사 쪽도 ref·id로 멱등이라 재시도해도 겹치지 않는다. 회사가
+        받지
+        못하면 예외가 나가 이 조작은 저장되지 않는다.
+        """
+        world = doc["demo_run_id"]
+        done = doc.setdefault("company_synced", [])
+        for key, kind, record, what, doc_id, by in _company_records(doc):
+            if key in done:
+                continue
+            if kind == "request":
+                self.company.record_execution_request(world, record)
+            elif kind == "txn":
+                self.company.record_budget_txn(world, record)
+            else:
+                self.company.publish_forecast(world, record)
+            done.append(key)
+            company_exchange(doc, direction="out", what=what, doc_id=doc_id, by=by)
 
     def answer_args(self, node_id: str, answer: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """결재 답 → 뒤의 기록 작업 입력(그림의 `input` 대응). 답에 없는 변수는 넣지 않는다."""
@@ -255,7 +299,7 @@ class Sc05Process:
         """화면 답의 사전 검사 — 역할·담당(403), 그리고 기록 작업과 같은 업무 규칙(409·422)."""
         domain.check_actor(doc, node_id, actor)
         operation, args = self.answer_args(node_id, answer)
-        domain.check(doc, operation, args)
+        domain.check(_as_if_followed(doc, self.seed, node_id), operation, args)
 
     # ───────────── 시작 ─────────────
 
@@ -382,6 +426,8 @@ class Sc05Process:
             domain.audit(
                 doc, actor=actor, action="demo_run_reset", event_code="D500", executor=where
             )
+            # 회사의 장면 5 기록(품의·원장·공식 전망)도 처음으로 — 장면 1·2 기록은 그대로다
+            self.company.reset_execution(demo_run_id)
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
             return self._commit(doc, version, None, "reset")
@@ -408,6 +454,7 @@ class Sc05Process:
             )
             domain.catch_up(doc, self.seed)
             domain.raise_overdue_alerts(doc)
+            self.company.set_clock(demo_run_id, doc["clock"])  # 회사 세계의 시각도 함께
             return self._commit(doc, version, None, event_code or "clock")
 
     def mark(self, demo_run_id: str, *, event_code: str, script_index: int, note: str = "") -> dict:
@@ -440,6 +487,8 @@ class Sc05Process:
             doc, version = self._load(demo_run_id)
             if check_idempotency(doc, idempotency_key, ["start"]):
                 return doc
+            if script_index is None and doc.get("scene", {}).get("started_at") is None:
+                _clock_to_script(doc, self.seed, "start")  # 화면 착수도 각본 시각으로
             if not domain.start_scene(doc, by=actor):
                 return doc
             executor = executor_of(doc)
@@ -488,7 +537,7 @@ class Sc05Process:
         착수를 누르면
         「대기가 아니다」가 아니라 남은 요건(422 START_BLOCKED)을 돌려준다(T505·T523·T531).
         """
-        current = self.get(demo_run_id)
+        current = _as_if_followed(self.get(demo_run_id), self.seed, node_id)
         if node_id in GATED:
             GATED[node_id](current, self.answer_args(node_id, answer)[1])
         if node_id == "Complete_Scene":
@@ -888,6 +937,106 @@ def _check_expect(doc: dict, node_id: str, expect: dict[str, Any]) -> None:
             raise DomainError(f"본 산정본({run})이 최신이 아니다 — 다시 확인한다", 409)
 
 
+_STATE_WORD = {
+    "SUBMITTED": "상신",
+    "FUNCTION_APPROVED": "현업 승인",
+    "APPROVED": "예산 승인",
+    "RETURNED": "반려",
+}
+_SCOPE_WORD = {"ONEOFF": "일회성 준비비", "OPERATING": "운영지원비"}
+
+
+def _person(by: str | None) -> str:
+    return name_of(by) if by in USERS else (by or "")
+
+
+def _company_records(doc: dict) -> list[tuple[str, str, dict[str, Any], str, str, str]]:
+    """
+    회사에 적을 장면 5 기록 — (키, 종류, 본문, 기록 문장, 회사 문서 번호, 적은 사람). 품의는 상태
+    이력 한 칸마다(반려 뒤 다시 올린 품의는 새 판), 원장은 거래마다, 전망은 공식본(OFFICIAL)마다다.
+    """
+    world = doc["demo_run_id"]
+    out: list[tuple[str, str, dict[str, Any], str, str, str]] = []
+    for r in ordered(doc["requests"]):
+        version = 1
+        for i, h in enumerate(r["history"]):
+            version = int(h.get("version") or version)
+            by = _person(h.get("by"))
+            rid = r["request_id"]
+            record = {
+                "request_id": rid,
+                "version": version,
+                "task_id": r["task_id"],
+                "scope": r["scope"],
+                "amount": r["amount"],
+                "reason": r.get("reason") or "",
+                "approval_ref": r.get("approval_ref") or "",
+                "state": h["state"],
+                "by": by,
+                "at": h["at"],
+                "note": h.get("note") or "",
+                "ref": f"{world}:{rid}:{i}",
+            }
+            what = (
+                f"실행 품의를 적었다 — {rid} {_STATE_WORD.get(h['state'], h['state'])} · "
+                f"{_SCOPE_WORD.get(r['scope'], r['scope'])} {int(r['amount']):,}원"
+            )
+            out.append((f"req:{rid}:{i}", "request", record, what, rid, by))
+    for t in doc["ledger"]:
+        record = {
+            k: t[k]
+            for k in (
+                "txn_id",
+                "task_id",
+                "scope",
+                "request_ref",
+                "at",
+                "type",
+                "commitment_delta",
+                "paid_delta",
+                "pnl_cost",
+                "evidence",
+            )
+        }
+        record["ref"] = f"{world}:{t['txn_id']}"
+        word = {"COMMIT": "약정", "SETTLE": "정산"}.get(t["type"], t["type"])
+        what = (
+            f"예산 원장에 적었다 — {t['txn_id']} {t['request_ref']} {word} "
+            f"(약정 {int(t['commitment_delta']):+,} · 집행 {int(t['paid_delta']):+,}원)"
+        )
+        out.append((f"txn:{t['txn_id']}", "txn", record, what, t["txn_id"], ""))
+    for f in ordered(doc["forecasts"]):
+        if f.get("kind") != "OFFICIAL":
+            continue
+        record = {
+            "forecast_id": f["forecast_id"],
+            "run_id": f["run_id"],
+            "parent_official": f.get("parent_official"),
+            "cutoff": f["cutoff"],
+            "annual": f["annual"],
+            "months": [{"month": m["period"], "profit": m["profit"]} for m in f["months"]],
+            "approved_at": f["approved_at"],
+            "approved_by": _person(f.get("approved_by")),
+            "published_at": f.get("published_at") or f["approved_at"],
+            "published_by": _person(f.get("published_by")),
+            "ref": f"{world}:{f['forecast_id']}",
+        }
+        what = f"공식 전망을 게시했다 — {f['forecast_id']} 2027 연간 {int(f['annual']):,}원" + (
+            f" ({f['parent_official']}을 바꿨다)" if f.get("parent_official") else ""
+        )
+        out.append(
+            (
+                f"fc:{f['forecast_id']}",
+                "forecast",
+                record,
+                what,
+                f["forecast_id"],
+                record["published_by"],
+            )
+        )
+    return out
+
+
 def _landed(doc: dict, node_id: str) -> None:
     """대리 답한 결재의 기록이 왔다(적혔든 거절됐든) — 「반영 중」에서 뺀다."""
     inflight = ((doc.get("bpm") or {}).get("center") or {}).get("inflight")
@@ -901,10 +1050,10 @@ def _script_follow(doc: dict) -> dict[str, list[str]]:
 
 def _follow_script(doc: dict, seed: Seed, done: str | None) -> None:
     """
-    화면에서 직접 한 일도 각본의 진행 표시(`step`·`script_index`)를 옮긴다 — 장면 3과 같다.
-    안 그러면 손으로 착수·계획 확정을 해도 플레이어가 D500에 머물고, 「다음」이 「단계를 건너뛸
-    수 없다 — 다음은 0번이다」로 멈췄다(2026-10-28 화면 직접 진행 실측). 효과가 난 자리(기록
-    작업)에서 부르므로 내장·Studio·Center가 같다.
+    화면·회사 사이트·콘솔에서 직접 한 일도 각본의 진행 표시(`step`·`script_index`)를 옮긴다 —
+    장면 3·4와 같다. 안 그러면 손으로 착수·계획 확정을 해도 플레이어가 D500에 머물고, 「다음」이
+    「단계를 건너뛸 수 없다 — 다음은 0번이다」로 멈췄다(2026-10-28 화면 직접 진행 실측). 효과가 난
+    자리(기록 작업)에서 부르므로 내장·Studio·Center가 같다.
 
     화면이 한 결정을 `ahead`에 모으고, 각본의 다음 결재가 거기 있으면 그것과 그 앞의 비결재
     단계(Agent·검토·조회)를 함께 지나간다 — 조건·품의 결재는 병렬이라 순서가 바뀌고, 사이의 Agent
@@ -920,21 +1069,85 @@ def _follow_script(doc: dict, seed: Seed, done: str | None) -> None:
             follow["pending"].remove(done)
         else:
             follow["ahead"].append(done)
-    steps = steps_for(doc["case_id"], seed)
-    i = doc.get("script_index", -1) + 1
-    moved = None
-    while i < len(steps):
-        step = steps[i]
-        key = "start" if step.kind == "start" else step.node_id if step.kind == "act" else None
-        if key is not None:
-            if key not in follow["ahead"]:
-                break
-            follow["ahead"].remove(key)
-            moved = i
-        i += 1
+    moved = _passes(doc, seed, follow["ahead"])
     if moved is not None:
+        steps = steps_for(doc["case_id"], seed)
+        for step in steps[doc.get("script_index", -1) + 1 : moved + 1]:
+            key = _key(step)
+            if key is not None:
+                follow["ahead"].remove(key)
         doc["step"] = steps[moved].code
         doc["script_index"] = moved
+
+
+def _key(step: Any) -> str | None:
+    return "start" if step.kind == "start" else step.node_id if step.kind == "act" else None
+
+
+def _passes(doc: dict, seed: Seed, ahead: list[str]) -> int | None:
+    """`ahead`의 결정들로 각본을 어디까지 지나가나 — 마지막으로 지나는 결재·착수 단계"""
+    from app.sc05.demo import steps_for
+
+    left = list(ahead)
+    steps = steps_for(doc["case_id"], seed)
+    moved = None
+    for i in range(doc.get("script_index", -1) + 1, len(steps)):
+        key = _key(steps[i])
+        if key is None:
+            continue
+        if key not in left:
+            break
+        left.remove(key)
+        moved = i
+    return moved
+
+
+def _as_if_followed(doc: dict, seed: Seed, node_id: str) -> dict:
+    """
+    사전 검사가 볼 문서 — 이 답의 기록이 시계를 각본 시각으로 옮길 것이면(`_clock_to_script`) 그렇게
+    옮기고 배경 원천을 들인 **사본**이다. 기록 작업은 시계를 옮긴 뒤 검사하는데 사전 검사가 지금
+    시각으로 보면 8/20 아침 근거(DOC51)를 못 봐 화면 답만 404로 막혔다. 원본은 바꾸지 않는다.
+    """
+    trial = copy.deepcopy(doc)
+    _clock_to_script(trial, seed, node_id)
+    return trial if trial["clock"] != doc["clock"] else doc
+
+
+#: 답이 시계를 옮기지 않는 결재 — 운영 적용 착수는 적용일(9/1 09:00) 자체가 업무 조건이다. 답이
+#: 시계를 각본 시각으로 당기면 8/20에 누른 착수가 9/1로 넘어가 T506(요건이 다 서도 적용일 전에는
+#: 착수 불가)을 사람이 답으로 넘는다. 시각은 시연관리자가 옮긴다(플레이어 「다음 단계 시각」).
+HOLD_CLOCK = {"Start_Operation"}
+
+
+def _clock_to_script(doc: dict, seed: Seed, done: str) -> None:
+    """
+    바깥에서 한 일(회사 사이트·Center 콘솔·NowView 화면 답)이 각본의 다음 결재를 지나가면 **그
+    효과를 내기 전에** 가상시계를 그 단계의 시각으로 옮긴다 — 플레이어가 단계를 실행할 때와 같다
+    (장면 1~4). 뒤로는 가지 않는다. 시계가 가면 그 시각까지의 배경 원천도 들인다(`catch_up` —
+    `set_clock`과 같다). 안 그러면 8/20 아침에 오는 조건 근거를 아직 못 봐 사이트 답이 거절된다.
+    각본이 대리 답한 결재(`pending`)는 각본이 이미 시계를 옮겼다. 시각은 이번 결정의 단계 시각이다
+    — 먼저 답해 둔 결재와 함께 지나갈 때 지나가는 마지막 단계 시각을 쓰면 뒤 시각으로 적힌다(장면
+    4).
+    """
+    from app.sc05.demo import steps_for
+
+    follow = _script_follow(doc)
+    if done in follow["pending"] or done in HOLD_CLOCK:
+        return
+    moved = _passes(doc, seed, [*follow["ahead"], done])
+    if moved is None:
+        return
+    steps = steps_for(doc["case_id"], seed)
+    own = max(
+        i for i in range(doc.get("script_index", -1) + 1, moved + 1) if _key(steps[i]) == done
+    )
+    at = parse_at(steps[own].at)
+    if at > parse_at(doc["clock"]):
+        doc["clock"] = at.isoformat()
+        doc["_company_clock"] = True
+        domain.audit(doc, actor="system", action="clock_followed_script", to=doc["clock"])
+        domain.catch_up(doc, seed)
+        domain.raise_overdue_alerts(doc)
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:
