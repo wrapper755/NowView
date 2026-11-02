@@ -161,8 +161,10 @@ function StepRow({ step, waiting }: { step: ProcedureStep; waiting: boolean }) {
         {r ? (
           <>
             <StateTag tone={r.state === "REWORK_REQUESTED" || r.result === "MISMATCH" ? "warn" : "good"}>
-              {r.state ?? (r.result ? (r.result === "MATCH" ? "일치" : "불일치") : "반영")} · {shortClock(r.at)}
+              {r.state ?? (r.result ? (r.result === "MATCH" ? "일치" : "불일치") : r.evidence_type === "SETTINGS_SNAPSHOT" ? "반영" : `예약(${r.evidence_type})`)} ·{" "}
+              {shortClock(r.at)}
             </StateTag>
+            {waiting ? <StateTag tone="open">다시 결재 대기</StateTag> : null}
             {r.content ? (
               <p className="text-xs">
                 {r.content}

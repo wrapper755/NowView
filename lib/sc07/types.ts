@@ -222,7 +222,16 @@ export interface ProcedureStep {
   assignee: string;
   assigneeName: string;
   plannedAt: string | null;
-  record: { record_id: string; actor: Person | null; at: string; state?: string; content?: string; version?: string; result?: string } | null;
+  record: {
+    record_id: string;
+    actor: Person | null;
+    at: string;
+    state?: string;
+    content?: string;
+    version?: string;
+    result?: string;
+    evidence_type?: string;
+  } | null;
 }
 
 export interface SettingRecord {

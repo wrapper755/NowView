@@ -217,7 +217,8 @@ export function useUserName(): (id: string | null | undefined) => string {
     if (!id) return "—";
     if (id === "system") return "시스템";
     const u = users.find((x) => x.userId === id);
-    return u ? `${u.role} ${u.name}` : id;
+    // 역할명을 이름으로 쓰는 계정(장면 7 운영담당·구현담당)은 한 번만
+    return u ? (u.role === u.name ? u.name : `${u.role} ${u.name}`) : id;
   };
 }
 

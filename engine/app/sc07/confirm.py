@@ -359,7 +359,8 @@ def record_of(doc: dict, node_id: str) -> dict | None:
     if s is None:
         return None
     if rid == "CFG71":
-        return {"actor": s["applied_by"], "at": s["applied_at"]}
+        evidence = s["evidence_type"]
+        return {"actor": s["applied_by"], "at": s["applied_at"], "evidence_type": evidence}
     if rid == "CFG71-R" and s["checked_at"]:
         return {"actor": s["checked_by"], "at": s["checked_at"], "result": s["check_result"]}
     return None

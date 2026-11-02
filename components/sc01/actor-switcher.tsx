@@ -34,7 +34,7 @@ export function ActorSwitcher() {
           .filter((u) => u.role !== "시연관리자")
           .map((u) => (
             <option key={u.userId} value={u.userId}>
-              {u.role} · {u.name}
+              {u.role === u.name ? u.name : `${u.role} · ${u.name}`}
             </option>
           ))}
       </select>
