@@ -122,6 +122,28 @@ class CostVersionBody(BaseModel):
     ref: str
 
 
+class RecordBody(BaseModel):
+    """
+    경영 기록 한 판 — 봉투는 공통, 본문(`body`)은 종류별 스키마다(주인은 NowView
+    `docs/records/`). 기간계는 봉투만 검사한다 — 본문을 다시 해석하지 않는다.
+    """
+
+    kind: str = Field(pattern=r"^[a-z][a-z0-9_]{1,40}$")
+    record_id: str = Field(min_length=1, max_length=120)
+    version: int = Field(ge=1)
+    scene: int = Field(ge=1, le=99)
+    state: str | None = None
+    at: str  # 업무 시각(그 기록이 생긴 시각) — 기록 시각은 세계 시각이다
+    by: str | None = None
+    title: str = ""
+    body: dict[str, Any]
+    ref: str  # 멱등 — 같은 ref·같은 내용이면 다시 적지 않는다
+
+
+class RecordsReset(BaseModel):
+    scene: int = Field(ge=1, le=99)
+
+
 def _auth_dependency():
     key = os.getenv("COMPANY_TWIN_KEY") or ""
     off = os.getenv("COMPANY_TWIN_AUTH", "").lower() == "off"
@@ -147,6 +169,7 @@ def _new_world(world_id: str) -> dict[str, Any]:
         "status_log": [],
         **_new_purchase(),
         **_new_execution(),
+        **_new_records(),
     }
 
 
@@ -172,6 +195,17 @@ def _execution(w: dict[str, Any]) -> dict[str, Any]:
     return w
 
 
+def _new_records() -> dict[str, Any]:
+    """경영 기록(NowView 일꾼이 적는다, role-split §3). 옛 세계는 읽을 때 채운다."""
+    return {"records": {}, "records_seq": 0}
+
+
+def _records(w: dict[str, Any]) -> dict[str, Any]:
+    for k, v in _new_records().items():
+        w.setdefault(k, v)
+    return w
+
+
 #: 예산 원장 거래에서 같은 거래인지 가르는 칸
 TXN_FIELDS = (
     "txn_id",
@@ -184,6 +218,8 @@ TXN_FIELDS = (
     "paid_delta",
     "pnl_cost",
 )
+#: 경영 기록에서 같은 판인지 가르는 칸 — 기록 시각·ref는 다시 와도 같은 판이다.
+RECORD_FIELDS = ("kind", "record_id", "version", "scene", "state", "at", "by", "title", "body")
 #: 공식 전망에서 같은 판인지 가르는 칸
 FORECAST_FIELDS = ("forecast_id", "run_id", "parent_official", "cutoff", "annual", "approved_at")
 
@@ -641,6 +677,87 @@ def build_app(store: WorldStore) -> FastAPI:
             w.update(_new_execution())
             store.put(w)
         return {"world_id": world_id, "clock": w["clock"]}
+
+    # ───────────── 경영 기록 — 봉투 공통, 본문은 종류별 스키마(NowView docs/records/) ─────────────
+
+    def _latest(r: dict[str, Any]) -> dict[str, Any]:
+        return {k: v for k, v in r.items() if k != "history"} | {"history_count": len(r["history"])}
+
+    @app.get("/worlds/{world_id}/records", dependencies=[Depends(auth)])
+    def list_records(
+        world_id: str, scene: int | None = None, kind: str | None = None, state: str | None = None
+    ) -> list[dict[str, Any]]:
+        """각 기록의 최신 판(처음 적은 순서). 지난 판은 단건 조회의 history에 있다."""
+        w = _records(world(world_id))
+        found = sorted(w["records"].values(), key=lambda r: r["seq"])
+        return [
+            _latest(r)
+            for r in found
+            if (scene is None or r["scene"] == scene)
+            and (kind is None or r["kind"] == kind)
+            and (state is None or r["state"] == state)
+        ]
+
+    @app.get("/worlds/{world_id}/records/{kind}/{record_id}", dependencies=[Depends(auth)])
+    def get_record(world_id: str, kind: str, record_id: str) -> dict[str, Any]:
+        r = _records(world(world_id))["records"].get(f"{kind}/{record_id}")
+        if r is None:
+            raise HTTPException(404, f"없는 기록: {kind}/{record_id}")
+        return r
+
+    @app.post("/worlds/{world_id}/records", dependencies=[Depends(auth)])
+    def write_record(world_id: str, body: RecordBody) -> dict[str, Any]:
+        """
+        기록 한 판을 적는다. 같은 ref·같은 내용은 기존 판(`recorded: false`), 같은 ref에 다른
+        내용은 409. 새 판(version이 더 크다)이면 앞 판을 history로 옮긴다 — 지우지 않는다.
+        지난 판이거나 같은 판에 다른 ref면 409(지난 결재가 새 기록을 덮지 않는다).
+        """
+        record = body.model_dump()
+        key = f"{body.kind}/{body.record_id}"
+        with store.lock():
+            w = _records(world(world_id))
+            found = w["records"].get(key)
+            if found is not None:
+                for past in [found, *found["history"]]:
+                    if past["ref"] == body.ref:
+                        if any(past[k] != record[k] for k in RECORD_FIELDS):
+                            raise HTTPException(
+                                409, f"같은 ref에 다른 내용이 이미 있다: {body.ref}"
+                            )
+                        return {**_latest(found), "recorded": False}
+                if body.version <= found["version"]:
+                    raise HTTPException(
+                        409,
+                        f"{key} v{body.version}은 지난 판이다(지금 v{found['version']})",
+                    )
+                prior = {k: v for k, v in found.items() if k != "history"}
+                found = {
+                    **record,
+                    "seq": found["seq"],
+                    "recorded_at": w["clock"],
+                    "history": [*found["history"], prior],
+                }
+            else:
+                w["records_seq"] += 1
+                found = {
+                    **record,
+                    "seq": w["records_seq"],
+                    "recorded_at": w["clock"],
+                    "history": [],
+                }
+            w["records"][key] = found
+            store.put(w)
+        return {**_latest(found), "recorded": True}
+
+    @app.post("/worlds/{world_id}/records/reset", dependencies=[Depends(auth)])
+    def reset_records(world_id: str, body: RecordsReset) -> dict[str, Any]:
+        """(시연) 그 장면의 기록만 처음으로 — 다른 장면 기록과 회사 자료는 그대로다."""
+        with store.lock():
+            w = _records(world(world_id))
+            before = len(w["records"])
+            w["records"] = {k: r for k, r in w["records"].items() if r["scene"] != body.scene}
+            store.put(w)
+        return {"world_id": world_id, "removed": before - len(w["records"])}
 
     return app
 

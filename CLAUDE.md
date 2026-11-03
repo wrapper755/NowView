@@ -142,6 +142,10 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   BPM 프로세스 매핑·토픽·회사 시스템 주소·일꾼 상태(요청 코드)는 **관리자 모드 `/admin`**(로그인)에만 있다. 업무(장면) 목록은
   코드다(`lib/companies.ts`의 `SCENES` = 엔진 `SCENE_WORKS`). **장면은 하나씩 옮겼다** — 장면 1~6 모두 `external` 확장이다(2026-11-02 장면 6을 마지막으로
   옮겼다). 장면 7은 처음부터 `external`(0.7.0)로 만들었다(2026-11-03). 옮길 때마다 그 장면을 Center에 다시 등록하고 실행·시험·수정을 반복했다.
+* **세 서버로 나눈다**(2026-11-03 사용자 결정, `docs/role-split.md`) — BPM 서버(Center)는 흐름·결재, NowView는 일꾼·외부 서비스
+  연계·N개 회사 대시보드·관리자, 회사 사이트(Company1)는 **업무에 관한 것 전부**(직원 업무함·결재·업무 판단 화면·회사 자료·업무 설명·
+  시연 조작). **경영 기록의 원본은 회사 시스템(기간계)이다** — 아래 10-31의 「경영 기록은 NowView 몫」을 바꿨다(규칙 계산은 그대로
+  NowView). 회사 사이트는 NowView를 부르지 않는다. 지금 장면 화면·플레이어는 전환 중이다 — 단계는 그 문서 §4.
 * **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
   몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 리포 Company1의 기간계**(:8191)이고 엔진이 `app/company.py`로 읽고 적는다.
@@ -274,7 +278,7 @@ NowView/
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
 ├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~7)
-├── docs/                         # chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
+├── docs/                         # role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
@@ -364,7 +368,7 @@ NowView/
     │   ├── preparation.py        # 장면 2~6 시작의 배경 진행 · 준비 상태(4.3)
     │   ├── script_wait.py        # Center 실행의 각본이 앞 결재의 기록 작업을 기다린다(장면 3~5, 4.17)
     │   └── sc01/                 # seed · calc · domain · process · store · demo · view · api · auth
-    │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3
+    │                             #   · center(Center 클라이언트) · poller(진행 폴링) — N3 · records(회사에 적는 경영 기록)
     │   └── sc02/                 # seed · calc · domain · agent · process(내장·Studio·Center) · demo · view · api (저장은 sc01/store의 `sc02_*`)
     │   └── sc03/                 # seed · calc(장면 2 월별 계산 재사용) · domain · agent · process · demo · view · api (`sc03_*`)
     │   └── sc04/                 # seed · calc(효과·중복·검증·잔여 부족, 기준은 장면 3 계산) · domain · agent · process · demo · view · api (`sc04_*`)
@@ -373,7 +377,7 @@ NowView/
     │                             #   · confirm(확인 절차 — 결재 검사·기록·업무) · process(내장·Studio·Center) · demo(D601~D607) · view · api (`sc06_*`)
     │   └── sc07/                 # seed · calc(대행 확인·소요시간·원인 후보·Agent 입력 투영·검증 TS71-v1·적용 상태 ST703~707) · domain(적재 검사·조회)
     │                             #   · confirm(확인·적용 절차) · process(내장·Studio·Center) · demo(D701~D705) · view · api (`sc07_*`)
-    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center,
+    └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _records,
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process · _external, test_sc07_calc · _process · _external,
@@ -534,6 +538,13 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
   않았다. 장면 1 고객계획·BPM 흐름 화면의 「회사 시스템과 오간 것」 카드가 보이고, 회사 설정의 공개 `site_url`(비우면 환경
   `COMPANY_{ID}_SITE_URL`, 로컬 `http://localhost:3100`)이 있으면 회사 사이트의 그 문서(`/legacy/worlds/{데모실행}/docs/{doc}`)로
   링크한다. 이 기록 전에 만든 데모 실행은 빈 목록이다(초기화하면 생긴다).
+* **경영 기록은 회사에 적는다**(2026-11-03, `docs/role-split.md` §3 — 1단계 장면 1 파일럿). `app/sc01/records.py`가 화면이 읽는
+  모양 그대로(`view.view`·`view.dashboard_all`) 기록 열 종류(`scene`·`source`·`forecast`·`calc_run`·`issue`·`task`·`review`·
+  `agent_draft`·`handoff`·`dashboard`)를 짓고, `Sc01Process._write_records`가 **바뀐 것만 새 판으로** 기간계 `POST /worlds/{w}/records`에
+  적는다 — `_commit`(원천 확인 상태 쓰기 바로 뒤)·생성·Agent 초안 저장 직전이고, 회사가 받지 못하면 그 조작은 저장되지 않는다(503).
+  판·해시는 문서의 `company_records`, ref = `데모실행:종류/id:v판`. 본문 스키마의 주인은 NowView(`docs/records/` — 봉투 + 종류별)이고
+  기간계는 봉투만 본다. 회사 사이트(Company1 `/work/{회차}/sc01`)가 이것만 읽어 업무 화면 다섯을 그린다. 화면이 하던 뺄셈(목표 부족액·
+  사건 영향)은 `dashboard.gaps`로 옮겼다. 장면 2~7은 아직 적지 않는다(role-split §4 3단계).
 * **장면 2~6 시작은 오래 걸리면 202다**(`app/preparation.py`, 2026-10-27). 시작은 앞 장면을 각본으로 끝까지 실제로 실행한다 —
   Center 실행이면 장면 3 시작이 약 7분이라 BFF의 `fetch`(undici 응답 헤더 기본 300초)가 503을 냈다(엔진은 끝까지 갔다). 운영계는
   Cloudflare가 약 100초에 끊는다(4.15) — 시간 늘리기로는 안 된다.
@@ -908,6 +919,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_agent.py` | Agent 계약 검증(틀린 금액·비율·물량, 없는 근거, 빠진 항목), EX08, 실패 응답 비노출, 재생성·채택·지연, **잠금 밖 실행**, `-m llm` 실호출 |
 | `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
 | `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
+| `engine/tests/test_sc01_records.py` | 경영 기록 — 기본 시연 동안 적은 **모든 판**(최신·지난 판)이 봉투·종류별 스키마(`docs/records/`)를 통과, 회사 기록 = 엔진 문서(B07 중요·b 7월 M01 700·M03 −1,400만·완료 조건·대시보드 기간), 바뀌지 않은 기록은 판 하나, 회사가 못 받으면 저장 안 함 → 다시 하면 이어짐, 사이트 예시(`docs/records/sc01/examples/base-end.json`)가 스키마를 통과하고 지금 적는 기록 목록과 같다(다시 만들기 `NOWVIEW_WRITE_RECORD_EXAMPLES=1`) — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체, **바깥 답(회사 사이트 흉내)이 각본 지점을 옮김**(병렬 인수 순서 바뀜·플레이어와 섞기) — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |

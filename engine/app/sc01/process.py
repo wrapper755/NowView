@@ -520,6 +520,7 @@ class Sc01Process:
                 doc_id=doc_id,
                 by=record["by"],
             )
+        self._write_records(doc)
         # 초안 작업 대기열은 저장하지 않는다 — 저장이 끝난 뒤 던진다(_dispatch).
         jobs = doc.pop("_agent_queue", [])
         try:
@@ -529,6 +530,16 @@ class Sc01Process:
         self.publish(f"sc01:{doc['demo_run_id']}")
         doc["_jobs"] = jobs  # 메모리에만 — 잠금을 놓은 뒤 _dispatch가 꺼낸다
         return doc
+
+    def _write_records(self, doc: dict) -> None:
+        """
+        경영 기록을 회사에 적는다 — 바뀐 것만 새 판으로(`records.py`, `docs/role-split.md` §3).
+        원천 확인 상태처럼 저장 직전이다 — 회사가 받지 못하면 이 조작은 저장되지 않는다(503).
+        """
+        from app.sc01 import records
+
+        for record in records.pending_writes(doc, self.seed):
+            self.company.write_record(doc["demo_run_id"], record)
 
     def _dispatch(self, doc: dict) -> dict:
         """저장된 조작이 만든 초안 작업을 던진다. **잠금 밖에서** 부른다."""
@@ -594,6 +605,7 @@ class Sc01Process:
                     return
                 if not domain.finish_agent(doc, output_id, result=result):
                     return  # 초기화 등으로 이미 사라졌거나 끝난 기록이다
+                self._write_records(doc)
                 try:
                     self.store.save(demo_run_id, doc, version, f"agent:{output_id}")
                 except StaleWrite:
@@ -649,6 +661,7 @@ class Sc01Process:
             case_id=case_id,
             executor=executor,
         )
+        self._write_records(doc)
         self.store.insert(demo_run_id, doc)
         return doc
 

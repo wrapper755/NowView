@@ -261,6 +261,42 @@ def dashboard(doc: dict, seed: Seed, *, period: str = "연간", month: int = 7) 
     }
 
 
+def dashboard_all(doc: dict, seed: Seed) -> dict[str, Any]:
+    """
+    UI01을 회사 기록으로 — 화면이 고르는 기간(PERIODS)·월(7~9월)을 다 미리 계산해 싣는다
+    (`records.py`). 회사 사이트는 고르기만 하고 계산하지 않는다.
+    """
+    by_month = {m: dashboard(doc, seed, period="연간", month=m) for m in (7, 8, 9)}
+    base = by_month[7]
+    plans: dict[str, Any] = {"T01": seed.plans["T01"], "F01": seed.plans["F01"]}
+    if base["review"] is not None:
+        review = doc["forecasts"][base["review"]]
+        plans[base["review"]] = domain._plan_from(review["quantities"])
+    months = {name: monthly_pnl(plan, seed) for name, plan in plans.items()}
+    latest = base["review"] or "F01"
+    totals = {
+        p: {name: period_pnl(m, *PERIODS[p]) for name, m in months.items()} for p in PERIODS
+    }
+    return {
+        **{k: v for k, v in base.items() if k not in ("period", "totals", "month", "models")},
+        "periods": list(PERIODS),
+        "totals": {p: {name: _pnl(x) for name, x in t.items()} for p, t in totals.items()},
+        # 목표 부족액(최신 − T01)과 이번 사건 영향(최신 − F01)을 나눠 싣는다(AT07) — 사이트는 빼지
+        # 않는다. 검토 전망이 없으면 사건 영향은 없다(null).
+        "gaps": {
+            p: {
+                "targetGap": str(t[latest].mgmt_profit - t["T01"].mgmt_profit),
+                "eventImpact": str(t[latest].mgmt_profit - t["F01"].mgmt_profit)
+                if base["review"]
+                else None,
+            }
+            for p, t in totals.items()
+        },
+        "months": [d["month"] for d in by_month.values()],
+        "models": {d["month"]: d["models"] for d in by_month.values()},
+    }
+
+
 def _record_of(node: Any, process: BpmnProcess) -> str | None:
     """
     결정 기록 태스크면 그 결재. 기록 태스크에 붙은 오류 경계(「기록 거절」 → 같은 결재로)도 그

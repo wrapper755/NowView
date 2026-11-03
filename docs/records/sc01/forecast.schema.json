@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/forecast.schema.json",
+  "title": "장면 1 forecast",
+  "description": "검토 전망(F02 …) — 물량은 calc_run의 latest에 있다(UI04)",
+  "type": "object",
+  "required": [
+    "version_id",
+    "seq",
+    "source_id",
+    "approval",
+    "created_at"
+  ],
+  "properties": {
+    "version_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "approval": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

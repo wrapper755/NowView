@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/scene.schema.json",
+  "title": "장면 1 scene",
+  "description": "장면 상태 — 화면 머리(가상시각·장면 상태·실행 위치)와 판정 임계값(R01)·알림·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "demoRunId",
+    "caseId",
+    "clock",
+    "scene",
+    "executor",
+    "bpm",
+    "latestRunId",
+    "rules",
+    "alerts",
+    "companyLog"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scene": {
+      "enum": [
+        "READY",
+        "ACTIVE",
+        "HANDED_OFF"
+      ]
+    },
+    "executor": {
+      "enum": [
+        "embedded",
+        "studio",
+        "center"
+      ]
+    },
+    "bpm": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "executor",
+            "state",
+            "visited"
+          ],
+          "properties": {
+            "executor": {
+              "type": "string"
+            },
+            "externalRunId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state": {
+              "type": "string"
+            },
+            "visited": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "latestRunId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "seq",
+          "at",
+          "direction",
+          "what"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "enum": [
+              "in",
+              "out"
+            ]
+          },
+          "what": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

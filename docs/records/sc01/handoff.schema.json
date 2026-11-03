@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/handoff.schema.json",
+  "title": "장면 1 handoff",
+  "description": "인계 — 장면 완료 조건·후속 업무 인계·정정 이력·감사 이력(UI06)",
+  "type": "object",
+  "required": [
+    "handoff",
+    "handoffCheck",
+    "handoffHistory",
+    "bpmHistory",
+    "audit"
+  ],
+  "properties": {
+    "handoff": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "at"
+          ],
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "handoffCheck": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "run_id",
+            "required",
+            "accepted",
+            "conditions",
+            "met",
+            "reasons"
+          ],
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "required": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "accepted": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            },
+            "conditions": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "boolean"
+              }
+            },
+            "met": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "handoffHistory": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "bpmHistory": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "audit": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "seq",
+          "at",
+          "actor",
+          "action"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "actor_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "action": {
+            "type": "string"
+          },
+          "event_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

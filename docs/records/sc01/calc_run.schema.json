@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/calc_run.schema.json",
+  "title": "장면 1 calc_run",
+  "description": "비교 계산 한 번 — 모델·월별 지표와 위험 판정(UI03·UI04). 숫자는 규칙 계산이다",
+  "type": "object",
+  "required": [
+    "run_id",
+    "seq",
+    "status",
+    "versions",
+    "source_id",
+    "at",
+    "results"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "period",
+          "risk",
+          "metrics"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "prior": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "latest": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "unit_cm": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "risk": {
+            "enum": [
+              "NORMAL",
+              "ATTENTION",
+              "CRITICAL",
+              "UNDETERMINED"
+            ]
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "metric_id",
+                "value",
+                "unit",
+                "computable"
+              ],
+              "properties": {
+                "metric_id": {
+                  "type": "string"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "computable": {
+                  "type": "boolean"
+                },
+                "risk_level": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "NORMAL",
+                        "ATTENTION",
+                        "CRITICAL",
+                        "UNDETERMINED"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

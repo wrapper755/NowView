@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/dashboard.schema.json",
+  "title": "장면 1 dashboard",
+  "description": "경영 현황(UI01) — 기간 17개·월 7~9월을 모두 미리 계산했다. 사이트는 고르기만 한다",
+  "type": "object",
+  "required": [
+    "scope",
+    "asOf",
+    "versions",
+    "approved",
+    "review",
+    "trend",
+    "periods",
+    "totals",
+    "months",
+    "models",
+    "openIssues",
+    "gaps"
+  ],
+  "properties": {
+    "scope": {
+      "type": "object"
+    },
+    "asOf": {
+      "type": "object",
+      "required": [
+        "actualCutoff",
+        "forecast"
+      ],
+      "properties": {
+        "actualCutoff": {
+          "type": "string"
+        },
+        "forecast": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "versions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "approved": {
+      "type": "string"
+    },
+    "review": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "trend": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "month",
+          "basis"
+        ],
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "periods": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "revenue",
+            "cm",
+            "fixed",
+            "mgmtProfit"
+          ],
+          "properties": {
+            "revenue": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "cm": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "fixed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "mgmtProfit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        }
+      }
+    },
+    "months": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "modelId",
+            "target",
+            "prior",
+            "latest",
+            "risk"
+          ],
+          "properties": {
+            "modelId": {
+              "type": "string"
+            },
+            "target": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "prior": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "latest": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "actual": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "risk": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "NORMAL",
+                    "ATTENTION",
+                    "CRITICAL",
+                    "UNDETERMINED"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "achievement": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "openIssues": {
+      "type": "integer"
+    },
+    "gaps": {
+      "type": "object",
+      "description": "기간마다 목표 부족액(최신 − T01)과 이번 사건 영향(최신 − F01, 검토 전망 전에는 null)",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "targetGap",
+          "eventImpact"
+        ],
+        "properties": {
+          "targetGap": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "eventImpact": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -288,6 +288,24 @@ POST /worlds/{w}/forecasts                          {forecast_id, run_id, parent
 POST /worlds/{w}/execution/reset                    (시연) 장면 5 기록만 처음으로
 ```
 
+경영 기록(2026-11-03, `docs/role-split.md` §3 — **봉투는 공통, 본문은 종류별 스키마** `docs/records/`):
+
+```
+POST /worlds/{w}/records          {kind, record_id, version, scene, state, at, by, title, body, ref}
+                                   같은 ref·같은 내용 → 기존 판(recorded: false), 같은 ref·다른 내용 → 409.
+                                   새 판(version이 더 크다)이면 앞 판을 history로 옮긴다(지우지 않는다).
+                                   지난 판·같은 판에 다른 ref → 409. 기록 시각(recorded_at)은 세계 시각
+GET  /worlds/{w}/records?scene=&kind=&state=     → 각 기록의 최신 판(처음 적은 순서, history_count)
+GET  /worlds/{w}/records/{kind}/{record_id}      → 최신 판 + history
+POST /worlds/{w}/records/reset {scene}           (시연) 그 장면 기록만 처음으로. 세계 초기화는 기록도 비운다
+```
+
+* 장면 1이 적는 종류는 `scene`·`source`·`forecast`·`calc_run`·`issue`·`task`·`review`·`agent_draft`·`handoff`·`dashboard`다
+  (`engine/app/sc01/records.py`). 본문은 NowView 장면 1 화면이 읽는 모양 그대로다(2026-11-03 사용자 결정). 바뀐 기록만 새 판으로
+  적고(문서의 `company_records`에 판·본문 해시), ref = `데모실행:종류/id:v판`이다. 회사 사이트는 이 기록만 읽어 업무 화면을 그린다.
+* **기간계는 봉투만 검사한다** — 본문의 주인은 NowView다. 엔진 시험(`test_sc01_records.py`)이 적은 모든 판을 스키마로 검사하고, 사이트
+  시험(Company1 `site-api/tests/test_work.py`)이 같은 예시(`docs/records/sc01/examples/base-end.json`)로 읽기를 검사한다.
+
 NowView는 이 쓰기를 **데모 실행 문서를 저장하기 직전에** 한다 — 회사가 받지 못하면 그 조작 전체가 저장되지 않는다.
 
 시뮬레이터 조작(시연 전용 — 실제 회사 시스템에는 없다):

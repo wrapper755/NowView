@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/task.schema.json",
+  "title": "장면 1 task",
+  "description": "업무 — 담당·기한·인수·재확인·기한 초과(UI05)",
+  "type": "object",
+  "required": [
+    "task_id",
+    "seq",
+    "type",
+    "owner_role",
+    "status",
+    "due_at",
+    "history",
+    "overdue"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "string"
+    },
+    "node_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "assignedName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "assigned_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    },
+    "accepted_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accepted_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "acks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "reconfirm": {
+      "type": "boolean"
+    },
+    "reopens": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "issue_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "status"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "overdue": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

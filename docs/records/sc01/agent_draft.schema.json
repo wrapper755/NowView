@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/agent_draft.schema.json",
+  "title": "장면 1 agent_draft",
+  "description": "AI 검토 초안 — 검증을 통과한 응답만 draft에 있다. 입력 원문·거절된 응답은 싣지 않는다(AG-01)",
+  "type": "object",
+  "required": [
+    "output_id",
+    "seq",
+    "run_id",
+    "status",
+    "mode"
+  ],
+  "properties": {
+    "output_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "summary"
+          ],
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "findings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "questions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "errors": {
+      "type": "array",
+      "items": {}
+    },
+    "input": false,
+    "rejected": false
+  },
+  "additionalProperties": true
+}

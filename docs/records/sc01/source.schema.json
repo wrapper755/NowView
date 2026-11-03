@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/source.schema.json",
+  "title": "장면 1 source",
+  "description": "받은 고객계획 원천의 사본 — 자동 검증 오류·확인 결정(UI02·03)",
+  "type": "object",
+  "required": [
+    "source_id",
+    "seq",
+    "customer_plan_id",
+    "received_at",
+    "status",
+    "rows",
+    "errors"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "fixture_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "company_doc_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "customer_plan_id": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    },
+    "corrects": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "period",
+          "quantity"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "verified_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verified_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "opinion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evidence": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

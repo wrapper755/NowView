@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "envelope.schema.json",
+  "title": "경영 기록 봉투(공통)",
+  "description": "회사 시스템 POST /worlds/{w}/records — 봉투는 공통, body는 kind별 스키마(sc01/{kind}.schema.json).",
+  "type": "object",
+  "required": [
+    "kind",
+    "record_id",
+    "version",
+    "scene",
+    "state",
+    "at",
+    "by",
+    "title",
+    "body",
+    "ref"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,40}$"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "scene": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 99
+    },
+    "state": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "object"
+    },
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

@@ -24,6 +24,7 @@ chaeksas-service-kit = { git = "https://github.com/wrapper755/Chaeksas", rev = "
 
 [dependency-groups]
 dev = [
+    "jsonschema>=4.23",
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.8",

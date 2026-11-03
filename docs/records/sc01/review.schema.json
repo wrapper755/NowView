@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/review.schema.json",
+  "title": "장면 1 review",
+  "description": "담당자 검토 의견 — AI 초안과 다른 기록이다(AG-03, UI04)",
+  "type": "object",
+  "required": [
+    "run_id",
+    "by",
+    "at",
+    "opinion",
+    "evidence",
+    "manual_review"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "by": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opinion": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "manual_review": {
+      "type": "boolean"
+    },
+    "agent_output": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

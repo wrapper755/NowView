@@ -223,6 +223,19 @@ class CompanyClient:
         """원천 확인 결정을 회사에 적는다 — `ref`가 같으면 회사가 다시 적지 않는다(멱등)."""
         return self._call("POST", f"/worlds/{world_id}/customer-plans/{doc_id}/status", record)
 
+    # ───────────── 경영 기록 (봉투 공통 — docs/role-split.md §3) ─────────────
+
+    def write_record(self, world_id: str, record: dict[str, Any]) -> dict[str, Any]:
+        """기록 한 판을 적는다 — `ref`가 같으면 회사가 다시 적지 않는다(멱등), 지난 판은 409."""
+        return self._call("POST", f"/worlds/{world_id}/records", record)
+
+    def records(self, world_id: str, **query: Any) -> list[dict[str, Any]]:
+        q = "&".join(f"{k}={v}" for k, v in query.items() if v is not None)
+        return self._call("GET", f"/worlds/{world_id}/records" + (f"?{q}" if q else ""))
+
+    def record(self, world_id: str, kind: str, record_id: str) -> dict[str, Any]:
+        return self._call("GET", f"/worlds/{world_id}/records/{kind}/{record_id}")
+
     # ───────────── 구매 (장면 2) ─────────────
 
     def purchase_master(self) -> dict[str, Any]:

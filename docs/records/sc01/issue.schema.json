@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc01/issue.schema.json",
+  "title": "장면 1 issue",
+  "description": "위험 이슈 — 열림/닫힘·위험 수준 이력(UI01·UI04·UI06)",
+  "type": "object",
+  "required": [
+    "issue_id",
+    "model_id",
+    "period",
+    "risk",
+    "status",
+    "runs",
+    "history"
+  ],
+  "properties": {
+    "issue_id": {
+      "type": "string"
+    },
+    "cause": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "plant_id": {
+      "type": "string"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "period": {
+      "type": "string"
+    },
+    "risk": {
+      "enum": [
+        "NORMAL",
+        "ATTENTION",
+        "CRITICAL",
+        "UNDETERMINED"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "run_id",
+          "risk"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "risk": {
+            "enum": [
+              "NORMAL",
+              "ATTENTION",
+              "CRITICAL",
+              "UNDETERMINED"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
