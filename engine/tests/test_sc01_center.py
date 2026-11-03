@@ -553,6 +553,7 @@ def test_read_run_events_follows_the_c3_shape() -> None:
         "open": {"apr_1": "Approve_DQ"},
         "finished": None,
         "last_seq": 6,
+        "before": {"apr_1": ["Task_Validate"]},  # 결재 앞에 끝난 노드(가까운 것부터)
     }
     events.append({"seq": 7, "kind": "human_withdrawn", "data": {"request_id": "apr_1"}})
     events.append({"seq": 8, "kind": "run_finished", "data": {"status": "cancelled"}})

@@ -21,11 +21,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from app import scenarios
 from app.sc01.domain import DomainError
 from app.sc07 import confirm
-from app.sc07.domain import ACCOUNTS, load_batch
 from app.sc07.process import Sc07Process
-from app.sc07.seed import Seed, load_seed
+from app.sc07.seed import Seed
 from app.script_wait import after_record
 
 
@@ -41,70 +41,11 @@ class Step:
 
 
 def steps_for(case_id: str = "BASE", seed: Seed | None = None) -> list[Step]:
-    batch = load_batch(seed or load_seed())
-    cf = batch["schedule"]
-    plan = batch["plan"]
-    target = plan["target_version"]
-
-    def act(code: str, node: str, actor_account: str, answer: dict[str, Any], label: str) -> Step:
-        return Step(
-            code,
-            ACCOUNTS[actor_account],
-            "act",
-            node,
-            answer,
-            label,
-            confirm.NODE_ROLES[node]["record"],
-        )
-
-    return [
-        Step("D701", confirm.STARTER, "start", label="확인 착수 — IMP71 · 검증 실행 TS71-v1"),
-        act(
-            "D702",
-            "Confirm_Buy",
-            cf["CF71"]["actor"],
-            {
-                "구매확인결정": "확인",
-                "구매확인버전": cf["CF71"]["version"],
-                "구매확인내용": cf["CF71"]["content"],
-            },
-            "구매 임원 업무 기준 확인(CF71)",
-        ),
-        act(
-            "D703",
-            "Confirm_Finance",
-            cf["CF72"]["actor"],
-            {
-                "경영관리확인결정": "확인",
-                "경영관리확인버전": cf["CF72"]["version"],
-                "경영관리확인내용": cf["CF72"]["content"],
-            },
-            "경영관리 임원 정합성 확인(CF72)",
-        ),
-        act(
-            "D704",
-            "Apply_Setting",
-            plan["applied_by"],
-            {
-                "설정스냅샷": plan["snapshot_id"],
-                "적용버전": target,
-                "적용범위": plan["scope"],
-                "증적유형": plan["evidence_type"],
-                "반영내용": plan["evidence_note"],
-            },
-            "운영 설정 반영(CFG71)",
-        ),
-        act(
-            "D705",
-            "Check_Setting",
-            plan["checked_by"],
-            {
-                "설정확인결과": "일치",
-                "설정확인내용": f"{plan['snapshot_id']} 읽기 확인 — active_version {target}",
-            },
-            "운영 설정 반영 확인(CFG71 읽기 확인)",
-        ),
-    ]
+    """
+    확인 절차 각본 — 원본은 Company1 `scenarios/sc07.json`(답은 통합가상데이터의 확인 기록 글)이고
+    여기는 사본을 읽는다(`app/scenarios.py`). 시험 전용 실행기다 — 운영·로컬은 회사 사이트가 몬다.
+    """
+    return scenarios.steps(7, Step)
 
 
 def run_step(process: Sc07Process, demo_run_id: str, index: int) -> dict:

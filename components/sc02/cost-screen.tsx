@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList } from "@/components/sc02/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, modelLabel } from "@/lib/sc01/format";
@@ -30,7 +30,7 @@ function Cost({ view }: { view: Sc02View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms view={view} nodes={["Register_Cost"]} labels={{ Register_Cost: "원가 버전 등록" }} />
+      <WaitingList view={view} nodes={["Register_Cost"]} />
 
       <Card>
         <CardHeader>

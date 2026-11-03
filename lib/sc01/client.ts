@@ -1,6 +1,9 @@
 /**
  * SC01 엔진 호출 — 브라우저에서 BFF(`/api/engine/sc01/*`)를 부른다.
  *
+ * **읽기만 한다**(2026-11-03, `docs/role-split.md` §5.5) — 데모 실행(세계)은 회사 사이트가 기간계에 만들고 NowView 일꾼이
+ * 같은 id로 장면 1을 연다. 결재 답·수신·시계·초기화도 회사 사이트에서 한다. BFF도 GET만 중계한다.
+ *
  * 엔진이 꺼져 있는 것은 고장이 아니라 상태다 — 실패를 throw하지 않고 `{ ok: false }`로
  * 돌려 화면이 배너로 말하게 한다(기존 엔진 클라이언트와 같은 태도).
  */
@@ -10,10 +13,8 @@ import type {
   Dashboard,
   DemoRunView,
   DemoUser,
-  Executor,
   HistoryEntry,
   ProcessTopology,
-  ScriptStep,
 } from "@/lib/sc01/types";
 
 export const SC01_BASE = "/api/engine/sc01";
@@ -22,20 +23,12 @@ export type Result<T> = { ok: true; data: T } | { ok: false; status: number; err
 
 async function call<T>(
   path: string,
-  init?: RequestInit & { actor?: string; idempotencyKey?: string },
+  actor?: string,
 ): Promise<Result<T>> {
-  const { actor, idempotencyKey, ...rest } = init ?? {};
   try {
     const response = await fetch(`${SC01_BASE}${path}`, {
-      ...rest,
       cache: "no-store",
-      headers: {
-        "content-type": "application/json",
-        ...(actor ? { "x-demo-actor": actor } : {}),
-        // 같은 키로 다시 보내면 엔진이 다시 실행하지 않는다 — 타임아웃 뒤 재시도가 두 번 실행되지 않게(AT13).
-        ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
-        ...(rest.headers ?? {}),
-      },
+      headers: actor ? { "x-demo-actor": actor } : {},
     });
     const body = await response.json().catch(() => null);
     if (!response.ok) {
@@ -52,16 +45,13 @@ async function call<T>(
   }
 }
 
-const post = <T>(path: string, body: unknown, actor?: string, idempotencyKey?: string) =>
-  call<T>(path, { method: "POST", body: JSON.stringify(body ?? {}), actor, idempotencyKey });
-
 export const sc01Api = {
   process: () => call<ProcessTopology>("/process"),
   users: () => call<DemoUser[]>("/users"),
   rules: () => call<Record<string, string>>("/rules"),
-  script: () => call<ScriptStep[]>("/script"),
   customerPlan: (id: string) => call<CustomerPlanRow[]>(`/customer-plans/${id}`),
-  create: () => post<DemoRunView>("/demo-runs", {}),
+  /** 데모 실행 목록 — 최근 것이 먼저다. 저장된 id가 없거나 엔진에 없으면 가장 최근 것을 본다. */
+  list: () => call<{ demoRunId: string; createdAt: string }[]>("/demo-runs"),
   get: (id: string) => call<DemoRunView>(`/demo-runs/${id}`),
   history: (id: string) => call<HistoryEntry[]>(`/demo-runs/${id}/history`),
   at: (id: string, seq: number) => call<DemoRunView>(`/demo-runs/${id}/history/${seq}`),
@@ -70,22 +60,5 @@ export const sc01Api = {
     if (q.seq != null) params.set("seq", String(q.seq));
     return call<Dashboard>(`/demo-runs/${id}/dashboard?${params}`);
   },
-  receive: (id: string, fixtureId: string, actor: string, key?: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/sources/receive`, { fixtureId }, actor, key),
-  act: (id: string, nodeId: string, answer: Record<string, unknown>, actor: string, key?: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/actions/${nodeId}`, { answer }, actor, key),
-  regenerate: (id: string, runId: string, actor: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/agent/${runId}/regenerate`, {}, actor),
-  adopt: (id: string, outputId: string, actor: string) =>
-    post<DemoRunView>(`/demo-runs/${id}/agent-outputs/${outputId}/adopt`, {}, actor),
-  clock: (id: string, at: string) => post<DemoRunView>(`/demo-runs/${id}/clock`, { at }, "u-demo"),
-  step: (id: string, index: number) => post<DemoRunView>(`/demo-runs/${id}/script/${index}`, {}),
-  /** 사례·실행 위치를 주지 않으면 지금 것을 잇는다. */
-  reset: (id: string, caseId?: string, executor?: Executor) =>
-    post<DemoRunView>(
-      `/demo-runs/${id}/reset`,
-      { ...(caseId ? { caseId } : {}), ...(executor ? { executor } : {}) },
-      "u-demo",
-    ),
   eventsUrl: (id: string) => `${SC01_BASE}/demo-runs/${id}/events`,
 };

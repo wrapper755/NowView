@@ -281,8 +281,11 @@ def baseline_from_sc04(sc04_doc: dict) -> dict[str, Any]:
     """
     h = sc04_doc.get("handoff") or {}
     if sc04_doc["review"].get("state") != "SC04_COMPLETED" or h.get("handoff_id") != SOURCE_HANDOFF:
-        raise DomainError("개선안 검토·실행 승인이 아직 완료 전이다 — 결정 실행·계획 갱신은 "
-                          "HANDOFF41에서 시작한다", 409)
+        raise DomainError(
+            "개선안 검토·실행 승인이 아직 완료 전이다 — 결정 실행·계획 갱신은 "
+            "HANDOFF41에서 시작한다",
+            409,
+        )
     if sc04_doc.get("case_id") != "BASE":
         raise DomainError(
             f"개선안 검토·실행 승인이 기본 시연이 아니다({sc04_doc.get('case_id')}) — 결정 "

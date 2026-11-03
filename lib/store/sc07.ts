@@ -2,7 +2,7 @@
  * SC07 화면 상태 — 엔진이 원천이고 여기 있는 조회 결과는 사본이다. 데모 실행 id·행위자는 `useSc01`의 것 하나다.
  *
  * **보기(A 개선 전후 · B 검증·적용)와 펼친 근거는 화면 상태다**(localStorage) — 새로고침해도 개선건·보기가 유지된다(UI710).
- * 초기화는 이 화면 상태를 A로·근거 닫힘으로 되돌린다(구현명세 6장 「초기화와 재시연」). 조회 결과는 저장하지 않는다(4.2).
+ * 조회 결과는 저장하지 않는다(4.2).
  */
 
 import { create } from "zustand";
@@ -33,8 +33,6 @@ interface Sc07State {
   verification: Load<Verification>;
   application: Load<Application>;
   view: "A" | "B";
-  isPlaying: boolean;
-  isPlayerExpanded: boolean;
 
   setMeta: (meta: Sc07Meta | null, missing?: boolean, error?: string | null) => void;
   setTopology: (topology: ProcessTopology | null) => void;
@@ -43,10 +41,6 @@ interface Sc07State {
   setVerification: (s: Load<Verification>) => void;
   setApplication: (s: Load<Application>) => void;
   setView: (view: "A" | "B") => void;
-  setPlaying: (playing: boolean) => void;
-  togglePlayer: () => void;
-  /** 화면 상태만 처음으로(보기 A) — 엔진 기록은 그대로다 */
-  resetView: () => void;
 }
 
 const IDLE = { improvement: { state: "idle" }, verification: { state: "idle" }, application: { state: "idle" } } as const;
@@ -61,8 +55,6 @@ export const useSc07 = create<Sc07State>()(
       metaError: null,
       ...IDLE,
       view: "A",
-      isPlaying: false,
-      isPlayerExpanded: true,
 
       setMeta: (meta, missing = false, error = null) =>
         set((s) => ({
@@ -78,15 +70,12 @@ export const useSc07 = create<Sc07State>()(
       setVerification: (verification) => set({ verification }),
       setApplication: (application) => set({ application }),
       setView: (view) => set({ view }),
-      setPlaying: (isPlaying) => set({ isPlaying }),
-      togglePlayer: () => set((s) => ({ isPlayerExpanded: !s.isPlayerExpanded })),
-      resetView: () => set({ view: "A", isPlaying: false }),
     }),
     {
       name: "nowview-sc07",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ view: s.view, isPlayerExpanded: s.isPlayerExpanded }),
+      partialize: (s) => ({ view: s.view }),
       skipHydration: true,
     },
   ),

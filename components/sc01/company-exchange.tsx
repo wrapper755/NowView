@@ -42,7 +42,7 @@ export function CompanyExchangeCard({ log }: { log: CompanyExchange[] }) {
       </CardHeader>
       <CardContent>
         {log.length === 0 ? (
-          <p className="text-sm text-muted-foreground">기록이 없다 — 이 기록을 남기기 전에 만든 데모 실행이다. 초기화하면 생긴다.</p>
+          <p className="text-sm text-muted-foreground">기록이 없다 — 이 기록을 남기기 전에 만든 데모 실행이다. 회사 사이트에서 초기화하면 생긴다.</p>
         ) : (
           <ol className="space-y-2">
             {log.map((e) => {

@@ -2,7 +2,7 @@
  * SC06 화면 상태 — 엔진이 원천이고 여기 있는 조회 결과는 사본이다. 데모 실행 id·행위자는 `useSc01`의 것 하나다.
  *
  * **선택 과제·상세 펼침은 화면 상태로 남긴다**(localStorage) — U602에서 U601로 돌아와도 펼친 상세가 그대로다(구현명세
- * 5장). 초기화는 이 화면 상태만 되돌린다 — 확정본·근거·확인 이력은 엔진에 있고 지우지 않는다(11장).
+ * 5장).
  *
  * 조회 결과는 저장하지 않는다 — 새로고침하면 다시 받는다(낡은 숫자가 먼저 보이지 않게, 4.2).
  */
@@ -30,7 +30,7 @@ interface Sc06State {
   topology: ProcessTopology | null;
   /** 변경 수신 — SSE가 서 있나(서 있지 않은 동안만 폴링) */
   connection: "connecting" | "live" | "polling" | "offline";
-  /** 이 데모 실행에 장면 6이 아직 없다(404) — 화면이 「장면 6 열기」를 보인다. */
+  /** 이 데모 실행에 장면 6이 아직 없다(404) — 화면이 「아직 열리지 않았다」를 보인다(여는 것은 회사 사이트). */
   missing: boolean;
   metaError: string | null;
   summary: Load<Summary>;
@@ -38,8 +38,6 @@ interface Sc06State {
   variance: Load<Variance>;
   selectedTask: string;
   detailOpen: boolean;
-  isPlaying: boolean;
-  isPlayerExpanded: boolean;
 
   setMeta: (meta: Sc06Meta | null, missing?: boolean, error?: string | null) => void;
   setTopology: (topology: ProcessTopology | null) => void;
@@ -49,10 +47,6 @@ interface Sc06State {
   setVariance: (s: Load<Variance>) => void;
   openDetail: (task: string) => void;
   closeDetail: () => void;
-  setPlaying: (playing: boolean) => void;
-  togglePlayer: () => void;
-  /** 화면 상태만 처음으로 — 엔진 기록은 그대로다 */
-  resetView: () => void;
 }
 
 export const useSc06 = create<Sc06State>()(
@@ -68,8 +62,6 @@ export const useSc06 = create<Sc06State>()(
       variance: { state: "idle" },
       selectedTask: "ACT42",
       detailOpen: false,
-      isPlaying: false,
-      isPlayerExpanded: true,
 
       setMeta: (meta, missing = false, error = null) =>
         set((s) => ({
@@ -88,9 +80,6 @@ export const useSc06 = create<Sc06State>()(
       setVariance: (variance) => set({ variance }),
       openDetail: (selectedTask) => set({ selectedTask, detailOpen: true }),
       closeDetail: () => set({ detailOpen: false }),
-      setPlaying: (isPlaying) => set({ isPlaying }),
-      togglePlayer: () => set((s) => ({ isPlayerExpanded: !s.isPlayerExpanded })),
-      resetView: () => set({ selectedTask: "ACT42", detailOpen: false, isPlaying: false }),
     }),
     {
       name: "nowview-sc06",
@@ -99,7 +88,6 @@ export const useSc06 = create<Sc06State>()(
       partialize: (s) => ({
         selectedTask: s.selectedTask,
         detailOpen: s.detailOpen,
-        isPlayerExpanded: s.isPlayerExpanded,
       }),
       skipHydration: true,
     },

@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Bot, Clock, RefreshCw, TriangleAlert } from "lucide-react";
+import { Bot, Clock, TriangleAlert } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sc01Api } from "@/lib/sc01/client";
 import { formatClock, TASK_TYPE_LABEL } from "@/lib/sc01/format";
 import type { AgentDraft, AgentOutput } from "@/lib/sc01/types";
-import { useSc01 } from "@/lib/store/sc01";
 
 /**
  * Agent 검토 지원 — **AI 초안**이다. 담당자 검토 의견과 따로 둔다(AG-03).
@@ -20,42 +17,13 @@ import { useSc01 } from "@/lib/store/sc01";
  *   오지 않고 실패 사유만 온다(AG-01).
  * * 30초를 넘기면 "지연"으로 보인다(AG-02, 실제 시간). 엔진이 한 번 자동 재시도하고, 그 뒤에는
  *   다시 생성하거나 직접 검토한다 — 검토는 초안 없이도 끝난다(UI04-02).
- * * "의견에 가져오기"는 초안을 검토 폼에 채우기만 한다. 고쳐 쓰는 것은 사람이고, 가져왔다는
- *   사실은 기록으로 남는다. 원본 초안은 바뀌지 않는다.
+ * * 「의견에 가져오기」(채택)·「다시 생성」은 회사 사이트에서 한다 — 이 화면은 초안과 그 기록을 보인다(읽기 전용, role-split §5.5).
+ *   원본 초안은 바뀌지 않는다.
  */
-export function AgentPanel({
-  runId,
-  outputs,
-  canAdopt,
-  onAdopt,
-}: {
-  runId: string;
-  outputs: AgentOutput[];
-  canAdopt: boolean;
-  onAdopt: (draft: AgentDraft) => void;
-}) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const users = useSc01((s) => s.users);
-  const historical = useSc01((s) => s.past !== null);
-  const setLive = useSc01((s) => s.setLive);
+export function AgentPanel({ runId, outputs }: { runId: string; outputs: AgentOutput[] }) {
   const nameOf = useUserName();
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
   const mine = outputs.filter((o) => o.run_id === runId);
   const latest = mine.at(-1);
-  const role = users.find((u) => u.userId === actor)?.role;
-  const canRegenerate = !historical && (role === "영업담당" || role === "영업팀장");
-
-  const call = async (fn: () => ReturnType<typeof sc01Api.regenerate>) => {
-    setBusy(true);
-    setError(null);
-    const r = await fn();
-    setBusy(false);
-    if (r.ok) setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
 
   return (
     <Card>
@@ -98,39 +66,7 @@ export function AgentPanel({
           </>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {latest?.status === "SUCCEEDED" && latest.draft && canAdopt ? (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy || historical || role !== "영업팀장"}
-              onClick={() => {
-                const draft = latest.draft!;
-                onAdopt(draft);
-                void call(() => sc01Api.adopt(demoRunId!, latest.output_id, actor));
-              }}
-            >
-              의견에 가져오기
-            </Button>
-          ) : null}
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy || !canRegenerate || latest?.status === "RUNNING"}
-            onClick={() => void call(() => sc01Api.regenerate(demoRunId!, runId, actor))}
-          >
-            <RefreshCw aria-hidden className="size-3.5" />
-            다시 생성
-          </Button>
-          {!canRegenerate ? (
-            <span className="text-xs text-muted-foreground">영업담당·영업팀장만 다시 생성할 수 있다</span>
-          ) : null}
-        </div>
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+        <CompanySiteNote>초안 채택(의견에 가져오기)·다시 생성은 회사 사이트에서 한다.</CompanySiteNote>
         {mine.length > 1 ? (
           <Commentary block>
             <p className="text-[11px] text-muted-foreground">

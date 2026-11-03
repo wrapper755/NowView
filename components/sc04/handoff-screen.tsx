@@ -3,7 +3,7 @@
 import { CheckCircle2, CircleDashed } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Mn, Sc04Body, Sc04Header, StatusPills, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, StatusPills, WaitingList } from "@/components/sc04/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,7 @@ function Handoff({ view }: { view: Sc04View }) {
   const c = view.completion;
   return (
     <>
-      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "개선안 검토·실행 승인 완료" }} />
+      <WaitingList view={view} nodes={["Complete_Scene"]} />
       <StatusPills view={view} />
       <Card>
         <CardHeader>

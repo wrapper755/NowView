@@ -2,22 +2,13 @@
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Requirements, Sc05Body, Sc05Header, StatusPills, Tile, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Requirements, Sc05Body, Sc05Header, StatusPills, Tile, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
 import { gapWord, OPERATION_STATE_LABEL, TASK_NAME } from "@/lib/sc05/format";
 import type { Sc05View } from "@/lib/sc05/types";
-
-/** 후속 목록 틀 — 담당·기한은 경영관리 임원이 확정한다(비워 두면 완료가 막힌다, T531). */
-const TEMPLATE = [
-  "FUP51 | ACT42 |  |  | 긴급건수 가정·확인 지연 재발 점검",
-  "FUP52 | ACT41 |  |  | 품질·납기·외주 조건 월별 확인",
-  "FUP53 | ACT43 |  |  | 적용 후 안정화 확인",
-  "DIR41 | 추가과제 |  |  | 후보 조사 지속 — 근거 미확정 효과는 미산정",
-  "RISK51 | 기존 MR-2706-01 위험 연결 |  |  | 목표 미달 가능성과 미실현 전망 위험 유지",
-].join("\n");
 
 /**
  * U508 실행·위험 후속 관리 — 장면 완료 요건과 새 공식 전망, 과제별 상태·다음 확인일, 남는 목표 부족·Risk OPEN,
@@ -54,7 +45,7 @@ function Body({ view }: { view: Sc05View }) {
         </Tile>
       </div>
 
-      <WaitingForms view={view} nodes={["Complete_Scene"]} initial={{ Complete_Scene: { 후속목록: TEMPLATE } }} labels={{ Complete_Scene: "결정 실행·계획 갱신 인계 완료" }} />
+      <WaitingList view={view} nodes={["Complete_Scene"]} />
       <AgentCard view={view} kind="AG58" canRequest={waiting.has("Complete_Scene")} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">

@@ -685,7 +685,6 @@ def test_ts_topology_fixture_is_the_bpmn(proc: Sc02Process) -> None:
     assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
 
-
 def _form(doc: dict, node_id: str) -> dict:
     (w,) = [w for w in view(doc)["bpm"]["waiting"] if w["nodeId"] == node_id]
     return {f["key"]: f.get("default") for f in w["fields"]}

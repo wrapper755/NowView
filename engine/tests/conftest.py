@@ -17,6 +17,11 @@ import os
 
 import pytest
 
+#: 엔진 시험은 엔진이 각본·시계·세계를 몬다(`app.company.engine_drives`) — 쓰기 HTTP 경로도 연다.
+#: 운영·로컬은 회사 사이트가 몬다(`docs/role-split.md` §5). 앱을 들이기 전에 정해야 경로가 열린다.
+#: 회사 사이트가 모는 경로는 그 시험이 `monkeypatch.delenv`로 끈다(`test_follower.py`).
+os.environ.setdefault("NOWVIEW_TEST_INPUTS", "1")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def company_system(tmp_path_factory):
@@ -31,6 +36,7 @@ def company_system(tmp_path_factory):
     os.environ["COMPANY_TWIN_AUTH"] = "off"
     sim = build_app(WorldStore(tmp_path_factory.mktemp("company") / "sim.sqlite"))
     client = company.CompanyClient("http://company-twin", client=TestClient(sim))
+    client.ensure_roster()  # 직원 명단은 회사에서 — 시험이 모듈을 들일 때 쓰지 않게 먼저 채운다
     company._override = client
     yield client
     company._override = None

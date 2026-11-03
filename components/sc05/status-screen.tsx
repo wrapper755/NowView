@@ -1,20 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { CompanyLink as Link } from "@/components/shared/company-link";
-import { PlayCircle } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { Mn, Sc05Body, Sc05Header, StatusPills } from "@/components/sc05/bits";
+import { StartPending } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc05Api } from "@/lib/sc05/client";
 import { CHECK_LABEL, CONDITION_STATE_LABEL, OPERATION_STATE_LABEL, PLAN_STATE_LABEL, TASK_NAME } from "@/lib/sc05/format";
 import type { Sc05View } from "@/lib/sc05/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc05 } from "@/lib/store/sc05";
 
 /**
  * U501 실행과제 현황 — 승인서·총괄 책임 아래 ACT41~43의 계획 확정 · 경영관리 확인 · 조건 · 착수 · 기한 · 예산을 **따로
@@ -36,7 +31,7 @@ function Body({ view }: { view: Sc05View }) {
   return (
     <>
       <StatusPills view={view} />
-      {view.sceneInfo.started_at === null ? <StartCard view={view} /> : null}
+      {view.sceneInfo.started_at === null ? <StartCard /> : null}
 
       <Card>
         <CardHeader>
@@ -188,38 +183,10 @@ function Body({ view }: { view: Sc05View }) {
   );
 }
 
-function StartCard({ view }: { view: Sc05View }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const start = async () => {
-    if (!demoRunId) return;
-    setBusy(true);
-    setError(null);
-    const r = await sc05Api.start(demoRunId, actor, crypto.randomUUID());
-    setBusy(false);
-    if (r.ok) useSc05.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
+function StartCard() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>결정 실행·계획 갱신 착수</CardTitle>
-        <CardDescription>경영관리 담당이 HANDOFF41을 기존 검토건 MR-2706-01에 잇는다 — 새 검토건을 만들지 않는다.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <Button size="sm" onClick={() => void start()} disabled={busy || view.historical || actor !== "u-fin"}>
-          <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "착수하는 중…" : "결정 실행·계획 갱신 착수"}
-        </Button>
-        {actor !== "u-fin" ? <p className="text-xs text-muted-foreground">경영관리담당만 할 수 있다 — 상단에서 역할을 바꾼다.</p> : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <StartPending title="결정 실행·계획 갱신 착수" who="경영관리 담당(정하윤)">
+      HANDOFF41을 기존 검토건 MR-2706-01에 잇는다 — 새 검토건을 만들지 않는다.
+    </StartPending>
   );
 }

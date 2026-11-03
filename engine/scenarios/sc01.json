@@ -1,0 +1,113 @@
+{
+  "bpm_process_id": "company1.sc01",
+  "name": "고객 생산계획 변경 대응 — 기본 시연",
+  "source": "원본(2026-11-03부터) — NowView는 engine/scenarios/에 사본을 둔다(scripts/sync-scenarios.sh)",
+  "steps": [
+    {
+      "code": "EV01",
+      "at": "2027-06-16T09:00:00+09:00",
+      "actor": "u-sales",
+      "kind": "receive",
+      "node_id": null,
+      "answer": {
+        "fixture_id": "CP02"
+      },
+      "label": "새 고객계획 수신"
+    },
+    {
+      "code": "EV02",
+      "at": "2027-06-16T10:00:00+09:00",
+      "actor": "u-sales",
+      "kind": "act",
+      "node_id": "Approve_DQ",
+      "answer": {
+        "확인결과": "확인완료",
+        "확인의견": "CP02 15행 — 당사 배정·월 전체 물량. b모델 7월만 9,500→8,800으로 바뀌었다.",
+        "확인근거": "SRC02 원본 대조, 매핑표 A-a~A-e"
+      },
+      "label": "원천 확인"
+    },
+    {
+      "code": "EV03",
+      "at": "2027-06-16T10:10:00+09:00",
+      "actor": "u-sales",
+      "kind": "act",
+      "node_id": "Confirm_Calc",
+      "answer": {
+        "계산메모": "확인한 CP02(SRC02)로 F02를 만들어 F01과 비교한다 — b모델 7월 −700대분"
+      },
+      "label": "비교 계산"
+    },
+    {
+      "code": "EV04",
+      "at": "2027-06-16T11:00:00+09:00",
+      "actor": "u-sales-lead",
+      "kind": "act",
+      "node_id": "Approve_Sales",
+      "answer": {
+        "영업의견": "고객이 확정한 7월 변경이다. 8월 이후 지속 여부는 고객 재확인이 필요하다.",
+        "영업근거": "RUN-F02-001 b모델 7월 지표, CP02 수신본",
+        "경영검토요청": false
+      },
+      "label": "영업 검토"
+    },
+    {
+      "code": "EV04",
+      "at": "2027-06-16T11:00:00+09:00",
+      "actor": "u-sales-lead",
+      "kind": "act",
+      "node_id": "Approve_Dispatch",
+      "answer": {
+        "생산담당자": "u-prod",
+        "자재담당자": "u-mat",
+        "배정사유": "b모델 7월 700대분 감소의 생산계획·소요자재·발주 영향 검토"
+      },
+      "label": "현업 검토 배정"
+    },
+    {
+      "code": "EV05",
+      "at": "2027-06-16T11:05:00+09:00",
+      "actor": "u-sales-lead",
+      "kind": "act",
+      "node_id": "Approve_Review",
+      "answer": {
+        "경영관리담당자": "u-fin",
+        "검토요청사유": "감소율·감소액·목표 부족률 모두 중요 — 통합 손익 검토 필요"
+      },
+      "label": "Management Review 요청"
+    },
+    {
+      "code": "EV06",
+      "at": "2027-06-16T11:30:00+09:00",
+      "actor": "u-prod",
+      "kind": "act",
+      "node_id": "Accept_PROD",
+      "answer": {
+        "생산인수의견": "7월 b라인 일정 재검토 착수"
+      },
+      "label": "생산 인수"
+    },
+    {
+      "code": "EV06",
+      "at": "2027-06-16T11:30:00+09:00",
+      "actor": "u-mat",
+      "kind": "act",
+      "node_id": "Accept_MAT",
+      "answer": {
+        "자재인수의견": "7월 b모델 외주부품 발주 조정 가능분 확인 착수"
+      },
+      "label": "자재 인수"
+    },
+    {
+      "code": "EV07",
+      "at": "2027-06-16T11:45:00+09:00",
+      "actor": "u-fin",
+      "kind": "act",
+      "node_id": "Accept_FIN",
+      "answer": {
+        "경영관리인수의견": "단가·운영비용 반영 통합 손익분석 착수"
+      },
+      "label": "경영관리 인수"
+    }
+  ]
+}

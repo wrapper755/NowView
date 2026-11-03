@@ -36,8 +36,14 @@ uv run ruff check .
 (`engine/.env.local`의 `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` = company1 `legacy/.env.local`의 `COMPANY1_LEGACY_KEY`).
 
 ```bash
-scripts/sync-bpm.sh   # company1 bpm/의 BPMN을 engine/processes/로 가져온다 (바뀌면 TS 토폴로지 사본도 다시 만든다)
+scripts/sync-bpm.sh         # company1 bpm/의 BPMN을 engine/processes/로 가져온다 (바뀌면 TS 토폴로지 사본도 다시 만든다)
+scripts/sync-scenarios.sh   # company1 scenarios/의 각본을 engine/scenarios/로 가져온다 (엔진 시험 전용 각본 실행기가 읽는다)
 ```
+
+**시연은 회사 사이트가 몬다**(2026-11-03, `docs/role-split.md` §5) — 세계(= 데모 실행) 만들기·초기화·시계·원천 보내기·결재·
+명령(착수·회의 기록·Agent 요청 …)·자동 모드는 Company1 사이트(:3100 `/demo`·직원 결재 화면)에서 한다. NowView 화면은 읽기 전용이고,
+엔진은 기간계를 2초마다 읽어 따라간다(`engine/app/follower.py`). 엔진의 장면 쓰기 HTTP 경로는 **엔진 시험 전용**이다
+(`NOWVIEW_TEST_INPUTS=1` — `tests/conftest.py`가 켠다. 아니면 405).
 
 **로컬 프로세스 제어 (웹 · 엔진 · DB)**
 
@@ -274,6 +280,7 @@ NowView/
 ├── scripts/
 │   ├── stack.sh                  # 로컬 프로세스 제어 (start/stop/restart/status/logs)
 │   ├── sync-bpm.sh               # company1 bpm/ → engine/processes/ (BPMN 원본은 company1에 있다)
+│   ├── sync-scenarios.sh         # company1 scenarios/ → engine/scenarios/ (각본 원본은 company1에 있다)
 │   ├── deploy.sh                 # 운영계 배포 (rsync → 빌드 → systemd 재시작) — 5.4
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
@@ -342,7 +349,8 @@ NowView/
 ├── tests/                        # Vitest — sc01~sc07.test.ts, fixtures/sc0{1,2,3,4,5,6,7}-process.json
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
-    ├── processes/sc01.bpmn       # SC01 업무 흐름 — 유일한 원천
+    ├── scenarios/sc0{1..7}.json  # 각본 사본 — 원본은 Company1 scenarios/(scripts/sync-scenarios.sh)
+    ├── processes/sc01.bpmn       # SC01 업무 흐름 — 사본(원본은 Company1 bpm/)
     ├── processes/sc02.bpmn       # SC02 업무 흐름 — Studio·Center 실행(4.16)
     ├── processes/sc03.bpmn       # SC03 업무 흐름 — Studio·Center 실행(4.17)
     ├── processes/sc04.bpmn       # SC04 업무 흐름 — Studio·Center 실행(4.18)
@@ -363,6 +371,8 @@ NowView/
     │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
     │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
+    │   ├── follower.py           # 세계 따라가기 — 기간계의 세계·회차·시각·수신함·명령을 읽어 데모 실행을 만들고·초기화하고·따라간다(role-split §5)
+    │   ├── scenarios.py          # 각본 사본(engine/scenarios/) → 장면 Step — 시험 전용 각본 실행기의 BASE
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
     │   ├── preparation.py        # 장면 2~6 시작의 배경 진행 · 준비 상태(4.3)
@@ -381,7 +391,7 @@ NowView/
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process · _external, test_sc07_calc · _process · _external,
-                                  #   test_events · _notify · test_preparation · test_consumer
+                                  #   test_events · _notify · test_preparation · test_consumer · test_follower
 ```
 
 **디렉토리 규칙**
@@ -392,7 +402,11 @@ NowView/
 
 ### 4.1 데모 플레이어
 
-`components/sc01/demo-player.tsx`가 하단 고정 바로 상주한다. 장면은 `lib/sc01/scenes.ts`(SC01 설계서
+> **2026-11-03 걷었다**(`docs/role-split.md` §5) — 화면의 플레이어·결재 폼·시작 카드는 없고 NowView 화면은 읽기 전용이다. 시연은
+> Company1 사이트(`/demo` 시연 조작·자동 모드·직원 결재 화면)가 몬다. 아래의 각본 실행(`demo.run_step`)·`_follow_script`·
+> `_clock_to_script`·대리 답(`_relay`)은 **엔진 시험 전용**으로 남았다(`app.company.engine_drives`). 아래는 그 실행기의 기록이다.
+
+`components/sc01/demo-player.tsx`가 하단 고정 바로 상주했다. 장면은 `lib/sc01/scenes.ts`(SC01 설계서
 2.10 기본 시연 순서, 11장면), 각본(누가·언제·무엇을)은 엔진 `app/sc01/demo.py`(EV01~EV07)다.
 
 * **앞으로는 실행, 뒤로는 읽기.** 장면이 엔진의 각본 지점보다 앞이면 그 단계까지 `POST …/script/{i}`로

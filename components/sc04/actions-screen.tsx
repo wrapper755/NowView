@@ -3,7 +3,7 @@
 import { BellRing } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -38,19 +38,10 @@ function Actions({ view }: { view: Sc04View }) {
   const actor = useSc01((s) => s.actor);
   const rate = view.completion.rate;
   const nodes = ["Register_Actions", ...Object.values(ACCEPT_NODES), "Revise_ACT41", "Revise_ACT42", "Revise_ACT43", "Revise_SUP41"];
-  const target = Object.fromEntries(Object.entries(ACCEPT_NODES).map(([t, n]) => [n, t]));
   const mine = view.alerts.filter((a) => a.to.includes(actor));
   return (
     <>
-      <WaitingForms
-        view={view}
-        nodes={nodes}
-        expect={(n) => {
-          const a = view.assignments.find((x) => x.target_id === target[n]);
-          return a ? { assignment: a.assignment_version } : undefined;
-        }}
-        labels={{ Register_Actions: "등록", ...Object.fromEntries(Object.values(ACCEPT_NODES).map((n) => [n, "인수·반려"])) }}
-      />
+      <WaitingList view={view} nodes={nodes} />
       <Card data-index-skip>
         <CardHeader>
           <CardTitle>

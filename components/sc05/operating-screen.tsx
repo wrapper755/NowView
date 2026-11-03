@@ -2,7 +2,7 @@
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Sc05Body, Sc05Header, WaitingForms } from "@/components/sc05/bits";
+import { Sc05Body, Sc05Header, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -34,7 +34,7 @@ function Body({ view }: { view: Sc05View }) {
         Rolling 기준 — 실적 마감 2027-09(1~9월 잠금) · 전망 10~12월
         {view.observation ? ` · 초기 결과 ${view.observation.observation_id} 확인` : " · 초기 결과 확인 전"}
       </p>
-      <WaitingForms view={view} nodes={NODES} labels={{ Confirm_OPL51: "확정", Confirm_OPL52: "확정", Confirm_OPL53: "확정" }} />
+      <WaitingList view={view} nodes={NODES} />
       <AgentCard view={view} kind="AG56" canRequest={waiting.has("Confirm_OPL51")} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">

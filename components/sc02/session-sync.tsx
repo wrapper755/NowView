@@ -9,57 +9,53 @@ import { useSc01 } from "@/lib/store/sc01";
 import { useSc02 } from "@/lib/store/sc02";
 
 const POLL_MS = 15_000;
+/** 장면 문서가 아직 없을 때 다시 물어보는 주기 — 회사 사이트가 장면을 열면 NowView 일꾼이 문서를 만든다. */
+const MISSING_POLL_MS = 5_000;
 
 /**
- * 장면 2 문서를 받는 **유일한** 자리 — `Sc01SessionSync`와 같은 원칙(4.6). 장면 2 화면(`/sc02/*`)에 있을
- * 때만 돈다. 데모 실행 id는 장면 1 스토어의 것이다(같은 실행).
+ * 장면 2 문서를 받는 **유일한** 자리 — 장면 1 수신과 같은 원칙(4.6). 장면 2 화면(`/sc02/*`)에 있을 때만 돈다.
+ * 데모 실행 id는 장면 1 스토어의 것이다(같은 실행).
  *
- * **장면 2를 저절로 만들지 않는다.** 만들면 장면 1이 인계 전일 때 장면 1 각본까지 실행된다 — 화면에
- * 들어왔을 뿐인데 장면 1 상태가 바뀌면 안 된다. 없으면(404) `missing`을 켜고 화면이 「장면 2 시작」을 묻는다.
+ * **장면 2를 열지 않는다** — 장면 열기는 회사 사이트의 시연 조작이다(role-split §5.5). 없으면(404) `missing`을 켜고
+ * 생길 때까지 짧게 다시 묻는다.
  */
 export function Sc02SessionSync() {
   const pathname = usePathname();
   const active = pathname.startsWith("/sc02");
   const demoRunId = useSc01((s) => s.demoRunId);
   const loaded = useSc02((s) => s.live?.demoRunId === demoRunId && demoRunId !== null);
-  const caseId = useSc02((s) => s.live?.caseId ?? null);
 
   useEffect(() => {
     if (!active) return;
-    void useSc02.persist.rehydrate();
-    void Promise.all([sc02Api.process(), sc02Api.rules(), sc02Api.cases()]).then(([p, r, c]) => {
-      useSc02.getState().setStatic(p.ok ? p.data : null, r.ok ? r.data : {}, c.ok ? c.data : []);
+    void Promise.all([sc02Api.process(), sc02Api.rules()]).then(([p, r]) => {
+      useSc02.getState().setStatic(p.ok ? p.data : null, r.ok ? r.data : {});
     });
   }, [active]);
 
-  // 문서 확보 — 데모 실행이 바뀌면 다시.
+  // 문서 확보 — 데모 실행이 바뀌면 다시. 아직 없으면 생길 때까지 다시 묻는다.
   useEffect(() => {
-    if (!active || !demoRunId) return;
+    if (!active || !demoRunId || loaded) return;
     let cancelled = false;
-    void sc02Api.get(demoRunId).then((r) => {
-      if (cancelled) return;
-      if (r.ok) {
-        useSc02.getState().setLive(r.data);
-      } else if (r.status === 404) {
-        useSc02.getState().clearLive(true);
-      } else {
-        useSc02.getState().setConnection("offline");
-        useSc02.getState().setError(r.error);
-      }
-    });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const fetchDoc = () => {
+      void sc02Api.get(demoRunId).then((r) => {
+        if (cancelled) return;
+        if (r.ok) useSc02.getState().setLive(r.data);
+        else if (r.status === 404) {
+          useSc02.getState().clearLive(true);
+          timer = setTimeout(fetchDoc, MISSING_POLL_MS);
+        } else {
+          useSc02.getState().setConnection("offline");
+          useSc02.getState().setError(r.error);
+        }
+      });
+    };
+    fetchDoc();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [active, demoRunId]);
-
-  // 각본 — 사례마다 단계가 다르다(X01은 D08에서 끝난다).
-  useEffect(() => {
-    if (!active || !caseId) return;
-    void fetch(`/api/engine/sc02/script?case_id=${encodeURIComponent(caseId)}`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((s) => useSc02.getState().setScript(s))
-      .catch(() => useSc02.getState().setScript([]));
-  }, [active, caseId]);
+  }, [active, demoRunId, loaded]);
 
   // 변경 수신 — 문서가 있을 때만(없는 실행에 붙으면 404로 폴링만 돈다).
   useEffect(() => {
@@ -68,6 +64,7 @@ export function Sc02SessionSync() {
     const refetch = async () => {
       const r = await sc02Api.get(demoRunId);
       if (r.ok) useSc02.getState().setLive(r.data);
+      else if (r.status === 404) useSc02.getState().clearLive(true); // 장면만 처음으로(회사 사이트) — 다시 열릴 때까지 기다린다
       else useSc02.getState().setConnection("offline");
     };
     const startPolling = () => {

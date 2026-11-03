@@ -1,23 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { CompanyLink as Link } from "@/components/shared/company-link";
-import { AlertTriangle, BellRing, ExternalLink, History, Loader2, PlayCircle, WifiOff } from "lucide-react";
+import { AlertTriangle, BellRing, History, Loader2, WifiOff } from "lucide-react";
 
 import { StatePill } from "@/components/sc01/bits";
-import { Sc03ActionForm } from "@/components/sc03/action-form";
+import { ExecutorNote, SceneNotOpened, WaitingNotice } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, formatWonExact } from "@/lib/sc01/format";
-import { sc03Api } from "@/lib/sc03/client";
 import { formatMillion, OUTCOME_LABEL, REVIEW_STATE_LABEL } from "@/lib/sc03/format";
 import type { Sc03View, Sc03Waiting } from "@/lib/sc03/types";
 import { useSc01 } from "@/lib/store/sc01";
-import { useSc02 } from "@/lib/store/sc02";
 import { selectView3, useSc03 } from "@/lib/store/sc03";
-import { PreparationNote } from "@/components/shared/preparation-note";
-import type { Preparation } from "@/lib/preparation";
 
 /**
  * 장면 3 화면 머리 — 제목 한 줄 + 상태 한 줄(장면 1·2와 같다). 검토건·공장·제품·단위는 상태 줄에 늘 있다
@@ -65,45 +58,17 @@ function MyAlerts() {
   );
 }
 
-const EXECUTOR_LABEL: Record<string, string> = {
-  center: "Center 서버 실행",
-  studio: "Studio 시험 실행",
-  embedded: "내장 BPM(시험용)",
-};
-
-/** 어디서 BPM이 도는지·어디서 답하는지 — 표시하지 않으면 화면에서 답할 수 있다고 착각한다(장면 2와 같다). */
+/** 어디서 BPM이 도는지 — 그리고 결재 답·시연 조작은 회사 사이트에서 한다는 것(읽기 전용, role-split §5.5). */
 function ExecutorBanner() {
   const view = useSc03(selectView3);
-  if (!view || view.executor === "embedded") return null;
-  const problem = view.bpm?.center?.problem;
+  if (!view) return null;
   return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs">
-      <ExternalLink aria-hidden className="size-3.5" />
-      <span>
-        <span className="font-medium">{EXECUTOR_LABEL[view.executor]}</span>이 BPM을 돈다 —{" "}
-        {view.answerHere
-          ? "이 화면의 답은 Center 결재함에 대리 답으로 간다."
-          : view.executor === "studio"
-            ? "결재는 Studio 시험 대화상자에서 답하세요. 회의 기록·과제 초안 수정은 이 화면에서 한다."
-            : "결재는 Center 결재함에서 답하세요."}
-      </span>
-      {problem ? (
-        <span className="inline-flex basis-full items-center gap-1 font-medium">
-          <AlertTriangle aria-hidden className="size-3.5 shrink-0" style={{ color: "var(--viz-status-serious)" }} />
-          {problem}
-        </span>
-      ) : null}
-      <span className="text-muted-foreground">
-        입력 데모실행ID <span className="font-mono">{view.demoRunId}</span> · 바깥 실행{" "}
-        {view.bpm?.externalRunId ? <span className="font-mono">{view.bpm.externalRunId}</span> : "첫 작업 호출 전"}
-        {view.bpm?.center?.job ? (
-          <>
-            {" "}
-            · 작업 <span className="font-mono">{view.bpm.center.job.job_id}</span>
-          </>
-        ) : null}
-      </span>
-    </p>
+    <ExecutorNote
+      executor={view.executor}
+      problem={view.bpm?.center?.problem}
+      demoRunId={view.demoRunId}
+      externalRunId={view.bpm?.externalRunId ?? null}
+    />
   );
 }
 
@@ -122,8 +87,7 @@ function InflightBanner() {
     <p role="status" className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs">
       <Loader2 aria-hidden className="size-3.5 animate-spin" />
       <span>
-        <span className="font-medium">Center 반영 중</span> — {titles}의 답을 Center 결재함에 보냈다. 실행기가 기록하고
-        다음 업무를 올리면(보통 10~25초) 이 화면에 저절로 보인다. 다시 누르지 않아도 된다.
+        <span className="font-medium">Center 반영 중</span> — {titles}의 답이 Center에 들어갔다. 실행기가 기록하고 다음 업무를 올리면 이 화면에 저절로 보인다.
       </span>
     </p>
   );
@@ -138,7 +102,7 @@ function Banner() {
     return (
       <p className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs">
         <History aria-hidden className="size-3.5" />
-        지난 시점({formatClock(past.view.clock)})을 보고 있다 — 이 화면에서는 조작할 수 없다.
+        지난 시점({formatClock(past.view.clock)})을 보고 있다.
         <button type="button" className="font-medium underline" onClick={() => setPast(null)}>
           현재로
         </button>
@@ -164,62 +128,18 @@ function Banner() {
   return null;
 }
 
-/**
- * 장면 3이 아직 없는 데모 실행 — 시작을 묻는다. 장면 2가 인수 전이면 엔진이 장면 2 각본을 인수까지 **실제로**
- * 실행한 뒤 시작한다(지름길로 「인수됨」을 만들지 않는다). 그래서 저절로 하지 않고 묻는다.
- */
-export function Sc03StartCard() {
+/** 장면 3 문서가 아직 없다 — 여는 것은 회사 사이트의 시연 조작이다(예전의 시작 카드 자리). */
+function Sc03NotOpened() {
   const demoRunId = useSc01((s) => s.demoRunId);
-  const [busy, setBusy] = useState(false);
-  const [prep, setPrep] = useState<Preparation | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const start = async () => {
-    setBusy(true);
-    setError(null);
-    // 실행 위치는 Center다(2026-10-27 — 화면은 내장을 고르지 않는다). Studio는 플레이어에서 고른다.
-    const r = await sc03Api.create(demoRunId, "BASE", "center", setPrep);
-    setBusy(false);
-    setPrep(null);
-    if (r.ok) {
-      useSc03.getState().setLive(r.data);
-      // 장면 2(·1)가 각본으로 끝났을 수 있다 — 그 화면도 새 상태를 받게 한다.
-      useSc02.getState().clearLive(false);
-    } else setError(`${r.status} — ${r.error}`);
-  };
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>수익성 통합 분석 시작</CardTitle>
-        <CardDescription>
-          수익성 통합 분석은 외주 단가 인상 검토의 승인 원가 등록·경영관리 인수에서 시작한다. 같은 데모 실행
-          {demoRunId ? <span className="font-mono"> {demoRunId}</span> : null}을 잇는다.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-xs text-muted-foreground">
-          외주 단가 인상 검토가 아직 인수 전이면 외주 단가 인상 검토 각본의 남은 단계를 인수까지 실제로 실행한다(역할 검사·업무 규칙 그대로).
-        </p>
-        <Button size="sm" onClick={() => void start()} disabled={busy || !demoRunId}>
-          <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "준비하는 중…" : "수익성 통합 분석 시작"}
-        </Button>
-        {busy ? <PreparationNote p={prep} /> : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            시작 실패: {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
+  return <SceneNotOpened work="수익성 통합 분석" demoRunId={demoRunId} from="외주 단가 인상 검토의 승인 원가 등록·경영관리 인수" />;
 }
 
-/** 화면 몸통 — 문서가 없으면 시작 카드, 아직 오지 않았으면 불러오는 중. */
+/** 화면 몸통 — 문서가 없으면 「아직 열리지 않았다」(여는 것은 회사 사이트), 아직 오지 않았으면 불러오는 중. */
 export function Sc03Body({ children }: { children: (view: Sc03View) => React.ReactNode }) {
   const view = useSc03(selectView3);
   const missing = useSc03((s) => s.missing);
   if (view) return <>{children(view)}</>;
-  if (missing) return <Sc03StartCard />;
+  if (missing) return <Sc03NotOpened />;
   return <p className="text-sm text-muted-foreground">수익성 통합 분석을 불러오는 중…</p>;
 }
 
@@ -239,50 +159,23 @@ export function StatusPills({ view }: { view: Sc03View }) {
   );
 }
 
-/** 지금 기다리는 사람 업무 중 이 화면 것 — 폼은 BPMN에서 온다. 없으면 아무것도 그리지 않는다. */
-export function WaitingForms({
-  view,
-  nodes,
-  initial,
-  expect,
-  labels,
-}: {
-  view: Sc03View;
-  nodes: string[];
-  initial?: Record<string, Record<string, unknown>>;
-  expect?: (nodeId: string) => Record<string, unknown> | undefined;
-  labels?: Record<string, string>;
-}) {
+/**
+ * 지금 기다리는 사람 업무 중 이 화면 것 — 읽기 전용이다. 답은 회사 사이트의 결재 화면에서 한다. 없으면 아무것도 그리지 않는다.
+ */
+export function WaitingList({ view, nodes }: { view: Sc03View; nodes: string[] }) {
+  if (view.historical) return null;
   const waiting = (view.bpm?.waiting ?? []).filter((w) => nodes.includes(w.nodeId));
-  if (waiting.length === 0 || view.historical) return null;
   return (
-    <>
-      {waiting.map((w: Sc03Waiting) => (
-        <Card key={w.nodeId}>
-          <CardHeader>
-            <CardTitle>지금 할 일 — {w.title}</CardTitle>
-            <CardDescription>
-              담당 {w.role}
-              {w.taskId ? (
-                <>
-                  {" "}
-                  · <span className="font-mono">{w.taskId}</span> 기한 {formatClock(view.tasks.find((t) => t.task_id === w.taskId)?.due_at)}
-                </>
-              ) : null}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Sc03ActionForm
-              key={`${w.nodeId}-${view.audit.length}`}
-              waiting={w}
-              initial={initial?.[w.nodeId]}
-              expect={expect?.(w.nodeId)}
-              submitLabel={labels?.[w.nodeId] ?? "제출"}
-            />
-          </CardContent>
-        </Card>
-      ))}
-    </>
+    <WaitingNotice
+      items={waiting.map((w: Sc03Waiting) => ({
+        nodeId: w.nodeId,
+        title: w.title,
+        who: w.assignee ?? w.role,
+        taskId: w.taskId,
+        due: w.taskId ? formatClock(view.tasks.find((t) => t.task_id === w.taskId)?.due_at) : null,
+        rejected: w.rejected?.reason ?? null,
+      }))}
+    />
   );
 }
 

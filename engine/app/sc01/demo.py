@@ -13,6 +13,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from app import scenarios
 from app.sc01 import domain, view
 from app.sc01.domain import DomainError, parse_at
 from app.sc01.process import Sc01Process
@@ -28,95 +29,9 @@ class Step:
     label: str = ""
 
 
-BASE: list[Step] = [
-    Step(
-        "EV01",
-        "2027-06-16T09:00:00+09:00",
-        "u-sales",
-        None,
-        {"fixture_id": "CP02"},
-        "새 고객계획 수신",
-    ),
-    Step(
-        "EV02",
-        "2027-06-16T10:00:00+09:00",
-        "u-sales",
-        "Approve_DQ",
-        {
-            "확인결과": "확인완료",
-            "확인의견": "CP02 15행 — 당사 배정·월 전체 물량. b모델 7월만 9,500→8,800으로 바뀌었다.",
-            "확인근거": "SRC02 원본 대조, 매핑표 A-a~A-e",
-        },
-        "원천 확인",
-    ),
-    Step(
-        "EV03",
-        "2027-06-16T10:10:00+09:00",
-        "u-sales",
-        "Confirm_Calc",
-        {"계산메모": "확인한 CP02(SRC02)로 F02를 만들어 F01과 비교한다 — b모델 7월 −700대분"},
-        "비교 계산",
-    ),
-    Step(
-        "EV04",
-        "2027-06-16T11:00:00+09:00",
-        "u-sales-lead",
-        "Approve_Sales",
-        {
-            "영업의견": "고객이 확정한 7월 변경이다. 8월 이후 지속 여부는 고객 재확인이 필요하다.",
-            "영업근거": "RUN-F02-001 b모델 7월 지표, CP02 수신본",
-            "경영검토요청": False,
-        },
-        "영업 검토",
-    ),
-    Step(
-        "EV04",
-        "2027-06-16T11:00:00+09:00",
-        "u-sales-lead",
-        "Approve_Dispatch",
-        {
-            "생산담당자": "u-prod",
-            "자재담당자": "u-mat",
-            "배정사유": "b모델 7월 700대분 감소의 생산계획·소요자재·발주 영향 검토",
-        },
-        "현업 검토 배정",
-    ),
-    Step(
-        "EV05",
-        "2027-06-16T11:05:00+09:00",
-        "u-sales-lead",
-        "Approve_Review",
-        {
-            "경영관리담당자": "u-fin",
-            "검토요청사유": "감소율·감소액·목표 부족률 모두 중요 — 통합 손익 검토 필요",
-        },
-        "Management Review 요청",
-    ),
-    Step(
-        "EV06",
-        "2027-06-16T11:30:00+09:00",
-        "u-prod",
-        "Accept_PROD",
-        {"생산인수의견": "7월 b라인 일정 재검토 착수"},
-        "생산 인수",
-    ),
-    Step(
-        "EV06",
-        "2027-06-16T11:30:00+09:00",
-        "u-mat",
-        "Accept_MAT",
-        {"자재인수의견": "7월 b모델 외주부품 발주 조정 가능분 확인 착수"},
-        "자재 인수",
-    ),
-    Step(
-        "EV07",
-        "2027-06-16T11:45:00+09:00",
-        "u-fin",
-        "Accept_FIN",
-        {"경영관리인수의견": "단가·운영비용 반영 통합 손익분석 착수"},
-        "경영관리 인수",
-    ),
-]
+#: 기본 시연(EV01~EV07) — 각본의 원본은 Company1 `scenarios/sc01.json`이고 여기는 사본을 읽는다
+#: (`app/scenarios.py`). 운영·로컬에서는 회사 사이트가 이 각본으로 몬다 — 이 실행기는 시험 전용이다.
+BASE: list[Step] = scenarios.steps(1, Step)
 
 
 def run_step(process: Sc01Process, demo_run_id: str, index: int) -> dict:

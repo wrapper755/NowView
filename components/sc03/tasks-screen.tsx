@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
+import { Sc03Body, Sc03Header, StatusPills, WaitingList } from "@/components/sc03/bits";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -30,7 +30,7 @@ function Tasks({ view }: { view: Sc03View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms view={view} nodes={["Confirm_Minutes", "Assign_Tasks"]} labels={{ Confirm_Minutes: "회의록 확인", Assign_Tasks: "배정 · 통보" }} />
+      <WaitingList view={view} nodes={["Confirm_Minutes", "Assign_Tasks"]} />
 
       <Card>
         <CardHeader>
@@ -55,15 +55,7 @@ function Tasks({ view }: { view: Sc03View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={ACCEPT}
-        expect={(n) => {
-          const t = view.assignments.find((a) => n.endsWith(a.task_id));
-          return n.startsWith("Accept") && t ? { assignment: t.assignment_version } : undefined;
-        }}
-        labels={Object.fromEntries(ACCEPT.map((n) => [n, n.startsWith("Accept") ? "인수 · 반려" : "재배정"]))}
-      />
+      <WaitingList view={view} nodes={ACCEPT} />
 
       {view.assignments.length === 0 ? (
         <Card>

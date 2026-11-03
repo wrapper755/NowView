@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Sc05Body, Sc05Header, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Sc05Body, Sc05Header, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -40,11 +40,7 @@ function Body({ view }: { view: Sc05View }) {
       {view.start === null ? (
         <p className="rounded-md border px-3 py-2 text-xs text-muted-foreground">운영 적용(START51) 전이다 — 변경 공유 기준은 착수 뒤에 쓴다.</p>
       ) : null}
-      <WaitingForms
-        view={view}
-        nodes={NODES}
-        labels={{ Receive_Change: "접수", Share_Change: "공유", Ack_Change: "확인", Respond_Change: "대응 등록", Approve_Urgent: "결정", Execute_Order: "실행 기록" }}
-      />
+      <WaitingList view={view} nodes={NODES} />
       <AgentCard view={view} kind="AG54" canRequest={waiting.has("Share_Change")} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[18rem_1fr]">

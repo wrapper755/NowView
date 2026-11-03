@@ -1,0 +1,96 @@
+{
+  "bpm_process_id": "company1.sc06",
+  "name": "과제 완료·성과 실현 검토 확인 — 기본 시연",
+  "source": "원본(2026-11-03부터) — NowView는 engine/scenarios/에 사본을 둔다(scripts/sync-scenarios.sh)",
+  "steps": [
+    {
+      "code": "D601",
+      "at": "2028-01-11T09:00:00+09:00",
+      "actor": "u-fin",
+      "kind": "start",
+      "node_id": null,
+      "answer": {},
+      "label": "확인 착수 — RV61 · RPT61-v1"
+    },
+    {
+      "code": "D602",
+      "at": "2028-01-11T14:00:00+09:00",
+      "actor": "u-prod-exec",
+      "kind": "act",
+      "node_id": "Confirm_Prod",
+      "answer": {
+        "생산확인내용": "ACT41 완료·Q4 효과 확인",
+        "생산확인근거": "DOC61-PROD"
+      },
+      "label": "생산 임원 성과 근거 확인(CF61-P)",
+      "record": "CF61-P"
+    },
+    {
+      "code": "D603",
+      "at": "2028-01-11T14:10:00+09:00",
+      "actor": "u-buy-exec",
+      "kind": "act",
+      "node_id": "Confirm_Buy",
+      "answer": {
+        "구매확인내용": "ACT42·43 효과·원인 및 JDG61 판단 확인",
+        "구매확인근거": "DOC61-COST;DOC61-ALT;DOC61-JDG;AG62"
+      },
+      "label": "구매 임원 성과 근거 확인(CF61-B)",
+      "record": "CF61-B"
+    },
+    {
+      "code": "D604",
+      "at": "2028-01-12T16:00:00+09:00",
+      "actor": "u-fin-exec",
+      "kind": "act",
+      "node_id": "Review_Finance",
+      "answer": {
+        "종합결정": "확인",
+        "종합내용": "분기 기준·중복·합계·잔여 위험·후속 책임 확인",
+        "종합근거": "RV61;JDG61;FUP61;PROP61"
+      },
+      "label": "경영관리 종합 확인(CF61-F)",
+      "record": "CF61-F"
+    },
+    {
+      "code": "D605",
+      "at": "2028-01-13T17:00:00+09:00",
+      "actor": "u-fin",
+      "kind": "act",
+      "node_id": "Draft_Conclusion",
+      "answer": {
+        "보고결론": "3과제 Q4 기대91.8백만원 대비87.0백만원 기여를 확인했습니다. 긴급구매 축소는30.6백만원 대비25.8백만원으로 일부 미달했습니다. 내부 지연은 운영 보완, 반복 공급제약은 추가 과제로 검토하며 다음 월간보고에서 결과와 검토안을 보고합니다.",
+        "결론근거": "SC06과제성과;FUP61;PROP61"
+      },
+      "label": "보고 결론 작성(TXT61)",
+      "record": "TXT61"
+    },
+    {
+      "code": "D606",
+      "at": "2028-01-13T17:00:00+09:00",
+      "actor": "u-fin-exec",
+      "kind": "act",
+      "node_id": "Finalize_Report",
+      "answer": {
+        "확정결정": "확정",
+        "확정내용": "보고 편성 책임자인 CFO가 확정. 과제 실행 승인 아님",
+        "남는사항": "서명PDF 보완1/18, 운영보완1/21, 추가 검토안2/8, 다음 보고2/11. 신규 효과·예산 미산정. 위험 계속 관리."
+      },
+      "label": "보고본 확정(CF61-R · NOTE61)",
+      "record": "CF61-R"
+    },
+    {
+      "code": "D607",
+      "at": "2028-01-14T10:00:00+09:00",
+      "actor": "u-ceo",
+      "kind": "act",
+      "node_id": "Report_CEO",
+      "answer": {
+        "보고내용": "개선 기여와 남는 차이, 보완·발의 및 다음 확인 보고",
+        "대표지시": ""
+      },
+      "label": "대표 월간 보고(CF61-M)",
+      "record": "CF61-M"
+    }
+  ]
+}

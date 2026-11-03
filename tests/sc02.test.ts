@@ -1,5 +1,5 @@
 /**
- * SC02 화면 쪽 순수 로직 — 배치·장면·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc02_*.py`)가
+ * SC02 화면 쪽 순수 로직 — 배치·화면 연결·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc02_*.py`)가
  * 잠근다. 여기서는 화면이 엔진 응답을 **잘못 읽는** 종류만 본다(SC01 테스트와 같은 기준).
  */
 
@@ -7,9 +7,9 @@ import { describe, expect, it } from "vitest";
 
 import topology from "./fixtures/sc02-process.json";
 import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
-import type { DemoRunView, ProcessTopology, ScriptStep } from "@/lib/sc01/types";
+import type { DemoRunView, ProcessTopology } from "@/lib/sc01/types";
 import { formatPeriod } from "@/lib/sc02/format";
-import { ROUTE_OF_NODE, scenesFor } from "@/lib/sc02/scenes";
+import { ROUTE_OF_NODE } from "@/lib/sc02/routes";
 
 const process = topology as ProcessTopology;
 
@@ -52,28 +52,7 @@ describe("SC02 BPMN 배치", () => {
   });
 });
 
-describe("SC02 장면", () => {
-  const step = (index: number, code: string, nodeId: string | null, label = ""): ScriptStep => ({
-    index,
-    code,
-    at: "2027-06-17T09:00:00+09:00",
-    actor: "u-buy",
-    nodeId,
-    label,
-  });
-
-  it("첫 장면은 D00 — 엔진 각본보다 앞이다", () => {
-    const scenes = scenesFor([step(0, "D01", null, "접수")]);
-    expect(scenes[0].script).toBe(-1);
-    expect(scenes[1]).toMatchObject({ script: 0, route: "/sc02/request" });
-  });
-
-  it("사례마다 각본이 다르다 — X01은 그 단계의 라벨로 보인다", () => {
-    const scenes = scenesFor([step(0, "D01", null), step(1, "X01", "Approve_Exec", "추가 협상지시")]);
-    expect(scenes.at(-1)!.title).toBe("X01 추가 협상지시");
-    expect(scenes.at(-1)!.route).toBe("/sc02/approval");
-  });
-
+describe("SC02 화면 연결", () => {
   it("모든 사람 노드에 화면이 있다", () => {
     for (const n of process.nodes.filter((n) => n.kind === "userTask")) {
       expect(ROUTE_OF_NODE[n.id], n.id).toBeDefined();

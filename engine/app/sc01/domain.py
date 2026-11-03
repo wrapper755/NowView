@@ -27,38 +27,24 @@ CUSTOMERS = {"CUS-HK"}
 PLANTS = {"ULS"}
 SOURCE_MONTHS = {date(2027, m, 1) for m in (7, 8, 9)}
 
-#: 시연 사용자 마스터 — 가상 인물이다. 역할은 구현명세 2장 표. 장면 1·2가 같은 가상 회사를 쓴다.
-USERS: dict[str, dict[str, str]] = {
-    "u-sales": {"name": "이도윤", "role": "영업담당"},
-    "u-sales-lead": {"name": "박서진", "role": "영업팀장"},
-    "u-prod": {"name": "김태오", "role": "생산담당"},
-    "u-mat": {"name": "최유나", "role": "자재담당"},
-    "u-fin": {"name": "정하윤", "role": "경영관리담당"},
-    "u-plant": {"name": "한준호", "role": "공장장"},
-    # 장면 2(SC02) — 구매 승인선. 구매담당·팀장·임원·대표는 서로 다른 사람이다(AUTH-03).
-    # 원가 등록(ROLE-COST)은 Pilot에서 구매담당이 겸한다(구현명세 2장).
-    "u-buy": {"name": "윤채원", "role": "구매담당"},
-    "u-buy-lead": {"name": "서도현", "role": "구매팀장"},
-    "u-buy-exec": {"name": "문지후", "role": "구매임원"},
-    "u-ceo": {"name": "임하준", "role": "대표이사"},
-    # 장면 3(SC03) — 수시 경영검토회의. 주재는 경영관리 임원, 부서 확인·과제 인수는 각 부서 책임자다
-    # (영업·구매 책임자는 장면 1·2의 팀장). 품질은 후속 협조만 — MT31 참석자로 넣지 않는다.
-    "u-fin-exec": {"name": "강민서", "role": "경영관리임원"},
-    "u-fin-lead": {"name": "오세린", "role": "경영관리팀장"},
-    "u-prod-lead": {"name": "배정훈", "role": "생산팀장"},
-    "u-qa-lead": {"name": "신예준", "role": "품질팀장"},
-    # 장면 4(SC04) — 대표 주재 월간 경영회의. 분석 결과는 각 부서 책임자가 쓰고 담당 임원이
-    # 확인·실행 책임을 인수한다(구매 임원은 장면 2의 문지후). 장면 3의 팀장 계정을 임원으로
-    # 덮어쓰지 않는다(구현명세 2장).
-    "u-prod-exec": {"name": "권태윤", "role": "생산임원"},
-    "u-sales-exec": {"name": "남유진", "role": "영업임원"},
-    # 장면 7(SC07) — Agent 개선의 설정 반영(USR-OPS71)·구현(USR-DEV71). 데이터에 이름이
-    # 없어 역할명을 이름으로 쓴다(2026-11-02 사용자 결정 — 인명을 지어내지 않는다). 구현
-    # 담당은 결재가 없고 화면 표시에만 쓴다.
-    "u-ops": {"name": "운영담당", "role": "운영담당"},
-    "u-dev": {"name": "구현담당", "role": "구현담당"},
+#: 시연 사용자 — **명단의 원본은 회사 시스템이다**(`GET /company/org/users`, role-split §2).
+#: 엔진이 들 때·세계를 따라갈 때 회사에서 읽어 채운다(`load_roster`). 여기 남는 것은 NowView
+#: 자신의 행위자(시연관리자 — 시계·초기화·세계 따라가기)뿐이다. 역할은 구현명세 2장 표의 이름이다.
+SYSTEM_USERS: dict[str, dict[str, str]] = {
     "u-demo": {"name": "시연관리자", "role": "시연관리자"},
 }
+USERS: dict[str, dict[str, str]] = dict(SYSTEM_USERS)
+
+
+def load_roster(users: list[dict[str, Any]]) -> None:
+    """
+    회사 명단으로 채운다 — 같은 dict를 고쳐 쓴다(모듈마다 `USERS`를 들여 쓴다). 회사가 준 칸 중
+    이름·역할만 쓴다.
+    """
+    fresh = {u["user_id"]: {"name": u["name"], "role": u["role"]} for u in users}
+    USERS.clear()
+    USERS.update(fresh)
+    USERS.update(SYSTEM_USERS)
 
 
 class DomainError(Exception):
@@ -926,9 +912,7 @@ def link_external_run(doc: dict, run_id: str | None, *, via: str | None = None) 
             409,
         )
     if not run_id:
-        raise DomainError(
-            "바깥 실행 id가 없다 — 일감의 멱등 칸에 run_id가 있어야 한다", 422
-        )
+        raise DomainError("바깥 실행 id가 없다 — 일감의 멱등 칸에 run_id가 있어야 한다", 422)
     bpm = doc["bpm"]
     if bpm["external_run_id"] == run_id:
         return

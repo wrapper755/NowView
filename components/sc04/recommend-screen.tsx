@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,7 @@ function Recommend({ view }: { view: Sc04View }) {
   const results = Object.fromEntries(view.results.flatMap((r) => r.alts.map((a) => [a, r.versions.at(-1)])));
   return (
     <>
-      <WaitingForms view={view} nodes={["Recommend"]} labels={{ Recommend: "공동 제안 확정" }} />
+      <WaitingList view={view} nodes={["Recommend"]} />
       <Card>
         <CardHeader>
           <CardTitle>{rec ? `공동 제안 ${rec.ref}` : "대응안 비교"}</CardTitle>

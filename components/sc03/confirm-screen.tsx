@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
+import { Sc03Body, Sc03Header, StatusPills, WaitingList } from "@/components/sc03/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -63,11 +63,7 @@ function Confirm({ view }: { view: Sc03View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={confirmNodes}
-        labels={Object.fromEntries(confirmNodes.map((n) => [n, n.startsWith("Revise") ? "보완 — 새 버전" : "회신"]))}
-      />
+      <WaitingList view={view} nodes={confirmNodes} />
 
       <Card>
         <CardHeader>
@@ -114,12 +110,7 @@ function Confirm({ view }: { view: Sc03View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={["Register_Gap", "Judge_Questions"]}
-        initial={{ Judge_Questions: { Q31담당자: "u-prod-lead", Q32담당자: "u-fin-lead" } }}
-        labels={{ Register_Gap: "쟁점 등록", Judge_Questions: "처리 확정" }}
-      />
+      <WaitingList view={view} nodes={["Register_Gap", "Judge_Questions"]} />
 
       <Card>
         <CardHeader>

@@ -308,17 +308,38 @@ POST /worlds/{w}/records/reset {scene}           (시연) 그 장면 기록만 �
 
 NowView는 이 쓰기를 **데모 실행 문서를 저장하기 직전에** 한다 — 회사가 받지 못하면 그 조작 전체가 저장되지 않는다.
 
-시뮬레이터 조작(시연 전용 — 실제 회사 시스템에는 없다):
+시연 조작(시연 전용 — 실제 회사 시스템에는 없다). **세계를 만들고 초기화하고 시계를 옮기는 쪽은 회사 사이트다**(2026-11-03,
+`docs/role-split.md` §5) — NowView는 읽기만 한다(엔진 시험만 엔진이 쓴다, `app.company.engine_drives`):
 
 ```
-POST /worlds                                        {world_id}       → 세계를 만든다(이미 있으면 그대로), 시각 S0 = 2027-06-15 18:00
-POST /worlds/{w}/clock                              {at}
+POST /worlds                                        {world_id, case_id="BASE", origin}  → 세계(이미 있으면 그대로), 시각 S0 = 2027-06-15 18:00
+                                                     origin = site면 NowView 일꾼이 데모 실행으로 들인다(그 밖은 들이지 않는다)
+GET  /worlds · /worlds/{w}                          → {world_id, case_id, generation, reset_at, clock, received, price_requests,
+                                                       pending_commands, …}   NowView 일꾼이 2초마다 읽는다(app/follower.py)
+POST /worlds/{w}/clock                              {at}             (사이트)
 POST /worlds/{w}/sim/customer-plans                 {fixture_id}     → 고객이 원천을 보냈다(CP02 · CP03 · EX01·02·04·05)
-POST /worlds/{w}/reset                              → 세계를 S0로
+POST /worlds/{w}/sim/price-requests                 {fixture_id}     → 공급사가 단가 인상 요청을 보냈다(장면 2)
+POST /worlds/{w}/reset                              {case_id?}       → 세계를 S0로, 초기화 회차(generation) +1, 명령을 비운다
+POST /worlds/{w}/commands                           {scene, kind, actor, body, ref}   (사이트) 결재가 아닌 업무 행위 → PENDING
+GET  /worlds/{w}/commands?state=&after= · /commands/{id}
+POST /worlds/{w}/commands/{id}/result               {state: DONE|REJECTED, status, reason, result}   (NowView) — 한 번만
+POST /worlds/{w}/worker-log                         {scene, operation, node_id, approval_node, run_id, ok, reason, ref}   (NowView)
+GET  /worlds/{w}/worker-log?after=                  → 일감 기록 — 사이트 자동 모드가 답한 결재의 기록이 왔는지 본다
 ```
 
-**원천 도착** — 플레이어의 「수신」이 회사 시스템에 고객 원천을 보내고(`sim/customer-plans`), 엔진이 같은 조작 안에서 그 원천을 읽어
-데모 실행 문서에 사본으로 들인 뒤 Center에서 업무를 시작한다. 회사에 따로 들어온 원천을 엔진이 찾아 들이는 수신함 폴링은 없다.
+명령 종류(`open`·`start`·`record`·`agent`·`adopt`·`review`·…)와 몸통은 `docs/role-split.md` §5.2다.
+
+**원천 도착** — 사이트가 회사 시스템에 원천을 보내면(`sim/customer-plans`·`sim/price-requests`) 일꾼이 수신함을 읽어 데모 실행
+문서에 사본으로 들이고 Center에서 업무를 시작한다(`app/follower.py` → `Sc01Process.receive_inbox`·`Sc02Process.receive_inbox`).
+장면 2 문서가 아직 없으면(사이트가 `open`하기 전) 단가 요청은 수신함에 둔다. 엔진 시험은 예전처럼 엔진이 보내고 같은 조작 안에서
+들인다(`receive(fixture_id)`).
+
+**세계 시각** — 일꾼은 세계 시각이 장면 문서보다 앞이면 장면마다 따라가고(기한 초과 알림 · 장면 5 배경 원천), 일감·명령·수신을
+처리하기 전에도 그 세계의 시각을 먼저 읽는다(`follower.Synced`). 엔진은 기간계 시계를 쓰지 않는다 — 각본 시각으로 옮기는 것도
+사이트 몫이다(결재 화면 「각본 시각으로 옮기고 답하기」·자동 모드).
+
+**직원 명단** — 엔진 사용자 마스터(`domain.USERS`)는 `GET /company/org/users`로 채운다(`CompanyClient.ensure_roster`, 기준 자료를
+읽을 때·세계를 따라갈 때). 엔진에 남은 것은 자기 행위자 시연관리자(`u-demo`)뿐이다.
 
 ### 4.3 ③ 웹 ↔ 엔진
 

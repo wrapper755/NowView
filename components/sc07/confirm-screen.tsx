@@ -1,19 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Lock, PlayCircle, Send } from "lucide-react";
-
 import { useUserName } from "@/components/sc01/bits";
 import { Problem, Sc07Body, Sc07Header, StateTag } from "@/components/sc07/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
-import { FormField, initialValue, isMissing } from "@/components/shared/form-field";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sc07Api } from "@/lib/sc07/client";
 import { shortClock } from "@/lib/sc07/format";
-import type { ProcedureStep, Sc07Meta, Sc07Waiting } from "@/lib/sc07/types";
-import { useSc01 } from "@/lib/store/sc01";
+import type { ProcedureStep, Sc07Meta } from "@/lib/sc07/types";
 import { useSc07 } from "@/lib/store/sc07";
 
 const EXECUTOR_LABEL: Record<string, string> = { center: "Center 서버 실행", studio: "Studio 시험 실행", embedded: "내장 BPM(시험용)" };
@@ -23,12 +17,11 @@ const PROCEDURE_LABEL: Record<string, string> = {
   NEEDS_WORK: "보완 필요",
   APPLIED: "완료",
 };
-const STARTER = "u-fin";
 
 /**
  * 확인·적용 절차 — 착수(검증 실행) → 구매 임원 확인 → 경영관리 임원 확인 → 운영 설정 반영 → 설정 반영 확인 → 후속 점검
- * (업무설계표 SC07-S05~S09). BPM(`engine/processes/sc07.bpmn`)이 Studio·Center에서 돌고 화면은 대기 중인 결재에 답한다 —
- * Center면 대리 답이다. 검증 관측값은 서비스 태스크의 규칙 계산이고, 설정 확인의 「일치」는 연결된 레코드와 대조된다.
+ * (업무설계표 SC07-S05~S09). BPM(`engine/processes/sc07.bpmn`)이 Studio·Center에서 돈다 — 착수·결재 답은 회사 사이트가 하고(role-split §5.5),
+ * 이 화면은 절차 상태·기다리는 결재·이력을 보인다. 검증 관측값은 서비스 태스크의 규칙 계산이고, 설정 확인의 「일치」는 연결된 레코드와 대조된다.
  */
 export function Sc07ConfirmScreen() {
   const meta = useSc07((s) => s.meta);
@@ -71,7 +64,7 @@ function Procedure({ meta }: { meta: Sc07Meta }) {
               <span className="text-muted-foreground"> (규칙 재계산 — Agent 실행 ID가 아니다)</span>
             </p>
           ) : null}
-          {p.startedAt === null ? <StartButton meta={meta} /> : null}
+          {p.startedAt === null ? <CompanySiteNote>착수 전이다 — 확인 착수(경영관리 담당)는 회사 사이트의 시연 조작에서 한다.</CompanySiteNote> : null}
           {center?.problem ? <Problem text={center.problem} /> : null}
           {p.lastRejection && meta.status.procedure !== "APPLIED" ? (
             <Disclosure summary={`최근 거절된 답 — ${p.lastRejection.node_id} (${p.lastRejection.status})`}>
@@ -97,13 +90,13 @@ function Procedure({ meta }: { meta: Sc07Meta }) {
       {waiting.map((w) => (
         <Card key={w.nodeId}>
           <CardHeader>
-            <CardTitle>{w.title}</CardTitle>
+            <CardTitle>기다리는 결재 — {w.title}</CardTitle>
             <CardDescription>
-              담당 <Name id={w.assignee} /> · 칸은 데이터의 확인·적용 기록으로 미리 채웠다(고쳐서 낼 수 있다)
+              담당 <Name id={w.assignee} /> · 기다리는 결재
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ActionForm key={`${w.nodeId}:${w.taskId}`} waiting={w} />
+            <CompanySiteNote>답은 회사 사이트의 결재 화면에서 한다 — 기록이 들어오면 아래 이력에 보인다.</CompanySiteNote>
           </CardContent>
         </Card>
       ))}
@@ -194,126 +187,3 @@ function Name({ id }: { id: string | null }) {
   return <>{id ? name(id) : "—"}</>;
 }
 
-function StartButton({ meta }: { meta: Sc07Meta }) {
-  const actor = useSc01((s) => s.actor);
-  const users = useSc01((s) => s.users);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const starter = users.find((u) => u.userId === STARTER);
-  const start = async () => {
-    setBusy(true);
-    setError(null);
-    const r = await sc07Api.start(meta.demoRunId, actor);
-    setBusy(false);
-    if (r.ok) useSc07.getState().setMeta(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" onClick={() => void start()} disabled={busy || actor !== STARTER}>
-        <PlayCircle aria-hidden className="size-3.5" />
-        {busy ? "착수하는 중…" : "확인 착수"}
-      </Button>
-      {actor !== STARTER ? (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Lock aria-hidden className="size-3" />
-          {starter ? `${starter.role} ${starter.name}` : "경영관리 담당"}이 착수한다 — 상단에서 역할을 바꾼다
-        </span>
-      ) : meta.executor === "center" ? (
-        <span className="text-xs text-muted-foreground">Center에 SC07 확인·적용 절차를 기동한다</span>
-      ) : meta.executor === "studio" ? (
-        <span className="text-xs text-muted-foreground">착수만 적는다 — Studio에서 실행을 시작한다</span>
-      ) : null}
-      {error ? <Problem text={error} /> : null}
-    </div>
-  );
-}
-
-/**
- * 결재 폼 — 칸은 BPMN에서 온다. 장면 1~6과 같은 규칙: 검사는 엔진이 하고(403·409·422), 거절되면 사유와 남은 항목을
- * 그대로 보이고 **입력은 지우지 않는다**.
- */
-function ActionForm({ waiting }: { waiting: Sc07Waiting }) {
-  const meta = useSc07((s) => s.meta);
-  const actor = useSc01((s) => s.actor);
-  const users = useSc01((s) => s.users);
-  const [values, setValues] = useState<Record<string, unknown>>(() =>
-    Object.fromEntries(waiting.fields.map((f) => [f.key, initialValue(f)])),
-  );
-  const [error, setError] = useState<{ text: string; items?: string[] } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const keyRef = useRef<string | null>(null);
-  const elsewhere = meta !== null && !meta.answerHere;
-  const relay = meta?.executor === "center";
-  const wrongActor = waiting.assignee !== null && waiting.assignee !== actor;
-  const missing = waiting.fields.some((f) => isMissing(f, values[f.key]));
-  const assigneeName = users.find((u) => u.userId === waiting.assignee)?.name;
-
-  const submit = async () => {
-    if (!meta) return;
-    setBusy(true);
-    setError(null);
-    keyRef.current ??= crypto.randomUUID();
-    const answer = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null && v !== undefined && v !== ""));
-    const r = await sc07Api.act(meta.demoRunId, waiting.nodeId, answer, actor, keyRef.current);
-    setBusy(false);
-    if (r.ok) {
-      keyRef.current = null;
-      useSc07.getState().setMeta(r.data);
-    } else {
-      setError({ text: `${r.status} — ${r.error}`, items: r.blockingItems });
-    }
-  };
-
-  return (
-    <form
-      className="space-y-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      {waiting.fields.map((f) => (
-        <FormField
-          key={f.key}
-          field={f}
-          value={values[f.key]}
-          users={users}
-          onChange={(v) => {
-            keyRef.current = null;
-            setValues((s) => ({ ...s, [f.key]: v }));
-          }}
-        />
-      ))}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={busy || elsewhere || wrongActor || missing}>
-          <Send aria-hidden className="size-3.5" />
-          {busy ? "보내는 중…" : "제출"}
-        </Button>
-        {elsewhere ? (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Lock aria-hidden className="size-3" />
-            바깥 실행이 도는 데모 실행이다 — 결재는 {relay ? "Center 결재함" : "Studio"}에서 답한다
-          </span>
-        ) : wrongActor ? (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Lock aria-hidden className="size-3" />
-            {assigneeName ?? waiting.role}만 할 수 있다 — 상단에서 역할을 바꾼다
-          </span>
-        ) : null}
-      </div>
-      {error ? (
-        <div role="alert" className="space-y-1 text-xs" style={{ color: "var(--viz-status-critical)" }}>
-          <p>거절됨(저장되지 않음): {error.text}</p>
-          {error.items?.length ? (
-            <ul className="list-disc pl-4">
-              {error.items.map((i) => (
-                <li key={i}>{i}</li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-    </form>
-  );
-}

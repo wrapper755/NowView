@@ -107,7 +107,7 @@ def mock(payload: dict[str, Any]) -> dict[str, Any]:
             },
             {
                 "text": f"물량 영향 {_won(n['volume_effect'])}(고객 생산계획 변경 대응)과 승인 "
-                        "단가 영향 "
+                "단가 영향 "
                 f"{_won(n['cost_effect'])}(외주 단가 인상 검토)은 F02 물량에 승인 단가를 적용해 "
                 "중복 없이 더했다.",
                 "evidence_refs": [run],

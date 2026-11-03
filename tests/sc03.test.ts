@@ -1,5 +1,5 @@
 /**
- * SC03 화면 쪽 순수 로직 — 배치·장면·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc03_*.py`)가
+ * SC03 화면 쪽 순수 로직 — 배치·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc03_*.py`)가
  * 잠근다. 여기서는 화면이 엔진 응답을 **잘못 읽는** 종류만 본다(장면 1·2 테스트와 같은 기준).
  */
 
@@ -9,8 +9,6 @@ import topology from "./fixtures/sc03-process.json";
 import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
 import type { DemoRunView, ProcessTopology } from "@/lib/sc01/types";
 import { formatMillion } from "@/lib/sc03/format";
-import { ROUTE_OF_NODE, scenesFor } from "@/lib/sc03/scenes";
-import type { Sc03ScriptStep } from "@/lib/sc03/types";
 
 const process = topology as ProcessTopology;
 
@@ -43,37 +41,6 @@ describe("SC03 BPMN 배치", () => {
     const states = nodeStates(process, bpm);
     expect(states.Confirm_Buy).toBe("done");
     expect(states.Revise_Buy).not.toBe("skipped");
-  });
-});
-
-describe("SC03 장면", () => {
-  const step = (index: number, code: string, kind: Sc03ScriptStep["kind"], nodeId: string | null, label = ""): Sc03ScriptStep => ({
-    index,
-    code,
-    at: "2027-06-24T10:05:00+09:00",
-    actor: "u-fin",
-    kind,
-    nodeId,
-    label,
-    event: null,
-  });
-
-  it("엔진 각본 → 장면. D30이 맨 앞이고 노드·종류가 화면을 정한다", () => {
-    const scenes = scenesFor([
-      step(0, "D31", "start", null, "검토 착수"),
-      step(1, "D32", "act", "Save_Analysis"),
-      step(2, "D37", "record", null, "QA31"),
-      step(3, "D40", "act", "Accept_AT31"),
-      step(4, "E37", "clock", null, "7/6 18:01"),
-    ]);
-    expect(scenes.map((s) => s.route)).toEqual(["/sc03", "/sc03", "/sc03/analysis", "/sc03/meeting", "/sc03/tasks", "/sc03/handoff"]);
-    expect(scenes[0].script).toBe(-1);
-    expect(scenes[5].narration).toContain("기본 시연과 다른 갈래");
-  });
-
-  it("모든 사람 노드에 화면이 있다", () => {
-    const users = process.nodes.filter((n) => n.kind === "userTask").map((n) => n.id);
-    expect(users.filter((id) => !ROUTE_OF_NODE[id])).toEqual([]);
   });
 });
 

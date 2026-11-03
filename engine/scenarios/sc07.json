@@ -1,0 +1,73 @@
+{
+  "bpm_process_id": "company1.sc07",
+  "name": "관리모델 개선 확인·적용 — 기본 시연",
+  "source": "원본(2026-11-03부터) — NowView는 engine/scenarios/에 사본을 둔다(scripts/sync-scenarios.sh)",
+  "steps": [
+    {
+      "code": "D701",
+      "at": "2028-01-17T09:00:00+09:00",
+      "actor": "u-fin",
+      "kind": "start",
+      "node_id": null,
+      "answer": {},
+      "label": "확인 착수 — IMP71 · 검증 실행 TS71-v1"
+    },
+    {
+      "code": "D702",
+      "at": "2028-01-24T10:00:00+09:00",
+      "actor": "u-buy-exec",
+      "kind": "act",
+      "node_id": "Confirm_Buy",
+      "answer": {
+        "구매확인결정": "확인",
+        "구매확인버전": "AGT71-v2",
+        "구매확인내용": "대행 인정 및 원인 후보의 업무 타당성 확인"
+      },
+      "label": "구매 임원 업무 기준 확인(CF71)",
+      "record": "CF71"
+    },
+    {
+      "code": "D703",
+      "at": "2028-01-24T15:00:00+09:00",
+      "actor": "u-fin-exec",
+      "kind": "act",
+      "node_id": "Confirm_Finance",
+      "answer": {
+        "경영관리확인결정": "확인",
+        "경영관리확인버전": "AGT71-v2",
+        "경영관리확인내용": "측정 기준 일관성 및 과거 결과 보존 확인"
+      },
+      "label": "경영관리 임원 정합성 확인(CF72)",
+      "record": "CF72"
+    },
+    {
+      "code": "D704",
+      "at": "2028-01-25T09:00:00+09:00",
+      "actor": "u-ops",
+      "kind": "act",
+      "node_id": "Apply_Setting",
+      "answer": {
+        "설정스냅샷": "CFG71",
+        "적용버전": "AGT71-v2",
+        "적용범위": "구매 긴급구매 원인 검토",
+        "증적유형": "SETTINGS_SNAPSHOT",
+        "반영내용": "예약만 된 상태와 구분. CFG71 전 v1 → 후 v2"
+      },
+      "label": "운영 설정 반영(CFG71)",
+      "record": "CFG71"
+    },
+    {
+      "code": "D705",
+      "at": "2028-01-25T10:00:00+09:00",
+      "actor": "u-fin",
+      "kind": "act",
+      "node_id": "Check_Setting",
+      "answer": {
+        "설정확인결과": "일치",
+        "설정확인내용": "CFG71 읽기 확인 — active_version AGT71-v2"
+      },
+      "label": "운영 설정 반영 확인(CFG71 읽기 확인)",
+      "record": "CFG71-R"
+    }
+  ]
+}

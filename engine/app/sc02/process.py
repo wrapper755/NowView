@@ -37,7 +37,8 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
-from app.company import CompanyClient
+from app.company import CompanyClient, engine_drives, require_finished
+from app.follower import sync_opened
 from app.sc01 import demo as sc01_demo
 from app.sc01 import process as sc01_process
 from app.sc01.center import CenterClient, CenterConfig, CenterError
@@ -184,9 +185,7 @@ def run_operation(
 
     by, known = _by(args, actor)
     _recheck(doc, seed, operation, args)
-    _clock_to_script(
-        doc, seed, DECIDED_BY.get(operation) or str(args.get("node_id") or "") or None
-    )
+    _clock_to_script(doc, seed, DECIDED_BY.get(operation) or str(args.get("node_id") or "") or None)
     if operation in DECIDED_BY:
         node_id = DECIDED_BY[operation]
         if operation == "analyze_price_request":
@@ -403,6 +402,7 @@ class Sc02Process:
         doc = self.sc01.get(sc01_id)
         if doc["scene"] == "HANDED_OFF":
             return doc
+        require_finished("고객 생산계획 변경 대응")  # 사이트가 몰면 각본으로 끝내지 않는다
         if executor_of(doc) == "studio":
             raise DomainError(
                 "고객 생산계획 변경 대응이 Studio 시험 실행이다 — Studio에서 인계까지 진행한 뒤 "
@@ -541,15 +541,39 @@ class Sc02Process:
             self.company.set_clock(demo_run_id, doc["clock"])
             return self._commit(doc, version, None, event_code or "clock")
 
+    def receive_inbox(self, demo_run_id: str, company_doc_id: str, *, actor: str) -> dict:
+        """회사 구매 수신함에 들어온 요청을 들인다 — 회사 사이트가 보냈다(`app/follower.py`)."""
+        return self.receive(demo_run_id, None, actor=actor, company_doc_id=company_doc_id)
+
+    def follow_clock(self, demo_run_id: str, at: str) -> dict:
+        """세계 시각을 따라간다(`app/follower.py`) — 시각 이동과 같은 일, 기간계에는 쓰지 않는다."""
+        return self.set_clock(demo_run_id, at, actor="u-demo")
+
+    def discard(self, demo_run_id: str) -> None:
+        """
+        세계가 초기화됐다(`app/follower.py`) — 장면 문서와 이력을 지운다. Center에 기동한 작업은
+        먼저 거둔다 — 남기면 그 실행이 서버 실행기 자리를 쥐고 새 회차의 작업이 `per_bot_limit`로
+        멈춘다(실측).
+        """
+        found = self.store.load(demo_run_id)
+        if found is not None:
+            doc = found[0]
+            job = (((doc.get("bpm") or {}).get("center") or {}).get("job") or {}).get("job_id")
+            if job and not self.center.config.missing(integration=True):
+                self._cancel_center_job(doc, job)
+        self.store.delete(demo_run_id)
+        self.publish(f"sc02:{demo_run_id}")
+
     def receive(
         self,
         demo_run_id: str,
-        fixture_id: str,
+        fixture_id: str | None,
         *,
         actor: str,
         event_code: str | None = None,
         script_index: int | None = None,
         idempotency_key: str | None = None,
+        company_doc_id: str | None = None,
     ) -> dict:
         """
         S01 요청 접수. 내장이면 BPM을 시작하고, Center면 SC02 패키지를 기동한다(`POST /jobs`).
@@ -559,15 +583,16 @@ class Sc02Process:
         _require(actor, "구매담당")
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
-            if check_idempotency(doc, idempotency_key, ["receive", fixture_id]):
+            if check_idempotency(doc, idempotency_key, ["receive", fixture_id or company_doc_id]):
                 return doc
             # 요청 원문의 주인은 회사다 — 공급사가 회사 구매 수신함에 보내고 NowView가
             # 사본을 들인다.
-            if script_index is None and doc["request"] is None:
-                _clock_to_script(doc, self.seed, None)
-            self.company.set_clock(demo_run_id, doc["clock"])
-            sent = self.company.supplier_sends(demo_run_id, fixture_id)
-            received = self.company.price_request(demo_run_id, sent["doc_id"])
+            if company_doc_id is None:  # 엔진이 몬다(시험) — 공급사가 보낸 것으로 넣는다
+                if script_index is None and doc["request"] is None:
+                    _clock_to_script(doc, self.seed, None)
+                self.company.set_clock(demo_run_id, doc["clock"])
+                company_doc_id = self.company.supplier_sends(demo_run_id, fixture_id)["doc_id"]
+            received = self.company.price_request(demo_run_id, company_doc_id)
             request_id, created = domain.receive_request(doc, received, actor=actor)
             if created:
                 company_exchange(
@@ -953,9 +978,18 @@ class Sc02Process:
                 bpm["position"], bpm["waiting"] = [], []
             ledger["last_seq"] = progress["last_seq"]
             ledger["problem"] = None
-            for rid, entry in opened.items():
-                if entry.get("variables") is not None:
-                    domain.sync_tasks(doc, {rid: {"node_id": entry["node_id"]}}, entry["variables"])
+            ready = [rid for rid, e in opened.items() if e.get("variables") is not None]
+            sync_opened(  # 결재는 앞 기록 작업 바로 뒤에 열렸다 — 그 시각에 연다
+                doc,
+                ready,
+                progress["before"],
+                lambda rids: [
+                    domain.sync_tasks(
+                        doc, {rid: {"node_id": opened[rid]["node_id"]}}, opened[rid]["variables"]
+                    )
+                    for rid in rids
+                ],
+            )
             self._commit(doc, version, None, "center_progress")
         return True
 
@@ -1033,6 +1067,8 @@ def _clock_to_script(doc: dict, seed: Seed, node_id: str | None) -> None:
     사이트로만 진행하자 업무·결재·원가 등록이 전부 수신 시각으로 적혔다, 2026-11-01). 뒤로는
     가지 않는다.
     """
+    if not engine_drives():
+        return  # 시각의 원본은 기간계 — 회사 사이트가 각본 시각으로 옮긴다(role-split §5)
     from app.sc02.demo import steps_for  # demo가 이 모듈을 가져온다
 
     steps = steps_for(doc["case_id"], seed)

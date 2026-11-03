@@ -13,16 +13,13 @@ import {
   Problems,
   RunMeta,
 } from "@/components/sc02/analysis-parts";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList } from "@/components/sc02/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc02Api } from "@/lib/sc02/client";
 import { AGENT_KIND_LABEL, KIND_LABEL } from "@/lib/sc02/format";
 import type { AgentOutput, Sc02View } from "@/lib/sc02/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc02 } from "@/lib/store/sc02";
 
 /**
  * U22 사전 검토 및 영향분석 — 보고 기록 → 요청안 분석 → (협상) → 협상안 재분석.
@@ -81,12 +78,7 @@ function Analysis({ view }: { view: Sc02View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={["Report_Lead", "Confirm_Analysis", "Confirm_Reanalysis"]}
-        initial={{ Confirm_Analysis: { 협상기한: "2027-06-21T18:00:00+09:00" } }}
-        labels={{ Report_Lead: "보고 기록", Confirm_Analysis: "분석 실행", Confirm_Reanalysis: "재분석 실행" }}
-      />
+      <WaitingList view={view} nodes={["Report_Lead", "Confirm_Analysis", "Confirm_Reanalysis"]} />
 
       {runs.length === 0 ? (
         <p className="text-sm text-muted-foreground">아직 분석이 없다 — 보고 뒤 요청안 영향분석을 실행한다.</p>
@@ -151,21 +143,11 @@ function Analysis({ view }: { view: Sc02View }) {
 
 /**
  * Agent 초안 — 담당자 의견과 **다른 카드**다(AG-23). 채택은 사실만 남기고 원본을 바꾸지 않는다. 실패해도
- * 규칙 계산과 수동 검토는 그대로 간다(X09-B).
+ * 규칙 계산과 수동 검토는 그대로 간다(X09-B). 채택 기록은 회사 사이트에서 한다(읽기 전용, role-split §5.5).
  */
 export function AgentCard({ outputs }: { outputs: AgentOutput[] }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
   const name = useUserName();
-  const historical = useSc02((s) => s.past !== null);
-  const [error, setError] = useState<string | null>(null);
   if (outputs.length === 0) return null;
-  const adopt = async (id: string) => {
-    if (!demoRunId) return;
-    const r = await sc02Api.adopt(demoRunId, id, actor);
-    if (r.ok) useSc02.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   return (
     <Card>
       <CardHeader>
@@ -212,20 +194,11 @@ export function AgentCard({ outputs }: { outputs: AgentOutput[] }) {
                   </ul>
                   {o.draft.draft_text ? <p className="mt-2 rounded bg-muted/40 px-2 py-1 text-xs">{o.draft.draft_text}</p> : null}
                 </Disclosure>
-                {!o.adopted_by ? (
-                  <Button size="sm" variant="outline" className="h-7 text-[11px]" disabled={historical} onClick={() => void adopt(o.output_id)}>
-                    확인·채택 기록
-                  </Button>
-                ) : null}
               </>
             ) : null}
           </div>
         ))}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+        <CompanySiteNote>확인·채택 기록은 회사 사이트에서 한다.</CompanySiteNote>
       </CardContent>
     </Card>
   );

@@ -10,7 +10,6 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
   --color-ink: var(--ink);
-  --color-demo-surface: var(--demo-surface);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
@@ -66,7 +65,6 @@
   --brand-foreground: oklch(0.985 0 0);
   --brand-soft: oklch(0.94 0.03 278);
   --ink: oklch(0.255 0.05 272);
-  --demo-surface: oklch(0.98 0.008 278);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -108,7 +106,6 @@
   --brand-foreground: oklch(0.17 0.03 278);
   --brand-soft: oklch(0.28 0.06 278);
   --ink: oklch(0.19 0.03 272);
-  --demo-surface: oklch(0.175 0.015 278);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
@@ -182,26 +179,10 @@
     scroll-margin-top: 184px;
   }
 
-  /* 데모 플레이어는 화면 하단에 고정되어 있다. 그만큼 본문 아래에 자리를 비워 둬야
-     스크롤 끝에서 마지막 내용이 가리지 않는다 — 떠 있는 카드였을 때는 스크롤 도중
-     표 위를 덮었다. 높이는 플레이어가 자기를 재서 `--demo-player-h`에 넣는다.
-     폴백(7rem)은 ResizeObserver가 발화하지 않는 숨겨진 탭용이며 넉넉히 잡았다. 플레이어는 회사 화면에만 있다
-     (회사 목록·일꾼 화면에는 없다). */
   /* 업무 사이드바(lg, 14rem 고정)만큼 본문을 민다 — 사이드바가 없는 회사 첫 화면은 밀지 않는다. */
   @media (width >= 64rem) {
     body:has([data-work-sidebar]) .work-shell {
       padding-left: 14rem;
-    }
-  }
-  body:has([data-demo-player]) {
-    padding-bottom: calc(var(--demo-player-h, 7rem) + 1rem);
-  }
-  /* 넓은 화면(xl)에서는 펼친 플레이어가 오른쪽 단(20rem, 높이 전체)이다 — 아래가 아니라 오른쪽을 비운다.
-     접으면 오른쪽 아래 알약이라 아래 여백(재서 넣은 높이)만 남는다. */
-  @media (width >= 80rem) {
-    body:has([data-demo-player="expanded"]) {
-      padding-bottom: 1rem;
-      padding-right: 20rem;
     }
   }
 }

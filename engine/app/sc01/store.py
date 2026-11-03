@@ -29,6 +29,7 @@ class Sc01Store(Protocol):
     def at(self, demo_run_id: str, seq: int) -> dict | None: ...
     def list(self) -> list[dict[str, Any]]: ...
     def running_external(self, executor: str) -> list[str]: ...
+    def delete(self, demo_run_id: str) -> None: ...
 
 
 def _sqlite_ddl(p: str) -> list[str]:
@@ -151,6 +152,16 @@ class SqliteSc01Store:
             ).fetchall()
         return [{"demoRunId": r[0], "rowVersion": r[1], "createdAt": str(r[2])} for r in rows]
 
+    def delete(self, demo_run_id: str) -> None:
+        """
+        문서와 그 이력을 지운다 — 회사 사이트가 세계를 초기화해 장면을 다시 연다(`app/follower.py`).
+        이력 번호가 1부터 다시 시작하므로 이력도 함께 지운다(세계도 처음으로 돌아갔다).
+        """
+        with self._lock:
+            self.conn.execute(f"DELETE FROM {self.p}_demo_run WHERE id = ?", (demo_run_id,))
+            self.conn.execute(f"DELETE FROM {self.p}_history WHERE demo_run_id = ?", (demo_run_id,))
+            self.conn.commit()
+
     def running_external(self, executor: str) -> list[str]:
         """그 실행 위치에서 **도는** 데모 실행 id — Center 폴링이 문서를 다 읽지 않게(N3)."""
         with self._lock:
@@ -247,6 +258,12 @@ class PostgresSc01Store:
             }
             for r in rows
         ]
+
+    def delete(self, demo_run_id: str) -> None:
+        """문서와 그 이력을 지운다 — SQLite 쪽과 같은 이유(`app/follower.py`)."""
+        with self.pool.connection() as conn, conn.transaction():
+            conn.execute(f"DELETE FROM {self.p}_demo_run WHERE id = %s", (demo_run_id,))
+            conn.execute(f"DELETE FROM {self.p}_history WHERE demo_run_id = %s", (demo_run_id,))
 
     def running_external(self, executor: str) -> list[str]:
         with self.pool.connection() as conn:

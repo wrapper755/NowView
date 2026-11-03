@@ -3,7 +3,7 @@
 import { useUserName } from "@/components/sc01/bits";
 import { BridgeTable, ComparisonNote, Problems } from "@/components/sc02/analysis-parts";
 import { AgentCard } from "@/components/sc02/analysis-screen";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms, Won } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList, Won } from "@/components/sc02/bits";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, formatRatio, modelLabel } from "@/lib/sc01/format";
@@ -24,7 +24,6 @@ export function Sc02ProposalScreen() {
 }
 
 function ProposalView({ view }: { view: Sc02View }) {
-  const neg = view.priceVersions.find((p) => p.version_id === "PV-NEG01");
   const negRun = view.runs.find((r) => r.price_version_id === "PV-NEG01" && !r.is_stale);
   const current = view.proposals.at(-1);
   const run = current ? view.runs.find((r) => r.run_id === current.run_id) : undefined;
@@ -32,16 +31,7 @@ function ProposalView({ view }: { view: Sc02View }) {
     <>
       <StatusPills view={view} />
       {negRun && negRun.status === "BLOCKED" ? <Problems analysis={negRun.result} /> : null}
-      <WaitingForms
-        view={view}
-        nodes={["Draft_Proposal"]}
-        initial={{
-          Draft_Proposal: neg
-            ? { 기안단가: neg.new_price ? Number(neg.new_price) : null, 기안적용일: neg.effective_date }
-            : {},
-        }}
-        labels={{ Draft_Proposal: "상신" }}
-      />
+      <WaitingList view={view} nodes={["Draft_Proposal"]} />
       {current && run ? (
         <ProposalBody proposal={current} run={run} />
       ) : (

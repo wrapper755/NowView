@@ -37,6 +37,50 @@ COST_VERSION_FIELDS = (
 
 class NewWorld(BaseModel):
     world_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    #: 장면 1 시연 사례(NowView `domain.CASES` — BASE·EX08 …). NowView가 데모 실행을 만들 때 읽는다.
+    case_id: str = "BASE"
+    #: 누가 만들었나 — 회사 사이트(`site`)가 만든 세계만 NowView 일꾼이 데모 실행으로 들인다.
+    #: 예전에 NowView가 만든 세계(`engine`)·다른 엔진(작업 사본)의 세계를 집어 오지 않게.
+    origin: str = "engine"
+
+
+class CommandBody(BaseModel):
+    """
+    시연 명령 — 결재가 아닌 업무 행위(장면 열기·착수·회의 기록·Agent 요청 …)를 회사 사이트가 남기면
+    NowView가 가져가 수행하고 결과를 적는다(NowView `docs/role-split.md` §5). 사이트는 NowView를
+    부르지 않는다 — 이 줄이 그 사이의 우편함이다.
+    """
+
+    scene: int = Field(ge=1, le=99)
+    kind: str = Field(pattern=r"^[a-z_]{1,40}$")
+    actor: str
+    body: dict[str, Any] = Field(default_factory=dict)
+    ref: str  # 멱등 — 같은 ref면 기존 명령(같은 내용) 또는 409(다른 내용)
+
+
+class WorkerLogBody(BaseModel):
+    """
+    일감 기록 한 줄 — NowView 일꾼이 서비스 태스크 하나를 끝낼 때마다 적는다(role-split §5.3).
+    `approval_node`는 그 기록 작업이 적는 결재(없으면 결재 기록이 아닌 작업). 사이트 자동 모드는
+    자기가 답한 결재의 기록이 여기 오기 전에 다음 단계로 가지 않는다 — 시계를 먼저 옮기면 기록이
+    다음 단계 시각에 적힌다.
+    """
+
+    scene: int = Field(ge=1, le=99)
+    operation: str
+    node_id: str | None = None
+    approval_node: str | None = None
+    run_id: str | None = None
+    ok: bool = True
+    reason: str = ""
+    ref: str  # 멱등 — 같은 일감이 다시 오면(최소 한 번 실행) 다시 적지 않는다
+
+
+class CommandResult(BaseModel):
+    state: str  # DONE · REJECTED
+    status: int = 200
+    reason: str = ""
+    result: dict[str, Any] = Field(default_factory=dict)
 
 
 class ClockBody(BaseModel):
@@ -160,11 +204,25 @@ def _auth_dependency():
     return check
 
 
-def _new_world(world_id: str) -> dict[str, Any]:
+def _new_world(
+    world_id: str, *, case_id: str = "BASE", generation: int = 1, origin: str = "engine"
+) -> dict[str, Any]:
+    """
+    `generation`은 초기화 회차다 — 초기화할 때마다 오르고 NowView가 그것을 보고 데모 실행을
+    처음으로 돌린다(세계를 만들고 초기화하는 쪽은 회사 사이트다, role-split §5). `reset_at`은
+    실제 시각 — 사이트 자동 모드가 그 뒤의 결재만 이번 회차로 센다.
+    """
     return {
         "world_id": world_id,
+        "case_id": case_id,
+        "origin": origin,
+        "generation": generation,
+        "reset_at": datetime.now(KST).isoformat(),
         "clock": S0_CLOCK,
         "seq": 0,
+        "commands": {},
+        "commands_seq": 0,
+        "worker_log": [],
         "inbox": {},
         "status_log": [],
         **_new_purchase(),
@@ -219,6 +277,8 @@ TXN_FIELDS = (
     "pnl_cost",
 )
 #: 경영 기록에서 같은 판인지 가르는 칸 — 기록 시각·ref는 다시 와도 같은 판이다.
+COMMAND_FIELDS = ("scene", "kind", "actor", "body")
+COMMAND_STATES = {"DONE", "REJECTED"}
 RECORD_FIELDS = ("kind", "record_id", "version", "scene", "state", "at", "by", "title", "body")
 #: 공식 전망에서 같은 판인지 가르는 칸
 FORECAST_FIELDS = ("forecast_id", "run_id", "parent_official", "cutoff", "annual", "approved_at")
@@ -297,23 +357,61 @@ def build_app(store: WorldStore) -> FastAPI:
 
     # ───────────── 세계 ─────────────
 
+    def _world_summary(w: dict[str, Any]) -> dict[str, Any]:
+        w.setdefault("commands", {})
+        return {
+            "world_id": w["world_id"],
+            "case_id": w.get("case_id", "BASE"),
+            "origin": w.get("origin", "engine"),
+            "generation": w.get("generation", 1),
+            "reset_at": w.get("reset_at"),
+            "clock": w["clock"],
+            "received": len(w["inbox"]),
+            "status_records": len(w["status_log"]),
+            "price_requests": len(w.get("price_requests", {})),
+            "cost_versions": len(w.get("cost_versions", {})),
+            "pending_commands": sum(1 for c in w["commands"].values() if c["state"] == "PENDING"),
+        }
+
     @app.post("/worlds", status_code=201, dependencies=[Depends(auth)])
     def create_world(body: NewWorld) -> dict[str, Any]:
         """세계를 만든다 — 이미 있으면 그대로 돌려준다(멱등)."""
         with store.lock():
             found = store.get(body.world_id)
             if found is None:
-                found = _new_world(body.world_id)
+                found = _new_world(body.world_id, case_id=body.case_id, origin=body.origin)
                 store.put(found)
-        return {"world_id": found["world_id"], "clock": found["clock"]}
+        return _world_summary(found)
+
+    @app.get("/worlds", dependencies=[Depends(auth)])
+    def list_worlds() -> list[dict[str, Any]]:
+        """
+        세계(= NowView 데모 실행) 목록 — 사례·초기화 회차·시각과 수신·기록·대기 명령 수.
+        NowView 일꾼이 이것을 읽어 데모 실행을 만들고·초기화하고·시계를 따라간다.
+        """
+        return [_world_summary(w) for w in store.all()]
+
+    @app.get("/worlds/{world_id}", dependencies=[Depends(auth)])
+    def get_world(world_id: str) -> dict[str, Any]:
+        return _world_summary(world(world_id))
 
     @app.post("/worlds/{world_id}/reset", dependencies=[Depends(auth)])
-    def reset(world_id: str) -> dict[str, Any]:
+    def reset(world_id: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        세계를 S0로 — 초기화 회차가 오른다. 사례(`case_id`)를 주면 바꾼다. 지난 명령도
+        지운다(그 회차의 것이다). NowView는 회차가 바뀐 것을 보고 데모 실행을 처음으로 돌린다.
+        """
         with store.lock():
-            world(world_id)
-            fresh = _new_world(world_id)
+            old = world(world_id)
+            case = (body or {}).get("case_id") or old.get("case_id", "BASE")
+            fresh = _new_world(
+                world_id,
+                case_id=case,
+                generation=old.get("generation", 1) + 1,
+                origin=old.get("origin", "engine"),
+            )
             store.put(fresh)
-        return {"world_id": world_id, "clock": fresh["clock"]}
+        return _world_summary(fresh)
 
     @app.get("/worlds/{world_id}/clock", dependencies=[Depends(auth)])
     def get_clock(world_id: str) -> dict[str, str]:
@@ -677,6 +775,98 @@ def build_app(store: WorldStore) -> FastAPI:
             w.update(_new_execution())
             store.put(w)
         return {"world_id": world_id, "clock": w["clock"]}
+
+    # ───────────── 시연 명령 — 사이트가 남기고 NowView가 수행한다(role-split §5) ─────────────
+
+    def _commands(w: dict[str, Any]) -> dict[str, Any]:
+        w.setdefault("commands", {})
+        w.setdefault("commands_seq", 0)
+        return w
+
+    @app.post("/worlds/{world_id}/commands", status_code=201, dependencies=[Depends(auth)])
+    def post_command(world_id: str, body: CommandBody) -> dict[str, Any]:
+        """명령을 남긴다(PENDING). 같은 ref·같은 내용은 기존 명령, 다른 내용은 409."""
+        record = body.model_dump()
+        with store.lock():
+            w = _commands(world(world_id))
+            for c in w["commands"].values():
+                if c["ref"] == body.ref:
+                    if any(c[k] != record[k] for k in COMMAND_FIELDS):
+                        raise HTTPException(409, f"같은 ref에 다른 명령이 이미 있다: {body.ref}")
+                    return {**c, "created": False}
+            w["commands_seq"] += 1
+            command_id = f"CMD-{w['commands_seq']:04d}"
+            w["commands"][command_id] = {
+                **record,
+                "command_id": command_id,
+                "seq": w["commands_seq"],
+                "state": "PENDING",
+                "requested_at": w["clock"],
+                "status": None,
+                "reason": "",
+                "result": {},
+                "finished_at": None,
+            }
+            store.put(w)
+        return {**w["commands"][command_id], "created": True}
+
+    @app.get("/worlds/{world_id}/commands", dependencies=[Depends(auth)])
+    def list_commands(
+        world_id: str, state: str | None = None, after: int = 0
+    ) -> list[dict[str, Any]]:
+        """명령(남긴 순서). NowView는 `state=PENDING`을 읽는다."""
+        found = sorted(_commands(world(world_id))["commands"].values(), key=lambda c: c["seq"])
+        return [c for c in found if c["seq"] > after and (state is None or c["state"] == state)]
+
+    @app.get("/worlds/{world_id}/commands/{command_id}", dependencies=[Depends(auth)])
+    def get_command(world_id: str, command_id: str) -> dict[str, Any]:
+        found = _commands(world(world_id))["commands"].get(command_id)
+        if found is None:
+            raise HTTPException(404, f"없는 명령: {command_id}")
+        return found
+
+    @app.post("/worlds/{world_id}/commands/{command_id}/result", dependencies=[Depends(auth)])
+    def command_result(world_id: str, command_id: str, body: CommandResult) -> dict[str, Any]:
+        """NowView가 수행 결과를 적는다 — 한 번만. 같은 결과가 다시 오면 그대로, 다른 결과는 409."""
+        if body.state not in COMMAND_STATES:
+            raise HTTPException(422, f"모르는 결과: {body.state} (가능: DONE·REJECTED)")
+        with store.lock():
+            w = _commands(world(world_id))
+            c = w["commands"].get(command_id)
+            if c is None:
+                raise HTTPException(404, f"없는 명령: {command_id}")
+            if c["state"] != "PENDING":
+                if c["state"] == body.state and c["reason"] == body.reason:
+                    return c
+                raise HTTPException(409, f"{command_id}는 이미 {c['state']}다")
+            c.update(
+                state=body.state,
+                status=body.status,
+                reason=body.reason,
+                result=body.result,
+                finished_at=w["clock"],
+            )
+            store.put(w)
+        return c
+
+    @app.post("/worlds/{world_id}/worker-log", status_code=201, dependencies=[Depends(auth)])
+    def write_worker_log(world_id: str, body: WorkerLogBody) -> dict[str, Any]:
+        """일감 기록 한 줄(NowView). 같은 ref는 다시 적지 않는다."""
+        with store.lock():
+            w = world(world_id)
+            log = w.setdefault("worker_log", [])
+            for entry in log:
+                if entry["ref"] == body.ref:
+                    return {**entry, "created": False}
+            entry = {**body.model_dump(), "seq": len(log) + 1, "at": w["clock"]}
+            log.append(entry)
+            store.put(w)
+        return {**entry, "created": True}
+
+    @app.get("/worlds/{world_id}/worker-log", dependencies=[Depends(auth)])
+    def read_worker_log(world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        """일감 기록(적힌 순서) — 사이트 자동 모드가 답한 결재의 기록이 왔는지 본다."""
+        return [e for e in world(world_id).get("worker_log", []) if e["seq"] > after]
 
     # ───────────── 경영 기록 — 봉투 공통, 본문은 종류별 스키마(NowView docs/records/) ─────────────
 

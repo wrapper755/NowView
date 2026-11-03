@@ -13,17 +13,20 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from importlib.metadata import version
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from .companies import Settings
 from .companies import build_router as build_companies_router
-from .company import CompanyClient
+from .company import CompanyClient, engine_drives
 from .config import ConfigStore
 from .consumer import ConsumerHost, routed_by
 from .events import hub
+from .follower import Follower, Synced
 from .notify import build_notifier
 from .sc01.api import build_router as build_sc01_router
 from .sc01.center import CenterClient, CenterConfig
@@ -43,6 +46,8 @@ from .sc06.process import Sc06Process
 from .sc07.api import build_router as build_sc07_router
 from .sc07.process import Sc07Process
 from .store import build_backend
+
+_SCENE_PATH = re.compile(r"^/sc0[1-7]/")
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
@@ -106,10 +111,33 @@ poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07)
 # 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다. 토픽은
 # 설정에서, 일감마다 보낸 BPM 프로세스 id → 설정의 업무(장면) → 그 장면의 프로세스다.
 _SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
-consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _SCENES))
+# 세계 따라가기 — 회사 사이트가 기간계에 만든 세계·시계·원천·명령을 읽어 따라간다(role-split §5.3).
+# 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`).
+follower = Follower(company, _SCENES)
+_WORKERS = {n: Synced(p, follower, n) for n, p in _SCENES.items()}
+consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _WORKERS))
 app.include_router(
     build_companies_router(settings, consumer, center, poller, {"company1": company}, _SCENES)
 )
+
+
+@app.middleware("http")
+async def _scene_inputs_are_for_tests(request: Request, call_next):
+    """
+    장면의 쓰기 경로(결재 답·각본·시계·초기화·수신·명령)는 **엔진 시험 전용**이다(role-split §5.5) —
+    시연 조작과 결재는 회사 사이트가 하고, NowView는 기간계를 읽어 따라간다(`app/follower.py`).
+    엔진 시험(`NOWVIEW_TEST_INPUTS=1`)이 아니면 405다. 읽기(GET·SSE)는 그대로다.
+    """
+    if (
+        request.method not in ("GET", "HEAD")
+        and _SCENE_PATH.match(request.url.path)
+        and not engine_drives()
+    ):
+        return JSONResponse(
+            {"detail": "업무 행위·시연 조작은 회사 사이트에서 한다 — NowView는 읽기 전용이다"},
+            status_code=405,
+        )
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -119,11 +147,14 @@ async def _start_notifications() -> None:
     await notifier.start()
     poller.start()
     consumer.start()
+    if not engine_drives():  # 엔진 시험은 엔진이 몬다 — 따라가기를 띄우지 않는다
+        follower.start()
 
 
 @app.on_event("shutdown")
 async def _stop_notifications() -> None:
     # LISTEN 연결을 정리하지 않으면 재시작 때 Postgres에 유령 세션이 남는다.
+    follower.stop()
     poller.stop()
     consumer.stop()
     await notifier.stop()
@@ -154,6 +185,7 @@ def health() -> dict[str, Any]:
         # C15 일꾼 — 승인 대기(요청 코드)·가져가는 중·꺼짐. 토큰은 싣지 않는다.
         # 일꾼은 상태만 — 토픽·요청 코드는 관리자 모드(`/admin/status`)에만 있다.
         "consumer": {"state": consumer.describe()["state"]},
+        "follower": follower.describe(),
         # 회사 시스템 — 키 값은 싣지 않는다.
         "companies": len(settings.config.companies),
         # Center 연동(N3) — 키 값은 싣지 않는다. 폴러가 없으면 center 실행의 진행이 멈춰 보인다.

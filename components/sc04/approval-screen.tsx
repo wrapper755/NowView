@@ -1,19 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc04/agent-card";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc04Api } from "@/lib/sc04/client";
 import { gapWord, OUTCOME_LABEL } from "@/lib/sc04/format";
-import type { ApprovalItem, BudgetPolicy, Sc04View } from "@/lib/sc04/types";
-import { useSc01 } from "@/lib/store/sc01";
+import type { ApprovalItem, Sc04View } from "@/lib/sc04/types";
 
 /**
  * U406 결정과 승인서 확정 — 대표가 과제별로 정하고(REV41), 경영관리가 초안을 쓰고, 대표가 승인서·회의록을 **함께**
@@ -37,14 +34,7 @@ function Approval({ view }: { view: Sc04View }) {
   const items: Record<string, ApprovalItem> | undefined = apr?.items ?? draft?.items;
   return (
     <>
-      <WaitingForms
-        view={view}
-        nodes={["Decide", "Draft_Approval", "Finalize_Approval"]}
-        expect={(n) =>
-          n === "Decide" && view.decisionId ? { report: view.decisionId } : n === "Finalize_Approval" && draft ? { approval: draft.version } : undefined
-        }
-        labels={{ Decide: "결정", Draft_Approval: "초안 저장", Finalize_Approval: "승인" }}
-      />
+      <WaitingList view={view} nodes={["Decide", "Draft_Approval", "Finalize_Approval"]} />
       {dec ? (
         <Card>
           <CardHeader>
@@ -175,7 +165,7 @@ function Approval({ view }: { view: Sc04View }) {
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <p>{apr.delegation}</p>
-              <PolicyLookup />
+              <CompanySiteNote>예산 변경 경로 조회(전용·총괄 초과, E407)는 회사 사이트의 시연 조작에서 한다 — 규칙 설명용이고 거래·이력을 만들지 않는다.</CompanySiteNote>
             </CardContent>
           </Card>
           <Disclosure summary={`회의록 ${apr.minutes_ref}`}>
@@ -186,35 +176,5 @@ function Approval({ view }: { view: Sc04View }) {
       ) : null}
       <AgentCard view={view} kind="AG43" />
     </>
-  );
-}
-
-/** E407 — 전용·총괄 초과 사례를 규칙으로만 조회한다. 거래·이력을 만들지 않는다. */
-function PolicyLookup() {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const [answers, setAnswers] = useState<Array<{ q: string; a: BudgetPolicy | string }>>([]);
-  const ask = async (q: string, body: Parameters<typeof sc04Api.budgetPolicy>[1]) => {
-    if (!demoRunId) return;
-    const r = await sc04Api.budgetPolicy(demoRunId, body);
-    setAnswers((s) => [...s.filter((x) => x.q !== q), { q, a: r.ok ? r.data : `${r.status} — ${r.error}` }]);
-  };
-  return (
-    <div className="space-y-2 rounded-md border p-3">
-      <p className="text-xs text-muted-foreground">예산 변경 경로 조회 — 규칙 설명용이다. 실제 변경 신청·집행 품의는 후속 실행 범위다.</p>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => void ask("ACT41 → ACT42 1백만원 전용", { kind: "transfer", from: "ACT41", amount: "1000000" })}>
-          ACT41 → ACT42 1백만원 전용
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => void ask("총괄 필요액 19백만원", { kind: "total", amount: "19000000" })}>
-          총괄 필요액 19백만원
-        </Button>
-      </div>
-      {answers.map(({ q, a }) => (
-        <p key={q} className="text-xs">
-          <span className="font-medium">{q}</span> —{" "}
-          {typeof a === "string" ? a : `${a.allowed ? "가능" : "제한"} · 승인 ${a.approver ?? "—"} · ${a.rule}`}
-        </p>
-      ))}
-    </div>
   );
 }

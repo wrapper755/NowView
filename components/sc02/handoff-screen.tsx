@@ -5,7 +5,7 @@ import { CheckCircle2, CircleDashed } from "lucide-react";
 import { RiskTag, useUserName } from "@/components/sc01/bits";
 import { BridgeTable } from "@/components/sc02/analysis-parts";
 import { AgentCard } from "@/components/sc02/analysis-screen";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms, Won } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList, Won } from "@/components/sc02/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,13 +43,7 @@ function Handoff({ view }: { view: Sc02View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Request_Handoff", "Accept_Handoff"]}
-        initial={{ Request_Handoff: { 경영관리담당자: "u-fin" } }}
-        expect={h ? { bundle: h.bundle_hash } : undefined}
-        labels={{ Request_Handoff: "인계 요청", Accept_Handoff: "인수" }}
-      />
+      <WaitingList view={view} nodes={["Request_Handoff", "Accept_Handoff"]} />
 
       <Card>
         <CardHeader>

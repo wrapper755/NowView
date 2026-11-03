@@ -9,12 +9,14 @@ import { useSc01 } from "@/lib/store/sc01";
 import { toLoad, useSc06 } from "@/lib/store/sc06";
 
 const POLL_MS = 15_000;
+/** 장면 문서가 아직 없을 때 다시 묻는 주기 — 회사 사이트가 장면을 열면 NowView 일꾼이 문서를 만든다. */
+const MISSING_POLL_MS = 5_000;
 
 /**
  * 장면 6을 받는 **유일한** 자리(장면 1~5 수신과 같은 원칙, 4.6). 장면 6 화면(`/sc06/*`)에 있을 때만 돈다.
  *
- * * **장면 6을 저절로 열지 않는다** — 열면 장면 5가 완료 전일 때 장면 5 각본까지 실행된다. 없으면(404) `missing`을 켜고
- *   화면이 「장면 6 열기」를 묻는다.
+ * * **장면 6을 열지 않는다** — 여는 것은 회사 사이트의 시연 조작이다(role-split §5.5). 없으면(404) `missing`을 켜고
+ *   생길 때까지 짧게 다시 묻는다.
  * * **문서 머리(확인 절차)는 SSE로 받는다** — 결재가 닫히면(Center는 폴러가 읽은 뒤) 바뀐다. 서 있지 않은 동안만 폴링.
  * * **조회(요약·보고·상세)는 멱등이다**(구현명세 10장) — 행위자·데모 실행·보고본, 그리고 확인 기록이 늘거나 보고본
  *   상태가 바뀔 때만 다시 받는다(조회 응답의 확인 이력·결론이 그 때 바뀐다).
@@ -44,20 +46,28 @@ export function Sc06SessionSync() {
     void sc06Api.process().then((r) => useSc06.getState().setTopology(r.ok ? r.data : null));
   }, [active]);
 
+  // 문서 머리 — 아직 없으면(404) 생길 때까지 짧게 다시 묻는다(여는 것은 회사 사이트의 시연 조작이다).
   useEffect(() => {
-    if (!active || !demoRunId) return;
+    if (!active || !demoRunId || loaded) return;
     let cancelled = false;
-    void sc06Api.meta(demoRunId).then((r) => {
-      if (cancelled) return;
-      const { setMeta } = useSc06.getState();
-      if (r.ok) setMeta(r.data);
-      else if (r.status === 404) setMeta(null, true);
-      else setMeta(null, false, r.error);
-    });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const fetchMeta = () => {
+      void sc06Api.meta(demoRunId).then((r) => {
+        if (cancelled) return;
+        const { setMeta } = useSc06.getState();
+        if (r.ok) setMeta(r.data);
+        else if (r.status === 404) {
+          setMeta(null, true);
+          timer = setTimeout(fetchMeta, MISSING_POLL_MS);
+        } else setMeta(null, false, r.error);
+      });
+    };
+    fetchMeta();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [active, demoRunId]);
+  }, [active, demoRunId, loaded]);
 
   useEffect(() => {
     if (!active || !demoRunId || !loaded) return;
@@ -65,6 +75,7 @@ export function Sc06SessionSync() {
     const refetch = async () => {
       const r = await sc06Api.meta(demoRunId);
       if (r.ok) useSc06.getState().setMeta(r.data);
+      else if (r.status === 404) useSc06.getState().setMeta(null, true); // 장면만 처음으로(회사 사이트) — 다시 열릴 때까지 기다린다
       else useSc06.getState().setConnection("offline");
     };
     const startPolling = () => {

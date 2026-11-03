@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 
-import { ActionForm } from "@/components/sc01/action-form";
 import { AgentPanel } from "@/components/sc01/agent-panel";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Loading, RiskTag, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
@@ -446,28 +446,10 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
   const reviewReq = waiting.find((w) => w.nodeId === "Approve_Review");
   const review = view.reviews.find((r) => r.run_id === run.run_id);
   const nameOf = useUserName();
-  // 초안을 "의견에 가져오기"하면 폼을 그 내용으로 다시 연다 — 사람이 고쳐 쓴 뒤 제출한다.
-  const [prefill, setPrefill] = useState<{
-    n: number;
-    values?: Record<string, unknown>;
-  }>({ n: 0 });
 
   return (
     <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
-      <AgentPanel
-        runId={run.run_id}
-        outputs={view.agentOutputs}
-        canAdopt={Boolean(sales)}
-        onAdopt={(draft) =>
-          setPrefill((p) => ({
-            n: p.n + 1,
-            values: {
-              영업의견: draft.summary,
-              영업근거: draft.evidence_refs.join(", "),
-            },
-          }))
-        }
-      />
+      <AgentPanel runId={run.run_id} outputs={view.agentOutputs} />
 
       <Card>
         <CardHeader>
@@ -481,7 +463,10 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
         </CardHeader>
         <CardContent>
           {sales ? (
-            <ActionForm key={prefill.n} waiting={sales} submitLabel="검토 완료" initial={prefill.values} />
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">영업 검토를 기다린다 — 담당 {sales.role}.</p>
+              <CompanySiteNote>검토 의견·근거는 회사 사이트의 결재 화면에서 낸다.</CompanySiteNote>
+            </div>
           ) : review ? (
             <div className="space-y-1 text-sm">
               <p className="text-xs text-muted-foreground">
@@ -514,14 +499,14 @@ function Decisions({ view, run, isLatest }: { view: DemoRunView; run: CalcRun; i
         <CardContent className="space-y-4">
           {dispatch ? (
             <div className="space-y-2">
-              <p className="text-xs font-medium">생산·자재 영향 검토 배정 (CT03)</p>
-              <ActionForm waiting={dispatch} submitLabel="배정" />
+              <p className="text-xs font-medium">생산·자재 영향 검토 배정 대기 (CT03) — {dispatch.role}</p>
+              <CompanySiteNote>배정은 회사 사이트의 결재 화면에서 한다.</CompanySiteNote>
             </div>
           ) : null}
           {reviewReq ? (
             <div className="space-y-2 border-t pt-3">
-              <p className="text-xs font-medium">Management Review 요청</p>
-              <ActionForm waiting={reviewReq} submitLabel="요청" />
+              <p className="text-xs font-medium">Management Review 요청 대기 — {reviewReq.role}</p>
+              <CompanySiteNote>요청은 회사 사이트의 결재 화면에서 한다.</CompanySiteNote>
             </div>
           ) : null}
           {!dispatch && !reviewReq ? (

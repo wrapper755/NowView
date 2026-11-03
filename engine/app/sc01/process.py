@@ -33,7 +33,8 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
-from app.company import CompanyClient, default_client
+from app.company import CompanyClient, default_client, engine_drives
+from app.follower import sync_opened
 from app.sc01 import agent, domain
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import USERS, DomainError
@@ -364,9 +365,7 @@ def run_operation(
         # 요청 기록을 여기서 남긴다.
         _clock_to_script(doc, "Confirm_Calc")
         by, how = _answerer(doc, "Confirm_Calc", args, actor)
-        domain.audit(
-            doc, actor=by, action="calculation_requested", node_id="Confirm_Calc", **how
-        )
+        domain.audit(doc, actor=by, action="calculation_requested", node_id="Confirm_Calc", **how)
         out = domain.compare(doc, seed, args["source_id"])
         _follow_script(doc, "Confirm_Calc")
         return out
@@ -637,12 +636,22 @@ class Sc01Process:
     # ───────────── 조작 ─────────────
 
     def create(
-        self, *, case_id: str = "BASE", actor: str = "u-demo", executor: str = "embedded"
+        self,
+        *,
+        case_id: str = "BASE",
+        actor: str = "u-demo",
+        executor: str = "embedded",
+        demo_run_id: str | None = None,
+        world_generation: int | None = None,
     ) -> dict:
-        """`executor` — BPMN을 누가 도는가(N2). 내장이 아니면 엔진은 이 문서에서 step하지 않는다."""
+        """
+        `executor` — BPMN을 누가 도는가(N2). 내장이 아니면 엔진은 이 문서에서 step하지 않는다.
+        `demo_run_id` — 회사 사이트가 기간계에 만든 세계의 id(`app/follower.py`). 없으면 새로
+        짓는다(시험).
+        """
         if case_id not in domain.CASES:
             raise DomainError(f"모르는 시연 사례: {case_id} (가능: {', '.join(domain.CASES)})", 422)
-        demo_run_id = f"demo-{uuid.uuid4().hex[:8]}"
+        demo_run_id = demo_run_id or f"demo-{uuid.uuid4().hex[:8]}"
         # 회사 세계 = 데모 실행(`docs/worker-interfaces.md` §4.2). 회사가 닿지 않으면 만들지 않는다.
         self.company.ensure_world(demo_run_id)
         doc = domain.new_demo_run(
@@ -653,6 +662,8 @@ class Sc01Process:
             agent_mode=self.agent_mode,
             executor=executor,
         )
+        if world_generation is not None:
+            doc["world_generation"] = world_generation
         domain.audit(
             doc,
             actor=actor,
@@ -691,15 +702,35 @@ class Sc01Process:
             doc = self._commit(doc, version, None, event_code or "clock")
         return self._dispatch(doc)
 
+    def follow_clock(self, demo_run_id: str, at: str) -> dict:
+        """
+        세계 시각을 따라간다(`app/follower.py`) — 사이트가 기간계 시계를 옮겼다. 시각 이동과 같은
+        일을 하되(기한 초과 알림) 기간계에는 쓰지 않는다. 뒤로 가는 시각은 무시한다.
+        """
+        with self._lock(demo_run_id):
+            doc, version = self._load(demo_run_id)
+            if domain.parse_at(at) <= domain.parse_at(doc["clock"]):
+                return doc
+            doc["clock"] = domain.parse_at(at).isoformat()
+            domain.audit(doc, actor="u-demo", action="clock_followed", to=doc["clock"])
+            domain.raise_overdue_alerts(doc)
+            doc = self._commit(doc, version, None, "clock")
+        return self._dispatch(doc)
+
+    def receive_inbox(self, demo_run_id: str, company_doc_id: str, *, actor: str) -> dict:
+        """회사 수신함에 들어온 원천을 들인다 — 회사 사이트가 보냈다(`app/follower.py`)."""
+        return self.receive(demo_run_id, None, actor=actor, company_doc_id=company_doc_id)
+
     def receive(
         self,
         demo_run_id: str,
-        fixture_id: str,
+        fixture_id: str | None,
         *,
         actor: str,
         event_code: str | None = None,
         script_index: int | None = None,
         idempotency_key: str | None = None,
+        company_doc_id: str | None = None,
     ) -> dict:
         """
         시연 원천 수신 — 고객이 회사에 원천을 보내고(회사 시스템 시뮬레이터), NowView가 회사
@@ -715,13 +746,18 @@ class Sc01Process:
         _require(actor, "영업담당")
         with self._lock(demo_run_id):
             doc, version = self._load(demo_run_id)
-            if domain.check_idempotency(doc, idempotency_key, ["receive", fixture_id]):
+            if domain.check_idempotency(
+                doc, idempotency_key, ["receive", fixture_id or company_doc_id]
+            ):
                 return doc
-            if script_index is None:
-                _clock_to_script(doc, f"receive:{fixture_id}")
-            self.company.set_clock(demo_run_id, doc["clock"])
-            sent = self.company.customer_sends(demo_run_id, fixture_id)
-            plan = self.company.customer_plan(demo_run_id, sent["doc_id"])
+            if company_doc_id is None:
+                # 엔진이 몬다(시험) — 고객이 보낸 것으로 회사 수신함에 넣고 들인다
+                if script_index is None:
+                    _clock_to_script(doc, f"receive:{fixture_id}")
+                self.company.set_clock(demo_run_id, doc["clock"])
+                company_doc_id = self.company.customer_sends(demo_run_id, fixture_id)["doc_id"]
+            plan = self.company.customer_plan(demo_run_id, company_doc_id)
+            fixture_id = plan["fixture_id"]
             source_id, created = domain.receive_company_plan(doc, plan, actor=actor)
             if not created:
                 return doc  # 재수신 — 중복 등록·이슈 생성 없이 기존 접수를 돌려준다
@@ -1130,9 +1166,18 @@ class Sc01Process:
             ledger["last_seq"] = progress["last_seq"]
             # 실행이 묶여 기록이 읽히면 수신 때의 사유(「기동하지 않았다」)는 지난 일이다.
             ledger["problem"] = None
-            for rid, entry in opened.items():
-                if entry.get("variables") is not None:
-                    domain.sync_tasks(doc, {rid: {"node_id": entry["node_id"]}}, entry["variables"])
+            ready = [rid for rid, e in opened.items() if e.get("variables") is not None]
+            sync_opened(  # 결재는 앞 기록 작업 바로 뒤에 열렸다 — 그 시각에 연다
+                doc,
+                ready,
+                progress["before"],
+                lambda rids: [
+                    domain.sync_tasks(
+                        doc, {rid: {"node_id": opened[rid]["node_id"]}}, opened[rid]["variables"]
+                    )
+                    for rid in rids
+                ],
+            )
             self._commit(doc, version, None, "center_progress")
         return True
 
@@ -1180,6 +1225,7 @@ class Sc01Process:
         actor: str,
         case_id: str | None = None,
         executor: str | None = None,
+        world_generation: int | None = None,
     ) -> dict:
         """
         현재 데모 실행만 S0로 되돌린다. 이력은 남긴다(DATA-05). 사례·실행 위치를 바꿔 다시 시작한다
@@ -1212,8 +1258,12 @@ class Sc01Process:
             )
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
-            # 회사 세계도 S0로 — 수신함·원천 상태·시각.
-            self.company.reset_world(demo_run_id)
+            if world_generation is None:
+                # 엔진이 몬다(시험) — 회사 세계도 S0로(수신함·원천 상태·시각)
+                self.company.reset_world(demo_run_id)
+            else:
+                # 사이트가 이미 기간계 세계를 초기화했다(`app/follower.py`) — 회차만 적는다
+                doc["world_generation"] = world_generation
             doc = self._commit(doc, version, None, "reset")
         return self._dispatch(doc)
 
@@ -1231,6 +1281,8 @@ def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
     visited: list[str] = []
     active: dict[str, None] = {}
     opened: dict[str, str] = {}
+    before: dict[str, list[str]] = {}
+    done_order: list[str] = []
     finished: str | None = None
     last = 0
     for event in sorted(events, key=lambda e: e.get("seq", 0)):
@@ -1244,8 +1296,12 @@ def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
                 active.pop(node, None)
                 if state in ("completed", "replayed") and node not in visited:
                     visited.append(node)
+                if state == "completed":
+                    done_order.append(node)
         elif kind == "human_requested" and data.get("layer", "approval") == "approval" and node:
             opened[str(data["request_id"])] = node
+            # 이 결재 앞에 끝난 노드(가까운 것부터) — 업무를 그 기록 작업 시각에 연다(`follower`)
+            before[str(data["request_id"])] = done_order[::-1][:20]
         elif kind in ("human_answered", "human_timeout", "human_withdrawn"):
             opened.pop(str(data.get("request_id")), None)
         elif kind == "run_finished":
@@ -1256,8 +1312,8 @@ def read_run_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "open": opened,
         "finished": finished,
         "last_seq": last,
+        "before": before,
     }
-
 
 
 def _center_key(doc: dict, source_id: str, kind: str) -> str:
@@ -1290,6 +1346,8 @@ def _clock_to_script(doc: dict, done: str) -> None:
     뒤로는 가지 않는다. 각본이 대리 답한 결재(`pending`)는 각본이 이미 시계를 옮겼다. 회사 세계의
     시각은 저장 직전에 같이 맞춘다(`_commit`).
     """
+    if not engine_drives():
+        return  # 시각의 원본은 기간계 — 회사 사이트가 각본 시각으로 옮긴다(role-split §5)
     from app.sc01.demo import BASE  # demo가 이 모듈을 가져온다
 
     follow = _script_follow(doc)

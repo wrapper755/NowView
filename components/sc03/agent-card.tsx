@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { Bot } from "lucide-react";
 
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc03Api } from "@/lib/sc03/client";
 import type { Sc03View } from "@/lib/sc03/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc03 } from "@/lib/store/sc03";
 
 const TITLE = { AG30: "Agent 손익 설명 초안", AG31: "Agent 회의 요약 · 과제 초안" } as const;
 
@@ -19,20 +15,8 @@ const TITLE = { AG30: "Agent 손익 설명 초안", AG31: "Agent 회의 요약 �
  * 뿐 결론·인수를 대신하지 않는다. 실패하면 사유를 보이고 수동 작성으로 간다(E36) — 원 계산·회신·기록은 그대로다.
  */
 export function AgentCard({ view, kind }: { view: Sc03View; kind: "AG30" | "AG31" }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const output = [...view.agentOutputs].reverse().find((o) => o.kind === kind);
   const meetingOpen = view.meetings.some((m) => m.meeting_id === "MT31" && m.state === "IN_PROGRESS");
-  const run = async (fn: () => Promise<{ ok: boolean; data?: Sc03View; error?: string; status?: number }>) => {
-    setBusy(true);
-    setError(null);
-    const r = await fn();
-    setBusy(false);
-    if (r.ok && r.data) useSc03.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   if (!output && !(kind === "AG31" && meetingOpen)) return null;
   return (
     <Card>
@@ -76,25 +60,7 @@ export function AgentCard({ view, kind }: { view: Sc03View; kind: "AG30" | "AG31
             {output.draft.draft_text ? <p className="rounded-md bg-muted px-3 py-2 text-xs">{output.draft.draft_text}</p> : null}
           </>
         ) : null}
-        {!view.historical ? (
-          <div className="flex flex-wrap gap-2">
-            {kind === "AG31" && meetingOpen ? (
-              <Button size="sm" variant="outline" disabled={busy || actor !== "u-fin"} onClick={() => void run(() => sc03Api.agent(demoRunId!, "AG31", actor))}>
-                {output ? "다시 요약" : "회의 요약 요청"}
-              </Button>
-            ) : null}
-            {output?.status === "SUCCEEDED" && !output.adopted_by ? (
-              <Button size="sm" variant="outline" disabled={busy || actor !== "u-fin"} onClick={() => void run(() => sc03Api.adopt(demoRunId!, output.output_id, actor))}>
-                검토 후 채택 기록
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+        <CompanySiteNote>초안 요청·다시 만들기·검토(채택) 기록은 회사 사이트에서 한다.</CompanySiteNote>
       </CardContent>
     </Card>
   );

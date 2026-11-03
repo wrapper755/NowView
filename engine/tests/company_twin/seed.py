@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -140,11 +141,8 @@ def load() -> CompanyData:
         for r in _rows(wb["고정비"], "plant_id")
     ]
     wb.close()
-    from app.sc01.domain import USERS
-
-    org = {
-        "users": [{"user_id": uid, **u} for uid, u in USERS.items() if u["role"] != "시연관리자"]
-    }
+    # 명단은 Company1 기간계 `legacy/seed/org.json`의 사본이다 — 엔진 사용자 마스터는 이것을 읽는다
+    org = json.loads((Path(__file__).parent / "org.json").read_text(encoding="utf-8"))
     return CompanyData(
         users=org["users"],
         versions=versions,

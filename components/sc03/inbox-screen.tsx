@@ -1,20 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { CompanyLink as Link } from "@/components/shared/company-link";
-import { CheckCircle2, CircleDashed, PlayCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed } from "lucide-react";
 
 import { RiskTag, useUserName } from "@/components/sc01/bits";
 import { Mn, Sc03Body, Sc03Header, StatusPills } from "@/components/sc03/bits";
+import { StartPending } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc03Api } from "@/lib/sc03/client";
 import type { Risk } from "@/lib/sc01/types";
 import type { Sc03View } from "@/lib/sc03/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc03 } from "@/lib/store/sc03";
 
 /** 진행 단계(업무설계표 S31~S44) — 검토건 상태에서 파생한다. */
 const STAGES: { id: string; label: string; done: (v: Sc03View) => boolean; href: string }[] = [
@@ -29,7 +25,7 @@ const STAGES: { id: string; label: string; done: (v: Sc03View) => boolean; href:
 
 /**
  * U31 수익성 검토 업무함 — MR-2706-01의 두 사건 카드, 승인·원가 등록·인수 근거, 진행 단계·일정. 분석 시작은
- * 경영관리 담당이 한다(S31). 같은 검토건의 재착수는 기존 결과를 돌려준다(T31).
+ * 경영관리 담당이 회사 사이트에서 한다(S31) — 이 화면은 착수 여부를 보인다.
  */
 export function Sc03InboxScreen() {
   return (
@@ -41,39 +37,11 @@ export function Sc03InboxScreen() {
 }
 
 function StartButton({ view }: { view: Sc03View }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   if (view.review.started_at !== null || view.historical) return null;
-  const start = async () => {
-    if (!demoRunId) return;
-    setBusy(true);
-    setError(null);
-    const r = await sc03Api.start(demoRunId, actor, crypto.randomUUID());
-    setBusy(false);
-    if (r.ok) useSc03.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>지금 할 일 — 분석 시작</CardTitle>
-        <CardDescription>담당 경영관리 담당 · 외주 단가 인상 검토 인수 근거를 확인하고 기존 검토건에 두 사건을 잇는다.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <Button size="sm" onClick={() => void start()} disabled={busy || actor !== "u-fin"}>
-          <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "착수하는 중…" : "분석 시작"}
-        </Button>
-        {actor !== "u-fin" ? <p className="text-xs text-muted-foreground">경영관리 담당(정하윤) 역할만 착수한다 — 상단에서 역할을 바꾼다.</p> : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <StartPending title="분석 시작" who="경영관리 담당(정하윤)">
+      외주 단가 인상 검토 인수 근거를 확인하고 기존 검토건에 두 사건을 잇는다.
+    </StartPending>
   );
 }
 

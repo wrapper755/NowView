@@ -2,20 +2,17 @@
 
 import { useState } from "react";
 import { CompanyLink as Link } from "@/components/shared/company-link";
-import { CheckCircle2, CircleDashed, PlayCircle } from "lucide-react";
+import { CheckCircle2, CircleDashed } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Mn, Sc04Body, Sc04Header, StatusPills, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, StatusPills, WaitingList } from "@/components/sc04/bits";
+import { StartPending } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc04Api } from "@/lib/sc04/client";
 import { RESULT_STATE_LABEL } from "@/lib/sc04/format";
 import type { AnalysisResult, Sc04View } from "@/lib/sc04/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc04 } from "@/lib/store/sc04";
 
 /** 진행 단계(업무설계표 SC04-S01~S14) — 기록에서 파생한다. */
 const STAGES: { id: string; label: string; done: (v: Sc04View) => boolean; href: string }[] = [
@@ -50,39 +47,11 @@ export function Sc04InboxScreen() {
 }
 
 function StartButton({ view }: { view: Sc04View }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   if (view.review.started_at !== null || view.historical) return null;
-  const start = async () => {
-    if (!demoRunId) return;
-    setBusy(true);
-    setError(null);
-    const r = await sc04Api.start(demoRunId, actor, crypto.randomUUID());
-    setBusy(false);
-    if (r.ok) useSc04.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>지금 할 일 — 개선안 검토·실행 승인 착수</CardTitle>
-        <CardDescription>담당 경영관리 담당 · 기존 검토건 MR-2706-01에 HANDOFF31과 AT31~AT34를 잇는다(수익성 통합 분석을 다시 승인하지 않는다).</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <Button size="sm" onClick={() => void start()} disabled={busy || actor !== "u-fin"}>
-          <PlayCircle aria-hidden className="size-3.5" />
-          {busy ? "착수하는 중…" : "개선안 검토·실행 승인 착수"}
-        </Button>
-        {actor !== "u-fin" ? <p className="text-xs text-muted-foreground">경영관리 담당(정하윤) 역할만 착수한다 — 상단에서 역할을 바꾼다.</p> : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <StartPending title="개선안 검토·실행 승인 착수" who="경영관리 담당(정하윤)">
+      기존 검토건 MR-2706-01에 HANDOFF31과 AT31~AT34를 잇는다(수익성 통합 분석을 다시 승인하지 않는다).
+    </StartPending>
   );
 }
 
@@ -95,11 +64,7 @@ function Inbox({ view }: { view: Sc04View }) {
   return (
     <>
       <StartButton view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Submit_AT31", "Confirm_AT31", "Submit_AT32", "Confirm_AT32", "Submit_AT33", "Confirm_AT33", "Submit_AT34", "Confirm_AT34"]}
-        labels={Object.fromEntries(["AT31", "AT32", "AT33", "AT34"].flatMap((t) => [[`Submit_${t}`, "결과 제출"], [`Confirm_${t}`, "확인 기록"]]))}
-      />
+      <WaitingList view={view} nodes={["Submit_AT31", "Confirm_AT31", "Submit_AT32", "Confirm_AT32", "Submit_AT33", "Confirm_AT33", "Submit_AT34", "Confirm_AT34"]} />
       <StatusPills view={view} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-3">

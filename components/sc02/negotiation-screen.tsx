@@ -1,18 +1,13 @@
 "use client";
 
-import { useState } from "react";
-
 import { useUserName } from "@/components/sc01/bits";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList } from "@/components/sc02/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc02Api } from "@/lib/sc02/client";
 import { KIND_LABEL } from "@/lib/sc02/format";
 import type { Sc02View } from "@/lib/sc02/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc02 } from "@/lib/store/sc02";
 
 /**
  * U23 1차 협상 결과 — 기존가·요청가·내부제시가·협상가와 각 적용일을 **구분한다**. 잠정합의는 회사의 최종
@@ -35,12 +30,7 @@ function Negotiation({ view }: { view: Sc02View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Record_Negotiation"]}
-        initial={{ Record_Negotiation: { 협상적용일: view.request?.items[0]?.effective_date ?? "" } }}
-        labels={{ Record_Negotiation: "협상 결과 저장" }}
-      />
+      <WaitingList view={view} nodes={["Record_Negotiation"]} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[3fr_2fr]">
         <Card>
@@ -103,7 +93,7 @@ function Negotiation({ view }: { view: Sc02View }) {
                     </li>
                   ))}
                 </ul>
-                <DueChange />
+                <CompanySiteNote className="border-t pt-3">외부 협상기한 변경(구매담당)은 회사 사이트의 시연 조작에서 한다 — 바뀐 이력은 위에 남는다.</CompanySiteNote>
               </>
             ) : (
               <p className="text-muted-foreground">요청안 분석 때 넣는다.</p>
@@ -136,57 +126,5 @@ function Negotiation({ view }: { view: Sc02View }) {
         </Card>
       ) : null}
     </>
-  );
-}
-
-function DueChange() {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const historical = useSc02((s) => s.past !== null);
-  const [due, setDue] = useState("");
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const submit = async () => {
-    if (!demoRunId) return;
-    const r = await sc02Api.changeDue(demoRunId, due, reason, actor);
-    if (r.ok) {
-      useSc02.getState().setLive(r.data);
-      setDue("");
-      setReason("");
-      setError(null);
-    } else setError(`${r.status} — ${r.error}`);
-  };
-  return (
-    <form
-      className="space-y-2 border-t pt-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      <p className="text-xs font-medium">기한 변경 (구매담당)</p>
-      <input
-        aria-label="새 기한"
-        placeholder="2027-06-22T18:00:00+09:00"
-        value={due}
-        onChange={(e) => setDue(e.target.value)}
-        className="block w-full rounded-lg border bg-transparent px-2 py-1.5 text-sm"
-      />
-      <input
-        aria-label="변경 사유"
-        placeholder="변경 사유"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        className="block w-full rounded-lg border bg-transparent px-2 py-1.5 text-sm"
-      />
-      <Button type="submit" size="sm" variant="outline" disabled={historical || !due || !reason.trim()}>
-        기한 변경
-      </Button>
-      {error ? (
-        <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-          거절됨: {error}
-        </p>
-      ) : null}
-    </form>
   );
 }

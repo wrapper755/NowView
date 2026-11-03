@@ -1,20 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Inbox } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList } from "@/components/sc02/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock, formatRatio, modelLabel } from "@/lib/sc01/format";
 import { sc02Api } from "@/lib/sc02/client";
 import { REQUEST_STATUS_LABEL } from "@/lib/sc02/format";
 import type { Sc02View } from "@/lib/sc02/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc02 } from "@/lib/store/sc02";
 
 /**
  * U21 단가 인상 요청 접수 — 공급사·요청건·상태, 공문, 품목별 기존가·요청가·적용일, 부품-모델 연결, 검사 오류.
@@ -43,7 +40,7 @@ function Request({ view }: { view: Sc02View }) {
     <>
       <StatusPills view={view} />
       {req === null ? <ReceiveCard /> : null}
-      <WaitingForms view={view} nodes={["Verify_Request"]} labels={{ Verify_Request: "확인 기록" }} />
+      <WaitingList view={view} nodes={["Verify_Request"]} />
 
       {req ? (
         <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[2fr_3fr]">
@@ -145,44 +142,18 @@ function Request({ view }: { view: Sc02View }) {
   );
 }
 
-/** 요청 등록 — 구매담당. 같은 공문·같은 내용을 다시 받으면 기존 요청을 돌려준다(U21-03). */
+/** 공문 수신 — 공급사 요청은 회사 사이트의 시연 조작이 회사 구매 수신함에 보내고, NowView 일꾼이 들인다(읽기 전용, role-split §5.5). */
 function ReceiveCard() {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const users = useSc01((s) => s.users);
-  const historical = useSc02((s) => s.past !== null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const isBuyer = users.find((u) => u.userId === actor)?.role === "구매담당";
-  const receive = async (fixtureId: string) => {
-    if (!demoRunId) return;
-    setBusy(true);
-    setError(null);
-    const r = await sc02Api.receive(demoRunId, fixtureId, actor);
-    setBusy(false);
-    if (r.ok) useSc02.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   return (
     <Card>
       <CardHeader>
         <CardTitle>공문 수신</CardTitle>
-        <CardDescription>SUP-01 가상 정밀부품이 회사 구매 수신함에 보낸 단가 인상 요청 공문(DOC-REQ01)을 들인다. 구매담당 업무다.</CardDescription>
+        <CardDescription>SUP-01 가상 정밀부품이 회사 구매 수신함에 보낸 단가 인상 요청 공문(DOC-REQ01)을 들인다.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => void receive("REQ-2706-01")} disabled={busy || historical || !isBuyer}>
-          <Inbox aria-hidden className="size-3.5" />
-          요청 등록
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => void receive("REQ-2706-01-MISSING")} disabled={busy || historical || !isBuyer} title="CT21 — 적용일이 빠진 요청은 보완 대기로 둔다">
-          적용일 누락 변형
-        </Button>
-        {!isBuyer ? <span className="text-xs text-muted-foreground">구매담당 역할로 바꾼다</span> : null}
-        {error ? (
-          <p role="alert" className="basis-full text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+      <CardContent>
+        <CompanySiteNote>
+          요청(기본 · 적용일 누락 변형)은 회사 사이트의 시연 조작에서 보낸다 — 수신함에 들어오면 이 화면이 따라 바뀐다.
+        </CompanySiteNote>
       </CardContent>
     </Card>
   );

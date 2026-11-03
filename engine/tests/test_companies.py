@@ -209,6 +209,26 @@ def test_bpmn_copies_match_company1() -> None:
         assert copy.read_bytes() == original.read_bytes(), f"{copy.name} — scripts/sync-bpm.sh"
 
 
+def test_scenario_copies_match_company1() -> None:
+    """
+    엔진의 각본은 사본이다 — 원본은 Company1 리포의 `scenarios/`(회사 사이트의 자동 모드·결재 예시
+    값, role-split §5). 옆에 Company1 리포가 있으면 사본이 원본과 같은지 본다. 다르면
+    `scripts/sync-scenarios.sh`로 가져온다.
+    """
+    import os
+
+    source = Path(os.getenv("COMPANY1_DIR") or ROOT.parent / "Company1") / "scenarios"
+    if not source.is_dir():
+        pytest.skip(f"Company1 각본 원본이 없다: {source}")
+    originals = sorted(source.glob("sc0*.json"))
+    assert len(originals) == 7, source
+    for original in originals:
+        copy = ROOT / "engine" / "scenarios" / original.name
+        assert copy.read_bytes() == original.read_bytes(), (
+            f"{copy.name} — scripts/sync-scenarios.sh"
+        )
+
+
 class _Scene:
     """장면 하나 — 저장소에 데모 실행 문서가 있거나 없다."""
 

@@ -1,5 +1,5 @@
 /**
- * SC05 화면 쪽 순수 로직 — 배치·장면·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc05_*.py`)가 잠근다.
+ * SC05 화면 쪽 순수 로직 — 배치·표기. 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc05_*.py`)가 잠근다.
  * 여기서는 화면이 엔진 응답을 **잘못 읽는** 종류만 본다(장면 1~4 테스트와 같은 기준).
  */
 
@@ -8,9 +8,7 @@ import { describe, expect, it } from "vitest";
 import topology from "./fixtures/sc05-process.json";
 import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
 import type { DemoRunView, ProcessTopology } from "@/lib/sc01/types";
-import { activityLines, formatCount, formatMillion, formatMinutes, formatRate, gapWord } from "@/lib/sc05/format";
-import { ROUTE_OF_NODE, scenesFor } from "@/lib/sc05/scenes";
-import type { Activity, Sc05ScriptStep } from "@/lib/sc05/types";
+import { formatCount, formatMillion, formatMinutes, formatRate, gapWord } from "@/lib/sc05/format";
 
 const process = topology as ProcessTopology;
 
@@ -51,51 +49,6 @@ describe("SC05 BPMN 배치", () => {
   });
 });
 
-describe("SC05 장면", () => {
-  const step = (index: number, code: string, kind: Sc05ScriptStep["kind"], nodeId: string | null, label = ""): Sc05ScriptStep => ({
-    index,
-    code,
-    at: "2027-07-13T10:05:00+09:00",
-    actor: "u-fin",
-    kind,
-    nodeId,
-    label,
-    event: null,
-  });
-
-  it("엔진 각본 → 장면. D500이 맨 앞이고 노드·단계 코드가 화면을 정한다", () => {
-    const scenes = scenesFor([
-      step(0, "D501", "start", null, "착수"),
-      step(1, "D502", "agent", null, "AG51"),
-      step(2, "D504", "view", null, "착수 요건"),
-      step(3, "D507", "review", null, "AG53 검토"),
-      step(4, "D512", "act", "Approve_Urgent"),
-      step(5, "D513", "act", "Confirm_Observation"),
-      step(6, "D517", "act", "Publish_Forecast"),
-      step(7, "X507", "act", "Approve_Forecast", "대표 반려"),
-    ]);
-    expect(scenes.map((s) => s.route)).toEqual([
-      "/sc05",
-      "/sc05",
-      "/sc05/plan",
-      "/sc05/ready",
-      "/sc05/ready",
-      "/sc05/changes",
-      "/sc05/results",
-      "/sc05/forecast",
-      "/sc05/forecast",
-    ]);
-    expect(scenes[0].script).toBe(-1);
-    expect(scenes[8].narration).toContain("기본 시연과 다른 갈래");
-  });
-
-  it("모든 사람 노드에 화면이 있다", () => {
-    const users = process.nodes.filter((n) => n.kind === "userTask").map((n) => n.id);
-    expect(users.length).toBe(41);
-    expect(users.filter((id) => !ROUTE_OF_NODE[id])).toEqual([]);
-  });
-});
-
 describe("SC05 표기", () => {
   it("미확인·비해당은 0과 다르다(T518)", () => {
     expect(formatCount(null)).toBe("미확인");
@@ -112,22 +65,4 @@ describe("SC05 표기", () => {
     expect(formatMillion("3428986680")).toBe("3,428.99");
   });
 
-  it("Agent 초안 활동을 폼 글로 — 협조·비용 빈칸을 0으로 메우지 않는다", () => {
-    const a: Activity = {
-      activity_id: "01",
-      name: "공동 기준 작성",
-      owner: "u-buy-lead",
-      start: "2027-07-19",
-      end: "2027-08-17",
-      predecessors: [],
-      cooperation: null,
-      cost: null,
-      completion: "정례 공유와 수시 공유의 기본 역할",
-      evidence: "DOC51",
-    };
-    expect(activityLines([a, { ...a, activity_id: "02", predecessors: ["01"], cost: "0" }], () => "서도현")).toBe(
-      "01 | 공동 기준 작성 | 서도현 | 2027-07-19 | 2027-08-17 | - |  |  | 정례 공유와 수시 공유의 기본 역할 | DOC51\n" +
-        "02 | 공동 기준 작성 | 서도현 | 2027-07-19 | 2027-08-17 | 01 |  | 0 | 정례 공유와 수시 공유의 기본 역할 | DOC51",
-    );
-  });
 });

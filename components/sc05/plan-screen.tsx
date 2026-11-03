@@ -4,12 +4,12 @@ import { useState } from "react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Sc05Body, Sc05Header, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Sc05Body, Sc05Header, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { activityLines, CHECK_LABEL, PLAN_STATE_LABEL } from "@/lib/sc05/format";
+import { CHECK_LABEL, PLAN_STATE_LABEL } from "@/lib/sc05/format";
 import type { Activity, Plan, Sc05View } from "@/lib/sc05/types";
 import { useSc01 } from "@/lib/store/sc01";
 
@@ -36,16 +36,8 @@ function Body({ view }: { view: Sc05View }) {
   const mine = view.plans.filter((p) => p.task_id === "ACT42");
   const [picked, setPicked] = useState<string | null>(null);
   const shown = mine.find((p) => p.plan_id === picked) ?? mine.at(-1) ?? null;
-  const [initial, setInitial] = useState<Record<string, Record<string, unknown>>>({});
-  const [revision, setRevision] = useState(0);
   const waiting = new Set((view.bpm?.waiting ?? []).map((w) => w.nodeId));
   const a = view.sc04.actions.ACT42;
-  const use = (node: string, field: string, ref: string, outputId: string) => {
-    const output = view.agentOutputs.find((o) => o.output_id === outputId);
-    if (!output?.draft?.activities) return;
-    setInitial((s) => ({ ...s, [node]: { ...(s[node] ?? {}), [field]: activityLines(output.draft!.activities!, plainName), [ref]: outputId } }));
-    setRevision((r) => r + 1);
-  };
   return (
     <>
       <Card>
@@ -76,29 +68,18 @@ function Body({ view }: { view: Sc05View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={[...PLAN_NODES, ...CHANGE_NODES]}
-        initial={initial}
-        revision={revision}
-        expect={(n) => (["Confirm_Plan", "Verify_Plan", "Confirm_Change", "Verify_Change"].includes(n) && mine.at(-1) ? { plan: mine.at(-1)!.plan_id } : undefined)}
-        labels={{ Draft_Plan: "초안 저장", Confirm_Plan: "확정", Verify_Plan: "확인", Request_Change: "변경 요청", Confirm_Change: "변경 확정" }}
-      />
+      <WaitingList view={view} nodes={[...PLAN_NODES, ...CHANGE_NODES]} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         <AgentCard
           view={view}
           kind="AG51"
           canRequest={waiting.has("Draft_Plan")}
-          onUse={waiting.has("Draft_Plan") ? (id) => use("Draft_Plan", "계획활동", "계획초안출처", id) : undefined}
-          useLabel="초안을 폼으로 — 협조·비용은 직접 채운다"
         />
         <AgentCard
           view={view}
           kind="AG52"
           canRequest={waiting.has("Request_Change")}
-          onUse={waiting.has("Request_Change") ? (id) => use("Request_Change", "변경활동", "변경초안출처", id) : undefined}
-          useLabel="변경안을 폼으로"
         />
       </div>
 

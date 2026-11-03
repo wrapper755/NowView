@@ -31,15 +31,38 @@ from app.sc06.domain import ACCOUNTS, FOCUS_TASK, REVIEW_ID
 #: 결재 → 담당·남길 기록. 결재 담당은 사람 하나다(`chk:approval.assignees`와 같다 — 시험이 맞춰
 #: 본다).
 NODE_ROLES: dict[str, dict[str, str]] = {
-    "Confirm_Prod": {"user": "u-prod-exec", "record": "CF61-P", "task": "CONFIRM_PROD"},
-    "Confirm_Buy": {"user": "u-buy-exec", "record": "CF61-B", "task": "CONFIRM_BUY"},
-    "Review_Finance": {"user": "u-fin-exec", "record": "CF61-F", "task": "REVIEW_FINANCE"},
-    "Draft_Conclusion": {"user": "u-fin", "record": "TXT61", "task": "DRAFT_CONCLUSION"},
-    "Finalize_Report": {"user": "u-fin-exec", "record": "CF61-R", "task": "FINALIZE_REPORT"},
-    "Report_CEO": {"user": "u-ceo", "record": "CF61-M", "task": "REPORT_CEO"},
+    "Confirm_Prod": {
+        "user": "u-prod-exec",
+        "role": "생산임원",
+        "record": "CF61-P",
+        "task": "CONFIRM_PROD",
+    },
+    "Confirm_Buy": {
+        "user": "u-buy-exec",
+        "role": "구매임원",
+        "record": "CF61-B",
+        "task": "CONFIRM_BUY",
+    },
+    "Review_Finance": {
+        "user": "u-fin-exec",
+        "role": "경영관리임원",
+        "record": "CF61-F",
+        "task": "REVIEW_FINANCE",
+    },
+    "Draft_Conclusion": {
+        "user": "u-fin",
+        "role": "경영관리담당",
+        "record": "TXT61",
+        "task": "DRAFT_CONCLUSION",
+    },
+    "Finalize_Report": {
+        "user": "u-fin-exec",
+        "role": "경영관리임원",
+        "record": "CF61-R",
+        "task": "FINALIZE_REPORT",
+    },
+    "Report_CEO": {"user": "u-ceo", "role": "대표이사", "record": "CF61-M", "task": "REPORT_CEO"},
 }
-for _spec in NODE_ROLES.values():
-    _spec["role"] = USERS[_spec["user"]]["role"]
 
 RECORDS = (
     "confirm_performance_evidence",

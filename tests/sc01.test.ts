@@ -1,9 +1,9 @@
 /**
- * SC01 화면 쪽 순수 로직 — 배치·노드 상태·되감기 지점·표기.
+ * SC01 화면 쪽 순수 로직 — 배치·노드 상태·표기·문서 순서.
  *
  * 업무 규칙과 숫자는 엔진 테스트(`engine/tests/test_sc01_*.py`)가 잠근다. 여기서는 화면이
- * 엔진 응답을 **잘못 읽는** 종류만 본다: 판정 보류를 정상으로, 누락을 0으로, 지난 장면을
- * 다음 장면의 시각으로 보여 주는 것.
+ * 엔진 응답을 **잘못 읽는** 종류만 본다: 판정 보류를 정상으로, 누락을 0으로, 늦게 온 옛 문서를 최신으로
+ * 보여 주는 것.
  */
 
 import { describe, expect, it } from "vitest";
@@ -17,9 +17,7 @@ import {
   riskLabel,
 } from "@/lib/sc01/format";
 import { canvasTopology, layoutProcess, nodeStates } from "@/lib/sc01/process-layout";
-import { historySeqFor, SC01_SCENES } from "@/lib/sc01/scenes";
-import { splitNarration } from "@/components/shared/narration";
-import type { DemoRunView, HistoryEntry, ProcessTopology } from "@/lib/sc01/types";
+import type { DemoRunView, ProcessTopology } from "@/lib/sc01/types";
 
 const process = topology as ProcessTopology;
 
@@ -101,55 +99,6 @@ describe("노드 상태", () => {
   });
 });
 
-describe("되감기 지점", () => {
-  const history: HistoryEntry[] = [
-    { seq: 1, event: "S0", clock: "2027-06-15T18:00:00+09:00", scriptIndex: -1 },
-    { seq: 2, event: "EV01", clock: "2027-06-16T09:00:00+09:00", scriptIndex: -1 },
-    { seq: 3, event: "EV01", clock: "2027-06-16T09:00:00+09:00", scriptIndex: 0 },
-    // 다음 단계 실행 전 가상시계 이동 — 지점은 아직 0이다.
-    { seq: 4, event: "EV02", clock: "2027-06-16T10:00:00+09:00", scriptIndex: 0 },
-    { seq: 5, event: "EV02", clock: "2027-06-16T10:00:00+09:00", scriptIndex: 1 },
-  ];
-
-  it("그 지점에 처음 도달한 기록을 고른다 — 마지막 기록은 다음 장면의 시각이다", () => {
-    expect(historySeqFor(history, 0)).toBe(3);
-    expect(historySeqFor(history, -1)).toBe(1);
-  });
-
-  it("같은 지점·같은 시각에 뒤따른 기록(Center 대리 답 뒤 기록 작업)까지 본다", () => {
-    const relayed: HistoryEntry[] = [
-      { seq: 1, event: "D406", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 }, // 대리 답 — 지점만
-      { seq: 2, event: "center_progress", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 },
-      { seq: 3, event: "open_monthly_meeting", clock: "2027-07-12T10:00:00+09:00", scriptIndex: 13 }, // 기록
-      { seq: 4, event: "D406", clock: "2027-07-12T10:05:00+09:00", scriptIndex: 13 }, // 다음 단계의 시계 이동
-      { seq: 5, event: "D406", clock: "2027-07-12T10:05:00+09:00", scriptIndex: 14 },
-    ];
-    expect(historySeqFor(relayed, 13)).toBe(3);
-    expect(historySeqFor(relayed, 14)).toBe(5);
-  });
-
-  it("아직 가지 않은 지점은 없다", () => {
-    expect(historySeqFor(history, 5)).toBeNull();
-  });
-
-  it("초기화 뒤에는 초기화 이후의 기록만 본다 — 앞 진행의 같은 지점을 고르지 않는다", () => {
-    const again: HistoryEntry[] = [
-      ...history,
-      { seq: 6, event: "reset", clock: "2027-06-15T18:00:00+09:00", scriptIndex: -1 },
-      { seq: 7, event: "EV01", clock: "2027-06-16T09:00:00+09:00", scriptIndex: 0 },
-    ];
-    expect(historySeqFor(again, 0)).toBe(7);
-    expect(historySeqFor(again, -1)).toBe(6);
-    expect(historySeqFor(again, 1)).toBeNull();
-  });
-
-  it("장면은 각본 순서를 거스르지 않는다", () => {
-    const scripts = SC01_SCENES.map((s) => s.script);
-    expect(scripts).toEqual([...scripts].sort((a, b) => a - b));
-    expect(scripts[0]).toBe(-1);
-  });
-});
-
 describe("표기", () => {
   it("원 → 억·만", () => {
     expect(formatKrw("3309351000")).toBe("33.09억");
@@ -171,14 +120,6 @@ describe("표기", () => {
   });
 });
 
-describe("가상시계 이동", () => {
-  it("다음 영업일 18:30 — 주말을 건너뛴다(데모 달력 WF-04)", async () => {
-    const { nextBusinessEvening } = await import("@/lib/sc01/scenes");
-    expect(nextBusinessEvening("2027-06-16T11:45:00+09:00")).toBe("2027-06-17T18:30:00+09:00");
-    expect(nextBusinessEvening("2027-06-18T10:00:00+09:00")).toBe("2027-06-21T18:30:00+09:00");
-  });
-});
-
 describe("문서 순서", () => {
   it("늦게 도착한 오래된 응답이 최신 문서를 덮지 않는다", async () => {
     const { useSc01 } = await import("@/lib/store/sc01");
@@ -195,31 +136,5 @@ describe("문서 순서", () => {
     expect(useSc01.getState().live?.agentOutputs[0].status).toBe("SUCCEEDED");
     s.setLive(doc(13, "SUCCEEDED"));
     expect(useSc01.getState().live?.audit).toHaveLength(13);
-  });
-});
-
-describe("플레이어 단계 설명 나누기", () => {
-  it("맨 앞 시점은 칩, 「…다.」 문장은 하나씩, 「 — 」 뒤는 부연이다", () => {
-    const r = splitNarration(
-      "6/17 아침. 장면에서 b모델 7월 700대분 감소를 확인했다. 검토 전망 F02는 승인 전이다 — 원가 상승 요청이 들어온다.",
-    );
-    expect(r.when).toBe("6/17 아침");
-    expect(r.points).toEqual([
-      { head: "장면에서 b모델 7월 700대분 감소를 확인했다.", tail: null },
-      { head: "검토 전망 F02는 승인 전이다", tail: "원가 상승 요청이 들어온다." },
-    ]);
-  });
-
-  it("「…다.」로 끝나는 첫 문장이나 소수점은 시점으로 떼지 않는다", () => {
-    expect(splitNarration("흐름이 끝났다. 인계가 기록됐다.").when).toBeNull();
-    expect(splitNarration("승인효과 127.8백만원을 다시 더하지 않는다.").when).toBeNull();
-  });
-
-  it("모든 장면 1 각본 설명이 빈 문장 없이 나뉜다", () => {
-    for (const s of SC01_SCENES) {
-      const r = splitNarration(s.narration);
-      expect(r.points.length).toBeGreaterThan(0);
-      for (const p of r.points) expect(p.head.trim()).not.toBe("");
-    }
   });
 });

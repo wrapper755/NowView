@@ -9,7 +9,7 @@ import { Commentary } from "@/components/shared/commentary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
 import { TASK2_LABEL } from "@/lib/sc02/format";
-import { ROUTE_OF_NODE } from "@/lib/sc02/scenes";
+import { ROUTE_OF_NODE } from "@/lib/sc02/routes";
 import type { Sc02View } from "@/lib/sc02/types";
 import { useSc01 } from "@/lib/store/sc01";
 

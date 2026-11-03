@@ -3,7 +3,7 @@
 import { CheckCircle2, CircleDashed } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
+import { Sc03Body, Sc03Header, StatusPills, WaitingList } from "@/components/sc03/bits";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -51,7 +51,7 @@ function HandoffView({ view }: { view: Sc03View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms view={view} nodes={["Complete_Scene"]} labels={{ Complete_Scene: "수익성 통합 분석 완료" }} />
+      <WaitingList view={view} nodes={["Complete_Scene"]} />
 
       <Card>
         <CardHeader>

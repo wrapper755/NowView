@@ -1,19 +1,14 @@
 "use client";
 
-import { useState } from "react";
-
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc03/agent-card";
-import { Mn, Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
+import { Mn, Sc03Body, Sc03Header, StatusPills, WaitingList } from "@/components/sc03/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc03Api } from "@/lib/sc03/client";
 import { DEPT_LABEL, OUTCOME_LABEL } from "@/lib/sc03/format";
 import type { Sc03View } from "@/lib/sc03/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc03 } from "@/lib/store/sc03";
 
 /**
  * U34 수시회의 준비 · U35 경영검토와 대안 가능성 탐색. 보고는 **확정본 고정**이다 — 확정본과 최신 초안을 함께
@@ -36,12 +31,7 @@ function Meeting({ view }: { view: Sc03View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Freeze_Report", "Distribute", "Report_Meeting"]}
-        expect={(n) => (n === "Freeze_Report" && view.currentDraftId ? { report: view.currentDraftId } : undefined)}
-        labels={{ Freeze_Report: "자료 확정", Distribute: "내부 배포", Report_Meeting: "개회 · 보고" }}
-      />
+      <WaitingList view={view} nodes={["Freeze_Report", "Distribute", "Report_Meeting"]} />
 
       <Card>
         <CardHeader>
@@ -149,12 +139,7 @@ function Meeting({ view }: { view: Sc03View }) {
       </Card>
 
       <AgentCard view={view} kind="AG31" />
-      <WaitingForms
-        view={view}
-        nodes={["Decide_Review"]}
-        expect={() => (view.frozenReportId ? { report: view.frozenReportId } : undefined)}
-        labels={{ Decide_Review: "결론 · 후보 판단 확정" }}
-      />
+      <WaitingList view={view} nodes={["Decide_Review"]} />
 
       {view.decision ? (
         <Card>
@@ -181,25 +166,10 @@ function Meeting({ view }: { view: Sc03View }) {
 
 const RECORD_LABEL: Record<string, string> = { QUESTION: "질의", ANSWER: "답변", EXPLANATION: "설명", NOTE: "메모" };
 
-/** 회의 질의·답변·설명 — 참석자만 적는다(BPM 밖의 회의 기록). */
+/** 회의 질의·답변·설명 — 참석자가 회사 사이트에서 적는다(BPM 밖의 회의 기록). 여기는 기록을 보인다. */
 function Records({ view }: { view: Sc03View }) {
   const name = useUserName();
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
   const mt = view.meetings.find((m) => m.meeting_id === "MT31")!;
-  const [type, setType] = useState("QUESTION");
-  const [content, setContent] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const attendee = mt.attendance.some((a) => a.actor === actor);
-  const submit = async () => {
-    if (!demoRunId) return;
-    setError(null);
-    const r = await sc03Api.record(demoRunId, { type, subject: RECORD_LABEL[type], content, related: "" }, actor);
-    if (r.ok) {
-      useSc03.getState().setLive(r.data);
-      setContent("");
-    } else setError(`${r.status} — ${r.error}`);
-  };
   return (
     <Card>
       <CardHeader>
@@ -223,36 +193,7 @@ function Records({ view }: { view: Sc03View }) {
           </ul>
         )}
         {mt.state === "IN_PROGRESS" && !view.historical ? (
-          <form
-            className="flex flex-wrap items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit();
-            }}
-          >
-            <select value={type} onChange={(e) => setType(e.target.value)} aria-label="기록 종류" className="h-8 rounded-md border bg-transparent px-1 text-xs">
-              {Object.entries(RECORD_LABEL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-            <input
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              aria-label="내용"
-              placeholder={attendee ? "내용" : "MT31 참석자만 기록한다"}
-              className="h-8 min-w-[12rem] flex-1 rounded-md border bg-transparent px-2 text-sm"
-            />
-            <Button type="submit" size="sm" disabled={!attendee || !content.trim()}>
-              기록
-            </Button>
-          </form>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
+          <CompanySiteNote>질의·답변·설명은 MT31 참석자가 회사 사이트에서 남긴다.</CompanySiteNote>
         ) : null}
       </CardContent>
     </Card>

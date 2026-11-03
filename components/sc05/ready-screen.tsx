@@ -3,7 +3,7 @@
 import { useUserName } from "@/components/sc01/bits";
 import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Requirements, Sc05Body, Sc05Header, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Requirements, Sc05Body, Sc05Header, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,12 +71,7 @@ function Body({ view }: { view: Sc05View }) {
         </CardContent>
       </Card>
 
-      <WaitingForms
-        view={view}
-        nodes={NODES}
-        labels={{ Start_Operation: "운영 적용 착수", Confirm_CON41: "충족 확인", Verify_SUP41: "이행 확인" }}
-        initial={view.planPointer ? { Start_Operation: { 착수계획버전: view.planPointer } } : undefined}
-      />
+      <WaitingList view={view} nodes={NODES} />
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
         {view.conditions.map((c) => (

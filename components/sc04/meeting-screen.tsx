@@ -1,20 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Send } from "lucide-react";
-
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc04/agent-card";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc04Api } from "@/lib/sc04/client";
 import { DIRECTIVE_KIND_LABEL, gapWord, RECORD_TYPE_LABEL } from "@/lib/sc04/format";
 import type { Sc04View } from "@/lib/sc04/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc04 } from "@/lib/store/sc04";
 
 /**
  * U405 대표 질의와 실행 애로 조정 — 질문·실제 답변·지원 지시를 **다른 유형의 기록**으로 둔다(Agent 초안과 사람이
@@ -39,12 +33,7 @@ function Meeting({ view }: { view: Sc04View }) {
   const decRun = decision ? view.runs.find((r) => r.run_id === decision.run_id) : undefined;
   return (
     <>
-      <WaitingForms
-        view={view}
-        nodes={["Draft_Decision", "Confirm_Decision"]}
-        expect={(n) => (n === "Confirm_Decision" && view.decisionId ? { report: view.decisionId } : undefined)}
-        labels={{ Draft_Decision: "판단 초안 저장", Confirm_Decision: "판단본 확인" }}
-      />
+      <WaitingList view={view} nodes={["Draft_Decision", "Confirm_Decision"]} />
       <Card>
         <CardHeader>
           <CardTitle>회의 기록 {m?.records.length ?? 0}건</CardTitle>
@@ -71,7 +60,7 @@ function Meeting({ view }: { view: Sc04View }) {
           ) : (
             <p className="text-sm text-muted-foreground">아직 기록이 없다.</p>
           )}
-          {m?.state === "IN_PROGRESS" && !view.historical ? <RecordForm view={view} /> : null}
+          {m?.state === "IN_PROGRESS" && !view.historical ? <CompanySiteNote>회의 기록(대표 질의·지시, 담당 임원 답변)은 참석자가 회사 사이트에서 남긴다.</CompanySiteNote> : null}
         </CardContent>
       </Card>
       <AgentCard view={view} kind="AG42" />
@@ -172,74 +161,5 @@ function Meeting({ view }: { view: Sc04View }) {
         </Card>
       ) : null}
     </>
-  );
-}
-
-const TYPES = ["QUESTION", "DIRECTIVE", "ANSWER", "NOTE"] as const;
-
-/** 회의 기록 — 참석자만, 질의·지시는 대표, 답변은 담당 임원(엔진이 검사한다 — 버튼은 편의다). */
-function RecordForm({ view }: { view: Sc04View }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [type, setType] = useState<(typeof TYPES)[number]>(actor === "u-ceo" ? "QUESTION" : "ANSWER");
-  const [content, setContent] = useState("");
-  const [related, setRelated] = useState("ALT42");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const attendee = view.meeting?.attendance.some((a) => a.actor === actor) ?? false;
-  const submit = async () => {
-    if (!demoRunId) return;
-    setBusy(true);
-    setError(null);
-    const r = await sc04Api.record(demoRunId, { type, subject: RECORD_TYPE_LABEL[type], content, related }, actor);
-    setBusy(false);
-    if (r.ok) {
-      useSc04.getState().setLive(r.data);
-      setContent("");
-    } else setError(`${r.status} — ${r.error}`);
-  };
-  return (
-    <form
-      className="space-y-2 rounded-md border p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      <div className="flex flex-wrap gap-2 text-xs">
-        <label className="flex items-center gap-1">
-          유형
-          <select className="rounded border bg-background px-1 py-0.5" value={type} onChange={(e) => setType(e.target.value as (typeof TYPES)[number])}>
-            {TYPES.map((t) => (
-              <option key={t} value={t}>
-                {RECORD_TYPE_LABEL[t]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-1">
-          관련
-          <input className="w-24 rounded border bg-background px-1 py-0.5" value={related} onChange={(e) => setRelated(e.target.value)} />
-        </label>
-      </div>
-      <textarea
-        aria-label="기록 내용"
-        className="min-h-16 w-full rounded border bg-background px-2 py-1 text-sm"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm" disabled={busy || !attendee || !content.trim()}>
-          <Send aria-hidden className="size-3.5" />
-          기록
-        </Button>
-        {!attendee ? <span className="text-xs text-muted-foreground">MT41 참석자만 기록한다 — 상단에서 역할을 바꾼다.</span> : null}
-        {error ? (
-          <span role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </span>
-        ) : null}
-      </div>
-    </form>
   );
 }

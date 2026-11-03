@@ -235,8 +235,9 @@ def baseline_from_sc02(sc02_doc: dict) -> dict[str, Any]:
     pv = sc02_doc["price_versions"].get("PV-APP01")
     cv = sc02_doc["cost_versions"].get("C02-APP01")
     if pv is None or cv is None or sc02_doc.get("approval_status") != "APPROVED":
-        raise DomainError("외주 단가 인상 검토의 승인 단가(PV-APP01)·원가 버전(C02-APP01)이 "
-                          "없다", 409)
+        raise DomainError(
+            "외주 단가 인상 검토의 승인 단가(PV-APP01)·원가 버전(C02-APP01)이 없다", 409
+        )
     sc01 = sc02_doc["sc01"]
     return {
         "demo_run_id": sc02_doc["demo_run_id"],
@@ -384,8 +385,9 @@ def start_review(doc: dict, *, by: str) -> bool:
     if r["started_at"] is not None:
         return False
     if doc["sc02"]["handoff"].get("accepted_by") != FIN:
-        raise DomainError("외주 단가 인상 검토 인수 근거가 경영관리 담당 인수가 아니다 — 착수할 수 "
-                          "없다", 409)
+        raise DomainError(
+            "외주 단가 인상 검토 인수 근거가 경영관리 담당 인수가 아니다 — 착수할 수 없다", 409
+        )
     r.update(state="ANALYSIS_IN_PROGRESS", started_at=doc["clock"], started_by=by)
     audit(doc, actor=by, action="review_started", review_id=REVIEW_ID, event_code="EV31-01")
     return True

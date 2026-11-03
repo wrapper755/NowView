@@ -317,8 +317,10 @@ def baseline_from_sc03(sc03_doc: dict) -> dict[str, Any]:
     """
     h = sc03_doc.get("handoff") or {}
     if sc03_doc["review"].get("state") != "SC03_COMPLETED" or h.get("handoff_id") != SOURCE_HANDOFF:
-        raise DomainError("수익성 통합 분석이 아직 완료 전이다 — 개선안 검토·실행 승인은 "
-                          "HANDOFF31에서 시작한다", 409)
+        raise DomainError(
+            "수익성 통합 분석이 아직 완료 전이다 — 개선안 검토·실행 승인은 HANDOFF31에서 시작한다",
+            409,
+        )
     if sc03_doc.get("case_id") != "BASE":
         raise DomainError(
             f"수익성 통합 분석이 기본 시연이 아니다({sc03_doc.get('case_id')}) — 개선안 검토·실행 "
@@ -329,8 +331,9 @@ def baseline_from_sc03(sc03_doc: dict) -> dict[str, Any]:
     tasks = []
     for a in ordered(sc03_doc["assignments"]):
         if a["state"] != "ACCEPTED" or a["accepted_version"] != a["assignment_version"]:
-            raise DomainError(f"수익성 통합 분석 {a['task_id']}가 현재 배정버전으로 인수되지 "
-                              "않았다", 409)
+            raise DomainError(
+                f"수익성 통합 분석 {a['task_id']}가 현재 배정버전으로 인수되지 않았다", 409
+            )
         tasks.append(
             {
                 k: a.get(k)
@@ -349,8 +352,11 @@ def baseline_from_sc03(sc03_doc: dict) -> dict[str, Any]:
             }
         )
     if sorted(t["task_id"] for t in tasks) != sorted(RESULTS):
-        raise DomainError("수익성 통합 분석 분석과제가 AT31~AT34가 아니다 — 개선안 검토·실행 승인 "
-                          "연결을 지을 수 없다", 409)
+        raise DomainError(
+            "수익성 통합 분석 분석과제가 AT31~AT34가 아니다 — 개선안 검토·실행 승인 "
+            "연결을 지을 수 없다",
+            409,
+        )
     frozen = max(
         (r for r in sc03_doc["reports"].values() if r["kind"] == "FROZEN"), key=lambda r: r["seq"]
     )
@@ -443,8 +449,9 @@ def new_demo_run(
         "followups": [
             {
                 **q,
-                "history": [{"at": baseline["handoff"]["as_of"], "note": "수익성 통합 분석 인계 "
-                                                                         "시점 상태"}],
+                "history": [
+                    {"at": baseline["handoff"]["as_of"], "note": "수익성 통합 분석 인계 시점 상태"}
+                ],
             }
             for q in baseline["questions"]
         ],

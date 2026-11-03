@@ -259,14 +259,20 @@ def test_worker_file(tmp_path, monkeypatch) -> None:
     paths = write_folder(folder, keys, topics)
     sha = {kind: hashlib.sha256(token.encode()).hexdigest() for kind, token in keys.items()}
     assert {p.name for p in paths} == {
-        "worker.consumer.json", "nowview-integration.key.json", "nowview-relay.key.json"
+        "worker.consumer.json",
+        "nowview-integration.key.json",
+        "nowview-relay.key.json",
     }
     assert json.loads((folder / "worker.consumer.json").read_text("utf-8")) == {
-        "name": "worker", "topics": ["external"], "token_sha256": sha["worker"],
+        "name": "worker",
+        "topics": ["external"],
+        "token_sha256": sha["worker"],
     }
     for kind in ("integration", "relay"):
         assert json.loads((folder / f"nowview-{kind}.key.json").read_text("utf-8")) == {
-            "name": f"nowview-{kind}", "type": kind, "token_sha256": sha[kind],
+            "name": f"nowview-{kind}",
+            "type": kind,
+            "token_sha256": sha[kind],
         }
     written = "".join(p.read_text("utf-8") for p in paths)
     assert not any(token in written for token in keys.values())

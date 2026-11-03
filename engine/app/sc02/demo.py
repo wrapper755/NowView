@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from app import scenarios
 from app.sc01.domain import DomainError, parse_at
 from app.sc02.process import Sc02Process
 from app.sc02.seed import Seed, load_seed
@@ -30,150 +31,13 @@ class Step:
     expect_proposal: bool = False
 
 
-def _iso(value: Any) -> str:
-    # 설정 시트의 「2027-06-21 18:00:00 KST」 → ISO8601 +09:00
-    text = str(value).replace(" KST", "").strip()
-    return parse_at(text.replace(" ", "T")).isoformat()
-
-
-def base_steps(seed: Seed) -> list[Step]:
-    s = seed.settings
-    eff = seed.setting_date("effective_date").isoformat()
-    approve = {"결정": "승인"}
-    return [
-        Step(
-            "D01",
-            "2027-06-17T09:00:00+09:00",
-            "u-buy",
-            None,
-            {"fixture_id": "REQ-2706-01"},
-            "단가 인상 요청 접수",
-        ),
-        Step(
-            "D01",
-            "2027-06-17T09:20:00+09:00",
-            "u-buy",
-            "Verify_Request",
-            {
-                "확인결과": "확인완료",
-                "확인의견": "공문 원본과 대조 — 공급사·품목·기존가 2,000원·요청가 2,200원·"
-                "7/1 적용·VAT 별도 일치",
-            },
-            "공문 원문 대조 확인",
-        ),
-        Step(
-            "D02",
-            "2027-06-17T10:00:00+09:00",
-            "u-buy",
-            "Report_Lead",
-            {
-                "참여자": "구매담당 윤채원 · 구매팀장 서도현",
-                "요청요약": "SUP-01 P-COM01 2,000→2,200원(10%), 7/1 적용 희망",
-                "검토필요성": "검토진행",
-                "협상방향": "사전 손익분석 후 1차 협상",
-                "보고결론": seed.evidence["NOTE-REPORT01"]["내용"],
-            },
-            "팀장 구두보고 기록",
-        ),
-        Step(
-            "D03",
-            "2027-06-18T11:00:00+09:00",
-            "u-buy",
-            "Confirm_Analysis",
-            {
-                "내부제시단가": int(s["internal_offer"]),
-                "협상기한": _iso(s["negotiation_due"]),
-                "분석메모": "요청안·내부 제시안 동일 F02·C01 기준",
-            },
-            "요청안 영향분석",
-        ),
-        Step(
-            "D04",
-            "2027-06-21T15:00:00+09:00",
-            "u-buy",
-            "Record_Negotiation",
-            {
-                "협상결과": "잠정합의",
-                "협상단가": int(s["negotiated_price"]),
-                "협상적용일": eff,
-                "협상참석자": "구매담당 윤채원 · SUP-01 영업담당",
-                "미합의사항": seed.evidence["NOTE-NEG01"]["내용"],
-            },
-            "1차 협상 결과 입력",
-        ),
-        Step(
-            "D05",
-            "2027-06-22T10:00:00+09:00",
-            "u-buy",
-            "Confirm_Reanalysis",
-            {"재분석메모": "협상안 vs 요청안 같은 12개월"},
-            "협상안 재분석",
-        ),
-        Step(
-            "D06",
-            "2027-06-22T11:00:00+09:00",
-            "u-buy",
-            "Draft_Proposal",
-            {
-                "기안단가": int(s["proposal_price"]),
-                "기안적용일": eff,
-                "인상필요성": seed.evidence["DOC-PROP01"]["내용"],
-                "차이사유": "",
-            },
-            "기안 상신",
-        ),
-        Step(
-            "D07",
-            "2027-06-22T14:00:00+09:00",
-            "u-buy-lead",
-            "Approve_Lead",
-            {**approve, "결재의견": seed.evidence["APP-T01"]["내용"]},
-            "구매팀장 승인",
-            expect_proposal=True,
-        ),
-        Step(
-            "D08",
-            "2027-06-23T10:00:00+09:00",
-            "u-buy-exec",
-            "Approve_Exec",
-            {**approve, "결재의견": seed.evidence["APP-E01"]["내용"]},
-            "구매임원 승인·대표 판정",
-            expect_proposal=True,
-        ),
-        Step(
-            "D09",
-            "2027-06-23T14:00:00+09:00",
-            "u-ceo",
-            "Approve_CEO",
-            {**approve, "결재의견": seed.evidence["APP-C01"]["내용"]},
-            "대표이사 승인",
-            expect_proposal=True,
-        ),
-        Step(
-            "D10",
-            "2027-06-23T15:00:00+09:00",
-            "u-buy",
-            "Register_Cost",
-            {"대조결과": "일치", "등록메모": "7/1 적용예정 · C01 보존"},
-            "원가 등록",
-        ),
-        Step(
-            "D11",
-            "2027-06-23T16:00:00+09:00",
-            "u-buy",
-            "Request_Handoff",
-            {"경영관리담당자": "u-fin", "인계메모": "물량·원가 별도 사건으로 MR-2706-01에 연결"},
-            "통합 영향 확인 · 인계 요청",
-        ),
-        Step(
-            "D12",
-            "2027-06-24T10:00:00+09:00",
-            "u-fin",
-            "Accept_Handoff",
-            {"인수의견": "수익성 통합 분석에서 통합 손익과 대응 필요성 검토 착수"},
-            "경영관리 인수",
-        ),
-    ]
+def base_steps(seed: Seed | None = None) -> list[Step]:
+    """
+    기본 시연 — 각본의 원본은 Company1 `scenarios/sc02.json`이고 여기는 사본을 읽는다
+    (`app/scenarios.py`). 운영·로컬에서는 회사 사이트가 이 각본으로 몬다 — 이 실행기는
+    시험 전용이다.
+    """
+    return scenarios.steps(2, Step)
 
 
 def _answer(steps: list[Step], node: str, **change: Any) -> list[Step]:

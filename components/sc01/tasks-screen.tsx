@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AlarmClock, BellRing } from "lucide-react";
 
-import { ActionForm } from "@/components/sc01/action-form";
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Loading, ScreenHeader, StatePill, useUserName } from "@/components/sc01/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
@@ -220,7 +220,7 @@ function TaskDetail({ task }: { task: Task }) {
         {waiting ? (
           <div className="space-y-2 border-t pt-3">
             <p className="text-xs font-medium">
-              {task.reconfirm ? `재확인 — 새 근거 ${task.run_id}` : isAccept ? "인수 — 담당자 본인만" : "처리"} ·{" "}
+              {task.reconfirm ? `재확인 대기 — 새 근거 ${task.run_id}` : isAccept ? "인수 대기 — 담당자 본인만" : "처리 대기"} ·{" "}
               {waiting.title}
             </p>
             {/* 데모실행ID는 회사 사이트가 기간계 세계를 찾는 데 쓴다 — 여기서는 지금 화면 자체라 감춘다 */}
@@ -234,7 +234,7 @@ function TaskDetail({ task }: { task: Task }) {
                 ))}
               </dl>
             ) : null}
-            <ActionForm waiting={waiting} submitLabel={task.reconfirm ? "재확인" : isAccept ? "인수" : "완료"} />
+            <CompanySiteNote>{task.reconfirm ? "재확인" : isAccept ? "인수" : "처리"}는 회사 사이트의 결재 화면에서 한다.</CompanySiteNote>
           </div>
         ) : null}
 

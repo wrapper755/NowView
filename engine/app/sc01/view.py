@@ -274,9 +274,7 @@ def dashboard_all(doc: dict, seed: Seed) -> dict[str, Any]:
         plans[base["review"]] = domain._plan_from(review["quantities"])
     months = {name: monthly_pnl(plan, seed) for name, plan in plans.items()}
     latest = base["review"] or "F01"
-    totals = {
-        p: {name: period_pnl(m, *PERIODS[p]) for name, m in months.items()} for p in PERIODS
-    }
+    totals = {p: {name: period_pnl(m, *PERIODS[p]) for name, m in months.items()} for p in PERIODS}
     return {
         **{k: v for k, v in base.items() if k not in ("period", "totals", "month", "models")},
         "periods": list(PERIODS),

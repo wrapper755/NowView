@@ -35,13 +35,31 @@ from app.sc07.domain import IMPROVEMENT_ID, account_of
 #: 결재 → 담당·남길 기록. 결재 담당은 사람 하나다(`chk:approval.assignees`와 같다 — 시험이 맞춰
 #: 본다).
 NODE_ROLES: dict[str, dict[str, str]] = {
-    "Confirm_Buy": {"user": "u-buy-exec", "record": "CF71", "task": "CONFIRM_BUY"},
-    "Confirm_Finance": {"user": "u-fin-exec", "record": "CF72", "task": "CONFIRM_FINANCE"},
-    "Apply_Setting": {"user": "u-ops", "record": "CFG71", "task": "APPLY_SETTING"},
-    "Check_Setting": {"user": "u-fin", "record": "CFG71-R", "task": "CHECK_SETTING"},
+    "Confirm_Buy": {
+        "user": "u-buy-exec",
+        "role": "구매임원",
+        "record": "CF71",
+        "task": "CONFIRM_BUY",
+    },
+    "Confirm_Finance": {
+        "user": "u-fin-exec",
+        "role": "경영관리임원",
+        "record": "CF72",
+        "task": "CONFIRM_FINANCE",
+    },
+    "Apply_Setting": {
+        "user": "u-ops",
+        "role": "운영담당",
+        "record": "CFG71",
+        "task": "APPLY_SETTING",
+    },
+    "Check_Setting": {
+        "user": "u-fin",
+        "role": "경영관리담당",
+        "record": "CFG71-R",
+        "task": "CHECK_SETTING",
+    },
 }
-for _spec in NODE_ROLES.values():
-    _spec["role"] = USERS[_spec["user"]]["role"]
 
 RECORDS = ("confirm_improvement_version", "apply_agent_setting", "check_agent_setting")
 SERVICES = ("open_improvement", "verify_improvement_version", "schedule_follow_up_check")

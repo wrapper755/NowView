@@ -38,6 +38,26 @@ FIXED_VERSION = "FC01"
 BASELINE_PLAN = "CP01"
 
 
+def engine_drives() -> bool:
+    """
+    엔진이 각본·시계·세계를 모는가 — **엔진 시험에서만**(`NOWVIEW_TEST_INPUTS=1`,
+    `tests/conftest.py`). 운영·로컬에서는 회사 사이트가 몬다(`docs/role-split.md` §5): 세계를
+    만들고 초기화하고 시계를 옮기는 쪽은 사이트이고, NowView는 기간계의 세계·시각을 읽어
+    따라간다(`app/follower.py`). 그래서 이것이 거짓이면 엔진은 기간계 시계를 쓰지 않고
+    (`CompanyClient.set_clock`), 각본 시각으로 시계를 옮기지 않고(`_clock_to_script`), 장면을 열 때
+    앞 장면을 각본으로 끝내지 않는다(409).
+    """
+    return os.getenv("NOWVIEW_TEST_INPUTS") == "1"
+
+
+def require_finished(what: str) -> None:
+    """앞 장면이 끝나지 않았는데 다음 장면을 연다 — 사이트가 몰 때는 각본으로 끝내지 않는다."""
+    if not engine_drives():
+        raise DomainError(
+            f"{what}이(가) 아직 끝나지 않았다 — 회사 사이트에서 끝까지 진행한 뒤 연다", 409
+        )
+
+
 class CompanyUnavailable(DomainError):
     """회사 시스템에 닿지 않는다 — 다시 해 볼 일이다."""
 
@@ -80,6 +100,7 @@ class CompanyClient:
         self._client = client
         self.timeout_s = timeout_s
         self._seed: Seed | None = None
+        self._roster = False
         self._worlds: set[str] = set()
         self._guard = threading.Lock()
 
@@ -97,6 +118,7 @@ class CompanyClient:
             self.url = url
             self._client = None
             self._seed = None
+            self._roster = False
             self._worlds = set()
 
     @property
@@ -141,6 +163,18 @@ class CompanyClient:
 
     # ───────────── 불변 기록 ─────────────
 
+    def ensure_roster(self) -> None:
+        """
+        직원 명단을 회사에서 읽어 엔진 사용자 마스터를 채운다(`domain.load_roster`) — 명단의 원본은
+        회사다(role-split §2). 한 번 읽어 둔다(주소를 바꾸면 다시).
+        """
+        if self._roster:
+            return
+        from app.sc01.domain import load_roster
+
+        load_roster(self._call("GET", "/company/org/users"))
+        self._roster = True
+
     def load_seed(self) -> Seed:
         """
         엔진 계산이 쓰는 회사 자료(T01·F01·실적·C01·FC01·CP01)를 읽어 `Seed` 모양으로 엮는다.
@@ -150,6 +184,7 @@ class CompanyClient:
         with self._guard:
             if self._seed is not None:
                 return self._seed
+        self.ensure_roster()
         plans = {}
         for v in PLAN_VERSIONS:
             rows = self._call("GET", f"/company/plans/{v}")["rows"]
@@ -202,8 +237,36 @@ class CompanyClient:
         self._call("POST", f"/worlds/{world_id}/reset")
 
     def set_clock(self, world_id: str, at: str) -> None:
+        """
+        세계 시각을 쓴다 — 엔진이 몰 때(시험)만. 회사 사이트가 몰면 시각의 원본은 기간계이고
+        NowView는 읽기만 한다(`world`·`app/follower.py`).
+        """
+        if not engine_drives():
+            return
         self.ensure_world(world_id)
         self._call("POST", f"/worlds/{world_id}/clock", {"at": at})
+
+    def worlds(self) -> list[dict[str, Any]]:
+        """세계 목록 — 사례·초기화 회차·시각·대기 명령 수(사이트가 만든다, role-split §5.1)."""
+        return self._call("GET", "/worlds")
+
+    def world(self, world_id: str) -> dict[str, Any]:
+        return self._call("GET", f"/worlds/{world_id}")
+
+    def commands(self, world_id: str, state: str | None = "PENDING") -> list[dict[str, Any]]:
+        q = f"?state={state}" if state else ""
+        return self._call("GET", f"/worlds/{world_id}/commands{q}")
+
+    def command_result(self, world_id: str, command_id: str, **result: Any) -> dict[str, Any]:
+        """명령 수행 결과를 적는다 — DONE·REJECTED, 한 번만(role-split §5.2)."""
+        return self._call("POST", f"/worlds/{world_id}/commands/{command_id}/result", result)
+
+    def worker_log(self, world_id: str, entry: dict[str, Any]) -> dict[str, Any]:
+        """일감 기록 한 줄 — 사이트 자동 모드가 답한 결재의 기록이 왔는지 본다(role-split §5.3)."""
+        return self._call("POST", f"/worlds/{world_id}/worker-log", entry)
+
+    def price_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/price-requests/inbox?after={after}")
 
     def customer_sends(self, world_id: str, fixture_id: str) -> dict[str, Any]:
         """시연 — 고객이 원천을 보냈다. 회사 수신함에 들어간 접수 요약을 돌려준다."""

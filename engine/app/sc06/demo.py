@@ -16,11 +16,11 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from app import scenarios
 from app.sc01.domain import DomainError
 from app.sc06 import confirm
-from app.sc06.domain import ACCOUNTS, _report_records
 from app.sc06.process import Sc06Process
-from app.sc06.seed import Seed, load_seed
+from app.sc06.seed import Seed
 from app.script_wait import after_record
 
 
@@ -36,60 +36,11 @@ class Step:
 
 
 def steps_for(case_id: str = "BASE", seed: Seed | None = None) -> list[Step]:
-    seed = seed or load_seed()
-    r = _report_records(seed.rows("SC06보고"))
-
-    def refs(record_id: str) -> str:
-        return ";".join(r[record_id]["refs"])
-
-    def act(code: str, node: str, answer: dict[str, Any], label: str) -> Step:
-        record = confirm.NODE_ROLES[node]["record"]
-        actor = ACCOUNTS[r[record]["actor"]]
-        return Step(code, actor, "act", node, answer, label, record)
-
-    return [
-        Step("D601", confirm.STARTER, "start", label="확인 착수 — RV61 · RPT61-v1"),
-        act(
-            "D602",
-            "Confirm_Prod",
-            {"생산확인내용": r["CF61-P"]["content"], "생산확인근거": refs("CF61-P")},
-            "생산 임원 성과 근거 확인(CF61-P)",
-        ),
-        act(
-            "D603",
-            "Confirm_Buy",
-            {"구매확인내용": r["CF61-B"]["content"], "구매확인근거": refs("CF61-B")},
-            "구매 임원 성과 근거 확인(CF61-B)",
-        ),
-        act(
-            "D604",
-            "Review_Finance",
-            {"종합결정": "확인", "종합내용": r["CF61-F"]["content"], "종합근거": refs("CF61-F")},
-            "경영관리 종합 확인(CF61-F)",
-        ),
-        act(
-            "D605",
-            "Draft_Conclusion",
-            {"보고결론": r["TXT61"]["content"], "결론근거": refs("TXT61")},
-            "보고 결론 작성(TXT61)",
-        ),
-        act(
-            "D606",
-            "Finalize_Report",
-            {
-                "확정결정": "확정",
-                "확정내용": r["CF61-R"]["content"],
-                "남는사항": r["NOTE61"]["content"],
-            },
-            "보고본 확정(CF61-R · NOTE61)",
-        ),
-        act(
-            "D607",
-            "Report_CEO",
-            {"보고내용": r["CF61-M"]["content"], "대표지시": ""},
-            "대표 월간 보고(CF61-M)",
-        ),
-    ]
+    """
+    확인 절차 각본 — 원본은 Company1 `scenarios/sc06.json`(답은 통합가상데이터의 확인 기록 글)이고
+    여기는 사본을 읽는다(`app/scenarios.py`). 시험 전용 실행기다 — 운영·로컬은 회사 사이트가 몬다.
+    """
+    return scenarios.steps(6, Step)
 
 
 def run_step(process: Sc06Process, demo_run_id: str, index: int) -> dict:

@@ -11,18 +11,13 @@ import { useUiPrefs } from "@/lib/store/ui-prefs";
 const POLL_MS = 15_000;
 
 /**
- * 진행 중인 생성 요청. 개발 모드의 StrictMode는 effect를 두 번 돌리는데, 둘이 각자 만들면
- * 데모 실행이 둘 생긴다(실제로 그랬다). 같은 요청을 함께 기다린다.
- */
-let pendingCreate: ReturnType<typeof sc01Api.create> | null = null;
-
-/**
- * 데모 실행을 준비하고 변경을 받는 **유일한** 자리(레이아웃 상주).
+ * 데모 실행을 고르고 변경을 받는 **유일한** 자리(레이아웃 상주).
  *
  * 화면·패널마다 따로 받으면 같은 화면의 두 패널이 서로 다른 순간을 보고 요청이 패널 수만큼
  * 는다(이전 구현에서 겪었다 — 4.6). 여기서 받아 스토어에 넣고 화면은 스토어만 읽는다.
  *
- * * 저장된 데모 실행 id가 없거나 엔진에 없으면(초기화된 DB 등) 새로 만든다.
+ * * **데모 실행을 만들지 않는다**(2026-11-03, `docs/role-split.md` §5.5) — 세계(= 데모 실행)는 회사 사이트가 기간계에 만들고
+ *   NowView 일꾼이 같은 id로 장면 1을 연다. 저장된 id가 없거나 엔진에 없으면 가장 최근 데모 실행을 본다. 하나도 없으면 그렇게 말한다.
  * * **SSE가 기본이고 폴링이 폴백이다.** `EventSource`는 스스로 다시 붙으므로 `onerror`는
  *   "영구 실패"가 아니라 "지금은 서 있지 않다"이고, 그 동안만 폴링이 돈다.
  */
@@ -38,11 +33,11 @@ export function Sc01SessionSync() {
     });
   }, []);
 
-  // 데모 실행 확보. id가 바뀌면(초기화·새 실행) 다시 돈다.
+  // 데모 실행 고르기. id가 바뀌면 다시 돈다.
   useEffect(() => {
     let cancelled = false;
     const ensure = async () => {
-      // rehydrate가 끝나기 전 첫 렌더에는 id가 비어 있다 — 그때 만들면 실행이 둘 생긴다.
+      // rehydrate가 끝나기 전 첫 렌더에는 id가 비어 있다 — 그때 고르면 저장된 선택을 덮는다.
       if (!useSc01.persist.hasHydrated()) {
         await new Promise<void>((resolve) => {
           const off = useSc01.persist.onFinishHydration(() => {
@@ -57,6 +52,7 @@ export function Sc01SessionSync() {
         const found = await sc01Api.get(id);
         if (cancelled) return;
         if (found.ok) {
+          useSc01.getState().setNoRun(false);
           useSc01.getState().setLive(found.data);
           return;
         }
@@ -66,17 +62,16 @@ export function Sc01SessionSync() {
           return;
         }
       }
-      pendingCreate ??= sc01Api.create();
-      const created = await pendingCreate;
-      pendingCreate = null;
+      const runs = await sc01Api.list();
       if (cancelled) return;
-      if (created.ok) {
-        useSc01.getState().setDemoRunId(created.data.demoRunId);
-        useSc01.getState().setLive(created.data);
-      } else {
+      if (!runs.ok) {
         useSc01.getState().setConnection("offline");
-        useSc01.getState().setError(created.error);
+        useSc01.getState().setError(runs.error);
+        return;
       }
+      const latest = runs.data[0]?.demoRunId ?? null;
+      if (latest && latest !== id) useSc01.getState().setDemoRunId(latest);
+      else useSc01.getState().setNoRun(latest === null);
     };
     void ensure();
     return () => {

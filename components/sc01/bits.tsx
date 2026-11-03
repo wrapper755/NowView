@@ -7,16 +7,16 @@ import {
   CheckCircle2,
   CircleAlert,
   CircleDashed,
-  ExternalLink,
   History,
   OctagonAlert,
   WifiOff,
   type LucideIcon,
 } from "lucide-react";
 
+import { CompanySiteNote, ExecutorNote } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
 import { cn } from "@/lib/utils";
-import { EXECUTOR_LABEL, formatClock, riskLabel, SCENE_LABEL } from "@/lib/sc01/format";
+import { formatClock, riskLabel, SCENE_LABEL } from "@/lib/sc01/format";
 import type { Risk } from "@/lib/sc01/types";
 import { selectView, useSc01 } from "@/lib/store/sc01";
 
@@ -126,47 +126,19 @@ function MyAlerts() {
 }
 
 /**
- * 바깥 실행(Studio·Center)에 묶인 데모 실행이면 알린다 — 결재를 어디서 답하는지, 그리고 Studio에
- * 넣을 입력(데모실행ID·원천ID)을 보인다. 표시하지 않으면 화면에서 답할 수 있다고 착각한다(N2).
- * Center는 대리 답 설정이 있으면 이 화면의 답이 Center 결재함으로 간다(N3) — 연동이 막혔으면 사유를
- * 그대로 보인다(조용히 다른 길로 가지 않는다). 원천 수신은 여전히 여기서 한다 — BPM 바깥의 일이다.
+ * 결재를 어디서 답하는지 알린다 — **이 화면은 읽기 전용이다**(2026-11-03, `docs/role-split.md` §5.5). 결재 답·원천 보내기·시계·초기화는
+ * 회사 사이트가 하고, BPM은 Center가 돈다. 연동이 막혔으면 사유를 그대로 보인다(조용히 다른 길로 가지 않는다).
  */
 function ExecutorBanner() {
   const view = useSc01(selectView);
-  if (!view || view.executor === "embedded") return null;
-  const source = view.sources.at(-1)?.source_id;
-  const answerAt = view.executor === "studio" ? "Studio 시험 대화상자" : "Center 결재함";
-  const problem = view.bpm?.center?.problem;
+  if (!view) return null;
   return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs">
-      <ExternalLink aria-hidden className="size-3.5" />
-      <span>
-        <span className="font-medium">{EXECUTOR_LABEL[view.executor]}</span>이 BPM을 돈다 —{" "}
-        {view.answerHere
-          ? "이 화면의 답은 Center 결재함에 대리 답으로 간다."
-          : `결재는 ${answerAt}에서 답하세요. 이 화면은 결재를 받지 않는다.`}
-      </span>
-      {problem ? (
-        <span className="inline-flex basis-full items-center gap-1 font-medium">
-          <AlertTriangle aria-hidden className="size-3.5 shrink-0" style={{ color: "var(--viz-status-serious)" }} />
-          {problem}
-        </span>
-      ) : null}
-      <span className="text-muted-foreground">
-        입력 데모실행ID <span className="font-mono">{view.demoRunId}</span>
-        {source ? (
-          <>
-            {" "}· 원천ID <span className="font-mono">{source}</span>
-          </>
-        ) : null}{" "}
-        · 바깥 실행{" "}
-        {view.bpm?.externalRunId ? (
-          <span className="font-mono">{view.bpm.externalRunId}</span>
-        ) : (
-          "첫 작업 호출 전"
-        )}
-      </span>
-    </p>
+    <ExecutorNote
+      executor={view.executor}
+      problem={view.bpm?.center?.problem}
+      demoRunId={view.demoRunId}
+      externalRunId={view.bpm?.externalRunId ?? null}
+    />
   );
 }
 
@@ -181,7 +153,7 @@ function StatusBanner() {
     return (
       <p className="flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs">
         <History aria-hidden className="size-3.5" />
-        지난 시점({formatClock(past.view.clock)})을 보고 있다 — 이 화면에서는 조작할 수 없다.
+        지난 시점({formatClock(past.view.clock)})을 보고 있다.
         <button type="button" className="font-medium underline" onClick={() => setPast(null)}>
           현재로
         </button>
@@ -222,7 +194,15 @@ export function useUserName(): (id: string | null | undefined) => string {
   };
 }
 
-/** 아직 데이터가 오지 않았을 때. */
+/** 아직 데이터가 오지 않았을 때. 데모 실행이 하나도 없으면 회사 사이트에서 만든다고 말한다. */
 export function Loading({ what = "데모 실행" }: { what?: string }) {
+  const noRun = useSc01((s) => s.noRun);
+  if (noRun) {
+    return (
+      <CompanySiteNote className="text-sm">
+        아직 데모 실행이 없다 — 회사 사이트의 시연 조작에서 세계를 만들면 NowView 일꾼이 같은 id로 연다.
+      </CompanySiteNote>
+    );
+  }
   return <p className="text-sm text-muted-foreground">{what}을(를) 불러오는 중…</p>;
 }

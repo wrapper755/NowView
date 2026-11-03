@@ -46,7 +46,8 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
-from app.company import CompanyClient
+from app.company import CompanyClient, engine_drives, require_finished
+from app.follower import sync_opened
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     USERS,
@@ -277,12 +278,15 @@ class Sc03Process:
         """
         found = None if demo_run_id is None else self.sc02.store.load(demo_run_id)
         if found is None:
+            require_finished("외주 단가 인상 검토")  # 앞 장면 문서도 없다 — 엔진이 만들지 않는다
+        if found is None:
             doc = self.sc02.create(sc01_demo_run_id=demo_run_id, executor=executor)
         else:
             doc = found[0]
         rid = doc["demo_run_id"]
         if doc["scene"] == "HANDED_OFF":
             return doc
+        require_finished("외주 단가 인상 검토")  # 사이트가 몰면 각본으로 끝내지 않는다
         if executor_of(doc) == "studio":
             raise DomainError(
                 "외주 단가 인상 검토가 Studio 시험 실행이다 — Studio에서 경영관리 인수까지 진행한 "
@@ -428,6 +432,25 @@ class Sc03Process:
             return self._commit(doc, version, None, "reset")
 
     # ───────────── 조작 ─────────────
+
+    def follow_clock(self, demo_run_id: str, at: str) -> dict:
+        """세계 시각을 따라간다(`app/follower.py`) — 시각 이동과 같은 일, 기간계에는 쓰지 않는다."""
+        return self.set_clock(demo_run_id, at, actor="u-demo")
+
+    def discard(self, demo_run_id: str) -> None:
+        """
+        세계가 초기화됐다(`app/follower.py`) — 장면 문서와 이력을 지운다. Center에 기동한 작업은
+        먼저 거둔다 — 남기면 그 실행이 서버 실행기 자리를 쥐고 새 회차의 작업이 `per_bot_limit`로
+        멈춘다(실측).
+        """
+        found = self.store.load(demo_run_id)
+        if found is not None:
+            doc = found[0]
+            job = (((doc.get("bpm") or {}).get("center") or {}).get("job") or {}).get("job_id")
+            if job and not self.center.config.missing(integration=True):
+                self._cancel_center_job(doc, job)
+        self.store.delete(demo_run_id)
+        self.publish(f"sc03:{demo_run_id}")
 
     def set_clock(
         self, demo_run_id: str, at: str, *, actor: str, event_code: str | None = None
@@ -904,7 +927,14 @@ class Sc03Process:
                 bpm["position"], bpm["waiting"] = [], []
             ledger["last_seq"] = progress["last_seq"]
             ledger["problem"] = None
-            domain.sync_tasks(doc, {rid: {"node_id": e["node_id"]} for rid, e in opened.items()})
+            sync_opened(  # 결재는 앞 기록 작업 바로 뒤에 열렸다 — 그 시각에 연다
+                doc,
+                list(opened),
+                progress["before"],
+                lambda rids: domain.sync_tasks(
+                    doc, {rid: {"node_id": opened[rid]["node_id"]} for rid in rids}
+                ),
+            )
             self._commit(doc, version, None, "center_progress")
         return True
 
@@ -1033,6 +1063,8 @@ def _clock_to_script(doc: dict, seed: Seed, done: str) -> None:
     시각으로 적혔다). 뒤로는 가지 않는다. 각본이 대리 답한 결재(`pending`)는 각본이 이미 시계를
     옮겼다. `_follow_script`와 같은 규칙으로 어디까지 지나가는지 본다(병렬 순서가 바뀌어도 된다).
     """
+    if not engine_drives():
+        return  # 시각의 원본은 기간계 — 회사 사이트가 각본 시각으로 옮긴다(role-split §5)
     from app.sc03.demo import steps_for  # demo가 이 모듈을 가져온다
 
     follow = _script_follow(doc)

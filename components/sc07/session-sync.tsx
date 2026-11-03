@@ -9,12 +9,14 @@ import { useSc01 } from "@/lib/store/sc01";
 import { toLoad, useSc07 } from "@/lib/store/sc07";
 
 const POLL_MS = 15_000;
+/** 장면 문서가 아직 없을 때 다시 묻는 주기 — 회사 사이트가 장면을 열면 NowView 일꾼이 문서를 만든다. */
+const MISSING_POLL_MS = 5_000;
 
 /**
  * 장면 7을 받는 **유일한** 자리(장면 1~6 수신과 같은 원칙, 4.6). 장면 7 화면(`/sc07/*`)에 있을 때만 돈다.
  *
- * * **장면 7을 저절로 열지 않는다** — 열면 장면 6이 보고 전일 때 장면 6 각본까지 실행된다. 없으면(404) `missing`을 켜고 화면이
- *   「관리모델 개선 열기」를 묻는다.
+ * * **장면 7을 열지 않는다** — 여는 것은 회사 사이트의 시연 조작이다(role-split §5.5). 없으면(404) `missing`을 켜고
+ *   생길 때까지 짧게 다시 묻는다.
  * * **문서 머리(확인·적용 절차)는 SSE로 받는다.** 서 있지 않은 동안만 폴링.
  * * **조회 셋(개선·검증·적용)은 멱등이다**(구현명세 6장) — 행위자·데모 실행·데이터 버전, 그리고 절차 진행(검증·확인·설정)이
  *   바뀔 때만 다시 받는다. 늦은 응답이 새 결과를 덮지 않게 일련번호를 붙인다.
@@ -39,20 +41,28 @@ export function Sc07SessionSync() {
     void sc07Api.process().then((r) => useSc07.getState().setTopology(r.ok ? r.data : null));
   }, [active]);
 
+  // 문서 머리 — 아직 없으면(404) 생길 때까지 짧게 다시 묻는다(여는 것은 회사 사이트의 시연 조작이다).
   useEffect(() => {
-    if (!active || !demoRunId) return;
+    if (!active || !demoRunId || loaded) return;
     let cancelled = false;
-    void sc07Api.meta(demoRunId).then((r) => {
-      if (cancelled) return;
-      const { setMeta } = useSc07.getState();
-      if (r.ok) setMeta(r.data);
-      else if (r.status === 404) setMeta(null, true);
-      else setMeta(null, false, r.error);
-    });
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const fetchMeta = () => {
+      void sc07Api.meta(demoRunId).then((r) => {
+        if (cancelled) return;
+        const { setMeta } = useSc07.getState();
+        if (r.ok) setMeta(r.data);
+        else if (r.status === 404) {
+          setMeta(null, true);
+          timer = setTimeout(fetchMeta, MISSING_POLL_MS);
+        } else setMeta(null, false, r.error);
+      });
+    };
+    fetchMeta();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [active, demoRunId]);
+  }, [active, demoRunId, loaded]);
 
   useEffect(() => {
     if (!active || !demoRunId || !loaded) return;
@@ -60,6 +70,7 @@ export function Sc07SessionSync() {
     const refetch = async () => {
       const r = await sc07Api.meta(demoRunId);
       if (r.ok) useSc07.getState().setMeta(r.data);
+      else if (r.status === 404) useSc07.getState().setMeta(null, true); // 장면만 처음으로(회사 사이트) — 다시 열릴 때까지 기다린다
       else useSc07.getState().setConnection("offline");
     };
     const startPolling = () => {

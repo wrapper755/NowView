@@ -50,9 +50,7 @@ def records_of(doc: dict, seed: Seed) -> list[dict[str, Any]]:
                 "executor": v["executor"],
                 "bpm": None
                 if v["bpm"] is None
-                else {
-                    k: v["bpm"][k] for k in ("executor", "externalRunId", "state", "visited")
-                },
+                else {k: v["bpm"][k] for k in ("executor", "externalRunId", "state", "visited")},
                 "latestRunId": v["latestRunId"],
                 "rules": {k: str(x) for k, x in seed.rules.items()},
                 "alerts": v["alerts"],

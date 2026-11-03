@@ -1,16 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { Bot } from "lucide-react";
 
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc04Api } from "@/lib/sc04/client";
 import type { Sc04View } from "@/lib/sc04/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc04 } from "@/lib/store/sc04";
 
 type Kind = "AG41" | "AG42" | "AG43";
 const TITLE: Record<Kind, string> = {
@@ -29,22 +25,9 @@ const HINT: Record<Kind, string> = {
  * 기록일 뿐 추천·승인·인수를 대신하지 않는다. 실패하면 사유를 보이고 수동 작성으로 간다(E408).
  */
 export function AgentCard({ view, kind }: { view: Sc04View; kind: Kind }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const output = [...view.agentOutputs].reverse().find((o) => o.kind === kind);
   const canRequest =
     (kind === "AG42" && view.meeting?.state === "IN_PROGRESS") || (kind === "AG43" && view.decision !== null && view.approvals.length === 0);
-  const manager = actor === "u-fin" || actor === "u-fin-exec";
-  const run = async (fn: () => Promise<{ ok: boolean; data?: Sc04View; error?: string; status?: number }>) => {
-    setBusy(true);
-    setError(null);
-    const r = await fn();
-    setBusy(false);
-    if (r.ok && r.data) useSc04.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   if (!output && !canRequest) return null;
   return (
     <Card>
@@ -88,25 +71,7 @@ export function AgentCard({ view, kind }: { view: Sc04View; kind: Kind }) {
             {output.draft.draft_text ? <p className="rounded-md bg-muted px-3 py-2 text-xs">{output.draft.draft_text}</p> : null}
           </>
         ) : null}
-        {!view.historical ? (
-          <div className="flex flex-wrap gap-2">
-            {canRequest ? (
-              <Button size="sm" variant="outline" disabled={busy || !manager} onClick={() => void run(() => sc04Api.agent(demoRunId!, kind, actor))}>
-                {output ? "다시 만들기" : "초안 요청"}
-              </Button>
-            ) : null}
-            {output?.status === "SUCCEEDED" && !output.adopted_by ? (
-              <Button size="sm" variant="outline" disabled={busy || !manager} onClick={() => void run(() => sc04Api.adopt(demoRunId!, output.output_id, actor))}>
-                검토 후 채택 기록
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+        <CompanySiteNote>초안 요청·다시 만들기·검토(채택) 기록은 회사 사이트에서 한다.</CompanySiteNote>
       </CardContent>
     </Card>
   );

@@ -2,7 +2,7 @@
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Sc05Body, Sc05Header, Tile, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Sc05Body, Sc05Header, Tile, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +43,7 @@ function Body({ view }: { view: Sc05View }) {
           <span className="text-muted-foreground">확인 전 미리보기 — 지금 시각까지 들어온 원천만</span>
         )}
       </p>
-      <WaitingForms view={view} nodes={["Confirm_Observation"]} labels={{ Confirm_Observation: "초기 결과 확인" }} />
+      <WaitingList view={view} nodes={["Confirm_Observation"]} />
       <AgentCard view={view} kind="AG55" canRequest={waiting.has("Confirm_Observation")} />
 
       <section className="space-y-3">

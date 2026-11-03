@@ -4,8 +4,6 @@
  * **목표 초과**로 쓴다.
  */
 
-import type { Activity } from "@/lib/sc05/types";
-
 export { formatMillion } from "@/lib/sc03/format";
 export { gapWord } from "@/lib/sc04/format";
 
@@ -24,29 +22,6 @@ export function formatMinutes(value: string | null | undefined): string {
 /** 건수 — null은 미확인(정상 0건과 다르다, T518). */
 export function formatCount(value: number | null | undefined, unit = "건"): string {
   return value === null || value === undefined ? "미확인" : `${value.toLocaleString("ko-KR")}${unit}`;
-}
-
-/**
- * 활동 → 결재 폼의 활동 목록 글(번호|활동|담당|시작|종료|선행|협조|비용|완료근거|근거ID). Agent 초안을 불러올 때 쓴다 —
- * 협조·비용이 비어 있으면 빈 칸으로 둔다(사람이 채운다. 0으로 메우지 않는다).
- */
-export function activityLines(activities: Activity[], nameOf: (id: string | null | undefined) => string): string {
-  return activities
-    .map((a) =>
-      [
-        a.activity_id,
-        a.name,
-        a.owner ? nameOf(a.owner) : "",
-        a.start ?? "",
-        a.end ?? "",
-        a.predecessors.join(",") || "-",
-        a.cooperation ?? "",
-        a.cost ?? "",
-        a.completion ?? "",
-        a.evidence ?? "",
-      ].join(" | "),
-    )
-    .join("\n");
 }
 
 export const SCENE_STATE_LABEL: Record<string, string> = {

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
-import { Mn, Sc03Body, Sc03Header, StatusPills, WaitingForms } from "@/components/sc03/bits";
+import { Mn, Sc03Body, Sc03Header, StatusPills, WaitingList } from "@/components/sc03/bits";
 import { BridgeChart } from "@/components/sc03/bridge-chart";
 import { AgentCard } from "@/components/sc03/agent-card";
 import { Commentary } from "@/components/shared/commentary";
@@ -41,12 +41,7 @@ function Analysis({ view }: { view: Sc03View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Save_Analysis", "Fix_Calc", "Request_Confirm"]}
-        initial={{ Save_Analysis: { 기준확인: "확인" }, Request_Confirm: { 회신기한: view.schedule.confirm_due } }}
-        labels={{ Save_Analysis: "통합 분석 저장", Fix_Calc: "정정·재계산", Request_Confirm: "확인 요청" }}
-      />
+      <WaitingList view={view} nodes={["Save_Analysis", "Fix_Calc", "Request_Confirm"]} />
 
       {blocked ? (
         <Card>

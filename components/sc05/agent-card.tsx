@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { Bot } from "lucide-react";
 
+import { CompanySiteNote } from "@/components/shared/company-site-note";
 import { Disclosure } from "@/components/shared/disclosure";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
-import { sc05Api } from "@/lib/sc05/client";
 import { REVIEW_STATUS_LABEL } from "@/lib/sc05/format";
 import type { Sc05View } from "@/lib/sc05/types";
-import { useSc01 } from "@/lib/store/sc01";
-import { useSc05 } from "@/lib/store/sc05";
 
 export type AgentKind = "AG51" | "AG52" | "AG53" | "AG54" | "AG55" | "AG56" | "AG57" | "AG58";
 
@@ -35,30 +31,13 @@ export function AgentCard({
   view,
   kind,
   canRequest,
-  onUse,
-  useLabel,
 }: {
   view: Sc05View;
   kind: AgentKind;
-  /** 지금 이 초안을 요청할 수 있는 단계인가 — 화면이 정한다. */
+  /** 지금 이 초안을 요청할 수 있는 단계인가 — 초안이 아직 없어도 카드를 보인다(요청은 회사 사이트에서). 화면이 정한다. */
   canRequest: boolean;
-  /** 초안을 폼으로 가져오기(사람이 고친 뒤 제출한다). */
-  onUse?: (outputId: string) => void;
-  useLabel?: string;
 }) {
-  const demoRunId = useSc01((s) => s.demoRunId);
-  const actor = useSc01((s) => s.actor);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const output = [...view.agentOutputs].reverse().find((o) => o.kind === kind);
-  const run = async (fn: () => Promise<{ ok: boolean; data?: Sc05View; error?: string; status?: number }>) => {
-    setBusy(true);
-    setError(null);
-    const r = await fn();
-    setBusy(false);
-    if (r.ok && r.data) useSc05.getState().setLive(r.data);
-    else setError(`${r.status} — ${r.error}`);
-  };
   if (!output && !canRequest) return null;
   return (
     <Card>
@@ -103,30 +82,7 @@ export function AgentCard({
             {output.draft.draft_text ? <p className="rounded-md bg-muted px-3 py-2 text-xs">{output.draft.draft_text}</p> : null}
           </>
         ) : null}
-        {!view.historical ? (
-          <div className="flex flex-wrap gap-2">
-            {canRequest ? (
-              <Button size="sm" variant="outline" disabled={busy || actor === "u-demo"} onClick={() => void run(() => sc05Api.agent(demoRunId!, kind, actor))}>
-                {output ? "다시 만들기" : "초안 요청"}
-              </Button>
-            ) : null}
-            {output?.status === "SUCCEEDED" && onUse ? (
-              <Button size="sm" variant="outline" onClick={() => onUse(output.output_id)}>
-                {useLabel ?? "폼으로 가져오기"}
-              </Button>
-            ) : null}
-            {output?.status === "SUCCEEDED" && output.review_status === "UNREVIEWED" ? (
-              <Button size="sm" variant="outline" disabled={busy || actor === "u-demo"} onClick={() => void run(() => sc05Api.review(demoRunId!, output.output_id, actor))}>
-                검토 기록
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-xs" style={{ color: "var(--viz-status-critical)" }}>
-            거절됨: {error}
-          </p>
-        ) : null}
+        <CompanySiteNote>초안 요청·다시 만들기·검토(채택) 기록은 회사 사이트에서 한다.</CompanySiteNote>
       </CardContent>
     </Card>
   );

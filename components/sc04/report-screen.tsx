@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,7 +39,7 @@ function Report({ view }: { view: Sc04View }) {
   const m = view.meeting;
   return (
     <>
-      <WaitingForms view={view} nodes={["Freeze_Report", "Report_Meeting"]} labels={{ Freeze_Report: "보고본 확정·배포", Report_Meeting: "회의 개회·보고" }} />
+      <WaitingList view={view} nodes={["Freeze_Report", "Report_Meeting"]} />
       {run ? (
         <>
           <Kpis run={run} />

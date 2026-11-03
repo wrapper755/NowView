@@ -3,7 +3,7 @@
 import { CheckCircle2, CircleDashed, OctagonAlert, Undo2 } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
-import { Sc02Body, Sc02Header, StatusPills, WaitingForms, Won } from "@/components/sc02/bits";
+import { Sc02Body, Sc02Header, StatusPills, WaitingList, Won } from "@/components/sc02/bits";
 import { ProposalBody } from "@/components/sc02/proposal-screen";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatClock } from "@/lib/sc01/format";
@@ -11,7 +11,7 @@ import { APPROVAL_STATUS_LABEL, STEP_LABEL } from "@/lib/sc02/format";
 import type { Decision, Sc02View } from "@/lib/sc02/types";
 
 /**
- * U25 승인 검토 · 추가 협상지시 — 현재 승인 차례의 사람만 결정한다(엔진이 같은 권한·상태·버전을 검사한다).
+ * 결정은 회사 사이트의 결재 화면에서 한다 — 이 화면은 기안·결정 이력을 보인다(읽기 전용).
  * 결정 폼은 화면이 본 기안 버전을 함께 보낸다 — 그 사이 새 버전이 나왔으면 409다(U25-03).
  */
 export function Sc02ApprovalScreen() {
@@ -37,12 +37,7 @@ function Approval({ view }: { view: Sc02View }) {
   return (
     <>
       <StatusPills view={view} />
-      <WaitingForms
-        view={view}
-        nodes={["Approve_Lead", "Approve_Exec", "Approve_CEO"]}
-        expect={{ proposal: current.proposal_key }}
-        labels={{ Approve_Lead: "결정 기록", Approve_Exec: "결정 기록", Approve_CEO: "결정 기록" }}
-      />
+      <WaitingList view={view} nodes={["Approve_Lead", "Approve_Exec", "Approve_CEO"]} />
 
       <Card>
         <CardHeader>

@@ -3,7 +3,7 @@
 import { useUserName } from "@/components/sc01/bits";
 import { CompanyExchangeCard } from "@/components/sc01/company-exchange";
 import { AgentCard } from "@/components/sc05/agent-card";
-import { Mn, Sc05Body, Sc05Header, Tile, WaitingForms } from "@/components/sc05/bits";
+import { Mn, Sc05Body, Sc05Header, Tile, WaitingList } from "@/components/sc05/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,12 +52,7 @@ function Body({ view }: { view: Sc05View }) {
         </Tile>
       </div>
 
-      <WaitingForms
-        view={view}
-        nodes={NODES}
-        expect={(n) => (review && n !== "Draft_Forecast" && n !== "Publish_Forecast" ? { forecast: review.forecast_id, run: review.run_id } : undefined)}
-        labels={{ Draft_Forecast: "작성·대사", Submit_Forecast: "대표 승인 요청", Approve_Forecast: "결정", Publish_Forecast: "게시·공유" }}
-      />
+      <WaitingList view={view} nodes={NODES} />
       {view.forecastBlocking.length && review && review.state !== "PUBLISHED" && review.state !== "APPROVED" ? (
         <p className="rounded-md border px-3 py-2 text-xs">
           제출 전 남은 것: {view.forecastBlocking.join(" · ")}

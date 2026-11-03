@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 import { useUserName } from "@/components/sc01/bits";
 import { AgentCard } from "@/components/sc04/agent-card";
-import { Mn, Sc04Body, Sc04Header, WaitingForms } from "@/components/sc04/bits";
+import { Mn, Sc04Body, Sc04Header, WaitingList } from "@/components/sc04/bits";
 import { Commentary } from "@/components/shared/commentary";
 import { Disclosure } from "@/components/shared/disclosure";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +36,7 @@ function Verify({ view }: { view: Sc04View }) {
   const openRework = view.rework.filter((r) => r.state === "OPEN");
   return (
     <>
-      <WaitingForms view={view} nodes={["Verify_Effects", "Correct_Effects"]} labels={{ Verify_Effects: "검증 실행", Correct_Effects: "보완·재확인" }} />
+      <WaitingList view={view} nodes={["Verify_Effects", "Correct_Effects"]} />
       <Card data-index-skip>
         <CardHeader>
           <CardTitle>

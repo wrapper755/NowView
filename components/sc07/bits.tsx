@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FileSearch, Lock, PlayCircle, RefreshCw } from "lucide-react";
+import { FileSearch, Lock, RefreshCw } from "lucide-react";
 
 import { Problem, personName } from "@/components/sc06/bits";
+import { SceneNotOpened } from "@/components/shared/company-site-note";
 import { Commentary } from "@/components/shared/commentary";
-import { PreparationNote } from "@/components/shared/preparation-note";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Preparation } from "@/lib/preparation";
 import { formatClock } from "@/lib/sc01/format";
 import { sc07Api } from "@/lib/sc07/client";
 import type { EvidenceView, Person } from "@/lib/sc07/types";
@@ -48,7 +46,7 @@ export function Sc07Header({ id, title, question }: { id: string; title: string;
   );
 }
 
-/** 장면 7 본문 — 열리지 않았으면 「관리모델 개선 열기」, 머리 조회 실패면 사유. */
+/** 장면 7 본문 — 열리지 않았으면 「아직 열리지 않았다」(여는 것은 회사 사이트), 머리 조회 실패면 사유. */
 export function Sc07Body({ children }: { children: React.ReactNode }) {
   const meta = useSc07((s) => s.meta);
   const missing = useSc07((s) => s.missing);
@@ -60,44 +58,10 @@ export function Sc07Body({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** 장면 7 문서가 아직 없다 — 여는 것은 회사 사이트의 시연 조작이다(예전의 「열기」 단추 자리). */
 function OpenCard() {
   const demoRunId = useSc01((s) => s.demoRunId);
-  const [pending, setPending] = useState(false);
-  const [prep, setPrep] = useState<Preparation | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const open = async () => {
-    setPending(true);
-    setError(null);
-    const r = await sc07Api.open(demoRunId, "center", setPrep);
-    setPending(false);
-    setPrep(null);
-    if (!r.ok) {
-      setError(r.error);
-      return;
-    }
-    if (r.data.demoRunId !== demoRunId) useSc01.getState().setDemoRunId(r.data.demoRunId);
-    useSc07.getState().setMeta(r.data);
-  };
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>관리모델 개선이 아직 열리지 않았다</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 text-sm">
-        <p>
-          관리모델 개선은 완료·성과 검토의 대표 보고(RPT61-v1)와 사람이 바로잡은 원인 판단(AG62 → PO61-1103)에서 이어진다. 열면 완료·성과 검토가
-          보고 전일 때 그 각본을 끝까지 실제로 실행하고, 개선건(IMP71)과 검증 입력을 적재한다. 그 뒤 확인·적용 절차(검증 → 두 임원 확인 → 운영
-          설정 반영 → 확인)를 BPM으로 돈다.
-        </p>
-        <Button size="sm" onClick={() => void open()} disabled={pending}>
-          <PlayCircle aria-hidden className="size-3.5" />
-          {pending ? "여는 중…" : "관리모델 개선 열기"}
-        </Button>
-        {pending ? <PreparationNote p={prep} /> : null}
-        {error ? <Problem text={error} /> : null}
-      </CardContent>
-    </Card>
-  );
+  return <SceneNotOpened work="관리모델 개선" demoRunId={demoRunId} from="완료·성과 검토의 대표 보고(RPT61-v1)" />;
 }
 
 /** 조회 하나의 상태 — 로딩·권한 없음·버전 불일치·없음·통신 실패를 갈라 보인다. 실패를 통과·완료로 보이지 않는다(UI709). */

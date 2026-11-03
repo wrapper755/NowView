@@ -40,7 +40,8 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
-from app.company import CompanyClient
+from app.company import CompanyClient, require_finished
+from app.follower import sync_opened
 from app.sc01.center import CenterClient, CenterConfig, CenterError
 from app.sc01.domain import (
     USERS,
@@ -251,6 +252,8 @@ class Sc06Process:
         1부터).
         """
         found = None if demo_run_id is None else self.sc05.store.load(demo_run_id)
+        if found is None:
+            require_finished("결정 실행·계획 갱신")  # 앞 장면 문서도 없다 — 엔진이 만들지 않는다
         doc = (
             self.sc05.create(sc01_demo_run_id=demo_run_id, executor=executor)
             if found is None
@@ -259,6 +262,7 @@ class Sc06Process:
         rid = doc["demo_run_id"]
         if doc["handoff"] is not None:
             return doc
+        require_finished("결정 실행·계획 갱신")  # 사이트가 몰면 각본으로 끝내지 않는다
         if executor_of(doc) == "studio":
             raise DomainError(
                 "결정 실행·계획 갱신이 Studio 시험 실행이다 — "
@@ -393,6 +397,33 @@ class Sc06Process:
             doc, version = self._load(demo_run_id)
             _mark(doc, event_code, script_index)
             return self._commit(doc, version, None, event_code)
+
+    def follow_clock(self, demo_run_id: str, at: str) -> dict:
+        """
+        세계 시각을 따라간다(`app/follower.py`). 확인 절차의 기록 시각은 데이터의 일정이라 시각
+        이동이 기록·업무를 만들지 않는다 — 문서 시각만 옮긴다(기간계에는 쓰지 않는다).
+        """
+        with self._lock(demo_run_id):
+            doc, version = self._load(demo_run_id)
+            if parse_at(at) <= parse_at(doc["clock"]):
+                return doc
+            doc["clock"] = parse_at(at).isoformat()
+            return self._commit(doc, version, None, "clock")
+
+    def discard(self, demo_run_id: str) -> None:
+        """
+        세계가 초기화됐다(`app/follower.py`) — 장면 문서와 이력을 지운다. Center에 기동한 작업은
+        먼저 거둔다 — 남기면 그 실행이 서버 실행기 자리를 쥐고 새 회차의 작업이 `per_bot_limit`로
+        멈춘다(실측).
+        """
+        found = self.store.load(demo_run_id)
+        if found is not None:
+            doc = found[0]
+            job = (((doc.get("bpm") or {}).get("center") or {}).get("job") or {}).get("job_id")
+            if job and not self.center.config.missing(integration=True):
+                self._cancel_center_job(doc, job)
+        self.store.delete(demo_run_id)
+        self.publish(f"sc06:{demo_run_id}")
 
     def start(
         self,
@@ -734,7 +765,14 @@ class Sc06Process:
                 bpm["position"], bpm["waiting"] = [], []
             ledger["last_seq"] = progress["last_seq"]
             ledger["problem"] = None
-            confirm.sync_tasks(doc, {rid: {"node_id": e["node_id"]} for rid, e in opened.items()})
+            sync_opened(  # 결재는 앞 기록 작업 바로 뒤에 열렸다 — 그 시각에 연다
+                doc,
+                list(opened),
+                progress["before"],
+                lambda rids: confirm.sync_tasks(
+                    doc, {rid: {"node_id": opened[rid]["node_id"]} for rid in rids}
+                ),
+            )
             self._commit(doc, version, None, "center_progress")
         return True
 
