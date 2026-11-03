@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/agent_draft.schema.json",
+  "title": "장면 2 agent_draft",
+  "description": "AI 초안 — 검증을 통과한 응답만(거절 응답·입력 원문 없음)",
+  "type": "object",
+  "required": [
+    "adopted_at",
+    "adopted_by",
+    "created_at",
+    "draft",
+    "errors",
+    "input_hash",
+    "kind",
+    "mode",
+    "output_id",
+    "prompt_version",
+    "run_id",
+    "seq",
+    "stale",
+    "status"
+  ],
+  "properties": {
+    "output_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "input_hash": {
+      "type": "string"
+    },
+    "prompt_version": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    },
+    "draft": {
+      "type": "object",
+      "required": [
+        "draft_text",
+        "findings",
+        "questions",
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence_refs",
+              "text"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "draft_text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "errors": {
+      "type": "array"
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "adopted_by": {
+      "type": "null"
+    },
+    "adopted_at": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,610 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/task_variance.schema.json",
+  "title": "장면 6 task_variance",
+  "description": "ACT42 차이 상세 — 원인별 건수·실제 긴급비, 대표 주문 PO61-1103, AG62 초안과 사람 보정",
+  "type": "object",
+  "required": [
+    "agent",
+    "as_of",
+    "basis_version",
+    "calculation_hash",
+    "calculation_version",
+    "cause_groups",
+    "cause_reconciliation",
+    "cause_total",
+    "change",
+    "data_status",
+    "evidence",
+    "limits",
+    "metrics",
+    "months",
+    "newer_calculation",
+    "order",
+    "report_version",
+    "review_id",
+    "task",
+    "task_id",
+    "urgent_orders",
+    "variance_krw"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "string"
+    },
+    "calculation_version": {
+      "type": "string"
+    },
+    "calculation_hash": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_status": {
+      "type": "string"
+    },
+    "basis_version": {
+      "type": "string"
+    },
+    "newer_calculation": {
+      "type": "null"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "actual_krw",
+        "calculation_status",
+        "expected_krw",
+        "months",
+        "task_id",
+        "variance_krw"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "expected_krw": {
+          "type": "integer"
+        },
+        "actual_krw": {
+          "type": "integer"
+        },
+        "variance_krw": {
+          "type": "integer"
+        },
+        "calculation_status": {
+          "type": "string"
+        },
+        "months": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "cause_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual_urgent_cost_krw",
+          "cause",
+          "count",
+          "label",
+          "orders"
+        ],
+        "properties": {
+          "cause": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "actual_urgent_cost_krw": {
+            "type": "integer"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "cause_total": {
+      "type": "object",
+      "required": [
+        "actual_urgent_cost_krw",
+        "count"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "actual_urgent_cost_krw": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "cause_reconciliation": {
+      "type": "object",
+      "required": [
+        "cost_residual",
+        "count_residual",
+        "problems"
+      ],
+      "properties": {
+        "count_residual": {
+          "type": "integer"
+        },
+        "cost_residual": {
+          "type": "integer"
+        },
+        "problems": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "variance_krw": {
+      "type": "integer"
+    },
+    "months": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual_cost",
+          "baseline_id",
+          "baseline_or_avoided",
+          "effect_id",
+          "expected",
+          "fixed_saving",
+          "month",
+          "net",
+          "operating_cost",
+          "qty",
+          "sources",
+          "status",
+          "task_id",
+          "unconfirmed_orders",
+          "urgent_count",
+          "variance"
+        ],
+        "properties": {
+          "effect_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "month": {
+            "type": "string"
+          },
+          "baseline_id": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "integer"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "baseline_or_avoided": {
+            "type": "integer"
+          },
+          "actual_cost": {
+            "type": "integer"
+          },
+          "operating_cost": {
+            "type": "integer"
+          },
+          "fixed_saving": {
+            "type": "integer"
+          },
+          "net": {
+            "type": "integer"
+          },
+          "urgent_count": {
+            "type": "integer"
+          },
+          "unconfirmed_orders": {
+            "type": "array"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "variance": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "label",
+          "metric_id",
+          "unit",
+          "value"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unconfirmed": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "confirm_minutes",
+        "share_minutes"
+      ],
+      "properties": {
+        "share_minutes": {
+          "type": "integer"
+        },
+        "confirm_minutes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "order": {
+      "type": "object",
+      "required": [
+        "approved_at",
+        "approver",
+        "cause",
+        "change_ref",
+        "cost_check",
+        "delivery_issue",
+        "evidence_id",
+        "freight",
+        "held",
+        "hold_reasons",
+        "model_id",
+        "month",
+        "order_id",
+        "ordered_at",
+        "part_id",
+        "qty",
+        "quality_issue",
+        "seq",
+        "surcharge",
+        "task_id",
+        "urgent",
+        "urgent_cost"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "month": {
+          "type": "string"
+        },
+        "model_id": {
+          "type": "string"
+        },
+        "part_id": {
+          "type": "string"
+        },
+        "change_ref": {
+          "type": "string"
+        },
+        "qty": {
+          "type": "integer"
+        },
+        "urgent": {
+          "type": "boolean"
+        },
+        "freight": {
+          "type": "integer"
+        },
+        "surcharge": {
+          "type": "integer"
+        },
+        "cause": {
+          "type": "string"
+        },
+        "ordered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approver": {
+          "type": "object",
+          "required": [
+            "account",
+            "name",
+            "role",
+            "userId"
+          ],
+          "properties": {
+            "account": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "approved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "delivery_issue": {
+          "type": "integer"
+        },
+        "quality_issue": {
+          "type": "integer"
+        },
+        "cost_check": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "held": {
+          "type": "boolean"
+        },
+        "hold_reasons": {
+          "type": "array"
+        },
+        "urgent_cost": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "cause",
+        "change_id",
+        "confirm_minutes",
+        "confirmed_at",
+        "evidence_id",
+        "order_id",
+        "reason",
+        "received_at",
+        "required_at",
+        "share_minutes",
+        "shared_at",
+        "supply_at",
+        "supply_gap_minutes"
+      ],
+      "properties": {
+        "change_id": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "shared_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "required_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "supply_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "cause": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence_id": {
+          "type": "string"
+        },
+        "share_minutes": {
+          "type": "integer"
+        },
+        "confirm_minutes": {
+          "type": "integer"
+        },
+        "supply_gap_minutes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "agent": {
+      "type": "object",
+      "required": [
+        "at",
+        "candidate_cause",
+        "draft",
+        "human",
+        "input_scope",
+        "links",
+        "mode",
+        "reviewed_at",
+        "reviewed_by",
+        "run_id",
+        "seq",
+        "state",
+        "task"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "input_scope": {
+          "type": "string"
+        },
+        "task": {
+          "type": "string"
+        },
+        "draft": {
+          "type": "string"
+        },
+        "candidate_cause": {
+          "type": "string"
+        },
+        "human": {
+          "type": "string"
+        },
+        "reviewed_by": {
+          "type": "object",
+          "required": [
+            "account",
+            "name",
+            "role",
+            "userId"
+          ],
+          "properties": {
+            "account": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "reviewed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "urgent_orders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "cause",
+          "confirm_minutes",
+          "held",
+          "month",
+          "order_id",
+          "share_minutes",
+          "supply_gap_minutes",
+          "urgent_cost"
+        ],
+        "properties": {
+          "order_id": {
+            "type": "string"
+          },
+          "month": {
+            "type": "string"
+          },
+          "cause": {
+            "type": "string"
+          },
+          "urgent_cost": {
+            "type": "integer"
+          },
+          "held": {
+            "type": "boolean"
+          },
+          "share_minutes": {
+            "type": "integer"
+          },
+          "confirm_minutes": {
+            "type": "integer"
+          },
+          "supply_gap_minutes": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

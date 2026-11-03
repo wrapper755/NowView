@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/execution_request.schema.json",
+  "title": "장면 5 execution_request",
+  "description": "실행 품의(REQ51·OP51 …)의 사본 — 범위·금액·승인 이력(U503, 원본은 회사 품의)",
+  "type": "object",
+  "required": [
+    "amount",
+    "approval_ref",
+    "background",
+    "evidence",
+    "history",
+    "reason",
+    "request_id",
+    "scope",
+    "seq",
+    "state",
+    "task_id"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "approval_ref": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string"
+    },
+    "background": {
+      "type": "boolean"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "state"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "version": {
+      "type": "integer"
+    },
+    "plan_ref": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

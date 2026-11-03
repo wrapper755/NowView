@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/monthly_meeting.schema.json",
+  "title": "장면 4 monthly_meeting",
+  "description": "월간회의(MT41) — 참석·질의/지시 기록(U405)",
+  "type": "object",
+  "required": [
+    "attendance",
+    "chair",
+    "meeting_id",
+    "opened_at",
+    "records",
+    "report_version",
+    "reporter",
+    "scheduled_at",
+    "state",
+    "subject",
+    "type"
+  ],
+  "properties": {
+    "meeting_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "chair": {
+      "type": "string"
+    },
+    "reporter": {
+      "type": "string"
+    },
+    "scheduled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "report_version": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "opened_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "attendance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actor",
+          "at",
+          "record_id",
+          "state"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actor_id",
+          "content",
+          "event_at",
+          "meeting_id",
+          "record_id",
+          "record_type",
+          "related_ref",
+          "state",
+          "subject"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "record_type": {
+            "type": "string"
+          },
+          "meeting_id": {
+            "type": "string"
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "event_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "related_ref": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "report_summary": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

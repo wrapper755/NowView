@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/scene.schema.json",
+  "title": "장면 5 scene",
+  "description": "장면 머리 — 시연 시각·상태 묶음·장면 4 결과 스냅샷·일정·설정·유효 계획·공식 전망·착수/완료 요건·예산 요약·초기 결과·알림·회사와 오간 것",
+  "type": "object",
+  "additionalProperties": {
+    "type": [
+      "array",
+      "null",
+      "object",
+      "string"
+    ]
+  }
+}

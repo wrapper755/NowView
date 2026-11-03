@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/directive.schema.json",
+  "title": "장면 4 directive",
+  "description": "조건·지원·지시(CON41·SUP41·DIR41) — 내용·책임·확인자·기한(U406·U407)",
+  "type": "object",
+  "required": [
+    "action_ref",
+    "alt_ref",
+    "collaborators",
+    "content",
+    "directive_id",
+    "due_at",
+    "expected_effect",
+    "fulfillment",
+    "kind",
+    "owner",
+    "responsibility",
+    "responsibility_at",
+    "seq",
+    "source",
+    "state",
+    "verifier"
+  ],
+  "properties": {
+    "directive_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "alt_ref": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "action_ref": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "content": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "collaborators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verifier": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "responsibility": {
+      "type": "string"
+    },
+    "responsibility_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "fulfillment": {
+      "type": "string"
+    },
+    "expected_effect": {
+      "type": "null"
+    },
+    "state": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

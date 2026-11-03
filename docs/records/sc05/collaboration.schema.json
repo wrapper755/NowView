@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/collaboration.schema.json",
+  "title": "장면 5 collaboration",
+  "description": "협조 확인 — 계획 버전·부서·내용·담당(U502)",
+  "type": "object",
+  "required": [
+    "at",
+    "by",
+    "collab_id",
+    "contact",
+    "content",
+    "content_hash",
+    "department",
+    "evidence",
+    "kind",
+    "plan_version"
+  ],
+  "properties": {
+    "collab_id": {
+      "type": "string"
+    },
+    "plan_version": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "contact": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "by": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

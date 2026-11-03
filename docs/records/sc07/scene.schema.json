@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc07/scene.schema.json",
+  "title": "장면 7 scene",
+  "description": "장면 머리 — 시연 시각·개선건·버전 묶음·적재 묶음·장면 6 보고본·상태 배지·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "applicationId",
+    "batch",
+    "bpm",
+    "caseId",
+    "clock",
+    "companyLog",
+    "datasetVersion",
+    "demoRunId",
+    "executor",
+    "improvementId",
+    "sc06",
+    "status",
+    "step",
+    "versionBundle"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "step": {
+      "type": "string"
+    },
+    "improvementId": {
+      "type": "string"
+    },
+    "applicationId": {
+      "type": "string"
+    },
+    "datasetVersion": {
+      "type": "string"
+    },
+    "versionBundle": {
+      "type": "object",
+      "required": [
+        "agent",
+        "agent_previous",
+        "improvement",
+        "measure",
+        "measure_previous",
+        "projection",
+        "projection_previous",
+        "verification_set"
+      ],
+      "properties": {
+        "improvement": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "agent_previous": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "measure_previous": {
+          "type": "string"
+        },
+        "projection": {
+          "type": "string"
+        },
+        "projection_previous": {
+          "type": "string"
+        },
+        "verification_set": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sc06": {
+      "type": "object",
+      "required": [
+        "report_state",
+        "report_version"
+      ],
+      "properties": {
+        "report_version": {
+          "type": "string"
+        },
+        "report_state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "batch": {
+      "type": "object",
+      "required": [
+        "batch_id",
+        "counts",
+        "dataset_version",
+        "seed_id",
+        "sha256"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string"
+        },
+        "seed_id": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "dataset_version": {
+          "type": "string"
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "cases",
+            "evidence",
+            "inputs",
+            "rules"
+          ],
+          "properties": {
+            "inputs": {
+              "type": "integer"
+            },
+            "evidence": {
+              "type": "integer"
+            },
+            "cases": {
+              "type": "integer"
+            },
+            "rules": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "object",
+      "required": [
+        "application",
+        "applicationLabel",
+        "confirmed",
+        "execution",
+        "followUp",
+        "procedure",
+        "verification"
+      ],
+      "properties": {
+        "procedure": {
+          "type": "string"
+        },
+        "verification": {
+          "type": "string"
+        },
+        "application": {
+          "type": "string"
+        },
+        "applicationLabel": {
+          "type": "string"
+        },
+        "execution": {
+          "type": "string"
+        },
+        "confirmed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "followUp": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "executor": {
+      "type": "string"
+    },
+    "companyLog": {
+      "type": "array"
+    },
+    "bpm": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "executor",
+        "externalRunId",
+        "state",
+        "visited"
+      ],
+      "properties": {
+        "executor": {
+          "type": "string"
+        },
+        "externalRunId": {
+          "type": "null"
+        },
+        "state": {
+          "type": "string"
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

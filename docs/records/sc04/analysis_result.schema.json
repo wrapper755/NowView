@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/analysis_result.schema.json",
+  "title": "장면 4 analysis_result",
+  "description": "분석과제 결과(RES41~44) — 작성·확인·판(제출·보완) 이력(U401·U402)",
+  "type": "object",
+  "required": [
+    "alts",
+    "confirmer",
+    "result_id",
+    "seq",
+    "state",
+    "task_id",
+    "versions",
+    "writer"
+  ],
+  "properties": {
+    "result_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "alts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "writer": {
+      "type": "string"
+    },
+    "confirmer": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "versions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assumption_refs",
+          "causes",
+          "conclusion",
+          "confirmation",
+          "evidence_refs",
+          "outcome",
+          "reason",
+          "ref",
+          "risks",
+          "submitted_at",
+          "submitted_by",
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "conclusion": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risks": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assumption_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "submitted_by": {
+            "type": "string"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmation": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "required": [
+              "at",
+              "by",
+              "decision",
+              "evidence_hash",
+              "opinion"
+            ],
+            "properties": {
+              "decision": {
+                "type": "string"
+              },
+              "by": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "evidence_hash": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "causes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "required": [
+                "contribution",
+                "f01",
+                "model_id",
+                "t01",
+                "unit_cm"
+              ],
+              "properties": {
+                "model_id": {
+                  "type": "string"
+                },
+                "t01": {
+                  "type": "integer"
+                },
+                "f01": {
+                  "type": "integer"
+                },
+                "unit_cm": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "contribution": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

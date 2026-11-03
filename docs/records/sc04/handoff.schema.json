@@ -1,0 +1,484 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/handoff.schema.json",
+  "title": "장면 4 handoff",
+  "description": "장면 5 인계(HANDOFF41) — 인계 기록·완료 요건(U408)",
+  "type": "object",
+  "required": [
+    "completion",
+    "handoff"
+  ],
+  "properties": {
+    "handoff": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "acceptance_ref",
+        "actions",
+        "approval",
+        "as_of",
+        "budget",
+        "completed_by",
+        "conditions",
+        "decision",
+        "detail_plan",
+        "directives",
+        "excluded",
+        "execution_gates",
+        "financial_snapshot",
+        "handoff_id",
+        "meeting",
+        "memo",
+        "minutes",
+        "overall_owner",
+        "report",
+        "review_id",
+        "source_handoff",
+        "state_snapshot"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "source_handoff": {
+          "type": "string"
+        },
+        "meeting": {
+          "type": "string"
+        },
+        "report": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "approval": {
+          "type": "string"
+        },
+        "minutes": {
+          "type": "string"
+        },
+        "overall_owner": {
+          "type": "string"
+        },
+        "acceptance_ref": {
+          "type": "object",
+          "required": [
+            "at",
+            "version"
+          ],
+          "properties": {
+            "version": {
+              "type": "integer"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "accepted_at",
+              "alt_id",
+              "analysis_task",
+              "assignment_version",
+              "budget",
+              "completion_due",
+              "decision",
+              "execution_gate",
+              "expected_effect",
+              "owner",
+              "plan_due",
+              "target_id"
+            ],
+            "properties": {
+              "target_id": {
+                "type": "string"
+              },
+              "alt_id": {
+                "type": "string"
+              },
+              "analysis_task": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "budget": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "expected_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "plan_due": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "completion_due": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "assignment_version": {
+                "type": "integer"
+              },
+              "accepted_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "execution_gate": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "action_ref",
+              "collaborators",
+              "content",
+              "directive_id",
+              "due_at",
+              "fulfillment",
+              "owner",
+              "responsibility",
+              "verifier"
+            ],
+            "properties": {
+              "directive_id": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "collaborators": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "verifier": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "fulfillment": {
+                "type": "string"
+              },
+              "responsibility": {
+                "type": "string"
+              },
+              "action_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "directives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "content",
+              "directive_id",
+              "due_at",
+              "expected_effect",
+              "kind",
+              "owner",
+              "responsibility",
+              "verifier"
+            ],
+            "properties": {
+              "directive_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "verifier": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "responsibility": {
+                "type": "string"
+              },
+              "expected_effect": {
+                "type": "null"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "alt_id",
+              "evidence",
+              "result"
+            ],
+            "properties": {
+              "alt_id": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "financial_snapshot": {
+          "type": "object",
+          "required": [
+            "baseline",
+            "conditional_effect",
+            "effect",
+            "gap",
+            "gap_excl_conditional",
+            "normal_annual_reference",
+            "target"
+          ],
+          "properties": {
+            "baseline": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "conditional_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap_excl_conditional": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "normal_annual_reference": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "execution_gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "gate",
+              "target_id"
+            ],
+            "properties": {
+              "target_id": {
+                "type": "string"
+              },
+              "gate": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "budget": {
+          "type": "object",
+          "required": [
+            "committed",
+            "headroom",
+            "planned",
+            "spent",
+            "total"
+          ],
+          "properties": {
+            "total": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "committed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "spent": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "headroom": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "detail_plan": {
+          "type": "string"
+        },
+        "state_snapshot": {
+          "type": "object",
+          "required": [
+            "forecast",
+            "risk",
+            "scene",
+            "target"
+          ],
+          "properties": {
+            "scene": {
+              "type": "string"
+            },
+            "risk": {
+              "type": "string"
+            },
+            "forecast": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_by": {
+          "type": "string"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "blocking",
+        "items",
+        "met",
+        "open_conditions",
+        "rate"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "ok"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "met": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rate": {
+          "type": "object",
+          "required": [
+            "accepted",
+            "assigned",
+            "overall_accepted",
+            "rate"
+          ],
+          "properties": {
+            "assigned": {
+              "type": "integer"
+            },
+            "accepted": {
+              "type": "integer"
+            },
+            "overall_accepted": {
+              "type": "boolean"
+            },
+            "rate": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "open_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

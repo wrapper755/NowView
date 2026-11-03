@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/approval_draft.schema.json",
+  "title": "장면 4 approval_draft",
+  "description": "승인서 초안 — 책임·예산 한도·두 기한·조건·누락 항목(U406)",
+  "type": "object",
+  "required": [
+    "decision_ref",
+    "delegation",
+    "drafted_at",
+    "drafted_by",
+    "items",
+    "minutes",
+    "missing",
+    "overall_owner",
+    "plan_due",
+    "total_budget",
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer"
+    },
+    "decision_ref": {
+      "type": "string"
+    },
+    "overall_owner": {
+      "type": "string"
+    },
+    "total_budget": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "plan_due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "items": {
+      "type": "object",
+      "required": [
+        "ALT41",
+        "ALT42",
+        "ALT43"
+      ],
+      "properties": {
+        "ALT41": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT42": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT43": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "delegation": {
+      "type": "string"
+    },
+    "minutes": {
+      "type": "string"
+    },
+    "drafted_by": {
+      "type": "string"
+    },
+    "drafted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "missing": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

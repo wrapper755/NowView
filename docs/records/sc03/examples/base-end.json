@@ -1,0 +1,5666 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "SC03:SC03",
+  "version": 46,
+  "scene": 3,
+  "state": "SC03_COMPLETED",
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "수익성 변동의 통합 분석과 수시 경영검토",
+  "body": {
+   "demoRunId": "demo-example",
+   "caseId": "BASE",
+   "caseLabel": "기본 시연",
+   "clock": "2027-06-30T11:30:00+09:00",
+   "step": "D41",
+   "status": {
+    "review": "SC03_COMPLETED",
+    "outcome": "CONDITIONAL_ACCEPT",
+    "risk": "OPEN",
+    "forecast": "REVIEW_PENDING",
+    "target": "UNCHANGED",
+    "scene": "SC03_COMPLETED"
+   },
+   "sc02": {
+    "demo_run_id": "demo-example",
+    "executor": "embedded",
+    "handoff": {
+     "handoff_id": "HANDOFF-01",
+     "bundle_id": "BND-01",
+     "bundle_hash": "346d303306efdc5a",
+     "selected_run": "RUN-APP01",
+     "accepted_by": "u-fin",
+     "accepted_at": "2027-06-24T10:00:00+09:00",
+     "sc03_due_at": "2027-06-28T18:00:00+09:00"
+    },
+    "price": {
+     "version_id": "PV-APP01",
+     "part_id": "P-COM01",
+     "old_price": "2000",
+     "new_price": "2120",
+     "effective_date": "2027-07-01",
+     "run_id": "RUN-APP01"
+    },
+    "request_price": "2200",
+    "cost": {
+     "cost_version_id": "C02-APP01",
+     "parent_cost_version": "C01",
+     "effective_from": "2027-07-01",
+     "registered_at": "2027-06-23T15:00:00+09:00"
+    },
+    "issues": [
+     {
+      "issue_id": "ISSUE-B07",
+      "type": "VOLUME",
+      "risk": "CRITICAL",
+      "status": "OPEN",
+      "run_id": "RUN-F02-001",
+      "summary": "b모델 7월 9,500 → 8,800대분 (고객 생산계획 변경 대응)"
+     },
+     {
+      "issue_id": "ISSUE-COST01",
+      "type": "COST",
+      "risk": "CRITICAL",
+      "status": "OPEN",
+      "run_id": "RUN-APP01",
+      "summary": "공통부품 P-COM01 2,000 → 2,120원 7/1 적용 (외주 단가 인상 검토)"
+     }
+    ],
+    "sc01_run": "RUN-F02-001",
+    "forecast_approval": "UNDER_REVIEW"
+   },
+   "schedule": {
+    "confirm_due": "2027-06-28T18:00:00+09:00",
+    "freeze_at": "2027-06-29T09:00:00+09:00",
+    "meeting_at": "2027-06-29T10:00:00+09:00",
+    "meeting_end": "2027-06-29T11:00:00+09:00",
+    "accept_due": "2027-06-30T12:00:00+09:00",
+    "submit_due": "2027-07-06T18:00:00+09:00",
+    "consolidate_due": "2027-07-08T18:00:00+09:00",
+    "next_meeting_at": "2027-07-12T10:00:00+09:00"
+   },
+   "latestRunId": "RUN-SC03-01",
+   "currentDraftId": "REP31-v0",
+   "frozenReportId": "REP31-v1",
+   "freezeProblems": [],
+   "acceptance": {
+    "assigned": 4,
+    "accepted": 4,
+    "rate": "1"
+   },
+   "delayed": [],
+   "revisions": [],
+   "executor": "embedded",
+   "agentMode": "mock",
+   "alerts": [],
+   "companyLog": [
+    {
+     "seq": 1,
+     "at": "2027-06-24T10:00:00+09:00",
+     "direction": "in",
+     "what": "승인 원가 버전을 읽었다 — C02-APP01 · P-COM01 2,000 → 2,120원, 2027-07-01부터",
+     "doc_id": "C02-APP01",
+     "by": null
+    }
+   ],
+   "bpm": {
+    "executor": "embedded",
+    "externalRunId": null,
+    "state": "done",
+    "visited": [
+     "Start",
+     "Task_Open",
+     "Save_Analysis",
+     "Record_Analysis",
+     "Gw_Calc",
+     "Task_Agent_Impact",
+     "Request_Confirm",
+     "Record_Request",
+     "Gw_Confirm_Split",
+     "Confirm_Sales",
+     "Record_Confirm_Sales",
+     "Gw_Confirm_Sales",
+     "Confirm_Buy",
+     "Record_Confirm_Buy",
+     "Gw_Confirm_Buy",
+     "Confirm_Prod",
+     "Record_Confirm_Prod",
+     "Gw_Confirm_Prod",
+     "Gw_Confirm_Join",
+     "Register_Gap",
+     "Record_Gap",
+     "Judge_Questions",
+     "Record_Judge",
+     "Gw_Judge",
+     "Freeze_Report",
+     "Record_Freeze",
+     "Distribute",
+     "Record_Distribute",
+     "Report_Meeting",
+     "Record_Report_Meeting",
+     "Decide_Review",
+     "Record_Decide",
+     "Gw_Decide",
+     "Confirm_Minutes",
+     "Record_Minutes",
+     "Assign_Tasks",
+     "Record_Assign",
+     "Gw_Tasks",
+     "Accept_AT31",
+     "Record_Accept_AT31",
+     "Gw_AT31",
+     "Accept_AT32",
+     "Record_Accept_AT32",
+     "Gw_AT32",
+     "Accept_AT33",
+     "Record_Accept_AT33",
+     "Gw_AT33",
+     "Accept_AT34",
+     "Record_Accept_AT34",
+     "Gw_AT34",
+     "Gw_Tasks_Join",
+     "Complete_Scene",
+     "Record_Complete",
+     "End"
+    ]
+   }
+  },
+  "ref": "demo-example:scene/SC03:SC03:v46",
+  "seq": 113,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "profit_review",
+  "record_id": "SC03:MR-2706-01",
+  "version": 8,
+  "scene": 3,
+  "state": "SC03_COMPLETED",
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "수익성 통합 검토",
+  "body": {
+   "review_id": "MR-2706-01",
+   "state": "SC03_COMPLETED",
+   "outcome": "CONDITIONAL_ACCEPT",
+   "risk": "OPEN",
+   "forecast": "REVIEW_PENDING",
+   "target": "UNCHANGED",
+   "links": [
+    {
+     "issue_id": "ISSUE-B07",
+     "type": "VOLUME",
+     "risk": "CRITICAL",
+     "status": "OPEN",
+     "run_id": "RUN-F02-001",
+     "summary": "b모델 7월 9,500 → 8,800대분 (고객 생산계획 변경 대응)"
+    },
+    {
+     "issue_id": "ISSUE-COST01",
+     "type": "COST",
+     "risk": "CRITICAL",
+     "status": "OPEN",
+     "run_id": "RUN-APP01",
+     "summary": "공통부품 P-COM01 2,000 → 2,120원 7/1 적용 (외주 단가 인상 검토)"
+    }
+   ],
+   "started_at": "2027-06-24T10:05:00+09:00",
+   "started_by": "u-fin",
+   "completed_at": "2027-06-30T11:30:00+09:00"
+  },
+  "ref": "demo-example:profit_review/SC03:MR-2706-01:v8",
+  "seq": 114,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:1",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T10:00:00+09:00",
+  "by": null,
+  "title": "sc03_started",
+  "body": {
+   "seq": 1,
+   "at": "2027-06-24T10:00:00+09:00",
+   "event_code": "D30",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "sc03_started",
+   "detail": {
+    "case_id": "BASE",
+    "executor": "embedded",
+    "sc02_handoff": "HANDOFF-01"
+   }
+  },
+  "ref": "demo-example:audit/SC03:1:v1",
+  "seq": 115,
+  "recorded_at": "2027-06-24T10:00:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "SC03:SC03",
+  "version": 12,
+  "scene": 3,
+  "state": "HANDED_OFF",
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "장면 4 인계",
+  "body": {
+   "handoff": {
+    "handoff_id": "HANDOFF31",
+    "review_id": "MR-2706-01",
+    "report_version": "REP31-v1",
+    "analysis_run": "RUN-SC03-01",
+    "minutes_version": "MIN31-v1",
+    "decision": "REV31",
+    "outcome": "CONDITIONAL_ACCEPT",
+    "open_questions": [
+     "Q31",
+     "Q32"
+    ],
+    "accepted_tasks": [
+     {
+      "task_id": "AT31",
+      "version": 1,
+      "accepted_at": "2027-06-30T09:00:00+09:00",
+      "owner": "u-prod-lead"
+     },
+     {
+      "task_id": "AT32",
+      "version": 1,
+      "accepted_at": "2027-06-30T09:30:00+09:00",
+      "owner": "u-buy-lead"
+     },
+     {
+      "task_id": "AT33",
+      "version": 1,
+      "accepted_at": "2027-06-30T10:00:00+09:00",
+      "owner": "u-sales-lead"
+     },
+     {
+      "task_id": "AT34",
+      "version": 1,
+      "accepted_at": "2027-06-30T11:00:00+09:00",
+      "owner": "u-fin-lead"
+     }
+    ],
+    "excluded_candidates": [
+     {
+      "candidate_id": "C35",
+      "reason": "7/12 보고를 위한 검증 가능한 범위를 벗어나 제외. 전환조건 확보 후 재검토",
+      "evidence_ref": "QA33"
+     },
+     {
+      "candidate_id": "C36",
+      "reason": "이번 단기 대응 분석에서는 제외. 중장기 영업전략 검토 후보로 보존",
+      "evidence_ref": "QA34"
+     }
+    ],
+    "next_meeting": {
+     "meeting_id": "MT41",
+     "at": "2027-07-12T10:00:00+09:00"
+    },
+    "analysis_due": "2027-07-06T18:00:00+09:00",
+    "consolidation_due": "2027-07-08T18:00:00+09:00",
+    "basis": "F02+EXT28-v1, C02-APP01, FC01/FC28-v1",
+    "risk_status": "OPEN",
+    "forecast_status": "REVIEW_PENDING",
+    "target_status": "UNCHANGED",
+    "comparison_rule": "잔여2027 / 향후12개월 구분 — 일회성·반복·시작일·중복효과·가정·제약 명시",
+    "pending_revisions": [],
+    "as_of": "2027-06-30T11:30:00+09:00",
+    "completed_by": "u-fin",
+    "memo": "통합 영향 검토 완료 · 대응안 분석 책임·기한 확정 — 7/12 MT41 보고",
+    "elapsed_minutes": 8725,
+    "business_minutes": 2245
+   },
+   "completion": {
+    "items": [
+     {
+      "id": "report",
+      "label": "확정 보고버전",
+      "ok": true
+     },
+     {
+      "id": "calc",
+      "label": "계산 검증 통과",
+      "ok": true
+     },
+     {
+      "id": "confirm",
+      "label": "부서 확인 유효(영업·구매·생산)",
+      "ok": true
+     },
+     {
+      "id": "blocking",
+      "label": "열린 차단 쟁점 0건",
+      "ok": true
+     },
+     {
+      "id": "followups",
+      "label": "비차단 미확인의 담당·기한·처리방향",
+      "ok": true
+     },
+     {
+      "id": "decision",
+      "label": "수용 또는 조건부 수용 결론",
+      "ok": true
+     },
+     {
+      "id": "minutes",
+      "label": "확인된 회의록",
+      "ok": true
+     },
+     {
+      "id": "assigned",
+      "label": "배정 과제 1건 이상",
+      "ok": true
+     },
+     {
+      "id": "accepted",
+      "label": "현재 배정버전 전건 인수 (4/4)",
+      "ok": true
+     }
+    ],
+    "met": true,
+    "blocking": [],
+    "rate": {
+     "assigned": 4,
+     "accepted": 4,
+     "rate": "1"
+    }
+   }
+  },
+  "ref": "demo-example:handoff/SC03:SC03:v12",
+  "seq": 116,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:2",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T10:05:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 2,
+   "at": "2027-06-24T10:05:00+09:00",
+   "event_code": "D31",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-24T10:05:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:2:v1",
+  "seq": 117,
+  "recorded_at": "2027-06-24T10:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ANALYSIS",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "ANALYSIS",
+  "body": {
+   "task_id": "TASK-ANALYSIS",
+   "seq": 1,
+   "type": "ANALYSIS",
+   "node_id": "Save_Analysis",
+   "request_id": "apr_run_example_Save_Analysis_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2027-06-24T10:05:00+09:00",
+   "due_at": "2027-06-28T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-24T15:00:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-24T10:05:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-24T15:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC03:TASK-ANALYSIS:v2",
+  "seq": 118,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:3",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T10:05:00+09:00",
+  "by": null,
+  "title": "review_started",
+  "body": {
+   "seq": 3,
+   "at": "2027-06-24T10:05:00+09:00",
+   "event_code": "EV31-01",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "review_started",
+   "detail": {
+    "review_id": "MR-2706-01"
+   }
+  },
+  "ref": "demo-example:audit/SC03:3:v1",
+  "seq": 119,
+  "recorded_at": "2027-06-24T10:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:4",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T10:05:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 4,
+   "at": "2027-06-24T10:05:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ANALYSIS",
+    "assigned_to": "u-fin"
+   }
+  },
+  "ref": "demo-example:audit/SC03:4:v1",
+  "seq": 120,
+  "recorded_at": "2027-06-24T10:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:5",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 5,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": "D32",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-24T15:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:5:v1",
+  "seq": 121,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "analysis_run",
+  "record_id": "SC03:RUN-SC03-01",
+  "version": 1,
+  "scene": 3,
+  "state": "CALCULATED",
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "RUN-SC03-01",
+  "body": {
+   "run_id": "RUN-SC03-01",
+   "seq": 1,
+   "review_id": "MR-2706-01",
+   "created_at": "2027-06-24T15:00:00+09:00",
+   "created_by": "u-fin",
+   "memo": "기존 통합 계산 재사용. 새6월 실적 입력 없음",
+   "sources": [
+    "RUN-F02-001",
+    "RUN-APP01"
+   ],
+   "result": {
+    "basis": {
+     "quantity": "F02+EXT28-v1",
+     "cost": "C02-APP01",
+     "fixed": "FC01/FC28-v1",
+     "price_version": "PV-APP01",
+     "old_price": "2000",
+     "approved_price": "2120",
+     "effective_date": "2027-07-01"
+    },
+    "fixed_multiplier": 1,
+    "status": "CALCULATED",
+    "computable": true,
+    "passed": true,
+    "failed_checks": [],
+    "periods": {
+     "year": {
+      "kind": "year",
+      "label": "2027 연간",
+      "from": "2027-01-01",
+      "to": "2028-01-01",
+      "computable": true,
+      "fixed": "4440000000",
+      "fixed_applied": "4440000000",
+      "target": "3477290000",
+      "f01": "3323351000",
+      "volume_profit": "3309351000",
+      "volume_effect": "-14000000",
+      "cost_effect": "-9364320",
+      "event_effect": "-23364320",
+      "combined": "3299986680",
+      "existing_gap": "153939000",
+      "total_gap": "177303320",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 45699,
+        "f02_qty": 45699,
+        "cm_f01": "1370970000",
+        "volume_effect": "0",
+        "cost_effect": "-2699520",
+        "cm_combined": "1368270480"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 114248,
+        "f02_qty": 113548,
+        "cm_f01": "2284960000",
+        "volume_effect": "-14000000",
+        "cost_effect": "-6664800",
+        "cm_combined": "2264295200"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 70508,
+        "f02_qty": 70508,
+        "cm_f01": "1974224000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "1974224000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 59945,
+        "f02_qty": 59945,
+        "cm_f01": "1498625000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "1498625000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 35254,
+        "f02_qty": 35254,
+        "cm_f01": "634572000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "634572000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     "q3": {
+      "kind": "q3",
+      "label": "2027 Q3",
+      "from": "2027-07-01",
+      "to": "2027-10-01",
+      "computable": true,
+      "fixed": "1110000000",
+      "fixed_applied": "1110000000",
+      "target": "857650000",
+      "f01": "807592000",
+      "volume_profit": "793592000",
+      "volume_effect": "-14000000",
+      "cost_effect": "-4624200",
+      "event_effect": "-18624200",
+      "combined": "788967800",
+      "existing_gap": "50058000",
+      "total_gap": "68682200",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 11210,
+        "f02_qty": 11210,
+        "cm_f01": "336300000",
+        "volume_effect": "0",
+        "cost_effect": "-1345200",
+        "cm_combined": "334954800"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 28025,
+        "f02_qty": 27325,
+        "cm_f01": "560500000",
+        "volume_effect": "-14000000",
+        "cost_effect": "-3279000",
+        "cm_combined": "543221000"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 17523,
+        "f02_qty": 17523,
+        "cm_f01": "490644000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "490644000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 14898,
+        "f02_qty": 14898,
+        "cm_f01": "372450000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "372450000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 8761,
+        "f02_qty": 8761,
+        "cm_f01": "157698000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "157698000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     "remaining": {
+      "kind": "remaining",
+      "label": "2027 잔여 7~12월",
+      "from": "2027-07-01",
+      "to": "2028-01-01",
+      "computable": true,
+      "fixed": "2220000000",
+      "fixed_applied": "2220000000",
+      "target": "1728640000",
+      "f01": "1628201000",
+      "volume_profit": "1614201000",
+      "volume_effect": "-14000000",
+      "cost_effect": "-9364320",
+      "event_effect": "-23364320",
+      "combined": "1604836680",
+      "existing_gap": "100439000",
+      "total_gap": "123803320",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 22496,
+        "f02_qty": 22496,
+        "cm_f01": "674880000",
+        "volume_effect": "0",
+        "cost_effect": "-2699520",
+        "cm_combined": "672180480"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 56240,
+        "f02_qty": 55540,
+        "cm_f01": "1124800000",
+        "volume_effect": "-14000000",
+        "cost_effect": "-6664800",
+        "cm_combined": "1104135200"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 35165,
+        "f02_qty": 35165,
+        "cm_f01": "984620000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "984620000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 29897,
+        "f02_qty": 29897,
+        "cm_f01": "747425000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "747425000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 17582,
+        "f02_qty": 17582,
+        "cm_f01": "316476000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "316476000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     "next12": {
+      "kind": "next12",
+      "label": "향후 12개월 2027.7~2028.6",
+      "from": "2027-07-01",
+      "to": "2028-07-01",
+      "computable": true,
+      "fixed": "4440000000",
+      "fixed_applied": "4440000000",
+      "target": null,
+      "f01": "3205981000",
+      "volume_profit": "3191981000",
+      "volume_effect": "-14000000",
+      "cost_effect": "-18817440",
+      "event_effect": "-32817440",
+      "combined": "3173163560",
+      "existing_gap": null,
+      "total_gap": null,
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 45004,
+        "f02_qty": 45004,
+        "cm_f01": "1350120000",
+        "volume_effect": "0",
+        "cost_effect": "-5400480",
+        "cm_combined": "1344719520"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 112508,
+        "f02_qty": 111808,
+        "cm_f01": "2250160000",
+        "volume_effect": "-14000000",
+        "cost_effect": "-13416960",
+        "cm_combined": "2222743040"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 69448,
+        "f02_qty": 69448,
+        "cm_f01": "1944544000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "1944544000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 59045,
+        "f02_qty": 59045,
+        "cm_f01": "1476125000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "1476125000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 34724,
+        "f02_qty": 34724,
+        "cm_f01": "625032000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "625032000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     }
+    },
+    "months": [
+     {
+      "kind": "month",
+      "label": "2027-07",
+      "from": "2027-07-01",
+      "to": "2027-08-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "297000000",
+      "f01": "280030000",
+      "volume_profit": "266030000",
+      "volume_effect": "-14000000",
+      "cost_effect": "-1512000",
+      "event_effect": "-15512000",
+      "combined": "264518000",
+      "existing_gap": "16970000",
+      "total_gap": "32482000",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3800,
+        "f02_qty": 3800,
+        "cm_f01": "114000000",
+        "volume_effect": "0",
+        "cost_effect": "-456000",
+        "cm_combined": "113544000"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 9500,
+        "f02_qty": 8800,
+        "cm_f01": "190000000",
+        "volume_effect": "-14000000",
+        "cost_effect": "-1056000",
+        "cm_combined": "174944000"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 5940,
+        "f02_qty": 5940,
+        "cm_f01": "166320000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "166320000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 5050,
+        "f02_qty": 5050,
+        "cm_f01": "126250000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "126250000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 2970,
+        "f02_qty": 2970,
+        "cm_f01": "53460000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "53460000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     {
+      "kind": "month",
+      "label": "2027-08",
+      "from": "2027-08-01",
+      "to": "2027-09-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "243640000",
+      "f01": "228026000",
+      "volume_profit": "228026000",
+      "volume_effect": "0",
+      "cost_effect": "-1468320",
+      "event_effect": "-1468320",
+      "combined": "226557680",
+      "existing_gap": "15614000",
+      "total_gap": "17082320",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3496,
+        "f02_qty": 3496,
+        "cm_f01": "104880000",
+        "volume_effect": "0",
+        "cost_effect": "-419520",
+        "cm_combined": "104460480"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 8740,
+        "f02_qty": 8740,
+        "cm_f01": "174800000",
+        "volume_effect": "0",
+        "cost_effect": "-1048800",
+        "cm_combined": "173751200"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 5465,
+        "f02_qty": 5465,
+        "cm_f01": "153020000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "153020000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 4646,
+        "f02_qty": 4646,
+        "cm_f01": "116150000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "116150000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 2732,
+        "f02_qty": 2732,
+        "cm_f01": "49176000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "49176000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     {
+      "kind": "month",
+      "label": "2027-09",
+      "from": "2027-09-01",
+      "to": "2027-10-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "317010000",
+      "f01": "299536000",
+      "volume_profit": "299536000",
+      "volume_effect": "0",
+      "cost_effect": "-1643880",
+      "event_effect": "-1643880",
+      "combined": "297892120",
+      "existing_gap": "17474000",
+      "total_gap": "19117880",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3914,
+        "f02_qty": 3914,
+        "cm_f01": "117420000",
+        "volume_effect": "0",
+        "cost_effect": "-469680",
+        "cm_combined": "116950320"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 9785,
+        "f02_qty": 9785,
+        "cm_f01": "195700000",
+        "volume_effect": "0",
+        "cost_effect": "-1174200",
+        "cm_combined": "194525800"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 6118,
+        "f02_qty": 6118,
+        "cm_f01": "171304000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "171304000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 5202,
+        "f02_qty": 5202,
+        "cm_f01": "130050000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "130050000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 3059,
+        "f02_qty": 3059,
+        "cm_f01": "55062000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "55062000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     {
+      "kind": "month",
+      "label": "2027-10",
+      "from": "2027-10-01",
+      "to": "2027-11-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "310340000",
+      "f01": "293029000",
+      "volume_profit": "293029000",
+      "volume_effect": "0",
+      "cost_effect": "-1627920",
+      "event_effect": "-1627920",
+      "combined": "291401080",
+      "existing_gap": "17311000",
+      "total_gap": "18938920",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3876,
+        "f02_qty": 3876,
+        "cm_f01": "116280000",
+        "volume_effect": "0",
+        "cost_effect": "-465120",
+        "cm_combined": "115814880"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 9690,
+        "f02_qty": 9690,
+        "cm_f01": "193800000",
+        "volume_effect": "0",
+        "cost_effect": "-1162800",
+        "cm_combined": "192637200"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 6059,
+        "f02_qty": 6059,
+        "cm_f01": "169652000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "169652000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 5151,
+        "f02_qty": 5151,
+        "cm_f01": "128775000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "128775000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 3029,
+        "f02_qty": 3029,
+        "cm_f01": "54522000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "54522000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     {
+      "kind": "month",
+      "label": "2027-11",
+      "from": "2027-11-01",
+      "to": "2027-12-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "297000000",
+      "f01": "280030000",
+      "volume_profit": "280030000",
+      "volume_effect": "0",
+      "cost_effect": "-1596000",
+      "event_effect": "-1596000",
+      "combined": "278434000",
+      "existing_gap": "16970000",
+      "total_gap": "18566000",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3800,
+        "f02_qty": 3800,
+        "cm_f01": "114000000",
+        "volume_effect": "0",
+        "cost_effect": "-456000",
+        "cm_combined": "113544000"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 9500,
+        "f02_qty": 9500,
+        "cm_f01": "190000000",
+        "volume_effect": "0",
+        "cost_effect": "-1140000",
+        "cm_combined": "188860000"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 5940,
+        "f02_qty": 5940,
+        "cm_f01": "166320000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "166320000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 5050,
+        "f02_qty": 5050,
+        "cm_f01": "126250000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "126250000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 2970,
+        "f02_qty": 2970,
+        "cm_f01": "53460000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "53460000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     },
+     {
+      "kind": "month",
+      "label": "2027-12",
+      "from": "2027-12-01",
+      "to": "2028-01-01",
+      "computable": true,
+      "fixed": "370000000",
+      "fixed_applied": "370000000",
+      "target": "263650000",
+      "f01": "247550000",
+      "volume_profit": "247550000",
+      "volume_effect": "0",
+      "cost_effect": "-1516200",
+      "event_effect": "-1516200",
+      "combined": "246033800",
+      "existing_gap": "16100000",
+      "total_gap": "17616200",
+      "models": [
+       {
+        "model_id": "A-a",
+        "computable": true,
+        "f01_qty": 3610,
+        "f02_qty": 3610,
+        "cm_f01": "108300000",
+        "volume_effect": "0",
+        "cost_effect": "-433200",
+        "cm_combined": "107866800"
+       },
+       {
+        "model_id": "A-b",
+        "computable": true,
+        "f01_qty": 9025,
+        "f02_qty": 9025,
+        "cm_f01": "180500000",
+        "volume_effect": "0",
+        "cost_effect": "-1083000",
+        "cm_combined": "179417000"
+       },
+       {
+        "model_id": "A-c",
+        "computable": true,
+        "f01_qty": 5643,
+        "f02_qty": 5643,
+        "cm_f01": "158004000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "158004000"
+       },
+       {
+        "model_id": "A-d",
+        "computable": true,
+        "f01_qty": 4798,
+        "f02_qty": 4798,
+        "cm_f01": "119950000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "119950000"
+       },
+       {
+        "model_id": "A-e",
+        "computable": true,
+        "f01_qty": 2822,
+        "f02_qty": 2822,
+        "cm_f01": "50796000",
+        "volume_effect": "0",
+        "cost_effect": "0",
+        "cm_combined": "50796000"
+       }
+      ],
+      "checks": [
+       {
+        "check_id": "CT33-1",
+        "label": "모델 CM 합계 − 공장 고정비(한 번) = 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-2",
+        "label": "F01 + 물량 영향 + 단가 영향 = 통합 관리손익",
+        "diff": "0",
+        "ok": true
+       },
+       {
+        "check_id": "CT33-3",
+        "label": "기존 부족 − 신규 사건 영향 = 전체 부족",
+        "diff": "0",
+        "ok": true
+       }
+      ]
+     }
+    ],
+    "purchase": {
+     "remaining_increase": "9364320",
+     "remaining_qty": 78036,
+     "next12_increase": "18817440",
+     "next12_qty": 156812
+    },
+    "b_july": {
+     "f01": 9500,
+     "f02": 8800,
+     "unit_cm": "20000"
+    },
+    "assumptions": [
+     "Target은 이번 사건으로 바꾸지 않는다(UNCHANGED)",
+     "2028 물량은 2027 동일월 F01 × 97% 정수 반올림 — 내부가정, 고객 확정 계획이 아니다",
+     "b모델 7월 추가 700대분 감소를 2028에 복제하지 않는다",
+     "재고·기발주·구매·생산·납품 시차 없음 — 구매 증가와 CM 감소의 대응은 이 가정에 한한다",
+     "향후 12개월 Target은 미설정 — 부족액은 미산정이다",
+     "공장관리손익은 전사 영업이익이 아니다(본사비·금융비·세금 제외)"
+    ]
+   },
+   "status": "CALCULATED"
+  },
+  "ref": "demo-example:analysis_run/SC03:RUN-SC03-01:v1",
+  "seq": 122,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "review_report",
+  "record_id": "SC03:REP31-v0",
+  "version": 3,
+  "scene": 3,
+  "state": "CONFIRMED",
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "REP31-v0",
+  "body": {
+   "report_id": "REP31-v0",
+   "seq": 1,
+   "kind": "DRAFT",
+   "status": "CONFIRMED",
+   "run_id": "RUN-SC03-01",
+   "created_at": "2027-06-24T15:00:00+09:00",
+   "created_by": "u-fin",
+   "basis_text": "승인단가 2,120원 · 7/1 적용 · a·b 각 1개 · F02+EXT28-v1 · C02-APP01 · FC01/FC28-v1",
+   "kpis": {
+    "target": "3477290000",
+    "f01": "3323351000",
+    "volume_effect": "-14000000",
+    "cost_effect": "-9364320",
+    "event_effect": "-23364320",
+    "combined": "3299986680",
+    "existing_gap": "153939000",
+    "total_gap": "177303320"
+   },
+   "previous": null,
+   "change_summary": "기존 통합 계산 재사용. 새6월 실적 입력 없음",
+   "affects": [],
+   "after_frozen": 0
+  },
+  "ref": "demo-example:review_report/SC03:REP31-v0:v3",
+  "seq": 123,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-REQUEST",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "REQUEST",
+  "body": {
+   "task_id": "TASK-REQUEST",
+   "seq": 2,
+   "type": "REQUEST",
+   "node_id": "Request_Confirm",
+   "request_id": "apr_run_example_Request_Confirm_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2027-06-24T15:00:00+09:00",
+   "due_at": "2027-06-25T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-24T16:00:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-24T15:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-24T16:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC03:TASK-REQUEST:v2",
+  "seq": 124,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "agent_draft",
+  "record_id": "SC03:AG30-001",
+  "version": 1,
+  "scene": 3,
+  "state": "SUCCEEDED",
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "AG30",
+  "body": {
+   "output_id": "AG30-001",
+   "seq": 1,
+   "kind": "AG30",
+   "prompt_version": "sc03-review-v1",
+   "mode": "mock",
+   "created_at": "2027-06-24T15:00:00+09:00",
+   "status": "SUCCEEDED",
+   "draft": {
+    "summary": "통합 관리손익 3,299,986,680원, Target 대비 부족 177,303,320원. 두 사건을 해소해도 기존 부족은 남는다.",
+    "findings": [
+     {
+      "text": "전체 목표 부족 177,303,320원 중 사건 이전부터 있던 기존 부족은 153,939,000원, 이번 두 사건의 추가 악화는 -23,364,320원다.",
+      "evidence_refs": [
+       "RUN-SC03-01"
+      ]
+     },
+     {
+      "text": "물량 영향 -14,000,000원(고객 생산계획 변경 대응)과 승인 단가 영향 -9,364,320원(외주 단가 인상 검토)은 F02 물량에 승인 단가를 적용해 중복 없이 더했다.",
+      "evidence_refs": [
+       "RUN-SC03-01"
+      ]
+     },
+     {
+      "text": "향후 12개월 구매 증가 18,817,440원는 손익 영향과 다른 지표다 — 재고·시차 없는 가정에서만 CM 감소와 대응한다.",
+      "evidence_refs": [
+       "RUN-SC03-01"
+      ]
+     }
+    ],
+    "questions": [
+     "기존 부족의 세부 원인은 아직 근거가 없다 — 추가 분석이 필요한가"
+    ],
+    "draft_text": ""
+   },
+   "errors": [],
+   "source_version": "RUN-SC03-01",
+   "input_hash": "f10afe7fddffa59e83fa14c99a0e8074ba3b05b1863390543accc0bfe9c6fe2b",
+   "adopted_by": null,
+   "adopted_at": null,
+   "review_status": "UNREVIEWED"
+  },
+  "ref": "demo-example:agent_draft/SC03:AG30-001:v1",
+  "seq": 125,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:6",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "analysis_run",
+  "body": {
+   "seq": 6,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": "EV31-02",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "analysis_run",
+   "detail": {
+    "run_id": "RUN-SC03-01",
+    "status": "CALCULATED"
+   }
+  },
+  "ref": "demo-example:audit/SC03:6:v1",
+  "seq": 126,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:7",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 7,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ANALYSIS"
+   }
+  },
+  "ref": "demo-example:audit/SC03:7:v1",
+  "seq": 127,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:8",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "agent_draft",
+  "body": {
+   "seq": 8,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "agent_draft",
+   "detail": {
+    "output_id": "AG30-001",
+    "status": "SUCCEEDED"
+   }
+  },
+  "ref": "demo-example:audit/SC03:8:v1",
+  "seq": 128,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:9",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 9,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-REQUEST",
+    "assigned_to": "u-fin"
+   }
+  },
+  "ref": "demo-example:audit/SC03:9:v1",
+  "seq": 129,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:10",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T15:00:00+09:00",
+  "by": null,
+  "title": "demo_viewed",
+  "body": {
+   "seq": 10,
+   "at": "2027-06-24T15:00:00+09:00",
+   "event_code": "D33",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "demo_viewed",
+   "detail": {
+    "note": "기간·모델·원가 근거 조회"
+   }
+  },
+  "ref": "demo-example:audit/SC03:10:v1",
+  "seq": 130,
+  "recorded_at": "2027-06-24T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:11",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 11,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": "D34",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-24T16:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:11:v1",
+  "seq": 131,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "dept_confirmation",
+  "record_id": "SC03:CONFIRM",
+  "version": 4,
+  "scene": 3,
+  "state": "RESPONDED",
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "부서 확인",
+  "body": {
+   "confirmation": {
+    "report_id": "REP31-v0",
+    "run_id": "RUN-SC03-01",
+    "departments": [
+     "SALES",
+     "BUY",
+     "PROD"
+    ],
+    "recipients": [
+     "u-sales-lead",
+     "u-buy-lead",
+     "u-prod-lead"
+    ],
+    "due_at": "2027-06-28T18:00:00+09:00",
+    "requested_at": "2027-06-24T16:00:00+09:00",
+    "requested_by": "u-fin",
+    "memo": "부서 확인용 초안"
+   },
+   "departments": [
+    {
+     "dept": "SALES",
+     "state": "RESPONDED",
+     "reply": {
+      "seq": 1,
+      "dept": "SALES",
+      "reply": "확인",
+      "by": "u-sales-lead",
+      "at": "2027-06-25T11:05:00+09:00",
+      "report_id": "REP31-v0",
+      "facts": [
+       "F31",
+       "F32"
+      ],
+      "opinion": "",
+      "state": "RESPONDED"
+     },
+     "label": "영업",
+     "user": "u-sales-lead"
+    },
+    {
+     "dept": "BUY",
+     "state": "RESPONDED",
+     "reply": {
+      "seq": 2,
+      "dept": "BUY",
+      "reply": "확인",
+      "by": "u-buy-lead",
+      "at": "2027-06-25T15:05:00+09:00",
+      "report_id": "REP31-v0",
+      "facts": [
+       "F33",
+       "F34"
+      ],
+      "opinion": "",
+      "state": "RESPONDED"
+     },
+     "label": "구매",
+     "user": "u-buy-lead"
+    },
+    {
+     "dept": "PROD",
+     "state": "RESPONDED",
+     "reply": {
+      "seq": 3,
+      "dept": "PROD",
+      "reply": "확인",
+      "by": "u-prod-lead",
+      "at": "2027-06-28T10:10:00+09:00",
+      "report_id": "REP31-v0",
+      "facts": [
+       "F35",
+       "F36"
+      ],
+      "opinion": "",
+      "state": "RESPONDED"
+     },
+     "label": "생산",
+     "user": "u-prod-lead"
+    }
+   ],
+   "replies": [
+    {
+     "seq": 1,
+     "dept": "SALES",
+     "reply": "확인",
+     "by": "u-sales-lead",
+     "at": "2027-06-25T11:05:00+09:00",
+     "report_id": "REP31-v0",
+     "facts": [
+      "F31",
+      "F32"
+     ],
+     "opinion": "",
+     "state": "RESPONDED"
+    },
+    {
+     "seq": 2,
+     "dept": "BUY",
+     "reply": "확인",
+     "by": "u-buy-lead",
+     "at": "2027-06-25T15:05:00+09:00",
+     "report_id": "REP31-v0",
+     "facts": [
+      "F33",
+      "F34"
+     ],
+     "opinion": "",
+     "state": "RESPONDED"
+    },
+    {
+     "seq": 3,
+     "dept": "PROD",
+     "reply": "확인",
+     "by": "u-prod-lead",
+     "at": "2027-06-28T10:10:00+09:00",
+     "report_id": "REP31-v0",
+     "facts": [
+      "F35",
+      "F36"
+     ],
+     "opinion": "",
+     "state": "RESPONDED"
+    }
+   ]
+  },
+  "ref": "demo-example:dept_confirmation/SC03:CONFIRM:v4",
+  "seq": 132,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-CONFIRM_SALES",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "CONFIRM_SALES",
+  "body": {
+   "task_id": "TASK-CONFIRM_SALES",
+   "seq": 3,
+   "type": "CONFIRM_SALES",
+   "node_id": "Confirm_Sales",
+   "request_id": "apr_run_example_Confirm_Sales_1",
+   "assigned_to": "u-sales-lead",
+   "assigned_at": "2027-06-24T16:00:00+09:00",
+   "due_at": "2027-06-28T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-25T11:05:00+09:00",
+   "completed_by": "u-sales-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-24T16:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-25T11:05:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-sales-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "박서진"
+  },
+  "ref": "demo-example:task/SC03:TASK-CONFIRM_SALES:v2",
+  "seq": 133,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-CONFIRM_BUY",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "CONFIRM_BUY",
+  "body": {
+   "task_id": "TASK-CONFIRM_BUY",
+   "seq": 4,
+   "type": "CONFIRM_BUY",
+   "node_id": "Confirm_Buy",
+   "request_id": "apr_run_example_Confirm_Buy_1",
+   "assigned_to": "u-buy-lead",
+   "assigned_at": "2027-06-24T16:00:00+09:00",
+   "due_at": "2027-06-28T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-25T15:05:00+09:00",
+   "completed_by": "u-buy-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-24T16:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-25T15:05:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-buy-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "서도현"
+  },
+  "ref": "demo-example:task/SC03:TASK-CONFIRM_BUY:v2",
+  "seq": 134,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-CONFIRM_PROD",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "CONFIRM_PROD",
+  "body": {
+   "task_id": "TASK-CONFIRM_PROD",
+   "seq": 5,
+   "type": "CONFIRM_PROD",
+   "node_id": "Confirm_Prod",
+   "request_id": "apr_run_example_Confirm_Prod_1",
+   "assigned_to": "u-prod-lead",
+   "assigned_at": "2027-06-24T16:00:00+09:00",
+   "due_at": "2027-06-28T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-28T10:10:00+09:00",
+   "completed_by": "u-prod-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-24T16:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-28T10:10:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-prod-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "배정훈"
+  },
+  "ref": "demo-example:task/SC03:TASK-CONFIRM_PROD:v2",
+  "seq": 135,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:12",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "confirmation_requested",
+  "body": {
+   "seq": 12,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": "EV31-03",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "confirmation_requested",
+   "detail": {
+    "report": "REP31-v0",
+    "due": "2027-06-28T18:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:12:v1",
+  "seq": 136,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:13",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 13,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-REQUEST"
+   }
+  },
+  "ref": "demo-example:audit/SC03:13:v1",
+  "seq": 137,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:14",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 14,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-CONFIRM_SALES",
+    "assigned_to": "u-sales-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:14:v1",
+  "seq": 138,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:15",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 15,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-CONFIRM_BUY",
+    "assigned_to": "u-buy-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:15:v1",
+  "seq": 139,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:16",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-24T16:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 16,
+   "at": "2027-06-24T16:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-CONFIRM_PROD",
+    "assigned_to": "u-prod-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:16:v1",
+  "seq": 140,
+  "recorded_at": "2027-06-24T16:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:17",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 17,
+   "at": "2027-06-25T11:05:00+09:00",
+   "event_code": "D35",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-25T11:05:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:17:v1",
+  "seq": 141,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F31",
+  "version": 1,
+  "scene": 3,
+  "state": "CONFIRMED",
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "b모델 7월 전망 9,500→8,800. 고객계획 변경에 따른 추가 700개 감소.",
+  "body": {
+   "fact_id": "F31",
+   "seq": 1,
+   "dept": "SALES",
+   "category": "FACT",
+   "statement": "b모델 7월 전망 9,500→8,800. 고객계획 변경에 따른 추가 700개 감소.",
+   "evidence_ref": "ISSUE-B07 / RUN-F02-001 · EXT28-v1 / 설정",
+   "reviewer": "u-sales-lead",
+   "confirmed_at": "2027-06-25T11:05:00+09:00",
+   "state": "CONFIRMED",
+   "report_id": "REP31-v0",
+   "followup_ref": null
+  },
+  "ref": "demo-example:fact/SC03:F31:v1",
+  "seq": 142,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F32",
+  "version": 1,
+  "scene": 3,
+  "state": "CONFIRMED_AS_ASSUMPTION",
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "2028 물량은 2027 동일월 F01×97%. 고객 확정 생산계획 아님.",
+  "body": {
+   "fact_id": "F32",
+   "seq": 2,
+   "dept": "SALES",
+   "category": "ASSUMPTION",
+   "statement": "2028 물량은 2027 동일월 F01×97%. 고객 확정 생산계획 아님.",
+   "evidence_ref": "ISSUE-B07 / RUN-F02-001 · EXT28-v1 / 설정",
+   "reviewer": "u-sales-lead",
+   "confirmed_at": "2027-06-25T11:05:00+09:00",
+   "state": "CONFIRMED_AS_ASSUMPTION",
+   "report_id": "REP31-v0",
+   "followup_ref": null
+  },
+  "ref": "demo-example:fact/SC03:F32:v1",
+  "seq": 143,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:18",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "confirmation_replied",
+  "body": {
+   "seq": 18,
+   "at": "2027-06-25T11:05:00+09:00",
+   "event_code": null,
+   "actor": "u-sales-lead",
+   "actor_name": "박서진",
+   "actor_role": "영업팀장",
+   "action": "confirmation_replied",
+   "detail": {
+    "dept": "SALES",
+    "reply": "확인",
+    "facts": [
+     "F31",
+     "F32"
+    ]
+   }
+  },
+  "ref": "demo-example:audit/SC03:18:v1",
+  "seq": 144,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:19",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T11:05:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 19,
+   "at": "2027-06-25T11:05:00+09:00",
+   "event_code": null,
+   "actor": "u-sales-lead",
+   "actor_name": "박서진",
+   "actor_role": "영업팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-CONFIRM_SALES"
+   }
+  },
+  "ref": "demo-example:audit/SC03:19:v1",
+  "seq": 145,
+  "recorded_at": "2027-06-25T11:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:20",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 20,
+   "at": "2027-06-25T15:05:00+09:00",
+   "event_code": "D35",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-25T15:05:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:20:v1",
+  "seq": 146,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F33",
+  "version": 1,
+  "scene": 3,
+  "state": "CONFIRMED",
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "공통부품 승인단가 2,120원, 7/1 적용, a·b 각1개.",
+  "body": {
+   "fact_id": "F33",
+   "seq": 3,
+   "dept": "BUY",
+   "category": "FACT",
+   "statement": "공통부품 승인단가 2,120원, 7/1 적용, a·b 각1개.",
+   "evidence_ref": "PV-APP01 / P-COM01 / RUN-APP01 · 기존 데이터계약",
+   "reviewer": "u-buy-lead",
+   "confirmed_at": "2027-06-25T15:05:00+09:00",
+   "state": "CONFIRMED",
+   "report_id": "REP31-v0",
+   "followup_ref": null
+  },
+  "ref": "demo-example:fact/SC03:F33:v1",
+  "seq": 147,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F34",
+  "version": 1,
+  "scene": 3,
+  "state": "CONFIRMED_AS_ASSUMPTION",
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "기발주·재고 및 구매·생산·납품 시차 없음. 구매 증가와 CM 감소 대응은 이 가정에 한정.",
+  "body": {
+   "fact_id": "F34",
+   "seq": 4,
+   "dept": "BUY",
+   "category": "ASSUMPTION",
+   "statement": "기발주·재고 및 구매·생산·납품 시차 없음. 구매 증가와 CM 감소 대응은 이 가정에 한정.",
+   "evidence_ref": "PV-APP01 / P-COM01 / RUN-APP01 · 기존 데이터계약",
+   "reviewer": "u-buy-lead",
+   "confirmed_at": "2027-06-25T15:05:00+09:00",
+   "state": "CONFIRMED_AS_ASSUMPTION",
+   "report_id": "REP31-v0",
+   "followup_ref": null
+  },
+  "ref": "demo-example:fact/SC03:F34:v1",
+  "seq": 148,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:21",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "confirmation_replied",
+  "body": {
+   "seq": 21,
+   "at": "2027-06-25T15:05:00+09:00",
+   "event_code": null,
+   "actor": "u-buy-lead",
+   "actor_name": "서도현",
+   "actor_role": "구매팀장",
+   "action": "confirmation_replied",
+   "detail": {
+    "dept": "BUY",
+    "reply": "확인",
+    "facts": [
+     "F33",
+     "F34"
+    ]
+   }
+  },
+  "ref": "demo-example:audit/SC03:21:v1",
+  "seq": 149,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:22",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-25T15:05:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 22,
+   "at": "2027-06-25T15:05:00+09:00",
+   "event_code": null,
+   "actor": "u-buy-lead",
+   "actor_name": "서도현",
+   "actor_role": "구매팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-CONFIRM_BUY"
+   }
+  },
+  "ref": "demo-example:audit/SC03:22:v1",
+  "seq": 150,
+  "recorded_at": "2027-06-25T15:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:23",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 23,
+   "at": "2027-06-28T10:10:00+09:00",
+   "event_code": "D35",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-28T10:10:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:23:v1",
+  "seq": 151,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F35",
+  "version": 1,
+  "scene": 3,
+  "state": "CONFIRMED",
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "일부 부품공정 공유, 최종 조립은 모델별 구분. a 수익성 우위는 단가만으로 단정할 수 없음.",
+  "body": {
+   "fact_id": "F35",
+   "seq": 5,
+   "dept": "PROD",
+   "category": "FACT",
+   "statement": "일부 부품공정 공유, 최종 조립은 모델별 구분. a 수익성 우위는 단가만으로 단정할 수 없음.",
+   "evidence_ref": "SC03 경영이야기 / 가상 프로세스 기준 · 가상 생산 검토 메모 SYN-PROD31",
+   "reviewer": "u-prod-lead",
+   "confirmed_at": "2027-06-28T10:10:00+09:00",
+   "state": "CONFIRMED",
+   "report_id": "REP31-v0",
+   "followup_ref": null
+  },
+  "ref": "demo-example:fact/SC03:F35:v1",
+  "seq": 152,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F36",
+  "version": 1,
+  "scene": 3,
+  "state": "FOLLOWUP_REQUIRED",
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "부분 외주화 시 회피 가능한 인력·설비 비용과 잔존비용의 상세 구분은 미확인.",
+  "body": {
+   "fact_id": "F36",
+   "seq": 6,
+   "dept": "PROD",
+   "category": "UNCONFIRMED",
+   "statement": "부분 외주화 시 회피 가능한 인력·설비 비용과 잔존비용의 상세 구분은 미확인.",
+   "evidence_ref": "SC03 경영이야기 / 가상 프로세스 기준 · 가상 생산 검토 메모 SYN-PROD31",
+   "reviewer": "u-prod-lead",
+   "confirmed_at": "2027-06-28T10:10:00+09:00",
+   "state": "FOLLOWUP_REQUIRED",
+   "report_id": "REP31-v0",
+   "followup_ref": "Q31"
+  },
+  "ref": "demo-example:fact/SC03:F36:v1",
+  "seq": 153,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "question",
+  "record_id": "SC03:Q31",
+  "version": 2,
+  "scene": 3,
+  "state": "OPEN_FOLLOWUP",
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "실제 회피 가능한 고정비와 잔존비용은 무엇인가?",
+  "body": {
+   "question_id": "Q31",
+   "seq": 1,
+   "kind": "FOLLOWUP",
+   "fact_ref": "F36",
+   "question": "실제 회피 가능한 고정비와 잔존비용은 무엇인가?",
+   "blocking": false,
+   "owner": "u-prod-lead",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "decision_by": "u-fin-exec",
+   "decided_at": "2027-06-28T17:05:00+09:00",
+   "treatment": "현 통합손익은 고정비 불변으로 계산되어 영향 없음. AT31에서 부분 공정 조정의 경제성을 확인.",
+   "state": "OPEN_FOLLOWUP",
+   "history": [
+    {
+     "at": "2027-06-28T17:05:00+09:00",
+     "by": "u-fin-exec",
+     "before": {
+      "blocking": null,
+      "owner": "u-prod-lead",
+      "due_at": null,
+      "treatment": null,
+      "state": "OPEN"
+     },
+     "state": "OPEN_FOLLOWUP"
+    }
+   ]
+  },
+  "ref": "demo-example:question/SC03:Q31:v2",
+  "seq": 154,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-GAP",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "GAP",
+  "body": {
+   "task_id": "TASK-GAP",
+   "seq": 6,
+   "type": "GAP",
+   "node_id": "Register_Gap",
+   "request_id": "apr_run_example_Register_Gap_1",
+   "assigned_to": "u-fin-lead",
+   "assigned_at": "2027-06-28T10:10:00+09:00",
+   "due_at": "2027-06-28T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-28T15:00:00+09:00",
+   "completed_by": "u-fin-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-28T10:10:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-28T15:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "오세린"
+  },
+  "ref": "demo-example:task/SC03:TASK-GAP:v2",
+  "seq": 155,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:24",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "confirmation_replied",
+  "body": {
+   "seq": 24,
+   "at": "2027-06-28T10:10:00+09:00",
+   "event_code": null,
+   "actor": "u-prod-lead",
+   "actor_name": "배정훈",
+   "actor_role": "생산팀장",
+   "action": "confirmation_replied",
+   "detail": {
+    "dept": "PROD",
+    "reply": "확인",
+    "facts": [
+     "F35",
+     "F36"
+    ]
+   }
+  },
+  "ref": "demo-example:audit/SC03:24:v1",
+  "seq": 156,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:25",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 25,
+   "at": "2027-06-28T10:10:00+09:00",
+   "event_code": null,
+   "actor": "u-prod-lead",
+   "actor_name": "배정훈",
+   "actor_role": "생산팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-CONFIRM_PROD"
+   }
+  },
+  "ref": "demo-example:audit/SC03:25:v1",
+  "seq": 157,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:26",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T10:10:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 26,
+   "at": "2027-06-28T10:10:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-GAP",
+    "assigned_to": "u-fin-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:26:v1",
+  "seq": 158,
+  "recorded_at": "2027-06-28T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:27",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 27,
+   "at": "2027-06-28T15:00:00+09:00",
+   "event_code": "D36",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-28T15:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:27:v1",
+  "seq": 159,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "fact",
+  "record_id": "SC03:F37",
+  "version": 1,
+  "scene": 3,
+  "state": "FOLLOWUP_REQUIRED",
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "기존 목표 부족 153,939,000원의 세부 원인 분해 근거 추가 확인 필요.",
+  "body": {
+   "fact_id": "F37",
+   "seq": 7,
+   "dept": "FIN",
+   "category": "UNCONFIRMED",
+   "statement": "기존 목표 부족 153,939,000원의 세부 원인 분해 근거 추가 확인 필요.",
+   "evidence_ref": "통합손익 M21−G21",
+   "reviewer": "u-fin-lead",
+   "confirmed_at": "2027-06-28T15:00:00+09:00",
+   "state": "FOLLOWUP_REQUIRED",
+   "report_id": "REP31-v0",
+   "followup_ref": "Q32"
+  },
+  "ref": "demo-example:fact/SC03:F37:v1",
+  "seq": 160,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "question",
+  "record_id": "SC03:Q32",
+  "version": 2,
+  "scene": 3,
+  "state": "OPEN_FOLLOWUP",
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "기존 부족의 원인을 신규 사건과 중복 없이 어떻게 설명할 것인가?",
+  "body": {
+   "question_id": "Q32",
+   "seq": 2,
+   "kind": "FOLLOWUP",
+   "fact_ref": "F37",
+   "question": "기존 부족의 원인을 신규 사건과 중복 없이 어떻게 설명할 것인가?",
+   "blocking": false,
+   "owner": "u-fin-lead",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "decision_by": "u-fin-exec",
+   "decided_at": "2027-06-28T17:05:00+09:00",
+   "treatment": "부족 금액은 검증됨. 원인 미확인을 명시하고 AT34로 분석 지시.",
+   "state": "OPEN_FOLLOWUP",
+   "history": [
+    {
+     "at": "2027-06-28T17:05:00+09:00",
+     "by": "u-fin-exec",
+     "before": {
+      "blocking": null,
+      "owner": "u-fin-lead",
+      "due_at": null,
+      "treatment": null,
+      "state": "OPEN"
+     },
+     "state": "OPEN_FOLLOWUP"
+    }
+   ]
+  },
+  "ref": "demo-example:question/SC03:Q32:v2",
+  "seq": 161,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-JUDGE",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "JUDGE",
+  "body": {
+   "task_id": "TASK-JUDGE",
+   "seq": 7,
+   "type": "JUDGE",
+   "node_id": "Judge_Questions",
+   "request_id": "apr_run_example_Judge_Questions_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2027-06-28T15:00:00+09:00",
+   "due_at": "2027-06-29T09:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-28T17:05:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-28T15:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-28T17:05:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-exec",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC03:TASK-JUDGE:v2",
+  "seq": 162,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:28",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "gap_registered",
+  "body": {
+   "seq": 28,
+   "at": "2027-06-28T15:00:00+09:00",
+   "event_code": "EV31-07",
+   "actor": "u-fin-lead",
+   "actor_name": "오세린",
+   "actor_role": "경영관리팀장",
+   "action": "gap_registered",
+   "detail": {
+    "result": "미확인등록"
+   }
+  },
+  "ref": "demo-example:audit/SC03:28:v1",
+  "seq": 163,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:29",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 29,
+   "at": "2027-06-28T15:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-lead",
+   "actor_name": "오세린",
+   "actor_role": "경영관리팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-GAP"
+   }
+  },
+  "ref": "demo-example:audit/SC03:29:v1",
+  "seq": 164,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:30",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T15:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 30,
+   "at": "2027-06-28T15:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-JUDGE",
+    "assigned_to": "u-fin-exec"
+   }
+  },
+  "ref": "demo-example:audit/SC03:30:v1",
+  "seq": 165,
+  "recorded_at": "2027-06-28T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:31",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 31,
+   "at": "2027-06-28T17:05:00+09:00",
+   "event_code": "D36",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-28T17:05:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:31:v1",
+  "seq": 166,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-FREEZE",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "FREEZE",
+  "body": {
+   "task_id": "TASK-FREEZE",
+   "seq": 8,
+   "type": "FREEZE",
+   "node_id": "Freeze_Report",
+   "request_id": "apr_run_example_Freeze_Report_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2027-06-28T17:05:00+09:00",
+   "due_at": "2027-06-29T09:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T09:00:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-28T17:05:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T09:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-exec",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC03:TASK-FREEZE:v2",
+  "seq": 167,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:32",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "questions_judged",
+  "body": {
+   "seq": 32,
+   "at": "2027-06-28T17:05:00+09:00",
+   "event_code": "EV31-08",
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "questions_judged",
+   "detail": {
+    "blocked": false
+   }
+  },
+  "ref": "demo-example:audit/SC03:32:v1",
+  "seq": 168,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:33",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 33,
+   "at": "2027-06-28T17:05:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-JUDGE"
+   }
+  },
+  "ref": "demo-example:audit/SC03:33:v1",
+  "seq": 169,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:34",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-28T17:05:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 34,
+   "at": "2027-06-28T17:05:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-FREEZE",
+    "assigned_to": "u-fin-exec"
+   }
+  },
+  "ref": "demo-example:audit/SC03:34:v1",
+  "seq": 170,
+  "recorded_at": "2027-06-28T17:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:35",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 35,
+   "at": "2027-06-29T09:00:00+09:00",
+   "event_code": "D36",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T09:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:35:v1",
+  "seq": 171,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "review_report",
+  "record_id": "SC03:REP31-v1",
+  "version": 2,
+  "scene": 3,
+  "state": "FROZEN",
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "REP31-v1",
+  "body": {
+   "report_id": "REP31-v1",
+   "seq": 2,
+   "kind": "FROZEN",
+   "status": "FROZEN",
+   "run_id": "RUN-SC03-01",
+   "created_at": "2027-06-29T09:00:00+09:00",
+   "created_by": "u-fin-exec",
+   "frozen_by": "u-fin-exec",
+   "frozen_at": "2027-06-29T09:00:00+09:00",
+   "opinion": "임원 확인·확정. 수치 재계산 없음, 부서 확인과 쟁점 처리 추가",
+   "basis_text": "승인단가 2,120원 · 7/1 적용 · a·b 각 1개 · F02+EXT28-v1 · C02-APP01 · FC01/FC28-v1",
+   "kpis": {
+    "target": "3477290000",
+    "f01": "3323351000",
+    "volume_effect": "-14000000",
+    "cost_effect": "-9364320",
+    "event_effect": "-23364320",
+    "combined": "3299986680",
+    "existing_gap": "153939000",
+    "total_gap": "177303320"
+   },
+   "snapshot": {
+    "run_id": "RUN-SC03-01",
+    "basis": {
+     "quantity": "F02+EXT28-v1",
+     "cost": "C02-APP01",
+     "fixed": "FC01/FC28-v1",
+     "price_version": "PV-APP01",
+     "old_price": "2000",
+     "approved_price": "2120",
+     "effective_date": "2027-07-01"
+    },
+    "kpis": {
+     "target": "3477290000",
+     "f01": "3323351000",
+     "volume_effect": "-14000000",
+     "cost_effect": "-9364320",
+     "event_effect": "-23364320",
+     "combined": "3299986680",
+     "existing_gap": "153939000",
+     "total_gap": "177303320"
+    },
+    "facts": {
+     "F31": "CONFIRMED",
+     "F32": "CONFIRMED_AS_ASSUMPTION",
+     "F33": "CONFIRMED",
+     "F34": "CONFIRMED_AS_ASSUMPTION",
+     "F35": "CONFIRMED",
+     "F36": "FOLLOWUP_REQUIRED",
+     "F37": "FOLLOWUP_REQUIRED"
+    },
+    "questions": {
+     "Q31": "OPEN_FOLLOWUP",
+     "Q32": "OPEN_FOLLOWUP"
+    },
+    "draft": "REP31-v0"
+   },
+   "source_hash": "0d4e07fd152afa01",
+   "distributed_at": "2027-06-29T09:05:00+09:00",
+   "distributed_by": "u-fin"
+  },
+  "ref": "demo-example:review_report/SC03:REP31-v1:v2",
+  "seq": 172,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-DISTRIBUTE",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "DISTRIBUTE",
+  "body": {
+   "task_id": "TASK-DISTRIBUTE",
+   "seq": 9,
+   "type": "DISTRIBUTE",
+   "node_id": "Distribute",
+   "request_id": "apr_run_example_Distribute_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2027-06-29T09:00:00+09:00",
+   "due_at": "2027-06-29T10:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T09:05:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T09:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T09:05:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC03:TASK-DISTRIBUTE:v2",
+  "seq": 173,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:36",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "report_frozen",
+  "body": {
+   "seq": 36,
+   "at": "2027-06-29T09:00:00+09:00",
+   "event_code": "EV31-09",
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "report_frozen",
+   "detail": {
+    "report": "REP31-v1"
+   }
+  },
+  "ref": "demo-example:audit/SC03:36:v1",
+  "seq": 174,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:37",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 37,
+   "at": "2027-06-29T09:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-FREEZE"
+   }
+  },
+  "ref": "demo-example:audit/SC03:37:v1",
+  "seq": 175,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:38",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 38,
+   "at": "2027-06-29T09:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-DISTRIBUTE",
+    "assigned_to": "u-fin"
+   }
+  },
+  "ref": "demo-example:audit/SC03:38:v1",
+  "seq": 176,
+  "recorded_at": "2027-06-29T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:39",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 39,
+   "at": "2027-06-29T09:05:00+09:00",
+   "event_code": "D36",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T09:05:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:39:v1",
+  "seq": 177,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "meeting",
+  "record_id": "SC03:MT31",
+  "version": 7,
+  "scene": 3,
+  "state": "HELD",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "수시 경영검토회의",
+  "body": {
+   "meeting_id": "MT31",
+   "seq": 1,
+   "type": "AD_HOC_REVIEW",
+   "subject": "수시 경영검토회의",
+   "agenda": "울산 A제품 통합 손익영향 검토 및 상세 분석대상 특정. 종료 예정11:00.",
+   "chair": "u-fin-exec",
+   "scheduled_at": "2027-06-29T10:00:00+09:00",
+   "report_version": "REP31-v1",
+   "state": "HELD",
+   "opened_at": "2027-06-29T10:00:00+09:00",
+   "attendance": [
+    {
+     "record_id": "ATT31-1",
+     "actor": "u-fin-exec",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    },
+    {
+     "record_id": "ATT31-2",
+     "actor": "u-fin",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    },
+    {
+     "record_id": "ATT31-3",
+     "actor": "u-prod-lead",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    },
+    {
+     "record_id": "ATT31-4",
+     "actor": "u-buy-lead",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    },
+    {
+     "record_id": "ATT31-5",
+     "actor": "u-sales-lead",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    },
+    {
+     "record_id": "ATT31-6",
+     "actor": "u-fin-lead",
+     "state": "PRESENT",
+     "at": "2027-06-29T10:00:00+09:00"
+    }
+   ],
+   "records": [
+    {
+     "record_id": "QA31",
+     "record_type": "QUESTION",
+     "meeting_id": "MT31",
+     "actor_id": "u-fin-exec",
+     "event_at": "2027-06-29T10:10:00+09:00",
+     "subject": "사건 영향과 전체 부족 구분",
+     "content": "두 사건을 해소하면 목표 달성이 가능한가?",
+     "related_ref": "RUN-SC03-01",
+     "state": "ANSWERED"
+    },
+    {
+     "record_id": "QA32",
+     "record_type": "ANSWER",
+     "meeting_id": "MT31",
+     "actor_id": "u-fin",
+     "event_at": "2027-06-29T10:12:00+09:00",
+     "subject": "기존 부족 별도",
+     "content": "신규 악화 23,364,320원 외 기존 부족 153,939,000원이 남습니다. 원인 분해는 추가 분석하겠습니다.",
+     "related_ref": "QA31 / Q32",
+     "state": "RECORDED"
+    },
+    {
+     "record_id": "QA33",
+     "record_type": "EXPLANATION",
+     "meeting_id": "MT31",
+     "actor_id": "u-prod-lead",
+     "event_at": "2027-06-29T10:22:00+09:00",
+     "subject": "외주 범위 구분",
+     "content": "부분 공정 조정은 검토 가능. 최종 조립 전면 외주화는 단기간 전환·품질 검증 조건이 준비되지 않았다는 가상 설명.",
+     "related_ref": "C31 / C35 / SYN-PROD31",
+     "state": "RECORDED"
+    },
+    {
+     "record_id": "QA34",
+     "record_type": "EXPLANATION",
+     "meeting_id": "MT31",
+     "actor_id": "u-sales-lead",
+     "event_at": "2027-06-29T10:30:00+09:00",
+     "subject": "물량 확보 범위",
+     "content": "기존 고객·기존 승인모델의 추가 배분 가능성부터 확인. 해외 신규 차종은 인증·수주 일정이 미확인이라는 가상 설명.",
+     "related_ref": "C34 / C36 / SYN-SALES31",
+     "state": "RECORDED"
+    }
+   ],
+   "memo": "MT31 참석 역할에 내부 배포 — 외부 발송 없음",
+   "report_summary": "울산 A제품 통합 손익영향 검토 및 상세 분석대상 특정. 종료 예정11:00."
+  },
+  "ref": "demo-example:meeting/SC03:MT31:v7",
+  "seq": 178,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-REPORT",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T10:00:00+09:00",
+  "by": null,
+  "title": "REPORT",
+  "body": {
+   "task_id": "TASK-REPORT",
+   "seq": 10,
+   "type": "REPORT",
+   "node_id": "Report_Meeting",
+   "request_id": "apr_run_example_Report_Meeting_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2027-06-29T09:05:00+09:00",
+   "due_at": "2027-06-29T11:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T10:00:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T09:05:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T10:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC03:TASK-REPORT:v2",
+  "seq": 179,
+  "recorded_at": "2027-06-29T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:40",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "report_distributed",
+  "body": {
+   "seq": 40,
+   "at": "2027-06-29T09:05:00+09:00",
+   "event_code": "EV31-10",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "report_distributed",
+   "detail": {
+    "report": "REP31-v1",
+    "meeting": "MT31"
+   }
+  },
+  "ref": "demo-example:audit/SC03:40:v1",
+  "seq": 180,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:41",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 41,
+   "at": "2027-06-29T09:05:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-DISTRIBUTE"
+   }
+  },
+  "ref": "demo-example:audit/SC03:41:v1",
+  "seq": 181,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:42",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T09:05:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 42,
+   "at": "2027-06-29T09:05:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-REPORT",
+    "assigned_to": "u-fin"
+   }
+  },
+  "ref": "demo-example:audit/SC03:42:v1",
+  "seq": 182,
+  "recorded_at": "2027-06-29T09:05:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:43",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 43,
+   "at": "2027-06-29T10:00:00+09:00",
+   "event_code": "D37",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:43:v1",
+  "seq": 183,
+  "recorded_at": "2027-06-29T10:00:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C31",
+  "version": 2,
+  "scene": 3,
+  "state": "INCLUDE",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "부분 공정의 생산·외주 구성 조정",
+  "body": {
+   "candidate_id": "C31",
+   "seq": 1,
+   "meeting_id": "MT31",
+   "dept": "생산",
+   "candidate": "부분 공정의 생산·외주 구성 조정",
+   "mechanism": "고정비 회피 가능성과 외주 추가비를 비교",
+   "constraints": "잔존비용·전환비용·품질·납기 확인 필요",
+   "evidence_ref": "QA33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "INCLUDE",
+   "decision_reason": "부분 공정 대안의 경제성을 검증할 수 있으므로 상세 분석",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": "AT31"
+  },
+  "ref": "demo-example:candidate/SC03:C31:v2",
+  "seq": 184,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C32",
+  "version": 2,
+  "scene": 3,
+  "state": "INCLUDE",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "구매조건 개선·긴급구매 축소",
+  "body": {
+   "candidate_id": "C32",
+   "seq": 2,
+   "meeting_id": "MT31",
+   "dept": "구매",
+   "candidate": "구매조건 개선·긴급구매 축소",
+   "mechanism": "조달 단가·긴급비용 부담 완화 가능성",
+   "constraints": "기존 계약조건·발주 패턴 자료 확인 필요",
+   "evidence_ref": "F33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "INCLUDE",
+   "decision_reason": "실제 조정 가능한 구매조건과 긴급구매 원인부터 확인",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": "AT32"
+  },
+  "ref": "demo-example:candidate/SC03:C32:v2",
+  "seq": 185,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C33",
+  "version": 2,
+  "scene": 3,
+  "state": "INCLUDE",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "기존 승인 대체 공급처 활용 가능성",
+  "body": {
+   "candidate_id": "C33",
+   "seq": 3,
+   "meeting_id": "MT31",
+   "dept": "구매",
+   "candidate": "기존 승인 대체 공급처 활용 가능성",
+   "mechanism": "공급 안정성과 원가 대안 확인",
+   "constraints": "승인 범위·가용 능력·품질검증·전환비 확인 필요",
+   "evidence_ref": "F33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "INCLUDE",
+   "decision_reason": "기존 승인 범위 안의 후보부터 검증; 확보된 공급처로 단정하지 않음",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": "AT32"
+  },
+  "ref": "demo-example:candidate/SC03:C33:v2",
+  "seq": 186,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C34",
+  "version": 2,
+  "scene": 3,
+  "state": "INCLUDE",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "기존 고객·기존 승인모델 물량 재배분",
+  "body": {
+   "candidate_id": "C34",
+   "seq": 4,
+   "meeting_id": "MT31",
+   "dept": "영업",
+   "candidate": "기존 고객·기존 승인모델 물량 재배분",
+   "mechanism": "유휴 여력 활용과 공헌이익 기여 가능성",
+   "constraints": "고객 배분 의사·생산능력·납기·추가 변동비 확인 필요",
+   "evidence_ref": "QA34",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "INCLUDE",
+   "decision_reason": "신규 수주 확정 없이 실현 가능성과 적용 시점 검증",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": "AT33"
+  },
+  "ref": "demo-example:candidate/SC03:C34:v2",
+  "seq": 187,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C35",
+  "version": 2,
+  "scene": 3,
+  "state": "EXCLUDE_THIS_REVIEW",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "최종 조립 전면 외주화",
+  "body": {
+   "candidate_id": "C35",
+   "seq": 5,
+   "meeting_id": "MT31",
+   "dept": "생산",
+   "candidate": "최종 조립 전면 외주화",
+   "mechanism": "대규모 고정비 변동비화 가능성 탐색",
+   "constraints": "단기 전환·품질 검증조건 미준비라는 가상 설명",
+   "evidence_ref": "QA33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "EXCLUDE_THIS_REVIEW",
+   "decision_reason": "7/12 보고를 위한 검증 가능한 범위를 벗어나 제외. 전환조건 확보 후 재검토",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": null
+  },
+  "ref": "demo-example:candidate/SC03:C35:v2",
+  "seq": 188,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "candidate",
+  "record_id": "SC03:C36",
+  "version": 2,
+  "scene": 3,
+  "state": "EXCLUDE_THIS_REVIEW",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "해외 신규 차종 신규 수주 확대",
+  "body": {
+   "candidate_id": "C36",
+   "seq": 6,
+   "meeting_id": "MT31",
+   "dept": "영업",
+   "candidate": "해외 신규 차종 신규 수주 확대",
+   "mechanism": "국내 감소를 해외 매출로 보완할 가능성",
+   "constraints": "인증·수주 일정 미확인이라는 가상 설명",
+   "evidence_ref": "QA34",
+   "effect_2027": null,
+   "effect_12m": null,
+   "decision": "EXCLUDE_THIS_REVIEW",
+   "decision_reason": "이번 단기 대응 분석에서는 제외. 중장기 영업전략 검토 후보로 보존",
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "task_id": null
+  },
+  "ref": "demo-example:candidate/SC03:C36:v2",
+  "seq": 189,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-DECIDE",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "DECIDE",
+  "body": {
+   "task_id": "TASK-DECIDE",
+   "seq": 11,
+   "type": "DECIDE",
+   "node_id": "Decide_Review",
+   "request_id": "apr_run_example_Decide_Review_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2027-06-29T10:00:00+09:00",
+   "due_at": "2027-06-29T11:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T10:50:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T10:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-exec",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC03:TASK-DECIDE:v2",
+  "seq": 190,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:44",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:00:00+09:00",
+  "by": null,
+  "title": "meeting_opened",
+  "body": {
+   "seq": 44,
+   "at": "2027-06-29T10:00:00+09:00",
+   "event_code": "EV31-11",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "meeting_opened",
+   "detail": {
+    "meeting": "MT31",
+    "report": "REP31-v1"
+   }
+  },
+  "ref": "demo-example:audit/SC03:44:v1",
+  "seq": 191,
+  "recorded_at": "2027-06-29T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:45",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 45,
+   "at": "2027-06-29T10:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-REPORT"
+   }
+  },
+  "ref": "demo-example:audit/SC03:45:v1",
+  "seq": 192,
+  "recorded_at": "2027-06-29T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:46",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 46,
+   "at": "2027-06-29T10:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-DECIDE",
+    "assigned_to": "u-fin-exec"
+   }
+  },
+  "ref": "demo-example:audit/SC03:46:v1",
+  "seq": 193,
+  "recorded_at": "2027-06-29T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:47",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:10:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 47,
+   "at": "2027-06-29T10:10:00+09:00",
+   "event_code": "D37",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:10:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:47:v1",
+  "seq": 194,
+  "recorded_at": "2027-06-29T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:48",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:10:00+09:00",
+  "by": null,
+  "title": "meeting_record",
+  "body": {
+   "seq": 48,
+   "at": "2027-06-29T10:10:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "meeting_record",
+   "detail": {
+    "record_id": "QA31",
+    "record_type": "QUESTION"
+   }
+  },
+  "ref": "demo-example:audit/SC03:48:v1",
+  "seq": 195,
+  "recorded_at": "2027-06-29T10:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:49",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:12:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 49,
+   "at": "2027-06-29T10:12:00+09:00",
+   "event_code": "D37",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:12:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:49:v1",
+  "seq": 196,
+  "recorded_at": "2027-06-29T10:12:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:50",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:12:00+09:00",
+  "by": null,
+  "title": "meeting_record",
+  "body": {
+   "seq": 50,
+   "at": "2027-06-29T10:12:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "meeting_record",
+   "detail": {
+    "record_id": "QA32",
+    "record_type": "ANSWER"
+   }
+  },
+  "ref": "demo-example:audit/SC03:50:v1",
+  "seq": 197,
+  "recorded_at": "2027-06-29T10:12:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:51",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:22:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 51,
+   "at": "2027-06-29T10:22:00+09:00",
+   "event_code": "D38",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:22:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:51:v1",
+  "seq": 198,
+  "recorded_at": "2027-06-29T10:22:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:52",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:22:00+09:00",
+  "by": null,
+  "title": "meeting_record",
+  "body": {
+   "seq": 52,
+   "at": "2027-06-29T10:22:00+09:00",
+   "event_code": null,
+   "actor": "u-prod-lead",
+   "actor_name": "배정훈",
+   "actor_role": "생산팀장",
+   "action": "meeting_record",
+   "detail": {
+    "record_id": "QA33",
+    "record_type": "EXPLANATION"
+   }
+  },
+  "ref": "demo-example:audit/SC03:52:v1",
+  "seq": 199,
+  "recorded_at": "2027-06-29T10:22:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:53",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:30:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 53,
+   "at": "2027-06-29T10:30:00+09:00",
+   "event_code": "D38",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:30:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:53:v1",
+  "seq": 200,
+  "recorded_at": "2027-06-29T10:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:54",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:30:00+09:00",
+  "by": null,
+  "title": "meeting_record",
+  "body": {
+   "seq": 54,
+   "at": "2027-06-29T10:30:00+09:00",
+   "event_code": null,
+   "actor": "u-sales-lead",
+   "actor_name": "박서진",
+   "actor_role": "영업팀장",
+   "action": "meeting_record",
+   "detail": {
+    "record_id": "QA34",
+    "record_type": "EXPLANATION"
+   }
+  },
+  "ref": "demo-example:audit/SC03:54:v1",
+  "seq": 201,
+  "recorded_at": "2027-06-29T10:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:55",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:40:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 55,
+   "at": "2027-06-29T10:40:00+09:00",
+   "event_code": "D38",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:40:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:55:v1",
+  "seq": 202,
+  "recorded_at": "2027-06-29T10:40:00+09:00"
+ },
+ {
+  "kind": "agent_draft",
+  "record_id": "SC03:AG31-002",
+  "version": 1,
+  "scene": 3,
+  "state": "SUCCEEDED",
+  "at": "2027-06-29T10:40:00+09:00",
+  "by": null,
+  "title": "AG31",
+  "body": {
+   "output_id": "AG31-002",
+   "seq": 2,
+   "kind": "AG31",
+   "prompt_version": "sc03-review-v1",
+   "mode": "mock",
+   "created_at": "2027-06-29T10:40:00+09:00",
+   "status": "SUCCEEDED",
+   "draft": {
+    "summary": "질의 4건과 대응 후보 6개를 정리했다. 포함·제외는 주재자 판단이다 — 외주 확대의 수익성 개선을 단정하지 않는다.",
+    "findings": [
+     {
+      "text": "QA31 두 사건을 해소하면 목표 달성이 가능한가?",
+      "evidence_refs": [
+       "QA31"
+      ]
+     },
+     {
+      "text": "QA32 신규 악화 23,364,320원 외 기존 부족 153,939,000원이 남습니다. 원인 분해는 추가 분석하겠습니다.",
+      "evidence_refs": [
+       "QA32"
+      ]
+     },
+     {
+      "text": "QA33 부분 공정 조정은 검토 가능. 최종 조립 전면 외주화는 단기간 전환·품질 검증 조건이 준비되지 않았다는 가상 설명.",
+      "evidence_refs": [
+       "QA33"
+      ]
+     },
+     {
+      "text": "QA34 기존 고객·기존 승인모델의 추가 배분 가능성부터 확인. 해외 신규 차종은 인증·수주 일정이 미확인이라는 가상 설명.",
+      "evidence_refs": [
+       "QA34"
+      ]
+     },
+     {
+      "text": "C31 부분 공정의 생산·외주 구성 조정 — 확인 필요: 잔존비용·전환비용·품질·납기 확인 필요",
+      "evidence_refs": [
+       "C31"
+      ]
+     },
+     {
+      "text": "C32 구매조건 개선·긴급구매 축소 — 확인 필요: 기존 계약조건·발주 패턴 자료 확인 필요",
+      "evidence_refs": [
+       "C32"
+      ]
+     },
+     {
+      "text": "C33 기존 승인 대체 공급처 활용 가능성 — 확인 필요: 승인 범위·가용 능력·품질검증·전환비 확인 필요",
+      "evidence_refs": [
+       "C33"
+      ]
+     },
+     {
+      "text": "C34 기존 고객·기존 승인모델 물량 재배분 — 확인 필요: 고객 배분 의사·생산능력·납기·추가 변동비 확인 필요",
+      "evidence_refs": [
+       "C34"
+      ]
+     },
+     {
+      "text": "C35 최종 조립 전면 외주화 — 확인 필요: 단기 전환·품질 검증조건 미준비라는 가상 설명",
+      "evidence_refs": [
+       "C35"
+      ]
+     },
+     {
+      "text": "C36 해외 신규 차종 신규 수주 확대 — 확인 필요: 인증·수주 일정 미확인이라는 가상 설명",
+      "evidence_refs": [
+       "C36"
+      ]
+     }
+    ],
+    "questions": [
+     "Q31 실제 회피 가능한 고정비와 잔존비용은 무엇인가?",
+     "Q32 기존 부족의 원인을 신규 사건과 중복 없이 어떻게 설명할 것인가?"
+    ],
+    "draft_text": "분석 지시 초안 — 부분 공정 생산·외주 조정은 회피가능·잔존 고정비와 추가 외주·전환비를, 구매조건·대체 공급처는 조건과 검증비용을, 물량 재배분은 실제 배분 가능성과 공헌이익을 같은 기준(F02+EXT28-v1, C02-APP01)으로 확인한다. 기존 부족 원인은 신규 사건과 중복 없이 따로 분석한다. 효과액은 미산정으로 둔다."
+   },
+   "errors": [],
+   "source_version": "RUN-SC03-01",
+   "input_hash": "39e2ea955ee08088b85f6333745748d5e6c3fb40d47f114f5e827b19bdc85855",
+   "adopted_by": null,
+   "adopted_at": null,
+   "review_status": "UNREVIEWED"
+  },
+  "ref": "demo-example:agent_draft/SC03:AG31-002:v1",
+  "seq": 203,
+  "recorded_at": "2027-06-29T10:40:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:56",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:40:00+09:00",
+  "by": null,
+  "title": "agent_draft",
+  "body": {
+   "seq": 56,
+   "at": "2027-06-29T10:40:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "agent_draft",
+   "detail": {
+    "output_id": "AG31-002",
+    "status": "SUCCEEDED"
+   }
+  },
+  "ref": "demo-example:audit/SC03:56:v1",
+  "seq": 204,
+  "recorded_at": "2027-06-29T10:40:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:57",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 57,
+   "at": "2027-06-29T10:50:00+09:00",
+   "event_code": "D38",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T10:50:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:57:v1",
+  "seq": 205,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "meeting_decision",
+  "record_id": "SC03:REV31",
+  "version": 1,
+  "scene": 3,
+  "state": "CONDITIONAL_ACCEPT",
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "회의 결론",
+  "body": {
+   "decision_id": "REV31",
+   "meeting_id": "MT31",
+   "outcome": "CONDITIONAL_ACCEPT",
+   "content": "통합영향을 수용한다. C31~34는 상세 분석하고 C35·36은 이번 월간회의 상세 분석에서 제외한다. Q31·32는 7/6까지 AT31·34로 확인한다. 실행안 선택은 7/12 대표 주재회의로 남긴다.",
+   "conditions": "Q31·Q32는 7/6 18시까지 AT31·AT34로 확인한다 — 현재 손익 계산 오류는 없다",
+   "open_questions": [
+    "Q31",
+    "Q32"
+   ],
+   "decided_by": "u-fin-exec",
+   "decided_at": "2027-06-29T10:50:00+09:00",
+   "report_version": "REP31-v1"
+  },
+  "ref": "demo-example:meeting_decision/SC03:REV31:v1",
+  "seq": 206,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "analysis_task",
+  "record_id": "SC03:AT31",
+  "version": 3,
+  "scene": 3,
+  "state": "ACCEPTED",
+  "at": "2027-06-30T09:00:00+09:00",
+  "by": null,
+  "title": "생산·외주 구성 분석",
+  "body": {
+   "task_id": "AT31",
+   "seq": 1,
+   "review_id": "MR-2706-01",
+   "candidate_refs": [
+    "C31"
+   ],
+   "title": "생산·외주 구성 분석",
+   "owner": "u-prod-lead",
+   "collaborators": [
+    "u-buy-lead",
+    "u-fin",
+    "u-qa-lead"
+   ],
+   "question": "부분 공정별 회피가능·잔존 고정비, 추가외주·전환비·품질·납기·실행시점은?",
+   "deliverable": "원가구조·제약·실행시점 비교자료",
+   "dependency": "Q31",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "basis": "REP31-v1 / BASE31~33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "assignment_version": 1,
+   "state": "ACCEPTED",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "accepted_at": "2027-06-30T09:00:00+09:00",
+   "accepted_version": 1,
+   "submitted_at": null,
+   "history": [
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "state": "DRAFT",
+     "by": "system",
+     "note": "회의 결론의 포함 후보로 초안 작성"
+    },
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "state": "ASSIGNED",
+     "by": "u-fin-exec",
+     "note": "AT31~AT34 배정·내부 통보 — 인수기한 6/30 12시, 제출 7/6 18시",
+     "version": 1
+    },
+    {
+     "at": "2027-06-30T09:00:00+09:00",
+     "state": "ACCEPTED",
+     "by": "u-prod-lead",
+     "version": 1,
+     "note": ""
+    }
+   ],
+   "assigned_by": "u-fin-exec",
+   "accept_due": "2027-06-30T12:00:00+09:00",
+   "accepted_by": "u-prod-lead"
+  },
+  "ref": "demo-example:analysis_task/SC03:AT31:v3",
+  "seq": 207,
+  "recorded_at": "2027-06-30T09:00:00+09:00"
+ },
+ {
+  "kind": "analysis_task",
+  "record_id": "SC03:AT32",
+  "version": 3,
+  "scene": 3,
+  "state": "ACCEPTED",
+  "at": "2027-06-30T09:30:00+09:00",
+  "by": null,
+  "title": "구매조건·대체공급처 분석",
+  "body": {
+   "task_id": "AT32",
+   "seq": 2,
+   "review_id": "MR-2706-01",
+   "candidate_refs": [
+    "C32",
+    "C33"
+   ],
+   "title": "구매조건·대체공급처 분석",
+   "owner": "u-buy-lead",
+   "collaborators": [
+    "u-prod-lead",
+    "u-qa-lead",
+    "u-fin"
+   ],
+   "question": "구매조건·긴급구매 축소와 기존 승인 대체공급처의 가능성·비용·제약은?",
+   "deliverable": "구매 후보별 조건·검증자료·적용시점",
+   "dependency": "AT31과 외주비 효과 중복 조정",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "basis": "REP31-v1 / BASE31~33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "assignment_version": 1,
+   "state": "ACCEPTED",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "accepted_at": "2027-06-30T09:30:00+09:00",
+   "accepted_version": 1,
+   "submitted_at": null,
+   "history": [
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "state": "DRAFT",
+     "by": "system",
+     "note": "회의 결론의 포함 후보로 초안 작성"
+    },
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "state": "ASSIGNED",
+     "by": "u-fin-exec",
+     "note": "AT31~AT34 배정·내부 통보 — 인수기한 6/30 12시, 제출 7/6 18시",
+     "version": 1
+    },
+    {
+     "at": "2027-06-30T09:30:00+09:00",
+     "state": "ACCEPTED",
+     "by": "u-buy-lead",
+     "version": 1,
+     "note": ""
+    }
+   ],
+   "assigned_by": "u-fin-exec",
+   "accept_due": "2027-06-30T12:00:00+09:00",
+   "accepted_by": "u-buy-lead"
+  },
+  "ref": "demo-example:analysis_task/SC03:AT32:v3",
+  "seq": 208,
+  "recorded_at": "2027-06-30T09:30:00+09:00"
+ },
+ {
+  "kind": "analysis_task",
+  "record_id": "SC03:AT33",
+  "version": 3,
+  "scene": 3,
+  "state": "ACCEPTED",
+  "at": "2027-06-30T10:00:00+09:00",
+  "by": null,
+  "title": "물량·제품 구성 분석",
+  "body": {
+   "task_id": "AT33",
+   "seq": 3,
+   "review_id": "MR-2706-01",
+   "candidate_refs": [
+    "C34"
+   ],
+   "title": "물량·제품 구성 분석",
+   "owner": "u-sales-lead",
+   "collaborators": [
+    "u-prod-lead",
+    "u-fin"
+   ],
+   "question": "기존 고객·승인모델 추가 배분 가능량·시점·제약·공헌이익은?",
+   "deliverable": "물량 근거·가능시점·CM 산정조건",
+   "dependency": "생산 여력 확인 필요",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "basis": "REP31-v1 / BASE31~33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "assignment_version": 1,
+   "state": "ACCEPTED",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "accepted_at": "2027-06-30T10:00:00+09:00",
+   "accepted_version": 1,
+   "submitted_at": null,
+   "history": [
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "state": "DRAFT",
+     "by": "system",
+     "note": "회의 결론의 포함 후보로 초안 작성"
+    },
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "state": "ASSIGNED",
+     "by": "u-fin-exec",
+     "note": "AT31~AT34 배정·내부 통보 — 인수기한 6/30 12시, 제출 7/6 18시",
+     "version": 1
+    },
+    {
+     "at": "2027-06-30T10:00:00+09:00",
+     "state": "ACCEPTED",
+     "by": "u-sales-lead",
+     "version": 1,
+     "note": ""
+    }
+   ],
+   "assigned_by": "u-fin-exec",
+   "accept_due": "2027-06-30T12:00:00+09:00",
+   "accepted_by": "u-sales-lead"
+  },
+  "ref": "demo-example:analysis_task/SC03:AT33:v3",
+  "seq": 209,
+  "recorded_at": "2027-06-30T10:00:00+09:00"
+ },
+ {
+  "kind": "analysis_task",
+  "record_id": "SC03:AT34",
+  "version": 3,
+  "scene": 3,
+  "state": "ACCEPTED",
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "기존 목표 부족 원인 분석",
+  "body": {
+   "task_id": "AT34",
+   "seq": 4,
+   "review_id": "MR-2706-01",
+   "candidate_refs": [],
+   "title": "기존 목표 부족 원인 분석",
+   "owner": "u-fin-lead",
+   "collaborators": [
+    "u-sales-lead",
+    "u-buy-lead",
+    "u-prod-lead"
+   ],
+   "question": "기존 부족의 원인 근거와 미확인을 신규 사건과 중복 없이 설명할 수 있는가?",
+   "deliverable": "기존 부족 원인표·근거·추가 질문",
+   "dependency": "Q32",
+   "due_at": "2027-07-06T18:00:00+09:00",
+   "basis": "REP31-v1 / BASE31~33",
+   "effect_2027": null,
+   "effect_12m": null,
+   "assignment_version": 1,
+   "state": "ACCEPTED",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "accepted_at": "2027-06-30T11:00:00+09:00",
+   "accepted_version": 1,
+   "submitted_at": null,
+   "history": [
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "state": "DRAFT",
+     "by": "system",
+     "note": "회의 결론의 포함 후보로 초안 작성"
+    },
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "state": "ASSIGNED",
+     "by": "u-fin-exec",
+     "note": "AT31~AT34 배정·내부 통보 — 인수기한 6/30 12시, 제출 7/6 18시",
+     "version": 1
+    },
+    {
+     "at": "2027-06-30T11:00:00+09:00",
+     "state": "ACCEPTED",
+     "by": "u-fin-lead",
+     "version": 1,
+     "note": ""
+    }
+   ],
+   "assigned_by": "u-fin-exec",
+   "accept_due": "2027-06-30T12:00:00+09:00",
+   "accepted_by": "u-fin-lead"
+  },
+  "ref": "demo-example:analysis_task/SC03:AT34:v3",
+  "seq": 210,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-MINUTES",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "MINUTES",
+  "body": {
+   "task_id": "TASK-MINUTES",
+   "seq": 12,
+   "type": "MINUTES",
+   "node_id": "Confirm_Minutes",
+   "request_id": "apr_run_example_Confirm_Minutes_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2027-06-29T10:50:00+09:00",
+   "due_at": "2027-06-30T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T15:00:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T10:50:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T15:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-exec",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC03:TASK-MINUTES:v2",
+  "seq": 211,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:58",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "review_decided",
+  "body": {
+   "seq": 58,
+   "at": "2027-06-29T10:50:00+09:00",
+   "event_code": "EV31-12",
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "review_decided",
+   "detail": {
+    "outcome": "CONDITIONAL_ACCEPT",
+    "included": [
+     "C31",
+     "C32",
+     "C33",
+     "C34"
+    ]
+   }
+  },
+  "ref": "demo-example:audit/SC03:58:v1",
+  "seq": 212,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:59",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 59,
+   "at": "2027-06-29T10:50:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-DECIDE"
+   }
+  },
+  "ref": "demo-example:audit/SC03:59:v1",
+  "seq": 213,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:60",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T10:50:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 60,
+   "at": "2027-06-29T10:50:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-MINUTES",
+    "assigned_to": "u-fin-exec"
+   }
+  },
+  "ref": "demo-example:audit/SC03:60:v1",
+  "seq": 214,
+  "recorded_at": "2027-06-29T10:50:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:61",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 61,
+   "at": "2027-06-29T15:00:00+09:00",
+   "event_code": "D39",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T15:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:61:v1",
+  "seq": 215,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "meeting",
+  "record_id": "SC03:MT41",
+  "version": 1,
+  "scene": 3,
+  "state": "PLANNED",
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "월간 경영회의",
+  "body": {
+   "meeting_id": "MT41",
+   "seq": 2,
+   "type": "MONTHLY",
+   "subject": "월간 경영회의",
+   "agenda": "7/6 분석 제출, 7/8 경영관리 취합 후 상세 대안을 비교·결정한다. 현재는 계획만 등록.",
+   "chair": "u-ceo",
+   "scheduled_at": "2027-07-12T10:00:00+09:00",
+   "report_version": null,
+   "state": "PLANNED",
+   "attendance": [],
+   "records": []
+  },
+  "ref": "demo-example:meeting/SC03:MT41:v1",
+  "seq": 216,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "minutes",
+  "record_id": "SC03:MIN31-v1",
+  "version": 1,
+  "scene": 3,
+  "state": "CONDITIONAL_ACCEPT",
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "MIN31-v1",
+  "body": {
+   "minutes_id": "MIN31-v1",
+   "seq": 1,
+   "meeting_id": "MT31",
+   "decision": "REV31",
+   "outcome": "CONDITIONAL_ACCEPT",
+   "included": [
+    "C31",
+    "C32",
+    "C33",
+    "C34"
+   ],
+   "excluded": [
+    {
+     "candidate_id": "C35",
+     "reason": "7/12 보고를 위한 검증 가능한 범위를 벗어나 제외. 전환조건 확보 후 재검토"
+    },
+    {
+     "candidate_id": "C36",
+     "reason": "이번 단기 대응 분석에서는 제외. 중장기 영업전략 검토 후보로 보존"
+    }
+   ],
+   "open_questions": [
+    "Q31",
+    "Q32"
+   ],
+   "tasks": [
+    "AT31",
+    "AT32",
+    "AT33",
+    "AT34"
+   ],
+   "next_meeting": "MT41",
+   "confirmed_by": "u-fin-exec",
+   "confirmed_at": "2027-06-29T15:00:00+09:00",
+   "opinion": "분석 대상·제외 사유·책임·기한·잔여 질문과 7/12 보고 계획을 확인.",
+   "agent_drafts": [],
+   "state": "CONFIRMED"
+  },
+  "ref": "demo-example:minutes/SC03:MIN31-v1:v1",
+  "seq": 217,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ASSIGN",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "ASSIGN",
+  "body": {
+   "task_id": "TASK-ASSIGN",
+   "seq": 13,
+   "type": "ASSIGN",
+   "node_id": "Assign_Tasks",
+   "request_id": "apr_run_example_Assign_Tasks_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2027-06-29T15:00:00+09:00",
+   "due_at": "2027-06-30T18:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-29T15:10:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T15:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-exec",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC03:TASK-ASSIGN:v2",
+  "seq": 218,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:62",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "minutes_confirmed",
+  "body": {
+   "seq": 62,
+   "at": "2027-06-29T15:00:00+09:00",
+   "event_code": "EV31-13",
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "minutes_confirmed",
+   "detail": {
+    "minutes": "MIN31-v1"
+   }
+  },
+  "ref": "demo-example:audit/SC03:62:v1",
+  "seq": 219,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:63",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 63,
+   "at": "2027-06-29T15:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-MINUTES"
+   }
+  },
+  "ref": "demo-example:audit/SC03:63:v1",
+  "seq": 220,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:64",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 64,
+   "at": "2027-06-29T15:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ASSIGN",
+    "assigned_to": "u-fin-exec"
+   }
+  },
+  "ref": "demo-example:audit/SC03:64:v1",
+  "seq": 221,
+  "recorded_at": "2027-06-29T15:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:65",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 65,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": "D39",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-29T15:10:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:65:v1",
+  "seq": 222,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ACCEPT_AT31",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-30T09:00:00+09:00",
+  "by": null,
+  "title": "ACCEPT_AT31",
+  "body": {
+   "task_id": "TASK-ACCEPT_AT31",
+   "seq": 14,
+   "type": "ACCEPT_AT31",
+   "node_id": "Accept_AT31",
+   "request_id": "apr_run_example_Accept_AT31_1",
+   "assigned_to": "u-prod-lead",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "due_at": "2027-06-30T12:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-30T09:00:00+09:00",
+   "completed_by": "u-prod-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-30T09:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-prod-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "배정훈"
+  },
+  "ref": "demo-example:task/SC03:TASK-ACCEPT_AT31:v2",
+  "seq": 223,
+  "recorded_at": "2027-06-30T09:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ACCEPT_AT32",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-30T09:30:00+09:00",
+  "by": null,
+  "title": "ACCEPT_AT32",
+  "body": {
+   "task_id": "TASK-ACCEPT_AT32",
+   "seq": 15,
+   "type": "ACCEPT_AT32",
+   "node_id": "Accept_AT32",
+   "request_id": "apr_run_example_Accept_AT32_1",
+   "assigned_to": "u-buy-lead",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "due_at": "2027-06-30T12:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-30T09:30:00+09:00",
+   "completed_by": "u-buy-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-30T09:30:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-buy-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "서도현"
+  },
+  "ref": "demo-example:task/SC03:TASK-ACCEPT_AT32:v2",
+  "seq": 224,
+  "recorded_at": "2027-06-30T09:30:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ACCEPT_AT33",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-30T10:00:00+09:00",
+  "by": null,
+  "title": "ACCEPT_AT33",
+  "body": {
+   "task_id": "TASK-ACCEPT_AT33",
+   "seq": 16,
+   "type": "ACCEPT_AT33",
+   "node_id": "Accept_AT33",
+   "request_id": "apr_run_example_Accept_AT33_1",
+   "assigned_to": "u-sales-lead",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "due_at": "2027-06-30T12:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-30T10:00:00+09:00",
+   "completed_by": "u-sales-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-30T10:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-sales-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "박서진"
+  },
+  "ref": "demo-example:task/SC03:TASK-ACCEPT_AT33:v2",
+  "seq": 225,
+  "recorded_at": "2027-06-30T10:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-ACCEPT_AT34",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "ACCEPT_AT34",
+  "body": {
+   "task_id": "TASK-ACCEPT_AT34",
+   "seq": 17,
+   "type": "ACCEPT_AT34",
+   "node_id": "Accept_AT34",
+   "request_id": "apr_run_example_Accept_AT34_1",
+   "assigned_to": "u-fin-lead",
+   "assigned_at": "2027-06-29T15:10:00+09:00",
+   "due_at": "2027-06-30T12:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-30T11:00:00+09:00",
+   "completed_by": "u-fin-lead",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-29T15:10:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-30T11:00:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin-lead",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "오세린"
+  },
+  "ref": "demo-example:task/SC03:TASK-ACCEPT_AT34:v2",
+  "seq": 226,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:66",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "tasks_assigned",
+  "body": {
+   "seq": 66,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": "EV31-14",
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "tasks_assigned",
+   "detail": {
+    "tasks": [
+     "AT31",
+     "AT32",
+     "AT33",
+     "AT34"
+    ]
+   }
+  },
+  "ref": "demo-example:audit/SC03:66:v1",
+  "seq": 227,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:67",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 67,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-exec",
+   "actor_name": "강민서",
+   "actor_role": "경영관리임원",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ASSIGN"
+   }
+  },
+  "ref": "demo-example:audit/SC03:67:v1",
+  "seq": 228,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:68",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 68,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT31",
+    "assigned_to": "u-prod-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:68:v1",
+  "seq": 229,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:69",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 69,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT32",
+    "assigned_to": "u-buy-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:69:v1",
+  "seq": 230,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:70",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 70,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT33",
+    "assigned_to": "u-sales-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:70:v1",
+  "seq": 231,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:71",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-29T15:10:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 71,
+   "at": "2027-06-29T15:10:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT34",
+    "assigned_to": "u-fin-lead"
+   }
+  },
+  "ref": "demo-example:audit/SC03:71:v1",
+  "seq": 232,
+  "recorded_at": "2027-06-29T15:10:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:72",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 72,
+   "at": "2027-06-30T09:00:00+09:00",
+   "event_code": "D40",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-30T09:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:72:v1",
+  "seq": 233,
+  "recorded_at": "2027-06-30T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:73",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:00:00+09:00",
+  "by": null,
+  "title": "task_accepted",
+  "body": {
+   "seq": 73,
+   "at": "2027-06-30T09:00:00+09:00",
+   "event_code": null,
+   "actor": "u-prod-lead",
+   "actor_name": "배정훈",
+   "actor_role": "생산팀장",
+   "action": "task_accepted",
+   "detail": {
+    "task_id": "AT31",
+    "version": 1
+   }
+  },
+  "ref": "demo-example:audit/SC03:73:v1",
+  "seq": 234,
+  "recorded_at": "2027-06-30T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:74",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 74,
+   "at": "2027-06-30T09:00:00+09:00",
+   "event_code": null,
+   "actor": "u-prod-lead",
+   "actor_name": "배정훈",
+   "actor_role": "생산팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT31"
+   }
+  },
+  "ref": "demo-example:audit/SC03:74:v1",
+  "seq": 235,
+  "recorded_at": "2027-06-30T09:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:75",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:30:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 75,
+   "at": "2027-06-30T09:30:00+09:00",
+   "event_code": "D40",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-30T09:30:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:75:v1",
+  "seq": 236,
+  "recorded_at": "2027-06-30T09:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:76",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:30:00+09:00",
+  "by": null,
+  "title": "task_accepted",
+  "body": {
+   "seq": 76,
+   "at": "2027-06-30T09:30:00+09:00",
+   "event_code": null,
+   "actor": "u-buy-lead",
+   "actor_name": "서도현",
+   "actor_role": "구매팀장",
+   "action": "task_accepted",
+   "detail": {
+    "task_id": "AT32",
+    "version": 1
+   }
+  },
+  "ref": "demo-example:audit/SC03:76:v1",
+  "seq": 237,
+  "recorded_at": "2027-06-30T09:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:77",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T09:30:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 77,
+   "at": "2027-06-30T09:30:00+09:00",
+   "event_code": null,
+   "actor": "u-buy-lead",
+   "actor_name": "서도현",
+   "actor_role": "구매팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT32"
+   }
+  },
+  "ref": "demo-example:audit/SC03:77:v1",
+  "seq": 238,
+  "recorded_at": "2027-06-30T09:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:78",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T10:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 78,
+   "at": "2027-06-30T10:00:00+09:00",
+   "event_code": "D40",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-30T10:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:78:v1",
+  "seq": 239,
+  "recorded_at": "2027-06-30T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:79",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T10:00:00+09:00",
+  "by": null,
+  "title": "task_accepted",
+  "body": {
+   "seq": 79,
+   "at": "2027-06-30T10:00:00+09:00",
+   "event_code": null,
+   "actor": "u-sales-lead",
+   "actor_name": "박서진",
+   "actor_role": "영업팀장",
+   "action": "task_accepted",
+   "detail": {
+    "task_id": "AT33",
+    "version": 1
+   }
+  },
+  "ref": "demo-example:audit/SC03:79:v1",
+  "seq": 240,
+  "recorded_at": "2027-06-30T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:80",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T10:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 80,
+   "at": "2027-06-30T10:00:00+09:00",
+   "event_code": null,
+   "actor": "u-sales-lead",
+   "actor_name": "박서진",
+   "actor_role": "영업팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT33"
+   }
+  },
+  "ref": "demo-example:audit/SC03:80:v1",
+  "seq": 241,
+  "recorded_at": "2027-06-30T10:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:81",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 81,
+   "at": "2027-06-30T11:00:00+09:00",
+   "event_code": "D40",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-30T11:00:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:81:v1",
+  "seq": 242,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC03:TASK-COMPLETE",
+  "version": 2,
+  "scene": 3,
+  "state": "COMPLETED",
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "COMPLETE",
+  "body": {
+   "task_id": "TASK-COMPLETE",
+   "seq": 18,
+   "type": "COMPLETE",
+   "node_id": "Complete_Scene",
+   "request_id": "apr_run_example_Complete_Scene_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2027-06-30T11:00:00+09:00",
+   "due_at": "2027-06-30T12:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2027-06-30T11:30:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "history": [
+    {
+     "at": "2027-06-30T11:00:00+09:00",
+     "status": "ASSIGNED",
+     "by": "system",
+     "note": null
+    },
+    {
+     "at": "2027-06-30T11:30:00+09:00",
+     "status": "COMPLETED",
+     "by": "u-fin",
+     "note": null
+    }
+   ],
+   "overdue": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC03:TASK-COMPLETE:v2",
+  "seq": 243,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:82",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "task_accepted",
+  "body": {
+   "seq": 82,
+   "at": "2027-06-30T11:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-lead",
+   "actor_name": "오세린",
+   "actor_role": "경영관리팀장",
+   "action": "task_accepted",
+   "detail": {
+    "task_id": "AT34",
+    "version": 1
+   }
+  },
+  "ref": "demo-example:audit/SC03:82:v1",
+  "seq": 244,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:83",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 83,
+   "at": "2027-06-30T11:00:00+09:00",
+   "event_code": null,
+   "actor": "u-fin-lead",
+   "actor_name": "오세린",
+   "actor_role": "경영관리팀장",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-ACCEPT_AT34"
+   }
+  },
+  "ref": "demo-example:audit/SC03:83:v1",
+  "seq": 245,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:84",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:00:00+09:00",
+  "by": null,
+  "title": "task_assigned",
+  "body": {
+   "seq": 84,
+   "at": "2027-06-30T11:00:00+09:00",
+   "event_code": null,
+   "actor": "system",
+   "actor_name": "system",
+   "actor_role": "system",
+   "action": "task_assigned",
+   "detail": {
+    "task_id": "TASK-COMPLETE",
+    "assigned_to": "u-fin"
+   }
+  },
+  "ref": "demo-example:audit/SC03:84:v1",
+  "seq": 246,
+  "recorded_at": "2027-06-30T11:00:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:85",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "clock_moved",
+  "body": {
+   "seq": 85,
+   "at": "2027-06-30T11:30:00+09:00",
+   "event_code": "D41",
+   "actor": "u-demo",
+   "actor_name": "시연관리자",
+   "actor_role": "시연관리자",
+   "action": "clock_moved",
+   "detail": {
+    "to": "2027-06-30T11:30:00+09:00"
+   }
+  },
+  "ref": "demo-example:audit/SC03:85:v1",
+  "seq": 247,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:86",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "SC03_COMPLETED",
+  "body": {
+   "seq": 86,
+   "at": "2027-06-30T11:30:00+09:00",
+   "event_code": "EV31-22",
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "SC03_COMPLETED",
+   "detail": {
+    "handoff": "HANDOFF31"
+   }
+  },
+  "ref": "demo-example:audit/SC03:86:v1",
+  "seq": 248,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ },
+ {
+  "kind": "audit",
+  "record_id": "SC03:87",
+  "version": 1,
+  "scene": 3,
+  "state": null,
+  "at": "2027-06-30T11:30:00+09:00",
+  "by": null,
+  "title": "task_completed",
+  "body": {
+   "seq": 87,
+   "at": "2027-06-30T11:30:00+09:00",
+   "event_code": null,
+   "actor": "u-fin",
+   "actor_name": "정하윤",
+   "actor_role": "경영관리담당",
+   "action": "task_completed",
+   "detail": {
+    "task_id": "TASK-COMPLETE"
+   }
+  },
+  "ref": "demo-example:audit/SC03:87:v1",
+  "seq": 249,
+  "recorded_at": "2027-06-30T11:30:00+09:00"
+ }
+]

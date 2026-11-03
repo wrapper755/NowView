@@ -535,10 +535,10 @@ class Sc01Process:
         경영 기록을 회사에 적는다 — 바뀐 것만 새 판으로(`records.py`, `docs/role-split.md` §3).
         원천 확인 상태처럼 저장 직전이다 — 회사가 받지 못하면 이 조작은 저장되지 않는다(503).
         """
+        from app import records as shared
         from app.sc01 import records
 
-        for record in records.pending_writes(doc, self.seed):
-            self.company.write_record(doc["demo_run_id"], record)
+        shared.write(self.company, doc, records.SCENE, records.records_of(doc, self.seed))
 
     def _dispatch(self, doc: dict) -> dict:
         """저장된 조작이 만든 초안 작업을 던진다. **잠금 밖에서** 부른다."""

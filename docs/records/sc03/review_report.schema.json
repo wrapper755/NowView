@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/review_report.schema.json",
+  "title": "장면 3 review_report",
+  "description": "보고 버전 — 초안(v0)·확정(v1)·재검토, 핵심 숫자와 근거 기준(U32·U34)",
+  "type": "object",
+  "required": [
+    "basis_text",
+    "created_at",
+    "created_by",
+    "kind",
+    "kpis",
+    "report_id",
+    "run_id",
+    "seq",
+    "status"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "basis_text": {
+      "type": "string"
+    },
+    "kpis": {
+      "type": "object",
+      "required": [
+        "combined",
+        "cost_effect",
+        "event_effect",
+        "existing_gap",
+        "f01",
+        "target",
+        "total_gap",
+        "volume_effect"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "f01": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "volume_effect": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "cost_effect": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "event_effect": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "combined": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "existing_gap": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "total_gap": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "previous": {
+      "type": "null"
+    },
+    "change_summary": {
+      "type": "string"
+    },
+    "affects": {
+      "type": "array"
+    },
+    "after_frozen": {
+      "type": "integer"
+    },
+    "frozen_by": {
+      "type": "string"
+    },
+    "frozen_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opinion": {
+      "type": "string"
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "basis",
+        "draft",
+        "facts",
+        "kpis",
+        "questions",
+        "run_id"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "object",
+          "required": [
+            "approved_price",
+            "cost",
+            "effective_date",
+            "fixed",
+            "old_price",
+            "price_version",
+            "quantity"
+          ],
+          "properties": {
+            "quantity": {
+              "type": "string"
+            },
+            "cost": {
+              "type": "string"
+            },
+            "fixed": {
+              "type": "string"
+            },
+            "price_version": {
+              "type": "string"
+            },
+            "old_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "approved_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effective_date": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "kpis": {
+          "type": "object",
+          "required": [
+            "combined",
+            "cost_effect",
+            "event_effect",
+            "existing_gap",
+            "f01",
+            "target",
+            "total_gap",
+            "volume_effect"
+          ],
+          "properties": {
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "f01": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "volume_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "cost_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "event_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "combined": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "existing_gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "total_gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "facts": {
+          "type": "object",
+          "required": [
+            "F31",
+            "F32",
+            "F33",
+            "F34",
+            "F35",
+            "F36",
+            "F37"
+          ],
+          "properties": {
+            "F31": {
+              "type": "string"
+            },
+            "F32": {
+              "type": "string"
+            },
+            "F33": {
+              "type": "string"
+            },
+            "F34": {
+              "type": "string"
+            },
+            "F35": {
+              "type": "string"
+            },
+            "F36": {
+              "type": "string"
+            },
+            "F37": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "questions": {
+          "type": "object",
+          "required": [
+            "Q31",
+            "Q32"
+          ],
+          "properties": {
+            "Q31": {
+              "type": "string"
+            },
+            "Q32": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "draft": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source_hash": {
+      "type": "string"
+    },
+    "distributed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "distributed_by": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

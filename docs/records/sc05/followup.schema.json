@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/followup.schema.json",
+  "title": "장면 5 followup",
+  "description": "후속 책임(FUP51~53·DIR41·RISK51) — 담당·기한·내용(U508)",
+  "type": "object",
+  "required": [
+    "confirmed_at",
+    "content",
+    "due_at",
+    "followup_id",
+    "owner",
+    "state",
+    "target"
+  ],
+  "properties": {
+    "followup_id": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "content": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

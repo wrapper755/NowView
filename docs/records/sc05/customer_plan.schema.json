@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/customer_plan.schema.json",
+  "title": "장면 5 customer_plan",
+  "description": "고객 생산계획 변경 원문(CP51·CP52 …) — 도착 시각·변경 줄(U504)",
+  "type": "object",
+  "required": [
+    "lines",
+    "plan_ref",
+    "received_at"
+  ],
+  "properties": {
+    "plan_ref": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "after",
+          "before",
+          "changed",
+          "evidence",
+          "model_id",
+          "month_diff",
+          "month_total",
+          "note",
+          "plan_ref",
+          "windows"
+        ],
+        "properties": {
+          "plan_ref": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "month_total": {
+            "type": "integer"
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "before": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "after": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "month_diff": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

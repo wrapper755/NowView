@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 539개 (SQLite만, LLM 제외)
+uv run pytest                                      # 643개 (SQLite만, LLM 제외)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -88,7 +88,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (739개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (881개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -369,7 +369,8 @@ NowView/
     │   ├── worker_file.py        # 설치가 Center 키 셋(일꾼·연동용·대리 답용)을 짓고 Center 폴더에 해시 파일을 쓴다(ADR-0122) · center_key
     │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
     │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
-    │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
+    │   ├── records.py            # 경영 기록 공통 — 바뀐 판만 골라 한 번에 적기(batch)·장면 기록 처음으로·`SC0N:` 접두(장면마다 sc0N/records.py)
+│   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
     │   ├── follower.py           # 세계 따라가기 — 기간계의 세계·회차·시각·수신함·명령을 읽어 데모 실행을 만들고·초기화하고·따라간다(role-split §5)
     │   ├── scenarios.py          # 각본 사본(engine/scenarios/) → 장면 Step — 시험 전용 각본 실행기의 BASE
@@ -558,7 +559,18 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
   적는다 — `_commit`(원천 확인 상태 쓰기 바로 뒤)·생성·Agent 초안 저장 직전이고, 회사가 받지 못하면 그 조작은 저장되지 않는다(503).
   판·해시는 문서의 `company_records`, ref = `데모실행:종류/id:v판`. 본문 스키마의 주인은 NowView(`docs/records/` — 봉투 + 종류별)이고
   기간계는 봉투만 본다. 회사 사이트(Company1 `/work/{회차}/sc01`)가 이것만 읽어 업무 화면 다섯을 그린다. 화면이 하던 뺄셈(목표 부족액·
-  사건 영향)은 `dashboard.gaps`로 옮겼다. 장면 2~7은 아직 적지 않는다(role-split §4 3단계).
+  사건 영향)은 `dashboard.gaps`로 옮겼다.
+  **장면 2~7도 적는다**(2026-11-03, role-split §4 3단계) — `app/sc0N/records.py`가 그 장면 view의 칸 그대로 기록을 짓고(장면 6·7은
+  문서 머리 + 조회 넷을 경영관리 담당이 보는 응답 그대로), 각 `_commit`·생성이 저장 직전에 `app/records.py`로 적는다. 공통 규칙:
+  * **한 조작의 판은 `POST /worlds/{w}/records/batch`로 한 번에**(전부 적거나 하나도 안 적는다) — 기간계는 세계를 JSON 문서 하나로
+    두어 판마다 문서 전체를 다시 썼다(쌍둥이 실측 판 하나 약 0.1초, 장면 4 각본 약 48초 → 묶은 뒤 18초). 그래서 기록도 세계
+    문서 밖(기간계 기록 테이블)으로 뺐다 — 18초 → 3.5초. 쌍둥이(`tests/company_twin/`)도 같다.
+  * **장면 2~7 record_id는 `SC0N:` 접두**(`SC02:TASK-VERIFY`) — 기간계 키가 kind/record_id인데 업무 id가 장면마다 겹친다.
+  * **감사 이력은 한 줄이 기록 하나(`audit`)** — 인계 본문에 넣으면 조작마다 이력 전체가 새 판이 되어 기록이 제곱으로 불었다.
+  * **초기화·새로 열기는 그 장면 기록을 처음으로**(`records.restart` → `POST /worlds/{w}/records/reset {scene}`).
+  * **스키마는 기본 시연의 모든 판에서 뽑았다**(`tests/records_contract.py`, `NOWVIEW_WRITE_RECORD_SCHEMAS=1`) — 손으로 쓴 장면 1과
+    다르다. 있던 칸을 빼거나 종류를 바꾸면 막고, 새 칸은 막지 않는다. 예시는 `NOWVIEW_WRITE_RECORD_EXAMPLES=1`.
+  회사 사이트는 `/work/{회차}/sc0N`(site-api `work.scene_bundle` — 종류별로 묶기만 한다)으로 그린다.
 * **장면 2~6 시작은 오래 걸리면 202다**(`app/preparation.py`, 2026-10-27). 시작은 앞 장면을 각본으로 끝까지 실제로 실행한다 —
   Center 실행이면 장면 3 시작이 약 7분이라 BFF의 `fetch`(undici 응답 헤더 기본 300초)가 503을 냈다(엔진은 끝까지 갔다). 운영계는
   Cloudflare가 약 100초에 끊는다(4.15) — 시간 늘리기로는 안 된다.
@@ -934,6 +946,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
 | `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
 | `engine/tests/test_sc01_records.py` | 경영 기록 — 기본 시연 동안 적은 **모든 판**(최신·지난 판)이 봉투·종류별 스키마(`docs/records/`)를 통과, 회사 기록 = 엔진 문서(B07 중요·b 7월 M01 700·M03 −1,400만·완료 조건·대시보드 기간), 바뀌지 않은 기록은 판 하나, 회사가 못 받으면 저장 안 함 → 다시 하면 이어짐, 사이트 예시(`docs/records/sc01/examples/base-end.json`)가 스키마를 통과하고 지금 적는 기록 목록과 같다(다시 만들기 `NOWVIEW_WRITE_RECORD_EXAMPLES=1`) — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_records_sc02.py`~`sc07.py` | 장면 2~7 경영 기록 — 기본 시연(장면 2는 X01도)의 **모든 판**이 봉투·종류별 스키마(`docs/records/sc0N/`, `records_contract.py`)를 통과, `SC0N:` 접두, 회사 기록 = 엔진 화면 응답(분석·효과·전망·조회 응답·업무 수), 회사가 못 받으면 저장 안 함 → 다시 하면 이어짐, 사이트 예시가 최신(장면 잇기는 `records_chain.py`) — SQLite |
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체, **바깥 답(회사 사이트 흉내)이 각본 지점을 옮김**(병렬 인수 순서 바뀜·플레이어와 섞기) — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
 | `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
@@ -965,7 +978,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
 | `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 739개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 881개). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
 * `tests/fixtures/sc0{1,2,3,4,5,6}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가

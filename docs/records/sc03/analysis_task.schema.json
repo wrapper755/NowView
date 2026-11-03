@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/analysis_task.schema.json",
+  "title": "장면 3 analysis_task",
+  "description": "분석과제(AT31~34) — 질문·산출물·책임자·협업·기한·배정버전·인수(U36)",
+  "type": "object",
+  "required": [
+    "accepted_at",
+    "accepted_version",
+    "assigned_at",
+    "assignment_version",
+    "basis",
+    "candidate_refs",
+    "collaborators",
+    "deliverable",
+    "dependency",
+    "due_at",
+    "effect_12m",
+    "effect_2027",
+    "history",
+    "owner",
+    "question",
+    "review_id",
+    "seq",
+    "state",
+    "submitted_at",
+    "task_id",
+    "title"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "review_id": {
+      "type": "string"
+    },
+    "candidate_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "title": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "collaborators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "question": {
+      "type": "string"
+    },
+    "deliverable": {
+      "type": "string"
+    },
+    "dependency": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "basis": {
+      "type": "string"
+    },
+    "effect_2027": {
+      "type": "null"
+    },
+    "effect_12m": {
+      "type": "null"
+    },
+    "assignment_version": {
+      "type": "integer"
+    },
+    "state": {
+      "type": "string"
+    },
+    "assigned_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "accepted_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "accepted_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "submitted_at": {
+      "type": "null"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "note",
+          "state"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "assigned_by": {
+      "type": "string"
+    },
+    "accept_due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_by": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

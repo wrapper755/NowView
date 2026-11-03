@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/purchase_orders.schema.json",
+  "title": "장면 5 purchase_orders",
+  "description": "구매 주문 표본(9월) — 주문별 수량·긴급·추가비(U505)",
+  "type": "object",
+  "required": [
+    "orders"
+  ],
+  "properties": {
+    "orders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approved_at",
+          "approver",
+          "background",
+          "change_ref",
+          "evidence",
+          "extra",
+          "late",
+          "model_id",
+          "month",
+          "order_id",
+          "ordered_at",
+          "part_id",
+          "premium",
+          "qty",
+          "quality",
+          "reason",
+          "recorded_at",
+          "result_status",
+          "seq",
+          "state",
+          "transport",
+          "urgent"
+        ],
+        "properties": {
+          "order_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "month": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "part_id": {
+            "type": "string"
+          },
+          "change_ref": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "urgent": {
+            "type": "boolean"
+          },
+          "transport": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "premium": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "extra": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "ordered_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recorded_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "approver": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "approved_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "late": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "quality": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "result_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "background": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string"
+          },
+          "result_confirmed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "impacts": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

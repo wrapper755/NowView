@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc07/evidence.schema.json",
+  "title": "장면 7 evidence",
+  "description": "근거 — SC07근거 EV71~78·장면 6 대표 사례 E61-1103(화면 조회)",
+  "type": "object",
+  "required": [
+    "as_of",
+    "dataset_version",
+    "evidence",
+    "fictional",
+    "improvement_id",
+    "source",
+    "status",
+    "version_bundle"
+  ],
+  "properties": {
+    "dataset_version": {
+      "type": "string"
+    },
+    "improvement_id": {
+      "type": "string"
+    },
+    "version_bundle": {
+      "type": "object",
+      "required": [
+        "agent",
+        "measure",
+        "projection",
+        "verification_set"
+      ],
+      "properties": {
+        "agent": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "projection": {
+          "type": "string"
+        },
+        "verification_set": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fictional": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "evidence_id",
+        "kind"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kind": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "caution": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "written_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "written_by": {
+          "type": "object",
+          "required": [
+            "account",
+            "name",
+            "role",
+            "userId"
+          ],
+          "properties": {
+            "account": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "body": {
+          "type": "string"
+        },
+        "checked_by": {
+          "type": "string"
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

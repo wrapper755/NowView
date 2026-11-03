@@ -1,0 +1,256 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/scene.schema.json",
+  "title": "장면 2 scene",
+  "description": "장면 머리 — 시연 시각·장면 상태 묶음·장면 1 결과 스냅샷·실행 위치·근거 목록·알림·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "agentMode",
+    "alerts",
+    "bpm",
+    "caseId",
+    "caseLabel",
+    "clock",
+    "companyLog",
+    "demoRunId",
+    "evidence",
+    "executor",
+    "sc01",
+    "selectedProvisional",
+    "selectedRunId",
+    "status",
+    "step"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "caseLabel": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "step": {
+      "type": "string"
+    },
+    "status": {
+      "type": "object",
+      "required": [
+        "approval",
+        "cost",
+        "forecast",
+        "handoff",
+        "request",
+        "risk",
+        "scene",
+        "sceneCode"
+      ],
+      "properties": {
+        "request": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "approval": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "cost": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "handoff": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "risk": {
+          "type": "string"
+        },
+        "forecast": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "sceneCode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sc01": {
+      "type": "object",
+      "required": [
+        "demo_run_id",
+        "forecast",
+        "forecast_approval",
+        "handed_off_at",
+        "issue",
+        "run_id"
+      ],
+      "properties": {
+        "demo_run_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "forecast": {
+          "type": "string"
+        },
+        "forecast_approval": {
+          "type": "string"
+        },
+        "handed_off_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "issue": {
+          "type": "object",
+          "required": [
+            "issue_id",
+            "model_id",
+            "period",
+            "risk",
+            "runs",
+            "status"
+          ],
+          "properties": {
+            "issue_id": {
+              "type": "string"
+            },
+            "risk": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "model_id": {
+              "type": "string"
+            },
+            "period": {
+              "type": "string"
+            },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "executor": {
+      "type": "string"
+    },
+    "selectedRunId": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "selectedProvisional": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "agentMode": {
+      "type": "string"
+    },
+    "alerts": {
+      "type": "array"
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "direction",
+          "doc_id",
+          "seq",
+          "what"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "bpm": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "executor",
+        "externalRunId",
+        "state",
+        "visited"
+      ],
+      "properties": {
+        "executor": {
+          "type": "string"
+        },
+        "externalRunId": {
+          "type": "null"
+        },
+        "state": {
+          "type": "string"
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/budget_txn.schema.json",
+  "title": "장면 5 budget_txn",
+  "description": "예산 원장 한 줄의 사본 — 약정·정산·손익 비용(U503, 원본은 회사 원장)",
+  "type": "object",
+  "required": [
+    "at",
+    "commitment_delta",
+    "evidence",
+    "paid_delta",
+    "pnl_cost",
+    "request_ref",
+    "scope",
+    "seq",
+    "task_id",
+    "txn_id",
+    "type"
+  ],
+  "properties": {
+    "txn_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "request_ref": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string"
+    },
+    "commitment_delta": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "paid_delta": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "pnl_cost": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "evidence": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

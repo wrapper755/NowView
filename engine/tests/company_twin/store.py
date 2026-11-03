@@ -21,6 +21,13 @@ class WorldStore:
             self._db.execute(
                 "CREATE TABLE IF NOT EXISTS world (id TEXT PRIMARY KEY, doc TEXT NOT NULL)"
             )
+            # 경영 기록은 세계 문서 밖에 둔다 — 문서 안에 두면 판마다·시계 이동마다 모든 기록(지난
+            # 판 포함)을 다시 썼다(NowView 3단계 실측, 판 하나 약 0.1초에서 갈수록 늘었다).
+            self._db.execute(
+                "CREATE TABLE IF NOT EXISTS record (world_id TEXT NOT NULL, key TEXT NOT NULL, "
+                "seq INTEGER NOT NULL, scene INTEGER NOT NULL, doc TEXT NOT NULL, "
+                "PRIMARY KEY (world_id, key))"
+            )
             self._db.commit()
 
     def get(self, world_id: str) -> dict[str, Any] | None:
@@ -37,6 +44,55 @@ class WorldStore:
                 (doc["world_id"], body),
             )
             self._db.commit()
+
+    def records(self, world_id: str, scene: int | None = None) -> dict[str, dict[str, Any]]:
+        sql = "SELECT key, doc FROM record WHERE world_id = ?"
+        args: tuple[Any, ...] = (world_id,)
+        if scene is not None:
+            sql, args = sql + " AND scene = ?", (world_id, scene)
+        with self._lock:
+            rows = self._db.execute(sql, args).fetchall()
+        return {k: json.loads(d) for k, d in rows}
+
+    def record(self, world_id: str, key: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT doc FROM record WHERE world_id = ? AND key = ?", (world_id, key)
+            ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def max_record_seq(self, world_id: str) -> int:
+        with self._lock:
+            row = self._db.execute(
+                "SELECT MAX(seq) FROM record WHERE world_id = ?", (world_id,)
+            ).fetchone()
+        return row[0] or 0
+
+    def put_records(self, world_id: str, records: dict[str, dict[str, Any]]) -> None:
+        """기록 여럿을 한 트랜잭션으로(전부 또는 하나도)."""
+        if not records:
+            return
+        rows = [
+            (world_id, k, r["seq"], r["scene"], json.dumps(r, ensure_ascii=False))
+            for k, r in records.items()
+        ]
+        with self._lock:
+            self._db.executemany(
+                "INSERT INTO record (world_id, key, seq, scene, doc) VALUES (?, ?, ?, ?, ?) "
+                "ON CONFLICT(world_id, key) DO UPDATE SET doc = excluded.doc",
+                rows,
+            )
+            self._db.commit()
+
+    def delete_records(self, world_id: str, scene: int | None = None) -> int:
+        """그 세계의(장면을 주면 그 장면의) 기록을 지운다 — 지운 개수."""
+        sql, args = "DELETE FROM record WHERE world_id = ?", (world_id,)
+        if scene is not None:
+            sql, args = sql + " AND scene = ?", (world_id, scene)
+        with self._lock:
+            n = self._db.execute(sql, args).rowcount
+            self._db.commit()
+        return n
 
     def count(self) -> int:
         with self._lock:

@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/condition.schema.json",
+  "title": "장면 5 condition",
+  "description": "승인 조건·지원(CON41·SUP41) — 책임·확인자·기한·근거·이력(U503)",
+  "type": "object",
+  "required": [
+    "condition_id",
+    "content",
+    "due_at",
+    "evidence",
+    "history",
+    "owner",
+    "seq",
+    "state",
+    "verifier"
+  ],
+  "properties": {
+    "condition_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "content": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "verifier": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "details",
+          "plan_version",
+          "refs",
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "details": {
+            "type": "string"
+          },
+          "plan_version": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "state"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "coordinated_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "coordinated_by": {
+      "type": "string"
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_version": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

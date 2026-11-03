@@ -40,6 +40,7 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app import records
 from app.company import CompanyClient, require_finished
 from app.follower import sync_opened
 from app.sc01.center import CenterClient, CenterConfig, CenterError
@@ -61,6 +62,7 @@ from app.sc01.store import Sc01Store, StaleWrite
 from app.sc05 import demo as sc05_demo
 from app.sc05.process import Sc05Process
 from app.sc06 import confirm, domain
+from app.sc06.records import SCENE
 from app.sc06.seed import Seed, load_seed
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc06.bpmn"
@@ -195,6 +197,15 @@ class Sc06Process:
             state == "started" and node is not None and node.kind == "endEvent"
         )
 
+    def _write_records(self, doc: dict) -> None:
+        """
+        경영 기록을 회사에 적는다 — 바뀐 것만 새 판으로(`app/sc06/records.py`). 저장 직전이다 —
+        회사가 받지 못하면 이 조작은 저장되지 않는다(503).
+        """
+        from app.sc06.records import records_of
+
+        records.write(self.company, doc, SCENE, records_of(doc))
+
     def _commit(self, doc: dict, version: int, run: Any | None, event: str) -> dict:
         if run is not None:
             visited = list((doc.get("bpm") or {}).get("visited", []))
@@ -216,6 +227,7 @@ class Sc06Process:
         # 확인 기록이 일정대로 시계를 옮겼으면 회사 세계의 시각도 — 장면 1~5와 같다
         if doc.pop("_company_clock", False):
             self.company.set_clock(doc["demo_run_id"], doc["clock"])
+        self._write_records(doc)
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
@@ -327,6 +339,8 @@ class Sc06Process:
         doc = self._new(rid, sc05_doc, executor, datetime.now(UTC))
         _note_official(doc, self._company_official(rid, doc["sc05"]))
         self.company.set_clock(rid, doc["clock"])
+        records.restart(self.company, doc, SCENE)
+        self._write_records(doc)
         self.store.insert(rid, doc)
         self.publish(f"sc06:{rid}")
         return doc
@@ -387,6 +401,7 @@ class Sc06Process:
             domain.audit(doc, actor=actor, action="demo_run_reset", executor=where)
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
+            records.restart(self.company, doc, SCENE)
             return self._commit(doc, version, None, "reset")
 
     # ───────────── 조작 ─────────────

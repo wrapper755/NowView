@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/proposal.schema.json",
+  "title": "장면 2 proposal",
+  "description": "기안 — 판(v1·v2)·단가·적용일·차이 사유·결재선·대표 대상 판정(U24)",
+  "type": "object",
+  "required": [
+    "ceo_expected",
+    "diff_reason",
+    "effective_date",
+    "evidence_ids",
+    "input_hash",
+    "previous",
+    "price",
+    "price_version_id",
+    "proposal_id",
+    "proposal_key",
+    "reason",
+    "request_id",
+    "revision",
+    "run_id",
+    "seq",
+    "status",
+    "submitted_at",
+    "submitted_by"
+  ],
+  "properties": {
+    "proposal_key": {
+      "type": "string"
+    },
+    "proposal_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "price_version_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "effective_date": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "diff_reason": {
+      "type": "string"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "submitted_by": {
+      "type": "string"
+    },
+    "input_hash": {
+      "type": "string"
+    },
+    "ceo_expected": {
+      "type": "boolean"
+    },
+    "previous": {
+      "type": "null"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "amount",
+        "at",
+        "authority_version",
+        "required",
+        "threshold"
+      ],
+      "properties": {
+        "amount": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "threshold": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "authority_version": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "final_step": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

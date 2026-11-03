@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/performance_report.schema.json",
+  "title": "장면 6 performance_report",
+  "description": "U602 보고 요약(RPT61) — 결론·운영 보완·추가 검토 발의·위험·확인 다섯 단계·다음 보고",
+  "type": "object",
+  "additionalProperties": {
+    "type": [
+      "array",
+      "null",
+      "object",
+      "string"
+    ]
+  }
+}

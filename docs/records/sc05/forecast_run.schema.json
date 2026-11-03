@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/forecast_run.schema.json",
+  "title": "장면 5 forecast_run",
+  "description": "Rolling 산정 한 번(RUN51) — 마감+잔여 월별 효과·손익·종전 공식본 대비 대사. 숫자는 규칙 계산(U507)",
+  "type": "object",
+  "required": [
+    "annual",
+    "baseline_ref",
+    "basis_includes_action_effects",
+    "calculated_at",
+    "close_batch",
+    "created_by",
+    "cutoff",
+    "effects",
+    "errors",
+    "gap",
+    "method",
+    "months",
+    "observation",
+    "operating_plans",
+    "periods",
+    "prior_official",
+    "reconciliation",
+    "run_hash",
+    "run_id",
+    "seq",
+    "target",
+    "valid"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "method": {
+      "type": "string"
+    },
+    "cutoff": {
+      "type": "string"
+    },
+    "basis_includes_action_effects": {
+      "type": "boolean"
+    },
+    "close_batch": {
+      "type": "string"
+    },
+    "baseline_ref": {
+      "type": "string"
+    },
+    "prior_official": {
+      "type": "string"
+    },
+    "operating_plans": {
+      "type": "object",
+      "required": [
+        "OPL51",
+        "OPL52",
+        "OPL53"
+      ],
+      "properties": {
+        "OPL51": {
+          "type": "integer"
+        },
+        "OPL52": {
+          "type": "integer"
+        },
+        "OPL53": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "observation": {
+      "type": "string"
+    },
+    "effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "add",
+          "applied",
+          "avoid",
+          "base_count",
+          "baseline_cost",
+          "count",
+          "extra",
+          "extra_cost",
+          "fixed_saving",
+          "logistics",
+          "margin",
+          "model_id",
+          "month",
+          "net",
+          "one_off",
+          "qty",
+          "source",
+          "support",
+          "task_id",
+          "unit_cost"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "string"
+          },
+          "month": {
+            "type": "string"
+          },
+          "applied": {
+            "type": "boolean"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "avoid": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "add": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "logistics": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "base_count": {
+            "type": "integer"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "unit_cost": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "extra_cost": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "support": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "one_off": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "fixed_saving": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "source": {
+            "type": "string"
+          },
+          "margin": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "baseline_cost": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "extra": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "net": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "months": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "basis_profit",
+          "effect",
+          "fixed",
+          "gap",
+          "kind",
+          "models",
+          "period",
+          "profit",
+          "revenue",
+          "target"
+        ],
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "basis_cm",
+                "cm",
+                "effect",
+                "model_id",
+                "period",
+                "qty",
+                "revenue",
+                "target_cm"
+              ],
+              "properties": {
+                "period": {
+                  "type": "string"
+                },
+                "model_id": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "basis_cm": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "target_cm": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "revenue": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "cm": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "fixed": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "basis_profit": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "effect": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "profit": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "gap": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "revenue": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "periods": {
+      "type": "object",
+      "required": [
+        "closed",
+        "forecast",
+        "q3",
+        "year"
+      ],
+      "properties": {
+        "year": {
+          "type": "object",
+          "required": [
+            "basis_profit",
+            "effect",
+            "fixed",
+            "gap",
+            "kind",
+            "label",
+            "profit",
+            "target"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "basis_profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "fixed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "closed": {
+          "type": "object",
+          "required": [
+            "basis_profit",
+            "effect",
+            "fixed",
+            "gap",
+            "kind",
+            "label",
+            "profit",
+            "target"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "basis_profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "fixed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "forecast": {
+          "type": "object",
+          "required": [
+            "basis_profit",
+            "effect",
+            "fixed",
+            "gap",
+            "kind",
+            "label",
+            "profit",
+            "target"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "basis_profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "fixed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "q3": {
+          "type": "object",
+          "required": [
+            "basis_profit",
+            "effect",
+            "fixed",
+            "gap",
+            "kind",
+            "label",
+            "profit",
+            "target"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "basis_profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "profit": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "fixed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "annual": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "target": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "gap": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "reconciliation": {
+      "type": "object",
+      "required": [
+        "by_cause",
+        "delta",
+        "new_total",
+        "ok",
+        "prior_total",
+        "residual",
+        "rows"
+      ],
+      "properties": {
+        "prior_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "new_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "amount",
+              "cause",
+              "month"
+            ],
+            "properties": {
+              "cause": {
+                "type": "string"
+              },
+              "month": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "by_cause": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "amount",
+              "cause",
+              "label"
+            ],
+            "properties": {
+              "cause": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "delta": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "residual": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "errors": {
+      "type": "array"
+    },
+    "valid": {
+      "type": "boolean"
+    },
+    "calculated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "run_hash": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

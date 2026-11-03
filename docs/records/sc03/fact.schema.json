@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/fact.schema.json",
+  "title": "장면 3 fact",
+  "description": "확인된 사실 — 부서·분류·근거·확인자(U33)",
+  "type": "object",
+  "required": [
+    "category",
+    "confirmed_at",
+    "dept",
+    "evidence_ref",
+    "fact_id",
+    "followup_ref",
+    "report_id",
+    "reviewer",
+    "seq",
+    "state",
+    "statement"
+  ],
+  "properties": {
+    "fact_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "dept": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "statement": {
+      "type": "string"
+    },
+    "evidence_ref": {
+      "type": "string"
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "followup_ref": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

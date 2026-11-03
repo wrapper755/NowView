@@ -1,0 +1,986 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/analysis_run.schema.json",
+  "title": "장면 3 analysis_run",
+  "description": "통합 분석 한 번 — 기간별 손익(물량·단가 효과, 기존·전체 부족)·모델별·검증. 숫자는 규칙 계산(U32)",
+  "type": "object",
+  "required": [
+    "created_at",
+    "created_by",
+    "memo",
+    "result",
+    "review_id",
+    "run_id",
+    "seq",
+    "sources",
+    "status"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "review_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "memo": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "assumptions",
+        "b_july",
+        "basis",
+        "computable",
+        "failed_checks",
+        "fixed_multiplier",
+        "months",
+        "passed",
+        "periods",
+        "purchase",
+        "status"
+      ],
+      "properties": {
+        "basis": {
+          "type": "object",
+          "required": [
+            "approved_price",
+            "cost",
+            "effective_date",
+            "fixed",
+            "old_price",
+            "price_version",
+            "quantity"
+          ],
+          "properties": {
+            "quantity": {
+              "type": "string"
+            },
+            "cost": {
+              "type": "string"
+            },
+            "fixed": {
+              "type": "string"
+            },
+            "price_version": {
+              "type": "string"
+            },
+            "old_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "approved_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effective_date": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "fixed_multiplier": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string"
+        },
+        "computable": {
+          "type": "boolean"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "failed_checks": {
+          "type": "array"
+        },
+        "periods": {
+          "type": "object",
+          "required": [
+            "next12",
+            "q3",
+            "remaining",
+            "year"
+          ],
+          "properties": {
+            "year": {
+              "type": "object",
+              "required": [
+                "checks",
+                "combined",
+                "computable",
+                "cost_effect",
+                "event_effect",
+                "existing_gap",
+                "f01",
+                "fixed",
+                "fixed_applied",
+                "from",
+                "kind",
+                "label",
+                "models",
+                "target",
+                "to",
+                "total_gap",
+                "volume_effect",
+                "volume_profit"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "computable": {
+                  "type": "boolean"
+                },
+                "fixed": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "fixed_applied": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "f01": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_profit": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "cost_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "event_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "combined": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "existing_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "total_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "cm_combined",
+                      "cm_f01",
+                      "computable",
+                      "cost_effect",
+                      "f01_qty",
+                      "f02_qty",
+                      "model_id",
+                      "volume_effect"
+                    ],
+                    "properties": {
+                      "model_id": {
+                        "type": "string"
+                      },
+                      "computable": {
+                        "type": "boolean"
+                      },
+                      "f01_qty": {
+                        "type": "integer"
+                      },
+                      "f02_qty": {
+                        "type": "integer"
+                      },
+                      "cm_f01": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "volume_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cost_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cm_combined": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "check_id",
+                      "diff",
+                      "label",
+                      "ok"
+                    ],
+                    "properties": {
+                      "check_id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "diff": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "ok": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "q3": {
+              "type": "object",
+              "required": [
+                "checks",
+                "combined",
+                "computable",
+                "cost_effect",
+                "event_effect",
+                "existing_gap",
+                "f01",
+                "fixed",
+                "fixed_applied",
+                "from",
+                "kind",
+                "label",
+                "models",
+                "target",
+                "to",
+                "total_gap",
+                "volume_effect",
+                "volume_profit"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "computable": {
+                  "type": "boolean"
+                },
+                "fixed": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "fixed_applied": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "f01": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_profit": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "cost_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "event_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "combined": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "existing_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "total_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "cm_combined",
+                      "cm_f01",
+                      "computable",
+                      "cost_effect",
+                      "f01_qty",
+                      "f02_qty",
+                      "model_id",
+                      "volume_effect"
+                    ],
+                    "properties": {
+                      "model_id": {
+                        "type": "string"
+                      },
+                      "computable": {
+                        "type": "boolean"
+                      },
+                      "f01_qty": {
+                        "type": "integer"
+                      },
+                      "f02_qty": {
+                        "type": "integer"
+                      },
+                      "cm_f01": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "volume_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cost_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cm_combined": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "check_id",
+                      "diff",
+                      "label",
+                      "ok"
+                    ],
+                    "properties": {
+                      "check_id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "diff": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "ok": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "remaining": {
+              "type": "object",
+              "required": [
+                "checks",
+                "combined",
+                "computable",
+                "cost_effect",
+                "event_effect",
+                "existing_gap",
+                "f01",
+                "fixed",
+                "fixed_applied",
+                "from",
+                "kind",
+                "label",
+                "models",
+                "target",
+                "to",
+                "total_gap",
+                "volume_effect",
+                "volume_profit"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "computable": {
+                  "type": "boolean"
+                },
+                "fixed": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "fixed_applied": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "f01": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_profit": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "cost_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "event_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "combined": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "existing_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "total_gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "cm_combined",
+                      "cm_f01",
+                      "computable",
+                      "cost_effect",
+                      "f01_qty",
+                      "f02_qty",
+                      "model_id",
+                      "volume_effect"
+                    ],
+                    "properties": {
+                      "model_id": {
+                        "type": "string"
+                      },
+                      "computable": {
+                        "type": "boolean"
+                      },
+                      "f01_qty": {
+                        "type": "integer"
+                      },
+                      "f02_qty": {
+                        "type": "integer"
+                      },
+                      "cm_f01": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "volume_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cost_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cm_combined": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "check_id",
+                      "diff",
+                      "label",
+                      "ok"
+                    ],
+                    "properties": {
+                      "check_id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "diff": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "ok": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "next12": {
+              "type": "object",
+              "required": [
+                "checks",
+                "combined",
+                "computable",
+                "cost_effect",
+                "event_effect",
+                "existing_gap",
+                "f01",
+                "fixed",
+                "fixed_applied",
+                "from",
+                "kind",
+                "label",
+                "models",
+                "target",
+                "to",
+                "total_gap",
+                "volume_effect",
+                "volume_profit"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "computable": {
+                  "type": "boolean"
+                },
+                "fixed": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "fixed_applied": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "target": {
+                  "type": "null"
+                },
+                "f01": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_profit": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "volume_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "cost_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "event_effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "combined": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "existing_gap": {
+                  "type": "null"
+                },
+                "total_gap": {
+                  "type": "null"
+                },
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "cm_combined",
+                      "cm_f01",
+                      "computable",
+                      "cost_effect",
+                      "f01_qty",
+                      "f02_qty",
+                      "model_id",
+                      "volume_effect"
+                    ],
+                    "properties": {
+                      "model_id": {
+                        "type": "string"
+                      },
+                      "computable": {
+                        "type": "boolean"
+                      },
+                      "f01_qty": {
+                        "type": "integer"
+                      },
+                      "f02_qty": {
+                        "type": "integer"
+                      },
+                      "cm_f01": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "volume_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cost_effect": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "cm_combined": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "checks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "check_id",
+                      "diff",
+                      "label",
+                      "ok"
+                    ],
+                    "properties": {
+                      "check_id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "diff": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "ok": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "months": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "checks",
+              "combined",
+              "computable",
+              "cost_effect",
+              "event_effect",
+              "existing_gap",
+              "f01",
+              "fixed",
+              "fixed_applied",
+              "from",
+              "kind",
+              "label",
+              "models",
+              "target",
+              "to",
+              "total_gap",
+              "volume_effect",
+              "volume_profit"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "computable": {
+                "type": "boolean"
+              },
+              "fixed": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "fixed_applied": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "target": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "f01": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume_profit": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cost_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "event_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "combined": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "existing_gap": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "total_gap": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "cm_combined",
+                    "cm_f01",
+                    "computable",
+                    "cost_effect",
+                    "f01_qty",
+                    "f02_qty",
+                    "model_id",
+                    "volume_effect"
+                  ],
+                  "properties": {
+                    "model_id": {
+                      "type": "string"
+                    },
+                    "computable": {
+                      "type": "boolean"
+                    },
+                    "f01_qty": {
+                      "type": "integer"
+                    },
+                    "f02_qty": {
+                      "type": "integer"
+                    },
+                    "cm_f01": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "volume_effect": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "cost_effect": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "cm_combined": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "checks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "check_id",
+                    "diff",
+                    "label",
+                    "ok"
+                  ],
+                  "properties": {
+                    "check_id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "diff": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "purchase": {
+          "type": "object",
+          "required": [
+            "next12_increase",
+            "next12_qty",
+            "remaining_increase",
+            "remaining_qty"
+          ],
+          "properties": {
+            "remaining_increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "remaining_qty": {
+              "type": "integer"
+            },
+            "next12_increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "next12_qty": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        },
+        "b_july": {
+          "type": "object",
+          "required": [
+            "f01",
+            "f02",
+            "unit_cm"
+          ],
+          "properties": {
+            "f01": {
+              "type": "integer"
+            },
+            "f02": {
+              "type": "integer"
+            },
+            "unit_cm": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

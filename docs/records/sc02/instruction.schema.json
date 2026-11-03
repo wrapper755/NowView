@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/instruction.schema.json",
+  "title": "장면 2 instruction",
+  "description": "추가 협상지시(X01) — 사유·조건·담당·기한",
+  "type": "object",
+  "required": [
+    "assignee",
+    "at",
+    "by",
+    "condition",
+    "due_at",
+    "instruction_id",
+    "proposal_key",
+    "reason",
+    "status",
+    "step"
+  ],
+  "properties": {
+    "instruction_id": {
+      "type": "string"
+    },
+    "proposal_key": {
+      "type": "string"
+    },
+    "by": {
+      "type": "string"
+    },
+    "step": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "condition": {
+      "type": "string"
+    },
+    "assignee": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

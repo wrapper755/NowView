@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/scene.schema.json",
+  "title": "장면 6 scene",
+  "description": "장면 머리 — 시연 시각·보고본·산정 버전·적재 묶음·장면 5 결과·상태·알림·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "batch",
+    "bpm",
+    "calculationVersion",
+    "caseId",
+    "clock",
+    "companyLog",
+    "demoRunId",
+    "executor",
+    "reportState",
+    "reportVersion",
+    "reviewId",
+    "sc05",
+    "status",
+    "step"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "step": {
+      "type": "string"
+    },
+    "reviewId": {
+      "type": "string"
+    },
+    "reportVersion": {
+      "type": "string"
+    },
+    "calculationVersion": {
+      "type": "string"
+    },
+    "reportState": {
+      "type": "string"
+    },
+    "sc05": {
+      "type": "object",
+      "required": [
+        "annual",
+        "gap",
+        "handoff_id",
+        "official",
+        "target"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "official": {
+          "type": "string"
+        },
+        "annual": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "gap": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "batch": {
+      "type": "object",
+      "required": [
+        "batch_id",
+        "counts",
+        "loaded_at",
+        "problems",
+        "seed_id",
+        "sha256"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string"
+        },
+        "seed_id": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "problems": {
+          "type": "array"
+        },
+        "loaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "changes",
+            "evidence",
+            "held_orders",
+            "orders"
+          ],
+          "properties": {
+            "orders": {
+              "type": "integer"
+            },
+            "held_orders": {
+              "type": "integer"
+            },
+            "changes": {
+              "type": "integer"
+            },
+            "evidence": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "object",
+      "required": [
+        "confirmed",
+        "procedure",
+        "report",
+        "risk"
+      ],
+      "properties": {
+        "procedure": {
+          "type": "string"
+        },
+        "report": {
+          "type": "string"
+        },
+        "confirmed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "risk": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "executor": {
+      "type": "string"
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "direction",
+          "doc_id",
+          "seq",
+          "what"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "by": {
+            "type": "null"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "bpm": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "executor",
+        "externalRunId",
+        "state",
+        "visited"
+      ],
+      "properties": {
+        "executor": {
+          "type": "string"
+        },
+        "externalRunId": {
+          "type": "null"
+        },
+        "state": {
+          "type": "string"
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

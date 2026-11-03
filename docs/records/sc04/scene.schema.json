@@ -1,0 +1,658 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/scene.schema.json",
+  "title": "장면 4 scene",
+  "description": "장면 머리 — 시연 시각·상태 묶음·장면 3 결과 스냅샷·일정·기준 손익·인수율·완료 요건·알림",
+  "type": "object",
+  "required": [
+    "acceptance",
+    "agentMode",
+    "alerts",
+    "assumptionLog",
+    "baseline",
+    "bpm",
+    "caseId",
+    "caseLabel",
+    "clock",
+    "completion",
+    "decisionId",
+    "demoRunId",
+    "executor",
+    "reportId",
+    "rework",
+    "sc03",
+    "schedule",
+    "status",
+    "step"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "caseLabel": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "step": {
+      "type": "string"
+    },
+    "status": {
+      "type": "object",
+      "required": [
+        "approval",
+        "conditions",
+        "forecast",
+        "review",
+        "risk",
+        "scene",
+        "target"
+      ],
+      "properties": {
+        "review": {
+          "type": "string"
+        },
+        "approval": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "conditions": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "risk": {
+          "type": "string"
+        },
+        "forecast": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sc03": {
+      "type": "object",
+      "required": [
+        "demo_run_id",
+        "excluded_candidates",
+        "executor",
+        "handoff",
+        "kpis",
+        "price",
+        "questions",
+        "tasks"
+      ],
+      "properties": {
+        "demo_run_id": {
+          "type": "string"
+        },
+        "executor": {
+          "type": "string"
+        },
+        "handoff": {
+          "type": "object",
+          "required": [
+            "analysis_due",
+            "as_of",
+            "consolidation_due",
+            "decision",
+            "handoff_id",
+            "minutes_version",
+            "next_meeting",
+            "outcome",
+            "report_version"
+          ],
+          "properties": {
+            "handoff_id": {
+              "type": "string"
+            },
+            "report_version": {
+              "type": "string"
+            },
+            "minutes_version": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string"
+            },
+            "next_meeting": {
+              "type": "object",
+              "required": [
+                "at",
+                "meeting_id"
+              ],
+              "properties": {
+                "meeting_id": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "additionalProperties": true
+            },
+            "analysis_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "consolidation_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "as_of": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        },
+        "kpis": {
+          "type": "object",
+          "required": [
+            "combined",
+            "cost_effect",
+            "event_effect",
+            "existing_gap",
+            "f01",
+            "target",
+            "total_gap",
+            "volume_effect"
+          ],
+          "properties": {
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "f01": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "volume_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "cost_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "event_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "combined": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "existing_gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "total_gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "accepted_at",
+              "assignment_version",
+              "candidate_refs",
+              "collaborators",
+              "deliverable",
+              "due_at",
+              "owner",
+              "question",
+              "task_id",
+              "title"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "collaborators": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "question": {
+                "type": "string"
+              },
+              "deliverable": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "candidate_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "assignment_version": {
+                "type": "integer"
+              },
+              "accepted_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "due_at",
+              "owner",
+              "question",
+              "question_id",
+              "state",
+              "treatment"
+            ],
+            "properties": {
+              "question_id": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "treatment": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "excluded_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "candidate_id",
+              "evidence_ref",
+              "reason"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "evidence_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "price": {
+          "type": "object",
+          "required": [
+            "effective_date",
+            "new_price",
+            "old_price",
+            "part_id",
+            "run_id",
+            "version_id"
+          ],
+          "properties": {
+            "version_id": {
+              "type": "string"
+            },
+            "part_id": {
+              "type": "string"
+            },
+            "old_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "new_price": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effective_date": {
+              "type": "string"
+            },
+            "run_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "schedule": {
+      "type": "object",
+      "required": [
+        "accept_due",
+        "approval_due",
+        "complete_due",
+        "condition_due",
+        "consolidate_due",
+        "discovery_due",
+        "meeting_at",
+        "meeting_end",
+        "plan_due",
+        "start_at",
+        "submit_due",
+        "verify_due"
+      ],
+      "properties": {
+        "start_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "submit_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "verify_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "consolidate_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "meeting_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "meeting_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approval_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accept_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "complete_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "plan_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "condition_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "discovery_due": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "baseline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "base",
+          "period",
+          "target"
+        ],
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "base": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "reportId": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "decisionId": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "acceptance": {
+      "type": "object",
+      "required": [
+        "accepted",
+        "assigned",
+        "overall_accepted",
+        "rate"
+      ],
+      "properties": {
+        "assigned": {
+          "type": "integer"
+        },
+        "accepted": {
+          "type": "integer"
+        },
+        "overall_accepted": {
+          "type": "boolean"
+        },
+        "rate": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "blocking",
+        "items",
+        "met",
+        "open_conditions",
+        "rate"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "ok"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "met": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rate": {
+          "type": "object",
+          "required": [
+            "accepted",
+            "assigned",
+            "overall_accepted",
+            "rate"
+          ],
+          "properties": {
+            "assigned": {
+              "type": "integer"
+            },
+            "accepted": {
+              "type": "integer"
+            },
+            "overall_accepted": {
+              "type": "boolean"
+            },
+            "rate": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "open_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "assumptionLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alt_id",
+          "at",
+          "by",
+          "note",
+          "version"
+        ],
+        "properties": {
+          "alt_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "rework": {
+      "type": "array"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "agentMode": {
+      "type": "string"
+    },
+    "alerts": {
+      "type": "array"
+    },
+    "bpm": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "executor",
+        "externalRunId",
+        "state",
+        "visited"
+      ],
+      "properties": {
+        "executor": {
+          "type": "string"
+        },
+        "externalRunId": {
+          "type": "null"
+        },
+        "state": {
+          "type": "string"
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

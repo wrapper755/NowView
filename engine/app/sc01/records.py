@@ -18,17 +18,15 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any
 
+from app import records as shared
 from app.sc01.seed import Seed
 
 SCENE = 1
 
 
-def _record(kind: str, record_id: str, state: str | None, title: str, body: Any) -> dict:
-    return {"kind": kind, "record_id": record_id, "state": state, "title": title, "body": body}
+_record = shared.record
 
 
 def records_of(doc: dict, seed: Seed) -> list[dict[str, Any]]:
@@ -93,37 +91,4 @@ def records_of(doc: dict, seed: Seed) -> list[dict[str, Any]]:
     return out
 
 
-def _digest(body: Any) -> str:
-    text = json.dumps(body, ensure_ascii=False, sort_keys=True, default=str)
-    return hashlib.sha256(text.encode()).hexdigest()
-
-
-def pending_writes(doc: dict, seed: Seed) -> list[dict[str, Any]]:
-    """
-    바뀐 기록을 새 판으로 — 회사에 보낼 봉투 목록. 문서의 `company_records`(판·해시)를 함께 고친다 —
-    회사가 받지 못하면 문서가 저장되지 않으므로 고친 판도 버려진다(다음 조작이 같은 판을 다시 낸다).
-    """
-    known = doc.setdefault("company_records", {})
-    writes = []
-    for r in records_of(doc, seed):
-        key = f"{r['kind']}/{r['record_id']}"
-        digest = _digest([r["state"], r["title"], r["body"]])
-        prior = known.get(key)
-        if prior is not None and prior["hash"] == digest:
-            continue
-        version = (prior["version"] if prior else 0) + 1
-        known[key] = {"version": version, "hash": digest}
-        writes.append(
-            {
-                **r,
-                "version": version,
-                "scene": SCENE,
-                "at": doc["clock"],
-                "by": None,
-                "ref": f"{doc['demo_run_id']}:{key}:v{version}",
-            }
-        )
-    return writes
-
-
-__all__ = ["SCENE", "pending_writes", "records_of"]
+__all__ = ["SCENE", "records_of"]

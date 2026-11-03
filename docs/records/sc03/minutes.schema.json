@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/minutes.schema.json",
+  "title": "장면 3 minutes",
+  "description": "회의록 — 포함/제외 후보·과제·다음 회의(U35)",
+  "type": "object",
+  "required": [
+    "agent_drafts",
+    "confirmed_at",
+    "confirmed_by",
+    "decision",
+    "excluded",
+    "included",
+    "meeting_id",
+    "minutes_id",
+    "next_meeting",
+    "open_questions",
+    "opinion",
+    "outcome",
+    "seq",
+    "state",
+    "tasks"
+  ],
+  "properties": {
+    "minutes_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "meeting_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "included": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "reason"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_meeting": {
+      "type": "string"
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opinion": {
+      "type": "string"
+    },
+    "agent_drafts": {
+      "type": "array"
+    },
+    "state": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

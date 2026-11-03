@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/evidence.schema.json",
+  "title": "장면 6 evidence",
+  "description": "근거 — 본문·작성/확인 이력(가상 증빙)",
+  "type": "object",
+  "required": [
+    "as_of",
+    "basis_version",
+    "body",
+    "calculation_hash",
+    "calculation_version",
+    "checked_at",
+    "checked_by",
+    "data_status",
+    "evidence_id",
+    "kind",
+    "newer_calculation",
+    "report_version",
+    "review_id",
+    "target",
+    "virtual",
+    "written_at",
+    "written_by"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "string"
+    },
+    "calculation_version": {
+      "type": "string"
+    },
+    "calculation_hash": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_status": {
+      "type": "string"
+    },
+    "basis_version": {
+      "type": "string"
+    },
+    "newer_calculation": {
+      "type": "null"
+    },
+    "evidence_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "written_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "written_by": {
+      "type": "object",
+      "required": [
+        "account",
+        "name",
+        "role",
+        "userId"
+      ],
+      "properties": {
+        "account": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "body": {
+      "type": "string"
+    },
+    "checked_by": {
+      "type": "object",
+      "required": [
+        "account",
+        "name",
+        "role",
+        "userId"
+      ],
+      "properties": {
+        "account": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "virtual": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

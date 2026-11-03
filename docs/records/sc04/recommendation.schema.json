@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/recommendation.schema.json",
+  "title": "장면 4 recommendation",
+  "description": "담당 임원 공동 추천(RCM41) — 대안별 추천·우선순위·효과·예산(U403)",
+  "type": "object",
+  "required": [
+    "confirmed_at",
+    "confirmed_by",
+    "excluded",
+    "items",
+    "owner_confirmations",
+    "ref",
+    "run_id"
+  ],
+  "properties": {
+    "ref": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alt_id",
+          "budget",
+          "name",
+          "net_2027",
+          "normal_annual",
+          "owner",
+          "priority",
+          "reason",
+          "recommended",
+          "start",
+          "worker"
+        ],
+        "properties": {
+          "alt_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "recommended": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "worker": {
+            "type": "string"
+          },
+          "net_2027": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "normal_annual": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "start": {
+            "type": "string"
+          },
+          "budget": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "excluded": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alt_id",
+          "effect",
+          "evidence",
+          "name",
+          "reason"
+        ],
+        "properties": {
+          "alt_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "null"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "owner_confirmations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by"
+        ],
+        "properties": {
+          "by": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

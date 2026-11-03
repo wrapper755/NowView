@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/price_request.schema.json",
+  "title": "장면 2 price_request",
+  "description": "단가 인상 요청 사본 — 원문 확인 결정·검사 오류·외부 협상기한(이력 포함)(U21)",
+  "type": "object",
+  "required": [
+    "company_doc_id",
+    "errors",
+    "fixture_id",
+    "items",
+    "opinion",
+    "previous",
+    "received_at",
+    "received_by",
+    "request_id",
+    "revision",
+    "source_doc_id",
+    "source_hash",
+    "source_text",
+    "status",
+    "supplier_id",
+    "supplier_name",
+    "verified_at",
+    "verified_by"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "previous": {
+      "type": "null"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "source_doc_id": {
+      "type": "string"
+    },
+    "source_text": {
+      "type": "string"
+    },
+    "company_doc_id": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_by": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "verified_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "verified_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "opinion": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "source_hash": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "currency",
+          "effective_date",
+          "old_price",
+          "part_id",
+          "reason",
+          "requested_price",
+          "tax_basis",
+          "unit"
+        ],
+        "properties": {
+          "part_id": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "tax_basis": {
+            "type": "string"
+          },
+          "old_price": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "requested_price": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "effective_date": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "errors": {
+      "type": "array"
+    },
+    "fixture_id": {
+      "type": "string"
+    },
+    "negotiation_due": {
+      "type": "object",
+      "required": [
+        "due_at",
+        "history"
+      ],
+      "properties": {
+        "due_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "at",
+              "by",
+              "due_at",
+              "reason"
+            ],
+            "properties": {
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "by": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

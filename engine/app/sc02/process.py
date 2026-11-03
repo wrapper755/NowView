@@ -37,6 +37,7 @@ from chaeksas.core.run_log import RunLog
 from chaeksas.core.run_snapshot import dump, restore
 from chaeksas.core.services import OpCall, OpOutcome, ServiceCallError
 
+from app import records
 from app.company import CompanyClient, engine_drives, require_finished
 from app.follower import sync_opened
 from app.sc01 import demo as sc01_demo
@@ -60,6 +61,7 @@ from app.sc01.domain import (
 from app.sc01.process import Sc01Process, read_run_events
 from app.sc01.store import Sc01Store, StaleWrite
 from app.sc02 import domain
+from app.sc02.records import SCENE
 from app.sc02.seed import Seed, load_seed, with_company
 
 PROCESS_PATH = Path(__file__).resolve().parents[2] / "processes" / "sc02.bpmn"
@@ -340,6 +342,15 @@ class Sc02Process:
             state == "started" and node is not None and node.kind == "endEvent"
         )
 
+    def _write_records(self, doc: dict) -> None:
+        """
+        경영 기록을 회사에 적는다 — 바뀐 것만 새 판으로(`app/sc02/records.py`). 저장 직전이다 —
+        회사가 받지 못하면 이 조작은 저장되지 않는다(503).
+        """
+        from app.sc02.records import records_of
+
+        records.write(self.company, doc, SCENE, records_of(doc))
+
     def _commit(self, doc: dict, version: int, run: Any | None, event: str) -> dict:
         if run is not None:
             visited = list((doc.get("bpm") or {}).get("visited", []))
@@ -365,6 +376,7 @@ class Sc02Process:
         # 저장되지 않는다(503). 같은 ref는 회사가 다시 적지 않으므로 재시도해도 겹치지 않는다.
         for record in doc.pop("_company_writes", []):
             self._write_company(doc, record)
+        self._write_records(doc)
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
         except StaleWrite as exc:
@@ -484,6 +496,8 @@ class Sc02Process:
             sc01_run=baseline["run_id"],
             executor=executor,
         )
+        records.restart(self.company, doc, SCENE)
+        self._write_records(doc)
         self.store.insert(sc01_demo_run_id, doc)
         self.publish(f"sc02:{sc01_demo_run_id}")
         return doc
@@ -518,6 +532,7 @@ class Sc02Process:
             _note_master(doc)
             if old_job and not self.center.config.missing(integration=True):
                 self._cancel_center_job(doc, old_job)
+            records.restart(self.company, doc, SCENE)
             return self._commit(doc, version, None, "reset")
 
     # ───────────── 조작 ─────────────

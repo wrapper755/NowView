@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc07/procedure.schema.json",
+  "title": "장면 7 procedure",
+  "description": "확인·적용 절차 — 검증 실행·확인 단계(CF71·CF72)·설정 반영·후속 점검·이력·거절",
+  "type": "object",
+  "required": [
+    "followUp",
+    "history",
+    "lastRejection",
+    "plan",
+    "setting",
+    "startedAt",
+    "steps",
+    "verification"
+  ],
+  "properties": {
+    "startedAt": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "verification": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "agent_version",
+        "executed_at",
+        "failed",
+        "passed",
+        "run_id",
+        "set",
+        "total"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "agent_version": {
+          "type": "string"
+        },
+        "set": {
+          "type": "string"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "failed": {
+          "type": "array"
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assignee",
+          "assigneeName",
+          "nodeId",
+          "plannedAt",
+          "record",
+          "recordId",
+          "role"
+        ],
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "assigneeName": {
+            "type": "string"
+          },
+          "plannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "record": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "required": [
+              "actor",
+              "at",
+              "record_id"
+            ],
+            "properties": {
+              "record_id": {
+                "type": "string"
+              },
+              "improvement_id": {
+                "type": "string"
+              },
+              "actor": {
+                "type": "object",
+                "required": [
+                  "account",
+                  "name",
+                  "role",
+                  "userId"
+                ],
+                "properties": {
+                  "account": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "version": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "content": {
+                "type": "string"
+              },
+              "evidence_type": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "setting": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "active_version",
+        "applied_at",
+        "applied_by",
+        "check_note",
+        "check_result",
+        "checked_at",
+        "checked_by",
+        "content",
+        "evidence_type",
+        "previous_version",
+        "scope",
+        "snapshot_id"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string"
+        },
+        "previous_version": {
+          "type": "string"
+        },
+        "active_version": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "evidence_type": {
+          "type": "string"
+        },
+        "applied_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "applied_by": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "checked_at": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "checked_by": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "check_result": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "check_note": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "followUp": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "items",
+        "linked_at",
+        "measured",
+        "owner",
+        "planned_at",
+        "state"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string"
+        },
+        "planned_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "items": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "linked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "measured": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "plan": {
+      "type": "object",
+      "required": [
+        "next_run_at",
+        "scope",
+        "snapshot_id",
+        "target_version"
+      ],
+      "properties": {
+        "target_version": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "snapshot_id": {
+          "type": "string"
+        },
+        "next_run_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "history": {
+      "type": "array"
+    },
+    "lastRejection": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": true
+}

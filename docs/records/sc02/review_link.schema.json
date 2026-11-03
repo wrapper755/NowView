@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/review_link.schema.json",
+  "title": "장면 2 review_link",
+  "description": "상위 검토건(MR-2706-01) 연결 — 장면 1 물량 감소·장면 2 원가 상승 묶음(U27)",
+  "type": "object",
+  "required": [
+    "bundles",
+    "links",
+    "review_id"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "issue_id",
+          "issue_type",
+          "latest_run_id",
+          "risk_status"
+        ],
+        "properties": {
+          "issue_id": {
+            "type": "string"
+          },
+          "issue_type": {
+            "type": "string"
+          },
+          "latest_run_id": {
+            "type": "string"
+          },
+          "risk_status": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "bundles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "bundle_id",
+          "cost_version",
+          "decisions",
+          "evidence",
+          "hash",
+          "issues",
+          "price_run",
+          "proposal",
+          "provisional",
+          "quantity_run",
+          "reason",
+          "request_id"
+        ],
+        "properties": {
+          "bundle_id": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "provisional": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "proposal": {
+            "type": "string"
+          },
+          "price_run": {
+            "type": "string"
+          },
+          "quantity_run": {
+            "type": "string"
+          },
+          "cost_version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/price_version.schema.json",
+  "title": "장면 2 price_version",
+  "description": "가격 버전 — 요청안·협상안·기안안·승인안 각각의 단가·적용일(U22)",
+  "type": "object",
+  "required": [
+    "created_at",
+    "effective_date",
+    "kind",
+    "new_price",
+    "old_price",
+    "part_id",
+    "predecessor_id",
+    "request_id",
+    "run_id",
+    "seq",
+    "supplier_id",
+    "version_id"
+  ],
+  "properties": {
+    "version_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "part_id": {
+      "type": "string"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "old_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "new_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "effective_date": {
+      "type": "string"
+    },
+    "predecessor_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

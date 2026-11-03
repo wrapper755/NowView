@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/handoff.schema.json",
+  "title": "장면 3 handoff",
+  "description": "장면 4 인계(HANDOFF31) — 인계 기록·완료 요건(U37)",
+  "type": "object",
+  "required": [
+    "completion",
+    "handoff"
+  ],
+  "properties": {
+    "handoff": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "accepted_tasks",
+        "analysis_due",
+        "analysis_run",
+        "as_of",
+        "basis",
+        "business_minutes",
+        "comparison_rule",
+        "completed_by",
+        "consolidation_due",
+        "decision",
+        "elapsed_minutes",
+        "excluded_candidates",
+        "forecast_status",
+        "handoff_id",
+        "memo",
+        "minutes_version",
+        "next_meeting",
+        "open_questions",
+        "outcome",
+        "pending_revisions",
+        "report_version",
+        "review_id",
+        "risk_status",
+        "target_status"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "report_version": {
+          "type": "string"
+        },
+        "analysis_run": {
+          "type": "string"
+        },
+        "minutes_version": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accepted_tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "accepted_at",
+              "owner",
+              "task_id",
+              "version"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "accepted_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "owner": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "excluded_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "candidate_id",
+              "evidence_ref",
+              "reason"
+            ],
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "evidence_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "next_meeting": {
+          "type": "object",
+          "required": [
+            "at",
+            "meeting_id"
+          ],
+          "properties": {
+            "meeting_id": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        },
+        "analysis_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "consolidation_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "risk_status": {
+          "type": "string"
+        },
+        "forecast_status": {
+          "type": "string"
+        },
+        "target_status": {
+          "type": "string"
+        },
+        "comparison_rule": {
+          "type": "string"
+        },
+        "pending_revisions": {
+          "type": "array"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_by": {
+          "type": "string"
+        },
+        "memo": {
+          "type": "string"
+        },
+        "elapsed_minutes": {
+          "type": "integer"
+        },
+        "business_minutes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "blocking",
+        "items",
+        "met",
+        "rate"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "ok"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "met": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rate": {
+          "type": "object",
+          "required": [
+            "accepted",
+            "assigned",
+            "rate"
+          ],
+          "properties": {
+            "assigned": {
+              "type": "integer"
+            },
+            "accepted": {
+              "type": "integer"
+            },
+            "rate": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

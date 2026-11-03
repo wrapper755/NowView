@@ -1,0 +1,2710 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "SC06:SC06",
+  "version": 8,
+  "scene": 6,
+  "state": "REPORTED",
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "과제 완료와 성과 실현 검토",
+  "body": {
+   "demoRunId": "demo-example",
+   "caseId": "BASE",
+   "clock": "2028-01-14T11:00:00+09:00",
+   "step": "D607",
+   "reviewId": "RV61",
+   "reportVersion": "RPT61-v1",
+   "calculationVersion": "CALC61-v1",
+   "reportState": "REPORTED",
+   "sc05": {
+    "handoff_id": "HANDOFF51",
+    "official": "FC51",
+    "annual": "3428986680",
+    "target": "3477290000",
+    "gap": "48303320"
+   },
+   "batch": {
+    "batch_id": "IMP61-1",
+    "seed_id": "SYN-SC06-v0.6",
+    "sha256": "534a73f9eb33790129b3e769e122f2fe57ed51ae3339310d0b6699e5f4c7fecb",
+    "problems": [],
+    "loaded_at": "2028-01-14T11:00:00+09:00",
+    "counts": {
+     "orders": 180,
+     "held_orders": 0,
+     "changes": 14,
+     "evidence": 21
+    }
+   },
+   "status": {
+    "procedure": "REPORTED",
+    "report": "REPORTED",
+    "confirmed": [
+     "CF61-P",
+     "CF61-B",
+     "CF61-F",
+     "CF61-R",
+     "CF61-M"
+    ],
+    "risk": "OPEN"
+   },
+   "executor": "embedded",
+   "companyLog": [
+    {
+     "seq": 1,
+     "at": "2028-01-11T09:00:00+09:00",
+     "direction": "in",
+     "what": "공식 전망을 읽었다 — FC51 2027 연간 3,428,986,680원(4분기 기대 효과의 기준)",
+     "doc_id": "FC51",
+     "by": null
+    }
+   ],
+   "bpm": {
+    "executor": "embedded",
+    "externalRunId": null,
+    "state": "done",
+    "visited": [
+     "Start",
+     "Task_Open",
+     "Gw_Confirm_Merge",
+     "Gw_Confirm_Split",
+     "Confirm_Prod",
+     "Record_Confirm_Prod",
+     "Confirm_Buy",
+     "Record_Confirm_Buy",
+     "Gw_Confirm_Join",
+     "Review_Finance",
+     "Record_Review_Finance",
+     "Gw_Review_Finance",
+     "Draft_Conclusion",
+     "Record_Draft_Conclusion",
+     "Finalize_Report",
+     "Record_Finalize_Report",
+     "Gw_Finalize",
+     "Report_CEO",
+     "Record_Report_CEO",
+     "End"
+    ]
+   }
+  },
+  "ref": "demo-example:scene/SC06:SC06:v8",
+  "seq": 753,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "procedure",
+  "record_id": "SC06:RV61",
+  "version": 8,
+  "scene": 6,
+  "state": "REPORTED",
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "확인 절차",
+  "body": {
+   "startedAt": "2028-01-11T09:00:00+09:00",
+   "steps": [
+    {
+     "nodeId": "Confirm_Prod",
+     "recordId": "CF61-P",
+     "role": "생산임원",
+     "assignee": "u-prod-exec",
+     "assigneeName": "권태윤",
+     "step": "담당 임원 성과 근거 확인",
+     "plannedAt": "2028-01-11T14:00:00+09:00",
+     "record": {
+      "record_id": "CF61-P",
+      "seq": 0,
+      "version": "RPT61-v1",
+      "step": "담당 임원 성과 근거 확인",
+      "actor": {
+       "account": "EX-PROD",
+       "userId": "u-prod-exec",
+       "name": "권태윤",
+       "role": "생산임원"
+      },
+      "at": "2028-01-11T14:00:00+09:00",
+      "state": "CONFIRMED",
+      "content": "ACT41 완료·Q4 효과 확인",
+      "refs": [
+       "DOC61-PROD"
+      ],
+      "tasks": [
+       "ACT41"
+      ]
+     }
+    },
+    {
+     "nodeId": "Confirm_Buy",
+     "recordId": "CF61-B",
+     "role": "구매임원",
+     "assignee": "u-buy-exec",
+     "assigneeName": "문지후",
+     "step": "담당 임원 성과 근거 확인",
+     "plannedAt": "2028-01-11T14:10:00+09:00",
+     "record": {
+      "record_id": "CF61-B",
+      "seq": 1,
+      "version": "RPT61-v1",
+      "step": "담당 임원 성과 근거 확인",
+      "actor": {
+       "account": "EX-BUY",
+       "userId": "u-buy-exec",
+       "name": "문지후",
+       "role": "구매임원"
+      },
+      "at": "2028-01-11T14:10:00+09:00",
+      "state": "CONFIRMED",
+      "content": "ACT42·43 효과·원인 및 JDG61 판단 확인",
+      "refs": [
+       "DOC61-COST",
+       "DOC61-ALT",
+       "DOC61-JDG",
+       "AG62"
+      ],
+      "tasks": [
+       "ACT42",
+       "ACT43"
+      ]
+     }
+    },
+    {
+     "nodeId": "Review_Finance",
+     "recordId": "CF61-F",
+     "role": "경영관리임원",
+     "assignee": "u-fin-exec",
+     "assigneeName": "강민서",
+     "step": "경영관리 종합 확인",
+     "plannedAt": "2028-01-12T16:00:00+09:00",
+     "record": {
+      "record_id": "CF61-F",
+      "seq": 2,
+      "version": "RPT61-v1",
+      "step": "경영관리 종합 확인",
+      "actor": {
+       "account": "USR-CFO",
+       "userId": "u-fin-exec",
+       "name": "강민서",
+       "role": "경영관리임원"
+      },
+      "at": "2028-01-12T16:00:00+09:00",
+      "state": "CONFIRMED",
+      "content": "분기 기준·중복·합계·잔여 위험·후속 책임 확인",
+      "refs": [
+       "RV61",
+       "JDG61",
+       "FUP61",
+       "PROP61"
+      ],
+      "tasks": []
+     }
+    },
+    {
+     "nodeId": "Draft_Conclusion",
+     "recordId": "TXT61",
+     "role": "경영관리담당",
+     "assignee": "u-fin",
+     "assigneeName": "정하윤",
+     "step": "보고 결론",
+     "plannedAt": "2028-01-13T17:00:00+09:00",
+     "record": {
+      "record_id": "TXT61",
+      "seq": 5,
+      "version": "RPT61-v1",
+      "step": "보고 결론",
+      "actor": {
+       "account": "USR-FIN",
+       "userId": "u-fin",
+       "name": "정하윤",
+       "role": "경영관리담당"
+      },
+      "at": "2028-01-13T17:00:00+09:00",
+      "state": "FINALIZED",
+      "content": "3과제 Q4 기대91.8백만원 대비87.0백만원 기여를 확인했습니다. 긴급구매 축소는30.6백만원 대비25.8백만원으로 일부 미달했습니다. 내부 지연은 운영 보완, 반복 공급제약은 추가 과제로 검토하며 다음 월간보고에서 결과와 검토안을 보고합니다.",
+      "refs": [
+       "SC06과제성과",
+       "FUP61",
+       "PROP61"
+      ],
+      "tasks": []
+     }
+    },
+    {
+     "nodeId": "Finalize_Report",
+     "recordId": "CF61-R",
+     "role": "경영관리임원",
+     "assignee": "u-fin-exec",
+     "assigneeName": "강민서",
+     "step": "대표 월간 보고본 확정",
+     "plannedAt": "2028-01-13T17:00:00+09:00",
+     "record": {
+      "record_id": "CF61-R",
+      "seq": 3,
+      "version": "RPT61-v1",
+      "step": "대표 월간 보고본 확정",
+      "actor": {
+       "account": "USR-CFO",
+       "userId": "u-fin-exec",
+       "name": "강민서",
+       "role": "경영관리임원"
+      },
+      "at": "2028-01-13T17:00:00+09:00",
+      "state": "FINALIZED",
+      "content": "보고 편성 책임자인 CFO가 확정. 과제 실행 승인 아님",
+      "refs": [
+       "CF61-P",
+       "CF61-B",
+       "CF61-F"
+      ],
+      "tasks": []
+     }
+    },
+    {
+     "nodeId": "Report_CEO",
+     "recordId": "CF61-M",
+     "role": "대표이사",
+     "assignee": "u-ceo",
+     "assigneeName": "임하준",
+     "step": "대표 월간 보고",
+     "plannedAt": "2028-01-14T10:00:00+09:00",
+     "record": {
+      "record_id": "CF61-M",
+      "seq": 4,
+      "version": "RPT61-v1",
+      "step": "대표 월간 보고",
+      "actor": {
+       "account": "USR-CEO",
+       "userId": "u-ceo",
+       "name": "임하준",
+       "role": "대표이사"
+      },
+      "at": "2028-01-14T10:00:00+09:00",
+      "state": "REPORTED",
+      "content": "개선 기여와 남는 차이, 보완·발의 및 다음 확인 보고",
+      "refs": [
+       "CF61-R"
+      ],
+      "tasks": []
+     }
+    }
+   ],
+   "note": {
+    "record_id": "NOTE61",
+    "seq": 6,
+    "version": "RPT61-v1",
+    "step": "남는 사항",
+    "actor": {
+     "account": "USR-CFO",
+     "userId": "u-fin-exec",
+     "name": "강민서",
+     "role": "경영관리임원"
+    },
+    "at": "2028-01-13T17:00:00+09:00",
+    "state": "OPEN",
+    "content": "서명PDF 보완1/18, 운영보완1/21, 추가 검토안2/8, 다음 보고2/11. 신규 효과·예산 미산정. 위험 계속 관리.",
+    "refs": [
+     "JDG61",
+     "FUP61",
+     "PROP61",
+     "RISK61"
+    ],
+    "tasks": []
+   },
+   "history": [],
+   "finalizeBlocking": [],
+   "lastRejection": null
+  },
+  "ref": "demo-example:procedure/SC06:RV61:v8",
+  "seq": 754,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "review_summary",
+  "record_id": "SC06:RV61",
+  "version": 7,
+  "scene": 6,
+  "state": "REPORTED",
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "완료·성과 요약",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "period": {
+    "start": "2027-10-01T00:00:00+09:00",
+    "end": "2027-12-31T23:59:00+09:00",
+    "label": "2027 Q4"
+   },
+   "data_close": "2028-01-07T18:00:00+09:00",
+   "report_date": "2028-01-14T10:00:00+09:00",
+   "scope": {
+    "plant": "울산",
+    "product": "A제품",
+    "models": "a~e",
+    "unit": "KRW",
+    "display": "백만원"
+   },
+   "tasks": [
+    {
+     "task_id": "ACT41",
+     "expected_krw": 54000000,
+     "actual_krw": 54000000,
+     "variance_krw": 0,
+     "calculation_status": "CONFIRMED",
+     "months": 3,
+     "name": "부분 공정·외주 조정",
+     "completed_at": "2027-08-31T18:00:00+09:00",
+     "activity_judgment": "COMPLETION_CONFIRMED",
+     "judgment_id": "JDG62",
+     "performance": "기대 달성",
+     "evidence_refs": [
+      "DOC54",
+      "DOC61-PROD"
+     ],
+     "followup": "정규 운영·품질 납기 점검",
+     "focus": false
+    },
+    {
+     "task_id": "ACT42",
+     "expected_krw": 30600000,
+     "actual_krw": 25800000,
+     "variance_krw": -4800000,
+     "calculation_status": "CONFIRMED",
+     "months": 3,
+     "name": "긴급구매 축소",
+     "completed_at": "2027-09-30T18:00:00+09:00",
+     "activity_judgment": "COMPLETION_CONFIRMED",
+     "judgment_id": "JDG61",
+     "performance": "일부 기대 미달",
+     "evidence_refs": [
+      "DOC59",
+      "DOC61-HAND",
+      "JDG61"
+     ],
+     "followup": "FUP61;PROP61",
+     "focus": true
+    },
+    {
+     "task_id": "ACT43",
+     "expected_krw": 7200000,
+     "actual_krw": 7200000,
+     "variance_krw": 0,
+     "calculation_status": "CONFIRMED",
+     "months": 3,
+     "name": "기존 승인 대체 공급업체",
+     "completed_at": "2027-10-29T18:00:00+09:00",
+     "activity_judgment": "COMPLETION_CONFIRMED",
+     "judgment_id": "JDG63",
+     "performance": "기대 달성",
+     "evidence_refs": [
+      "DOC55",
+      "DOC61-ALT"
+     ],
+     "followup": "정규 운영 유지",
+     "focus": false
+    }
+   ],
+   "totals": {
+    "expected_krw": 91800000,
+    "actual_krw": 87000000,
+    "variance_krw": -4800000,
+    "calculation_status": "CONFIRMED",
+    "confirmed_subtotal": {
+     "tasks": [
+      "ACT41",
+      "ACT42",
+      "ACT43"
+     ],
+     "expected_krw": 91800000,
+     "actual_krw": 87000000
+    }
+   },
+   "judgments": [
+    {
+     "judgment_id": "JDG61",
+     "task_id": "ACT42",
+     "target": "ACT42 완료·검토",
+     "collection_label": "일부 보완 중",
+     "collection_state": "PARTIAL",
+     "missing": "정규 운영 인계 확인서의 서명본 재스캔 PDF 첨부",
+     "alternatives": [
+      "DOC59 전자확인",
+      "DOC51 운영기준",
+      "DOC61-HAND 적용·대행 운영기록"
+     ],
+     "impact": "활동 이행과 비용집계는 다른 기록으로 확인됨. 서명 PDF는 중복 보관용이며 금액 미확인 없음",
+     "decision": "활동 완료 확인 / 성과 검토 가능",
+     "judged_by": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "judged_at": "2028-01-10T14:00:00+09:00",
+     "owner": {
+      "account": "USR-BUY",
+      "userId": "u-buy-lead",
+      "name": "서도현",
+      "role": "구매팀장"
+     },
+     "due_at": "2028-01-18T18:00:00+09:00",
+     "evidence_id": "DOC61-JDG",
+     "judgment_state": "REVIEWABLE",
+     "activity_state": "COMPLETION_CONFIRMED",
+     "hold_reasons": []
+    },
+    {
+     "judgment_id": "JDG62",
+     "task_id": "ACT41",
+     "target": "ACT41 완료·검토",
+     "collection_label": "수집 완료",
+     "collection_state": "COMPLETE",
+     "missing": null,
+     "alternatives": [
+      "DOC54",
+      "DOC61-PROD"
+     ],
+     "impact": "전환 인계와 Q4수량·변동비 증빙 대사 완료",
+     "decision": "완료 확인 / 검토 가능",
+     "judged_by": {
+      "account": "EX-PROD",
+      "userId": "u-prod-exec",
+      "name": "권태윤",
+      "role": "생산임원"
+     },
+     "judged_at": "2028-01-10T14:00:00+09:00",
+     "owner": {
+      "account": "USR-PROD",
+      "userId": "u-prod-lead",
+      "name": "배정훈",
+      "role": "생산팀장"
+     },
+     "due_at": null,
+     "evidence_id": "DOC61-PROD",
+     "judgment_state": "REVIEWABLE",
+     "activity_state": "COMPLETION_CONFIRMED",
+     "hold_reasons": []
+    },
+    {
+     "judgment_id": "JDG63",
+     "task_id": "ACT43",
+     "target": "ACT43 안정화 완료",
+     "collection_label": "수집 완료",
+     "collection_state": "COMPLETE",
+     "missing": null,
+     "alternatives": [
+      "DOC55",
+      "DOC61-ALT"
+     ],
+     "impact": "10/29 안정화 확인. Q4 공급량·단가·물류비 대사",
+     "decision": "완료 확인 / 검토 가능",
+     "judged_by": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "judged_at": "2028-01-10T14:10:00+09:00",
+     "owner": {
+      "account": "USR-BUY",
+      "userId": "u-buy-lead",
+      "name": "서도현",
+      "role": "구매팀장"
+     },
+     "due_at": null,
+     "evidence_id": "DOC61-ALT",
+     "judgment_state": "REVIEWABLE",
+     "activity_state": "COMPLETION_CONFIRMED",
+     "hold_reasons": []
+    }
+   ],
+   "agent": [
+    {
+     "run_id": "AG61",
+     "seq": 0,
+     "at": "2028-01-08T09:00:00+09:00",
+     "input_scope": "SC06거래·비용·완료기록",
+     "task": "자료 취합·대사·미비 안내",
+     "draft": "서명 PDF 미수신, 완료 검토 시 확인 필요",
+     "candidate_cause": null,
+     "human": "전자확인·적용 기록을 대체 근거로 검토 가능. 미비는 별도 보완",
+     "reviewed_by": {
+      "account": "USR-FIN",
+      "userId": "u-fin",
+      "name": "정하윤",
+      "role": "경영관리담당"
+     },
+     "reviewed_at": "2028-01-10T13:30:00+09:00",
+     "links": [
+      "JDG61"
+     ],
+     "state": "HUMAN_REVIEWED",
+     "mode": "REPLAY"
+    },
+    {
+     "run_id": "AG63",
+     "seq": 2,
+     "at": "2028-01-11T09:00:00+09:00",
+     "input_scope": "확인 성과·최종 원인·FUP61·PROP61",
+     "task": "월간 보고 초안",
+     "draft": "개선 기여와 일부 미달, 내부 지연 보완 및 공급조건 검토 제안",
+     "candidate_cause": null,
+     "human": "책임·기한·품질/재고 경제성 검토를 명시. 확정되지 않은 효과는 미산정 유지",
+     "reviewed_by": {
+      "account": "USR-FIN",
+      "userId": "u-fin",
+      "name": "정하윤",
+      "role": "경영관리담당"
+     },
+     "reviewed_at": "2028-01-11T15:00:00+09:00",
+     "links": [
+      "RPT61-v1"
+     ],
+     "state": "HUMAN_REVIEWED",
+     "mode": "REPLAY"
+    }
+   ],
+   "cause_overview": [
+    {
+     "cause": "INTERNAL",
+     "label": "내부 확인 지연",
+     "count": 4,
+     "actual_urgent_cost_krw": 4800000
+    },
+    {
+     "cause": "SUPPLY",
+     "label": "적시 공유 후 조달 제약",
+     "count": 9,
+     "actual_urgent_cost_krw": 10800000
+    },
+    {
+     "cause": "MIXED",
+     "label": "내부 지연·조달 제약 복합",
+     "count": 1,
+     "actual_urgent_cost_krw": 1200000
+    }
+   ],
+   "batch": {
+    "batch_id": "IMP61-1",
+    "seed_id": "SYN-SC06-v0.6",
+    "sha256": "534a73f9eb33790129b3e769e122f2fe57ed51ae3339310d0b6699e5f4c7fecb",
+    "problems": [],
+    "loaded_at": "2028-01-14T11:00:00+09:00",
+    "counts": {
+     "orders": 180,
+     "held_orders": 0,
+     "changes": 14,
+     "evidence": 21
+    }
+   },
+   "checks": [
+    {
+     "check_id": "CK61-01",
+     "label": "FC51 Q4 기대효과",
+     "value": 91800000
+    },
+    {
+     "check_id": "CK61-02",
+     "label": "Q4 확인 효과",
+     "value": 87000000
+    },
+    {
+     "check_id": "CK61-03",
+     "label": "ACT42 효과",
+     "value": 25800000
+    },
+    {
+     "check_id": "CK61-04",
+     "label": "기대차이",
+     "value": -4800000
+    },
+    {
+     "check_id": "CK61-05",
+     "label": "주문 건수",
+     "value": 180
+    },
+    {
+     "check_id": "CK61-06",
+     "label": "긴급건수",
+     "value": 14
+    },
+    {
+     "check_id": "CK61-07",
+     "label": "긴급비",
+     "value": 16800000
+    },
+    {
+     "check_id": "CK61-08",
+     "label": "원인금액 대사",
+     "value": 0
+    },
+    {
+     "check_id": "CK61-09",
+     "label": "고정비절감",
+     "value": 0
+    },
+    {
+     "check_id": "CK61-10",
+     "label": "10월 수량",
+     "value": 9690
+    },
+    {
+     "check_id": "CK61-11",
+     "label": "11월 수량",
+     "value": 9500
+    },
+    {
+     "check_id": "CK61-12",
+     "label": "12월 수량",
+     "value": 9025
+    },
+    {
+     "check_id": "CK61-13",
+     "label": "확인 지연(복합 포함)",
+     "value": 5
+    },
+    {
+     "check_id": "CK61-14",
+     "label": "SC05 기대값과 스냅샷 대사",
+     "value": 0
+    },
+    {
+     "check_id": "CK61-15",
+     "label": "원인 건수 대사",
+     "value": 0
+    },
+    {
+     "check_id": "CK61-16",
+     "label": "Q4 가상 관리손익",
+     "value": 902868880
+    },
+    {
+     "check_id": "CK61-17",
+     "label": "과제 기여 기간 Q4",
+     "value": 9
+    }
+   ]
+  },
+  "ref": "demo-example:review_summary/SC06:RV61:v7",
+  "seq": 755,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "task_variance",
+  "record_id": "SC06:ACT42",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "ACT42 차이",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "task_id": "ACT42",
+   "task": {
+    "task_id": "ACT42",
+    "expected_krw": 30600000,
+    "actual_krw": 25800000,
+    "variance_krw": -4800000,
+    "calculation_status": "CONFIRMED",
+    "months": 3
+   },
+   "cause_groups": [
+    {
+     "cause": "INTERNAL",
+     "label": "내부 확인 지연",
+     "count": 4,
+     "actual_urgent_cost_krw": 4800000,
+     "orders": [
+      "PO61-1001",
+      "PO61-1101",
+      "PO61-1102",
+      "PO61-1201"
+     ]
+    },
+    {
+     "cause": "SUPPLY",
+     "label": "적시 공유 후 조달 제약",
+     "count": 9,
+     "actual_urgent_cost_krw": 10800000,
+     "orders": [
+      "PO61-1002",
+      "PO61-1003",
+      "PO61-1004",
+      "PO61-1103",
+      "PO61-1104",
+      "PO61-1105",
+      "PO61-1202",
+      "PO61-1203",
+      "PO61-1204"
+     ]
+    },
+    {
+     "cause": "MIXED",
+     "label": "내부 지연·조달 제약 복합",
+     "count": 1,
+     "actual_urgent_cost_krw": 1200000,
+     "orders": [
+      "PO61-1005"
+     ]
+    }
+   ],
+   "cause_total": {
+    "count": 14,
+    "actual_urgent_cost_krw": 16800000
+   },
+   "cause_reconciliation": {
+    "count_residual": 0,
+    "cost_residual": 0,
+    "problems": []
+   },
+   "variance_krw": -4800000,
+   "months": [
+    {
+     "effect_id": "EF61-ACT42-10",
+     "task_id": "ACT42",
+     "month": "2027-10-01",
+     "baseline_id": "BASE61-2",
+     "expected": 9400000,
+     "qty": 9690,
+     "baseline_or_avoided": 14400000,
+     "actual_cost": 6000000,
+     "operating_cost": 200000,
+     "fixed_saving": 0,
+     "net": 8200000,
+     "urgent_count": 5,
+     "unconfirmed_orders": [],
+     "sources": [
+      "SC06구매거래",
+      "SC06운영비"
+     ],
+     "variance": -1200000,
+     "status": "CONFIRMED"
+    },
+    {
+     "effect_id": "EF61-ACT42-11",
+     "task_id": "ACT42",
+     "month": "2027-11-01",
+     "baseline_id": "BASE61-5",
+     "expected": 10600000,
+     "qty": 9500,
+     "baseline_or_avoided": 14400000,
+     "actual_cost": 6000000,
+     "operating_cost": 200000,
+     "fixed_saving": 0,
+     "net": 8200000,
+     "urgent_count": 5,
+     "unconfirmed_orders": [],
+     "sources": [
+      "SC06구매거래",
+      "SC06운영비"
+     ],
+     "variance": -2400000,
+     "status": "CONFIRMED"
+    },
+    {
+     "effect_id": "EF61-ACT42-12",
+     "task_id": "ACT42",
+     "month": "2027-12-01",
+     "baseline_id": "BASE61-8",
+     "expected": 10600000,
+     "qty": 9025,
+     "baseline_or_avoided": 14400000,
+     "actual_cost": 4800000,
+     "operating_cost": 200000,
+     "fixed_saving": 0,
+     "net": 9400000,
+     "urgent_count": 4,
+     "unconfirmed_orders": [],
+     "sources": [
+      "SC06구매거래",
+      "SC06운영비"
+     ],
+     "variance": -1200000,
+     "status": "CONFIRMED"
+    }
+   ],
+   "metrics": [
+    {
+     "metric_id": "M61-01",
+     "label": "구매 주문",
+     "value": 180,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-02",
+     "label": "긴급구매",
+     "value": 14,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-04",
+     "label": "긴급 추가비",
+     "value": 16800000,
+     "unit": "원"
+    },
+    {
+     "metric_id": "M61-05",
+     "label": "분기 지원비",
+     "value": 600000,
+     "unit": "원"
+    },
+    {
+     "metric_id": "M61-06",
+     "label": "공유 지연",
+     "value": 0,
+     "unit": "건",
+     "unconfirmed": 0
+    },
+    {
+     "metric_id": "M61-07",
+     "label": "구매 확인 지연",
+     "value": 5,
+     "unit": "건",
+     "unconfirmed": 0
+    },
+    {
+     "metric_id": "M61-08",
+     "label": "기준 긴급건",
+     "value": 36,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-09",
+     "label": "FC51 전망 긴급건",
+     "value": 10,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-10",
+     "label": "전망 대비 추가 긴급건",
+     "value": 4,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-11",
+     "label": "납기 이상",
+     "value": 0,
+     "unit": "건"
+    },
+    {
+     "metric_id": "M61-12",
+     "label": "품질 이상",
+     "value": 0,
+     "unit": "건"
+    }
+   ],
+   "limits": {
+    "share_minutes": 60,
+    "confirm_minutes": 120
+   },
+   "order": {
+    "order_id": "PO61-1103",
+    "seq": 62,
+    "task_id": "ACT42",
+    "month": "2027-11-01",
+    "model_id": "A-b",
+    "part_id": "P-COM01",
+    "change_ref": "CH61-1103",
+    "qty": 159,
+    "urgent": true,
+    "freight": 900000,
+    "surcharge": 300000,
+    "cause": "SUPPLY",
+    "ordered_at": "2027-11-12T10:20:00+09:00",
+    "approver": {
+     "account": "EX-BUY",
+     "userId": "u-buy-exec",
+     "name": "문지후",
+     "role": "구매임원"
+    },
+    "approved_at": "2027-11-12T10:10:00+09:00",
+    "delivery_issue": 0,
+    "quality_issue": 0,
+    "cost_check": "CONFIRMED",
+    "evidence_id": "E61-1103",
+    "held": false,
+    "hold_reasons": [],
+    "urgent_cost": 1200000
+   },
+   "change": {
+    "change_id": "CH61-1103",
+    "order_id": "PO61-1103",
+    "received_at": "2027-11-12T09:00:00+09:00",
+    "shared_at": "2027-11-12T09:20:00+09:00",
+    "confirmed_at": "2027-11-12T10:00:00+09:00",
+    "required_at": "2027-11-14T09:00:00+09:00",
+    "supply_at": "2027-11-16T09:00:00+09:00",
+    "cause": "SUPPLY",
+    "reason": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음",
+    "evidence_id": "E61-1103",
+    "share_minutes": 20,
+    "confirm_minutes": 40,
+    "supply_gap_minutes": 2880
+   },
+   "evidence": [
+    "E61-1103"
+   ],
+   "agent": {
+    "run_id": "AG62",
+    "seq": 1,
+    "at": "2028-01-08T09:10:00+09:00",
+    "input_scope": "PO61-1103 주담당 확인란, 주문 비용; 대행 로그 미결합",
+    "task": "원인 후보 제시",
+    "draft": "주담당 확인 기록이 없어 확인 지연 가능성. 대행 기록 및 공급 가능일 확인 필요",
+    "candidate_cause": "INTERNAL",
+    "human": "대행 USR-BUY2가09:20 공유 후10:00 확인. 정상공급11/16, 요구납기11/14. 원인은 확인 지연이 아니라 조달 제약으로 확인",
+    "reviewed_by": {
+     "account": "USR-BUY",
+     "userId": "u-buy-lead",
+     "name": "서도현",
+     "role": "구매팀장"
+    },
+    "reviewed_at": "2028-01-10T11:00:00+09:00",
+    "links": [
+     "E61-1103",
+     "CH61-1103",
+     "PO61-1103"
+    ],
+    "state": "HUMAN_REVIEWED",
+    "mode": "REPLAY"
+   },
+   "urgent_orders": [
+    {
+     "order_id": "PO61-1001",
+     "month": "2027-10-01",
+     "cause": "INTERNAL",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 180,
+     "supply_gap_minutes": 1440
+    },
+    {
+     "order_id": "PO61-1002",
+     "month": "2027-10-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1003",
+     "month": "2027-10-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1004",
+     "month": "2027-10-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1005",
+     "month": "2027-10-01",
+     "cause": "MIXED",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 180,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1101",
+     "month": "2027-11-01",
+     "cause": "INTERNAL",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 180,
+     "supply_gap_minutes": 1440
+    },
+    {
+     "order_id": "PO61-1102",
+     "month": "2027-11-01",
+     "cause": "INTERNAL",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 180,
+     "supply_gap_minutes": 1440
+    },
+    {
+     "order_id": "PO61-1103",
+     "month": "2027-11-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1104",
+     "month": "2027-11-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1105",
+     "month": "2027-11-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1201",
+     "month": "2027-12-01",
+     "cause": "INTERNAL",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 180,
+     "supply_gap_minutes": 1440
+    },
+    {
+     "order_id": "PO61-1202",
+     "month": "2027-12-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1203",
+     "month": "2027-12-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    },
+    {
+     "order_id": "PO61-1204",
+     "month": "2027-12-01",
+     "cause": "SUPPLY",
+     "urgent_cost": 1200000,
+     "held": false,
+     "share_minutes": 20,
+     "confirm_minutes": 40,
+     "supply_gap_minutes": 2880
+    }
+   ]
+  },
+  "ref": "demo-example:task_variance/SC06:ACT42:v6",
+  "seq": 756,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-ALT",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-ALT",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-ALT",
+   "kind": "Q4 대체 공급",
+   "target": "ACT43",
+   "written_at": "2028-01-07T15:00:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "P-MAT02 월6,000개, 기존5,000원/대체4,500원/물류100원. 10/29 안정화 확인, 품질·납기 이상0. Q4 추가검증비0.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2028-01-10T14:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-ALT:v6",
+  "seq": 757,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-COST",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-COST",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-COST",
+   "kind": "Q4 구매·운영비 마감",
+   "target": "ACT42",
+   "written_at": "2028-01-07T18:00:00+09:00",
+   "written_by": {
+    "account": "USR-FIN",
+    "userId": "u-fin",
+    "name": "정하윤",
+    "role": "경영관리담당"
+   },
+   "body": "P-COM01 주문180건, 월수량9690/9500/9025. 긴급5/5/4건, 건당 운송900000+할증300000. 운영지원비 월200000. 취소0, 비용 미확인0.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2028-01-10T14:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-COST:v6",
+  "seq": 758,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-HAND",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-HAND",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-HAND",
+   "kind": "운영 적용 및 인계 근거",
+   "target": "ACT42",
+   "written_at": "2028-01-07T16:00:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "9/30 인계 전자확인(DOC59), 공동 기준(DOC51), Q4 대행·알림 적용 기록 확인. 중복 보관용 서명본 재스캔 PDF만 미첨부. 활동 이행 자체의 증빙은 확보.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2028-01-10T14:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-HAND:v6",
+  "seq": 759,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-JDG",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-JDG",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-JDG",
+   "kind": "미비 영향 판단",
+   "target": "JDG61",
+   "written_at": "2028-01-10T13:30:00+09:00",
+   "written_by": {
+    "account": "USR-FIN",
+    "userId": "u-fin",
+    "name": "정하윤",
+    "role": "경영관리담당"
+   },
+   "body": "서명 PDF 미비는 전자확인·운영기록으로 대체 가능. 원가·운송 증빙은 모두 확보돼 효과 금액 불확실성 없음. 자료상태는 일부 보완 중으로 유지하고 1/18까지 첨부 보완.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2028-01-10T14:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-JDG:v6",
+  "seq": 760,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-MON",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-MON",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-MON",
+   "kind": "분기 중 월간·수시 점검",
+   "target": "FUP51;FUP52;FUP53",
+   "written_at": "2027-12-29T16:00:00+09:00",
+   "written_by": {
+    "account": "USR-FIN",
+    "userId": "u-fin",
+    "name": "정하윤",
+    "role": "경영관리담당"
+   },
+   "body": "10/29 ACT43 안정화와 ACT42 긴급5건 확인. 11/29 긴급5건·대행 지연 시정. 12/29 누적 추세와 공급 제약 재점검. 12월말까지 개입을 미루지 않았으며 분기 종합에서 보완·신규 검토를 정리.",
+   "checked_by": {
+    "account": "USR-CFO",
+    "userId": "u-fin-exec",
+    "name": "강민서",
+    "role": "경영관리임원"
+   },
+   "checked_at": "2027-12-29T17:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-MON:v6",
+  "seq": 761,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-PROD",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-PROD",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-PROD",
+   "kind": "Q4 공정실적",
+   "target": "ACT41",
+   "written_at": "2028-01-07T15:00:00+09:00",
+   "written_by": {
+    "account": "USR-PROD",
+    "userId": "u-prod-lead",
+    "name": "배정훈",
+    "role": "생산팀장"
+   },
+   "body": "10·11·12월 각각3,000대분. 회피 변동비15,000원, 외주8,000원, 물류1,000원. 고정비 회피0. 추가전환비0. 납기·품질 이상0.",
+   "checked_by": {
+    "account": "EX-PROD",
+    "userId": "u-prod-exec",
+    "name": "권태윤",
+    "role": "생산임원"
+   },
+   "checked_at": "2028-01-10T14:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-PROD:v6",
+  "seq": 762,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:DOC61-PROP",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "DOC61-PROP",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "DOC61-PROP",
+   "kind": "추가 발의 검토",
+   "target": "PROP61",
+   "written_at": "2028-01-10T16:00:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "P-COM01 공급조건 검토. ACT43는 P-MAT02 가격절감으로 범위 불중복. 운송비 절감과 재고·자금·보관·진부화·품질·납기 영향을 함께 비교. 2/8검토안, 2/11월간보고. 효과·예산 아직 미산정.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2028-01-11T14:00:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:DOC61-PROP:v6",
+  "seq": 763,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1001",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1001",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1001",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1001",
+   "written_at": "2027-10-04T12:25:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "확인180분 소요로10:30 정상발주 마감 경과. 마감내 발주면 필요일 도착 가능했으나 실제 확인후 정상조달은1일 늦어 긴급배차 필요. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-10-04T12:30:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1001:v6",
+  "seq": 764,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1002",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1002",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1002",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1002",
+   "written_at": "2027-10-08T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-10-08T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1002:v6",
+  "seq": 765,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1003",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1003",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1003",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1003",
+   "written_at": "2027-10-12T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-10-12T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1003:v6",
+  "seq": 766,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1004",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1004",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1004",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1004",
+   "written_at": "2027-10-18T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-10-18T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1004:v6",
+  "seq": 767,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1005",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1005",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1005",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1005",
+   "written_at": "2027-10-22T12:25:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "확인 지연과 공급 여력 제약 동시 발생. 복합으로 단독 귀속. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-10-22T12:30:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1005:v6",
+  "seq": 768,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1101",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1101",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1101",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1101",
+   "written_at": "2027-11-04T12:25:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "확인180분 소요로10:30 정상발주 마감 경과. 마감내 발주면 필요일 도착 가능했으나 실제 확인후 정상조달은1일 늦어 긴급배차 필요. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-11-04T12:30:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1101:v6",
+  "seq": 769,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1102",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1102",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1102",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1102",
+   "written_at": "2027-11-08T12:25:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "확인180분 소요로10:30 정상발주 마감 경과. 마감내 발주면 필요일 도착 가능했으나 실제 확인후 정상조달은1일 늦어 긴급배차 필요. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-11-08T12:30:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1102:v6",
+  "seq": 770,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1103",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1103",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1103",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1103",
+   "written_at": "2027-11-12T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY2",
+    "userId": "u-buy",
+    "name": "윤채원",
+    "role": "구매담당"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족. 주담당 확인란은 미입력이나 대행 USR-BUY2의 10:00 전자확인 존재. Agent 최초 입력에는 대행 로그가 연결되지 않았음.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-11-12T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1103:v6",
+  "seq": 771,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1104",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1104",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1104",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1104",
+   "written_at": "2027-11-18T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-11-18T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1104:v6",
+  "seq": 772,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1105",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1105",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1105",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1105",
+   "written_at": "2027-11-22T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-11-22T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1105:v6",
+  "seq": 773,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1201",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1201",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1201",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1201",
+   "written_at": "2027-12-06T12:25:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "확인180분 소요로10:30 정상발주 마감 경과. 마감내 발주면 필요일 도착 가능했으나 실제 확인후 정상조달은1일 늦어 긴급배차 필요. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-12-06T12:30:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1201:v6",
+  "seq": 774,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1202",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1202",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1202",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1202",
+   "written_at": "2027-12-10T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-12-10T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1202:v6",
+  "seq": 775,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1203",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1203",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1203",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1203",
+   "written_at": "2027-12-14T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-12-14T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1203:v6",
+  "seq": 776,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "evidence",
+  "record_id": "SC06:E61-1204",
+  "version": 6,
+  "scene": 6,
+  "state": null,
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "E61-1204",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "evidence_id": "E61-1204",
+   "kind": "긴급 주문 근거",
+   "target": "PO61-1204",
+   "written_at": "2027-12-20T10:05:00+09:00",
+   "written_by": {
+    "account": "USR-BUY",
+    "userId": "u-buy-lead",
+    "name": "서도현",
+    "role": "구매팀장"
+   },
+   "body": "공유20분·확인40분으로 기준 내. 정상 공급일이 요구납기보다2일 늦음. 요구납기와 정상공급 가능일은 SC06변경근거의 해당 행 참조. 긴급 운송/할증 각900000/300000원. EX-BUY 승인 후 발주, 긴급 수단으로 요구납기 충족.",
+   "checked_by": {
+    "account": "EX-BUY",
+    "userId": "u-buy-exec",
+    "name": "문지후",
+    "role": "구매임원"
+   },
+   "checked_at": "2027-12-20T10:10:00+09:00",
+   "virtual": true
+  },
+  "ref": "demo-example:evidence/SC06:E61-1204:v6",
+  "seq": 777,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "performance_report",
+  "record_id": "SC06:RPT61-v1",
+  "version": 7,
+  "scene": 6,
+  "state": "REPORTED",
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "보고 요약",
+  "body": {
+   "review_id": "RV61",
+   "report_version": "RPT61-v1",
+   "calculation_version": "CALC61-v1",
+   "calculation_hash": "91c471dffa32b9ad",
+   "as_of": "2028-01-14T11:00:00+09:00",
+   "data_status": "COMPLETE",
+   "basis_version": "FC51",
+   "newer_calculation": null,
+   "state": "REPORTED",
+   "finalized_at": "2028-01-13T17:00:00+09:00",
+   "report_date": "2028-01-14T10:00:00+09:00",
+   "next_review": "2028-02-11T10:00:00+09:00",
+   "problems": [],
+   "totals": {
+    "expected_krw": 91800000,
+    "actual_krw": 87000000,
+    "variance_krw": -4800000,
+    "calculation_status": "CONFIRMED",
+    "confirmed_subtotal": {
+     "tasks": [
+      "ACT41",
+      "ACT42",
+      "ACT43"
+     ],
+     "expected_krw": 91800000,
+     "actual_krw": 87000000
+    }
+   },
+   "focus": {
+    "task_id": "ACT42",
+    "expected_krw": 30600000,
+    "actual_krw": 25800000,
+    "variance_krw": -4800000,
+    "calculation_status": "CONFIRMED",
+    "months": 3
+   },
+   "conclusion": {
+    "record_id": "TXT61",
+    "seq": 5,
+    "version": "RPT61-v1",
+    "step": "보고 결론",
+    "actor": {
+     "account": "USR-FIN",
+     "userId": "u-fin",
+     "name": "정하윤",
+     "role": "경영관리담당"
+    },
+    "at": "2028-01-13T17:00:00+09:00",
+    "state": "FINALIZED",
+    "content": "3과제 Q4 기대91.8백만원 대비87.0백만원 기여를 확인했습니다. 긴급구매 축소는30.6백만원 대비25.8백만원으로 일부 미달했습니다. 내부 지연은 운영 보완, 반복 공급제약은 추가 과제로 검토하며 다음 월간보고에서 결과와 검토안을 보고합니다.",
+    "refs": [
+     "SC06과제성과",
+     "FUP61",
+     "PROP61"
+    ],
+    "tasks": []
+   },
+   "note": {
+    "record_id": "NOTE61",
+    "seq": 6,
+    "version": "RPT61-v1",
+    "step": "남는 사항",
+    "actor": {
+     "account": "USR-CFO",
+     "userId": "u-fin-exec",
+     "name": "강민서",
+     "role": "경영관리임원"
+    },
+    "at": "2028-01-13T17:00:00+09:00",
+    "state": "OPEN",
+    "content": "서명PDF 보완1/18, 운영보완1/21, 추가 검토안2/8, 다음 보고2/11. 신규 효과·예산 미산정. 위험 계속 관리.",
+    "refs": [
+     "JDG61",
+     "FUP61",
+     "PROP61",
+     "RISK61"
+    ],
+    "tasks": []
+   },
+   "confirmations": [
+    {
+     "record_id": "CF61-P",
+     "seq": 0,
+     "version": "RPT61-v1",
+     "step": "담당 임원 성과 근거 확인",
+     "actor": {
+      "account": "EX-PROD",
+      "userId": "u-prod-exec",
+      "name": "권태윤",
+      "role": "생산임원"
+     },
+     "at": "2028-01-11T14:00:00+09:00",
+     "state": "CONFIRMED",
+     "content": "ACT41 완료·Q4 효과 확인",
+     "refs": [
+      "DOC61-PROD"
+     ],
+     "tasks": [
+      "ACT41"
+     ]
+    },
+    {
+     "record_id": "CF61-B",
+     "seq": 1,
+     "version": "RPT61-v1",
+     "step": "담당 임원 성과 근거 확인",
+     "actor": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "at": "2028-01-11T14:10:00+09:00",
+     "state": "CONFIRMED",
+     "content": "ACT42·43 효과·원인 및 JDG61 판단 확인",
+     "refs": [
+      "DOC61-COST",
+      "DOC61-ALT",
+      "DOC61-JDG",
+      "AG62"
+     ],
+     "tasks": [
+      "ACT42",
+      "ACT43"
+     ]
+    },
+    {
+     "record_id": "CF61-F",
+     "seq": 2,
+     "version": "RPT61-v1",
+     "step": "경영관리 종합 확인",
+     "actor": {
+      "account": "USR-CFO",
+      "userId": "u-fin-exec",
+      "name": "강민서",
+      "role": "경영관리임원"
+     },
+     "at": "2028-01-12T16:00:00+09:00",
+     "state": "CONFIRMED",
+     "content": "분기 기준·중복·합계·잔여 위험·후속 책임 확인",
+     "refs": [
+      "RV61",
+      "JDG61",
+      "FUP61",
+      "PROP61"
+     ],
+     "tasks": []
+    },
+    {
+     "record_id": "CF61-R",
+     "seq": 3,
+     "version": "RPT61-v1",
+     "step": "대표 월간 보고본 확정",
+     "actor": {
+      "account": "USR-CFO",
+      "userId": "u-fin-exec",
+      "name": "강민서",
+      "role": "경영관리임원"
+     },
+     "at": "2028-01-13T17:00:00+09:00",
+     "state": "FINALIZED",
+     "content": "보고 편성 책임자인 CFO가 확정. 과제 실행 승인 아님",
+     "refs": [
+      "CF61-P",
+      "CF61-B",
+      "CF61-F"
+     ],
+     "tasks": []
+    },
+    {
+     "record_id": "CF61-M",
+     "seq": 4,
+     "version": "RPT61-v1",
+     "step": "대표 월간 보고",
+     "actor": {
+      "account": "USR-CEO",
+      "userId": "u-ceo",
+      "name": "임하준",
+      "role": "대표이사"
+     },
+     "at": "2028-01-14T10:00:00+09:00",
+     "state": "REPORTED",
+     "content": "개선 기여와 남는 차이, 보완·발의 및 다음 확인 보고",
+     "refs": [
+      "CF61-R"
+     ],
+     "tasks": []
+    }
+   ],
+   "followups": [
+    {
+     "followup_id": "FUP61",
+     "seq": 0,
+     "kind": "기존 운영 보완",
+     "links": [
+      "ACT42",
+      "FUP51"
+     ],
+     "causes": [
+      "INTERNAL",
+      "MIXED"
+     ],
+     "content": "대행 수신창구·알림 전달·인수확인 점검. 1월 운영에 재발 점검표 적용",
+     "owner": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "cooperation": [
+      {
+       "account": "USR-BUY",
+       "userId": "u-buy-lead",
+       "name": "서도현",
+       "role": "구매팀장"
+      },
+      {
+       "account": "EX-PROD",
+       "userId": "u-prod-exec",
+       "name": "권태윤",
+       "role": "생산임원"
+      }
+     ],
+     "state": "IN_PROGRESS",
+     "registered_at": "2028-01-10T15:00:00+09:00",
+     "due_at": "2028-01-21T18:00:00+09:00",
+     "next_check_at": "2028-02-11T10:00:00+09:00",
+     "effect": {
+      "krw": null,
+      "estimation_status": "NOT_ESTIMATED",
+      "note": "별도 신규효과 미산정"
+     },
+     "budget": {
+      "krw": 0,
+      "estimation_status": "CONFIRMED",
+      "note": "기존 운영비 범위 / 추가예산 없음"
+     },
+     "scope_check": "기존 ACT42 정착 보완. 기승인 범위 내, 대표 재승인 없음"
+    },
+    {
+     "followup_id": "PROP61",
+     "seq": 1,
+     "kind": "추가 과제 발의",
+     "links": [
+      "DIR41",
+      "ACT42"
+     ],
+     "causes": [
+      "SUPPLY",
+      "MIXED"
+     ],
+     "content": "P-COM01 반복 긴급 대응: 조달기간·분할납품·납품주기·제한적 완충재고의 경제성·품질·납기 비교",
+     "owner": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "cooperation": [
+      {
+       "account": "USR-PROD",
+       "userId": "u-prod-lead",
+       "name": "배정훈",
+       "role": "생산팀장"
+      },
+      {
+       "account": "품질담당",
+       "userId": null,
+       "name": "품질담당",
+       "role": null
+      },
+      {
+       "account": "USR-FIN",
+       "userId": "u-fin",
+       "name": "정하윤",
+       "role": "경영관리담당"
+      }
+     ],
+     "state": "PROPOSED",
+     "registered_at": "2028-01-10T16:00:00+09:00",
+     "due_at": "2028-02-08T18:00:00+09:00",
+     "next_check_at": "2028-02-11T10:00:00+09:00",
+     "effect": {
+      "krw": null,
+      "estimation_status": "NOT_ESTIMATED",
+      "note": "NOT_ESTIMATED"
+     },
+     "budget": {
+      "krw": null,
+      "estimation_status": "NOT_ESTIMATED",
+      "note": "NOT_ESTIMATED"
+     },
+     "scope_check": "ACT43의 P-MAT02 단가 절감과 다른 품목/활동. 향후 범위 겹치면 통합 또는 중복 제외"
+    },
+    {
+     "followup_id": "FUP62",
+     "seq": 2,
+     "kind": "자료 보완",
+     "links": [
+      "JDG61"
+     ],
+     "causes": [
+      "서명 PDF 미수신"
+     ],
+     "content": "중복 보관용 서명 PDF 업로드 및 전자확인 기록 연결",
+     "owner": {
+      "account": "EX-BUY",
+      "userId": "u-buy-exec",
+      "name": "문지후",
+      "role": "구매임원"
+     },
+     "cooperation": [
+      {
+       "account": "USR-BUY",
+       "userId": "u-buy-lead",
+       "name": "서도현",
+       "role": "구매팀장"
+      }
+     ],
+     "state": "OPEN",
+     "registered_at": "2028-01-10T14:00:00+09:00",
+     "due_at": "2028-01-18T18:00:00+09:00",
+     "next_check_at": "2028-01-18T18:00:00+09:00",
+     "effect": {
+      "krw": null,
+      "estimation_status": "NOT_APPLICABLE",
+      "note": "해당 없음"
+     },
+     "budget": {
+      "krw": null,
+      "estimation_status": "NOT_APPLICABLE",
+      "note": "해당 없음"
+     },
+     "scope_check": "성과를 새로 산정하는 조치 아님"
+    },
+    {
+     "followup_id": "RISK61",
+     "seq": 3,
+     "kind": "기존 위험 상태",
+     "links": [
+      "RISK51",
+      "MR-2706-01"
+     ],
+     "causes": [
+      "잔여 기대 미달·반복 조달 제약"
+     ],
+     "content": "완료와 별도로 미실현 개선 여지·목표 위험을 추적. 새 중복 위험 ID가 아닌 장면6 상태 기록",
+     "owner": {
+      "account": "USR-CFO",
+      "userId": "u-fin-exec",
+      "name": "강민서",
+      "role": "경영관리임원"
+     },
+     "cooperation": [
+      {
+       "account": "EX-BUY",
+       "userId": "u-buy-exec",
+       "name": "문지후",
+       "role": "구매임원"
+      }
+     ],
+     "state": "OPEN",
+     "registered_at": "2028-01-12T16:00:00+09:00",
+     "due_at": "2028-02-11T10:00:00+09:00",
+     "next_check_at": "2028-02-11T10:00:00+09:00",
+     "effect": {
+      "krw": null,
+      "estimation_status": "NOT_APPLICABLE",
+      "note": "해당 없음"
+     },
+     "budget": {
+      "krw": null,
+      "estimation_status": "NOT_APPLICABLE",
+      "note": "해당 없음"
+     },
+     "scope_check": "Q4 목표달성만으로 연간 목표위험을 종결하지 않음"
+    }
+   ],
+   "proposal_evidence": {
+    "evidence_id": "DOC61-PROP",
+    "kind": "추가 발의 검토",
+    "target": "PROP61",
+    "written_at": "2028-01-10T16:00:00+09:00",
+    "written_by": "USR-BUY",
+    "body": "P-COM01 공급조건 검토. ACT43는 P-MAT02 가격절감으로 범위 불중복. 운송비 절감과 재고·자금·보관·진부화·품질·납기 영향을 함께 비교. 2/8검토안, 2/11월간보고. 효과·예산 아직 미산정.",
+    "checked_by": "EX-BUY",
+    "checked_at": "2028-01-11T14:00:00+09:00"
+   },
+   "monitoring": {
+    "evidence_id": "DOC61-MON",
+    "kind": "분기 중 월간·수시 점검",
+    "target": "FUP51;FUP52;FUP53",
+    "written_at": "2027-12-29T16:00:00+09:00",
+    "written_by": "USR-FIN",
+    "body": "10/29 ACT43 안정화와 ACT42 긴급5건 확인. 11/29 긴급5건·대행 지연 시정. 12/29 누적 추세와 공급 제약 재점검. 12월말까지 개입을 미루지 않았으며 분기 종합에서 보완·신규 검토를 정리.",
+    "checked_by": "USR-CFO",
+    "checked_at": "2027-12-29T17:00:00+09:00"
+   },
+   "judgment": {
+    "judgment_id": "JDG61",
+    "task_id": "ACT42",
+    "target": "ACT42 완료·검토",
+    "collection_label": "일부 보완 중",
+    "collection_state": "PARTIAL",
+    "missing": "정규 운영 인계 확인서의 서명본 재스캔 PDF 첨부",
+    "alternatives": [
+     "DOC59 전자확인",
+     "DOC51 운영기준",
+     "DOC61-HAND 적용·대행 운영기록"
+    ],
+    "impact": "활동 이행과 비용집계는 다른 기록으로 확인됨. 서명 PDF는 중복 보관용이며 금액 미확인 없음",
+    "decision": "활동 완료 확인 / 성과 검토 가능",
+    "judged_by": {
+     "account": "EX-BUY",
+     "userId": "u-buy-exec",
+     "name": "문지후",
+     "role": "구매임원"
+    },
+    "judged_at": "2028-01-10T14:00:00+09:00",
+    "owner": {
+     "account": "USR-BUY",
+     "userId": "u-buy-lead",
+     "name": "서도현",
+     "role": "구매팀장"
+    },
+    "due_at": "2028-01-18T18:00:00+09:00",
+    "evidence_id": "DOC61-JDG",
+    "judgment_state": "REVIEWABLE",
+    "activity_state": "COMPLETION_CONFIRMED",
+    "hold_reasons": []
+   },
+   "risk": {
+    "risk_id": "RISK61",
+    "state": "OPEN",
+    "source": "OPEN"
+   },
+   "quarter_profit": {
+    "months": [
+     {
+      "period": "2027-10-01",
+      "target": 310340000,
+      "fc51_profit": 321201080,
+      "fc51_effect": 29800000,
+      "confirmed_effect": 28600000,
+      "effect_diff": -1200000,
+      "profit": 320001080,
+      "vs_target": 9661080
+     },
+     {
+      "period": "2027-11-01",
+      "target": 297000000,
+      "fc51_profit": 309434000,
+      "fc51_effect": 31000000,
+      "confirmed_effect": 28600000,
+      "effect_diff": -2400000,
+      "profit": 307034000,
+      "vs_target": 10034000
+     },
+     {
+      "period": "2027-12-01",
+      "target": 263650000,
+      "fc51_profit": 277033800,
+      "fc51_effect": 31000000,
+      "confirmed_effect": 29800000,
+      "effect_diff": -1200000,
+      "profit": 275833800,
+      "vs_target": 12183800
+     }
+    ],
+    "quarter": {
+     "target": 870990000,
+     "fc51_profit": 907668880,
+     "fc51_effect": 91800000,
+     "confirmed_effect": 87000000,
+     "effect_diff": -4800000,
+     "profit": 902868880,
+     "vs_target": 31878880
+    }
+   },
+   "annual": {
+    "official": "FC51",
+    "annual": "3428986680",
+    "target": "3477290000",
+    "gap": "48303320"
+   },
+   "agent": {
+    "run_id": "AG63",
+    "seq": 2,
+    "at": "2028-01-11T09:00:00+09:00",
+    "input_scope": "확인 성과·최종 원인·FUP61·PROP61",
+    "task": "월간 보고 초안",
+    "draft": "개선 기여와 일부 미달, 내부 지연 보완 및 공급조건 검토 제안",
+    "candidate_cause": null,
+    "human": "책임·기한·품질/재고 경제성 검토를 명시. 확정되지 않은 효과는 미산정 유지",
+    "reviewed_by": {
+     "account": "USR-FIN",
+     "userId": "u-fin",
+     "name": "정하윤",
+     "role": "경영관리담당"
+    },
+    "reviewed_at": "2028-01-11T15:00:00+09:00",
+    "links": [
+     "RPT61-v1"
+    ],
+    "state": "HUMAN_REVIEWED",
+    "mode": "REPLAY"
+   }
+  },
+  "ref": "demo-example:performance_report/SC06:RPT61-v1:v7",
+  "seq": 778,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-CONFIRM_PROD",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-11T14:00:00+09:00",
+  "by": null,
+  "title": "CONFIRM_PROD",
+  "body": {
+   "task_id": "TASK-CONFIRM_PROD",
+   "seq": 0,
+   "type": "CONFIRM_PROD",
+   "node_id": "Confirm_Prod",
+   "request_id": "apr_run_example_Confirm_Prod_1",
+   "assigned_to": "u-prod-exec",
+   "assigned_at": "2028-01-11T09:00:00+09:00",
+   "due_at": "2028-01-11T14:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-11T14:00:00+09:00",
+   "completed_by": "u-prod-exec",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "권태윤"
+  },
+  "ref": "demo-example:task/SC06:TASK-CONFIRM_PROD:v2",
+  "seq": 779,
+  "recorded_at": "2028-01-11T14:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-CONFIRM_BUY",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-11T14:10:00+09:00",
+  "by": null,
+  "title": "CONFIRM_BUY",
+  "body": {
+   "task_id": "TASK-CONFIRM_BUY",
+   "seq": 1,
+   "type": "CONFIRM_BUY",
+   "node_id": "Confirm_Buy",
+   "request_id": "apr_run_example_Confirm_Buy_1",
+   "assigned_to": "u-buy-exec",
+   "assigned_at": "2028-01-11T09:00:00+09:00",
+   "due_at": "2028-01-11T14:10:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-11T14:10:00+09:00",
+   "completed_by": "u-buy-exec",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "문지후"
+  },
+  "ref": "demo-example:task/SC06:TASK-CONFIRM_BUY:v2",
+  "seq": 780,
+  "recorded_at": "2028-01-11T14:10:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-REVIEW_FINANCE",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-12T16:00:00+09:00",
+  "by": null,
+  "title": "REVIEW_FINANCE",
+  "body": {
+   "task_id": "TASK-REVIEW_FINANCE",
+   "seq": 2,
+   "type": "REVIEW_FINANCE",
+   "node_id": "Review_Finance",
+   "request_id": "apr_run_example_Review_Finance_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2028-01-11T14:10:00+09:00",
+   "due_at": "2028-01-12T16:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-12T16:00:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC06:TASK-REVIEW_FINANCE:v2",
+  "seq": 781,
+  "recorded_at": "2028-01-12T16:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-DRAFT_CONCLUSION",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-13T17:00:00+09:00",
+  "by": null,
+  "title": "DRAFT_CONCLUSION",
+  "body": {
+   "task_id": "TASK-DRAFT_CONCLUSION",
+   "seq": 3,
+   "type": "DRAFT_CONCLUSION",
+   "node_id": "Draft_Conclusion",
+   "request_id": "apr_run_example_Draft_Conclusion_1",
+   "assigned_to": "u-fin",
+   "assigned_at": "2028-01-12T16:00:00+09:00",
+   "due_at": "2028-01-13T17:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-13T17:00:00+09:00",
+   "completed_by": "u-fin",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "정하윤"
+  },
+  "ref": "demo-example:task/SC06:TASK-DRAFT_CONCLUSION:v2",
+  "seq": 782,
+  "recorded_at": "2028-01-13T17:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-FINALIZE_REPORT",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-13T17:00:00+09:00",
+  "by": null,
+  "title": "FINALIZE_REPORT",
+  "body": {
+   "task_id": "TASK-FINALIZE_REPORT",
+   "seq": 4,
+   "type": "FINALIZE_REPORT",
+   "node_id": "Finalize_Report",
+   "request_id": "apr_run_example_Finalize_Report_1",
+   "assigned_to": "u-fin-exec",
+   "assigned_at": "2028-01-13T17:00:00+09:00",
+   "due_at": "2028-01-13T17:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-13T17:00:00+09:00",
+   "completed_by": "u-fin-exec",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "강민서"
+  },
+  "ref": "demo-example:task/SC06:TASK-FINALIZE_REPORT:v2",
+  "seq": 783,
+  "recorded_at": "2028-01-13T17:00:00+09:00"
+ },
+ {
+  "kind": "task",
+  "record_id": "SC06:TASK-REPORT_CEO",
+  "version": 2,
+  "scene": 6,
+  "state": "COMPLETED",
+  "at": "2028-01-14T11:00:00+09:00",
+  "by": null,
+  "title": "REPORT_CEO",
+  "body": {
+   "task_id": "TASK-REPORT_CEO",
+   "seq": 5,
+   "type": "REPORT_CEO",
+   "node_id": "Report_CEO",
+   "request_id": "apr_run_example_Report_CEO_1",
+   "assigned_to": "u-ceo",
+   "assigned_at": "2028-01-13T17:00:00+09:00",
+   "due_at": "2028-01-14T10:00:00+09:00",
+   "status": "COMPLETED",
+   "completed_at": "2028-01-14T10:00:00+09:00",
+   "completed_by": "u-ceo",
+   "reopens": null,
+   "opened_late": false,
+   "assignedName": "임하준"
+  },
+  "ref": "demo-example:task/SC06:TASK-REPORT_CEO:v2",
+  "seq": 784,
+  "recorded_at": "2028-01-14T11:00:00+09:00"
+ }
+]

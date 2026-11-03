@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/procedure.schema.json",
+  "title": "장면 6 procedure",
+  "description": "확인 절차 — 단계별 담당·계획 시각·확인 기록(CF61-*)·남는 사항·물러난 기록·확정 차단 사유",
+  "type": "object",
+  "required": [
+    "finalizeBlocking",
+    "history",
+    "lastRejection",
+    "note",
+    "startedAt",
+    "steps"
+  ],
+  "properties": {
+    "startedAt": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assignee",
+          "assigneeName",
+          "nodeId",
+          "plannedAt",
+          "record",
+          "recordId",
+          "role",
+          "step"
+        ],
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "assigneeName": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "plannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "record": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "required": [
+              "actor",
+              "at",
+              "content",
+              "record_id",
+              "refs",
+              "seq",
+              "state",
+              "step",
+              "tasks",
+              "version"
+            ],
+            "properties": {
+              "record_id": {
+                "type": "string"
+              },
+              "seq": {
+                "type": "integer"
+              },
+              "version": {
+                "type": "string"
+              },
+              "step": {
+                "type": "string"
+              },
+              "actor": {
+                "type": "object",
+                "required": [
+                  "account",
+                  "name",
+                  "role",
+                  "userId"
+                ],
+                "properties": {
+                  "account": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "state": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "actor",
+        "at",
+        "content",
+        "record_id",
+        "refs",
+        "seq",
+        "state",
+        "step",
+        "tasks",
+        "version"
+      ],
+      "properties": {
+        "record_id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "version": {
+          "type": "string"
+        },
+        "step": {
+          "type": "string"
+        },
+        "actor": {
+          "type": "object",
+          "required": [
+            "account",
+            "name",
+            "role",
+            "userId"
+          ],
+          "properties": {
+            "account": {
+              "type": "string"
+            },
+            "userId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "state": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tasks": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "history": {
+      "type": "array"
+    },
+    "finalizeBlocking": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "lastRejection": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": true
+}

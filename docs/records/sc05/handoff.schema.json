@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/handoff.schema.json",
+  "title": "장면 5 handoff",
+  "description": "후속 책임 인계(HANDOFF51) — 인계 기록·완료 요건(U508)",
+  "type": "object",
+  "required": [
+    "completion",
+    "handoff"
+  ],
+  "properties": {
+    "handoff": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "approval",
+        "completed_at",
+        "completed_by",
+        "decision",
+        "execution",
+        "financial_snapshot",
+        "followups",
+        "forecast",
+        "handoff_id",
+        "memo",
+        "operation",
+        "results",
+        "review_id",
+        "source_handoff",
+        "state_snapshot"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "source_handoff": {
+          "type": "string"
+        },
+        "approval": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "execution": {
+          "type": "object",
+          "required": [
+            "actions",
+            "conditions",
+            "latest_plan",
+            "management_check",
+            "requests",
+            "start"
+          ],
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "latest_plan": {
+              "type": "string"
+            },
+            "management_check": {
+              "type": "string"
+            },
+            "conditions": {
+              "type": "object",
+              "required": [
+                "CON41",
+                "SUP41"
+              ],
+              "properties": {
+                "CON41": {
+                  "type": "string"
+                },
+                "SUP41": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "requests": {
+              "type": "object",
+              "required": [
+                "OP51",
+                "REQ51"
+              ],
+              "properties": {
+                "REQ51": {
+                  "type": "string"
+                },
+                "OP51": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "start": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "results": {
+          "type": "object",
+          "required": [
+            "close_batch",
+            "observation",
+            "operating_plans",
+            "run"
+          ],
+          "properties": {
+            "observation": {
+              "type": "string"
+            },
+            "close_batch": {
+              "type": "string"
+            },
+            "operating_plans": {
+              "type": "object",
+              "required": [
+                "OPL51",
+                "OPL52",
+                "OPL53"
+              ],
+              "properties": {
+                "OPL51": {
+                  "type": "integer"
+                },
+                "OPL52": {
+                  "type": "integer"
+                },
+                "OPL53": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "run": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "forecast": {
+          "type": "object",
+          "required": [
+            "approved_at",
+            "official",
+            "parent",
+            "published_at",
+            "run_hash"
+          ],
+          "properties": {
+            "parent": {
+              "type": "string"
+            },
+            "official": {
+              "type": "string"
+            },
+            "approved_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "published_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "run_hash": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "financial_snapshot": {
+          "type": "object",
+          "required": [
+            "effect",
+            "effect_closed",
+            "effect_remaining",
+            "forecast",
+            "gap",
+            "target"
+          ],
+          "properties": {
+            "target": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "forecast": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "gap": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect_closed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "effect_remaining": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "followups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "confirmed_at",
+              "content",
+              "due_at",
+              "followup_id",
+              "owner",
+              "state",
+              "target"
+            ],
+            "properties": {
+              "followup_id": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "content": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "confirmed_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "operation": {
+          "type": "object",
+          "required": [
+            "ACT41",
+            "ACT42",
+            "ACT43"
+          ],
+          "properties": {
+            "ACT41": {
+              "type": "string"
+            },
+            "ACT42": {
+              "type": "string"
+            },
+            "ACT43": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "state_snapshot": {
+          "type": "object",
+          "required": [
+            "forecast",
+            "risk",
+            "scene",
+            "target"
+          ],
+          "properties": {
+            "scene": {
+              "type": "string"
+            },
+            "forecast": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "risk": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "completed_by": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "completion": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "blocking",
+        "items",
+        "met"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "label",
+              "ok"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "ok": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "met": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

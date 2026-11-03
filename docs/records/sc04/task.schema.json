@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/task.schema.json",
+  "title": "장면 4 task",
+  "description": "업무 — 담당·기한·인수·완료·기한 초과·이력",
+  "type": "object",
+  "required": [
+    "assignedName",
+    "assigned_at",
+    "assigned_to",
+    "completed_at",
+    "completed_by",
+    "due_at",
+    "history",
+    "node_id",
+    "opened_late",
+    "overdue",
+    "reopens",
+    "request_id",
+    "seq",
+    "status",
+    "task_id",
+    "type"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "string"
+    },
+    "node_id": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "assigned_to": {
+      "type": "string"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string"
+    },
+    "completed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "completed_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "reopens": {
+      "type": "null"
+    },
+    "opened_late": {
+      "type": "boolean"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "note",
+          "status"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "note": {
+            "type": "null"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "overdue": {
+      "type": "boolean"
+    },
+    "assignedName": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

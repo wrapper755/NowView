@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/assumption.schema.json",
+  "title": "장면 4 assumption",
+  "description": "대응안 가정(ALT41~43) — 물량·단가·시작월 등 규칙 계산의 입력",
+  "type": "object",
+  "required": [
+    "alt_id",
+    "avoid_price",
+    "avoided_fixed",
+    "budget",
+    "cost_item",
+    "draft_dup_price",
+    "duplicate_override",
+    "emergency_after",
+    "emergency_before",
+    "logistics_price",
+    "model_id",
+    "monthly_qty",
+    "monthly_support",
+    "name",
+    "one_off_cost",
+    "one_off_month",
+    "outsource_price",
+    "per_event_cost",
+    "result_ref",
+    "start",
+    "task_id",
+    "version"
+  ],
+  "properties": {
+    "alt_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "cost_item": {
+      "type": "string"
+    },
+    "start": {
+      "type": "string"
+    },
+    "monthly_qty": {
+      "type": "integer"
+    },
+    "avoid_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "outsource_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "logistics_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "emergency_before": {
+      "type": "integer"
+    },
+    "emergency_after": {
+      "type": "integer"
+    },
+    "per_event_cost": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "monthly_support": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "one_off_cost": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "one_off_month": {
+      "type": "string"
+    },
+    "budget": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "draft_dup_price": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "avoided_fixed": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "duplicate_override": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": true
+    },
+    "version": {
+      "type": "integer"
+    },
+    "result_ref": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

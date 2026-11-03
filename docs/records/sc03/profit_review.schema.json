@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/profit_review.schema.json",
+  "title": "장면 3 profit_review",
+  "description": "상위 검토건(MR-2706-01) — 상태·결론·위험·전망·Target과 물량·원가 이슈 연결",
+  "type": "object",
+  "required": [
+    "completed_at",
+    "forecast",
+    "links",
+    "outcome",
+    "review_id",
+    "risk",
+    "started_at",
+    "started_by",
+    "state",
+    "target"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "risk": {
+      "type": "string"
+    },
+    "forecast": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "issue_id",
+          "risk",
+          "run_id",
+          "status",
+          "summary",
+          "type"
+        ],
+        "properties": {
+          "issue_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "started_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "started_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "completed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

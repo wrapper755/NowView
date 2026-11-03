@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/evidence.schema.json",
+  "title": "장면 5 evidence",
+  "description": "근거 문서 — 종류·연결 대상·작성/확인(가상 증빙)",
+  "type": "object",
+  "required": [
+    "body",
+    "confirmed_at",
+    "confirmed_by",
+    "evidence_id",
+    "object_refs",
+    "seq",
+    "type",
+    "written_at",
+    "written_by"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "string"
+    },
+    "object_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "written_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "written_by": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "confirmed_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "confirmed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

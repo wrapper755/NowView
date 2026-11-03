@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/dept_confirmation.schema.json",
+  "title": "장면 3 dept_confirmation",
+  "description": "부서 확인 요청과 회신 — 영업·구매·생산의 상태·회신·확인 사실(U33)",
+  "type": "object",
+  "required": [
+    "confirmation",
+    "departments",
+    "replies"
+  ],
+  "properties": {
+    "confirmation": {
+      "type": "object",
+      "required": [
+        "departments",
+        "due_at",
+        "memo",
+        "recipients",
+        "report_id",
+        "requested_at",
+        "requested_by",
+        "run_id"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "departments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recipients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "due_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "requested_by": {
+          "type": "string"
+        },
+        "memo": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "departments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "dept",
+          "label",
+          "reply",
+          "state",
+          "user"
+        ],
+        "properties": {
+          "dept": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "reply": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "required": [
+              "at",
+              "by",
+              "dept",
+              "facts",
+              "opinion",
+              "reply",
+              "report_id",
+              "seq",
+              "state"
+            ],
+            "properties": {
+              "seq": {
+                "type": "integer"
+              },
+              "dept": {
+                "type": "string"
+              },
+              "reply": {
+                "type": "string"
+              },
+              "by": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "report_id": {
+                "type": "string"
+              },
+              "facts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "opinion": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "label": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "replies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "dept",
+          "facts",
+          "opinion",
+          "reply",
+          "report_id",
+          "seq",
+          "state"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "dept": {
+            "type": "string"
+          },
+          "reply": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "report_id": {
+            "type": "string"
+          },
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "opinion": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

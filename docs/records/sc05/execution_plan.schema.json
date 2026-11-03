@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/execution_plan.schema.json",
+  "title": "장면 5 execution_plan",
+  "description": "상세 실행계획(PL51-v1·v2 …) — 활동·예산·효과 시작·기한·확정/확인(U502)",
+  "type": "object",
+  "additionalProperties": {
+    "type": [
+      "array",
+      "boolean",
+      "integer",
+      "null",
+      "string"
+    ]
+  }
+}

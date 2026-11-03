@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/operating_plan.schema.json",
+  "title": "장면 5 operating_plan",
+  "description": "월간 운영계획(OPL51~53) — 잔여 계획·가정·확인(U506)",
+  "type": "object",
+  "required": [
+    "agent_ref",
+    "assumption_note",
+    "assumptions",
+    "management_verify",
+    "owner_confirm",
+    "period_from",
+    "period_to",
+    "plan_id",
+    "progress",
+    "remaining_plan",
+    "seq",
+    "source_actuals",
+    "state",
+    "task_id",
+    "version"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "period_from": {
+      "type": "string"
+    },
+    "period_to": {
+      "type": "string"
+    },
+    "remaining_plan": {
+      "type": "string"
+    },
+    "assumption_note": {
+      "type": "string"
+    },
+    "assumptions": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "urgent": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "support": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "qty": {
+          "type": "integer"
+        },
+        "fixed_saving": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "stabilize_due": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source_actuals": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "owner_confirm": {
+      "type": "object",
+      "required": [
+        "at",
+        "by"
+      ],
+      "properties": {
+        "by": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "management_verify": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "at",
+        "by",
+        "comment"
+      ],
+      "properties": {
+        "by": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "comment": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "progress": {
+      "type": "string"
+    },
+    "agent_ref": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

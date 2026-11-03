@@ -3799,7 +3799,7 @@
    "attempts": 1,
    "provenance": "mock",
    "model": null,
-   "latency_ms": 12,
+   "latency_ms": 0,
    "draft": {
     "summary": "7월 b모델의 공급 전망이 직전 승인 전망 9,500대분에서 8,800대분으로 700대분 감소했다. 목표 달성률은 88%이며, 기준 단위 공헌이익 20,000원 적용 시 추가 공헌이익 감소는 1,400만원이다.",
     "findings": [

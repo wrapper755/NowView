@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/audit.schema.json",
+  "title": "장면 2 audit",
+  "description": "감사 이력 한 줄 — 누가·언제·무엇을(쌓이기만 한다)",
+  "type": "object",
+  "required": [
+    "action",
+    "actor",
+    "actor_name",
+    "actor_role",
+    "at",
+    "detail",
+    "event_code",
+    "seq"
+  ],
+  "properties": {
+    "seq": {
+      "type": "integer"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_code": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "actor": {
+      "type": "string"
+    },
+    "actor_name": {
+      "type": "string"
+    },
+    "actor_role": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "boolean",
+          "integer",
+          "string"
+        ]
+      }
+    }
+  },
+  "additionalProperties": true
+}

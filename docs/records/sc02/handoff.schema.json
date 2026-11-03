@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/handoff.schema.json",
+  "title": "장면 2 handoff",
+  "description": "경영관리 인계 — 인계 기록·완료 조건·인계 이력(U27)",
+  "type": "object",
+  "required": [
+    "handoff",
+    "handoffCheck",
+    "handoffHistory"
+  ],
+  "properties": {
+    "handoff": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "accepted_at",
+        "accepted_by",
+        "assignee",
+        "bundle_hash",
+        "bundle_id",
+        "due_at",
+        "handoff_id",
+        "note",
+        "opinion",
+        "provisional",
+        "requested_at",
+        "requested_by",
+        "review_id",
+        "revision",
+        "sc03_due_at",
+        "selected_run",
+        "status"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "selected_run": {
+          "type": "string"
+        },
+        "bundle_id": {
+          "type": "string"
+        },
+        "bundle_hash": {
+          "type": "string"
+        },
+        "assignee": {
+          "type": "string"
+        },
+        "requested_by": {
+          "type": "string"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "due_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "note": {
+          "type": "string"
+        },
+        "provisional": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        },
+        "accepted_by": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "accepted_at": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        },
+        "opinion": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "sc03_due_at": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "handoffCheck": {
+      "type": "object",
+      "required": [
+        "conditions",
+        "met",
+        "reasons"
+      ],
+      "properties": {
+        "conditions": {
+          "type": "object",
+          "required": [
+            "approved",
+            "cost_registered",
+            "evidence_complete",
+            "no_renegotiation",
+            "run_matches_approval",
+            "sc01_run_valid"
+          ],
+          "properties": {
+            "approved": {
+              "type": "boolean"
+            },
+            "cost_registered": {
+              "type": "boolean"
+            },
+            "run_matches_approval": {
+              "type": "boolean"
+            },
+            "sc01_run_valid": {
+              "type": "boolean"
+            },
+            "evidence_complete": {
+              "type": "boolean"
+            },
+            "no_renegotiation": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        },
+        "met": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "handoffHistory": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

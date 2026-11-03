@@ -292,12 +292,21 @@ class CompanyClient:
         """기록 한 판을 적는다 — `ref`가 같으면 회사가 다시 적지 않는다(멱등), 지난 판은 409."""
         return self._call("POST", f"/worlds/{world_id}/records", record)
 
+    def write_records(self, world_id: str, records: list[dict[str, Any]]) -> dict[str, Any]:
+        """여러 판을 한 번에 — 전부 적거나 하나도 적지 않는다(하나가 409면 아무것도)."""
+        return self._call("POST", f"/worlds/{world_id}/records/batch", {"records": records})
+
     def records(self, world_id: str, **query: Any) -> list[dict[str, Any]]:
         q = "&".join(f"{k}={v}" for k, v in query.items() if v is not None)
         return self._call("GET", f"/worlds/{world_id}/records" + (f"?{q}" if q else ""))
 
     def record(self, world_id: str, kind: str, record_id: str) -> dict[str, Any]:
         return self._call("GET", f"/worlds/{world_id}/records/{kind}/{record_id}")
+
+    def reset_records(self, world_id: str, scene: int) -> dict[str, Any]:
+        """그 장면의 기록만 처음으로 — 장면을 초기화하거나 새로 열 때(다른 장면 기록은 그대로)."""
+        self.ensure_world(world_id)
+        return self._call("POST", f"/worlds/{world_id}/records/reset", {"scene": scene})
 
     # ───────────── 구매 (장면 2) ─────────────
 

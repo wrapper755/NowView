@@ -184,6 +184,10 @@ class RecordBody(BaseModel):
     ref: str  # 멱등 — 같은 ref·같은 내용이면 다시 적지 않는다
 
 
+class RecordsBatch(BaseModel):
+    records: list[RecordBody] = Field(min_length=1, max_length=500)
+
+
 class RecordsReset(BaseModel):
     scene: int = Field(ge=1, le=99)
 
@@ -411,6 +415,7 @@ def build_app(store: WorldStore) -> FastAPI:
                 origin=old.get("origin", "engine"),
             )
             store.put(fresh)
+            store.delete_records(world_id)  # 기록은 세계 문서 밖에 있다 — 함께 처음으로
         return _world_summary(fresh)
 
     @app.get("/worlds/{world_id}/clock", dependencies=[Depends(auth)])
@@ -873,81 +878,106 @@ def build_app(store: WorldStore) -> FastAPI:
     def _latest(r: dict[str, Any]) -> dict[str, Any]:
         return {k: v for k, v in r.items() if k != "history"} | {"history_count": len(r["history"])}
 
+    def _known(world_id: str) -> dict[str, Any]:
+        """
+        세계가 있는지 보고 돌려준다. 기록이 세계 문서 안에 있던 옛 세계는 이때 기록 테이블로
+        옮긴다 — 기록은 세계 문서에 두지 않는다(판마다·시계 이동마다 문서 전체를 다시 썼다,
+        NowView 3단계 실측).
+        """
+        w = world(world_id)
+        if w.get("records"):
+            store.put_records(world_id, w["records"])
+            w["records"] = {}
+            store.put(w)
+        return w
+
     @app.get("/worlds/{world_id}/records", dependencies=[Depends(auth)])
     def list_records(
         world_id: str, scene: int | None = None, kind: str | None = None, state: str | None = None
     ) -> list[dict[str, Any]]:
         """각 기록의 최신 판(처음 적은 순서). 지난 판은 단건 조회의 history에 있다."""
-        w = _records(world(world_id))
-        found = sorted(w["records"].values(), key=lambda r: r["seq"])
+        _known(world_id)
+        found = sorted(store.records(world_id, scene).values(), key=lambda r: r["seq"])
         return [
             _latest(r)
             for r in found
-            if (scene is None or r["scene"] == scene)
-            and (kind is None or r["kind"] == kind)
-            and (state is None or r["state"] == state)
+            if (kind is None or r["kind"] == kind) and (state is None or r["state"] == state)
         ]
 
     @app.get("/worlds/{world_id}/records/{kind}/{record_id}", dependencies=[Depends(auth)])
     def get_record(world_id: str, kind: str, record_id: str) -> dict[str, Any]:
-        r = _records(world(world_id))["records"].get(f"{kind}/{record_id}")
+        _known(world_id)
+        r = store.record(world_id, f"{kind}/{record_id}")
         if r is None:
             raise HTTPException(404, f"없는 기록: {kind}/{record_id}")
         return r
 
-    @app.post("/worlds/{world_id}/records", dependencies=[Depends(auth)])
-    def write_record(world_id: str, body: RecordBody) -> dict[str, Any]:
+    def _write(
+        world_id: str, clock: str, body: RecordBody, pending: dict[str, Any]
+    ) -> dict[str, Any]:
         """
-        기록 한 판을 적는다. 같은 ref·같은 내용은 기존 판(`recorded: false`), 같은 ref에 다른
-        내용은 409. 새 판(version이 더 크다)이면 앞 판을 history로 옮긴다 — 지우지 않는다.
-        지난 판이거나 같은 판에 다른 ref면 409(지난 결재가 새 기록을 덮지 않는다).
+        기록 한 판을 `pending`에 놓는다(저장은 부르는 쪽이 한 번에). 같은 ref·같은 내용은 기존 판
+        (`recorded: false`), 같은 ref에 다른 내용은 409. 새 판(version이 더 크다)이면 앞 판을
+        history로 옮긴다 — 지우지 않는다. 지난 판이거나 같은 판에 다른 ref면 409(지난 결재가 새
+        기록을 덮지 않는다).
         """
         record = body.model_dump()
         key = f"{body.kind}/{body.record_id}"
-        with store.lock():
-            w = _records(world(world_id))
-            found = w["records"].get(key)
-            if found is not None:
-                for past in [found, *found["history"]]:
-                    if past["ref"] == body.ref:
-                        if any(past[k] != record[k] for k in RECORD_FIELDS):
-                            raise HTTPException(
-                                409, f"같은 ref에 다른 내용이 이미 있다: {body.ref}"
-                            )
-                        return {**_latest(found), "recorded": False}
-                if body.version <= found["version"]:
-                    raise HTTPException(
-                        409,
-                        f"{key} v{body.version}은 지난 판이다(지금 v{found['version']})",
-                    )
-                prior = {k: v for k, v in found.items() if k != "history"}
-                found = {
-                    **record,
-                    "seq": found["seq"],
-                    "recorded_at": w["clock"],
-                    "history": [*found["history"], prior],
-                }
-            else:
-                w["records_seq"] += 1
-                found = {
-                    **record,
-                    "seq": w["records_seq"],
-                    "recorded_at": w["clock"],
-                    "history": [],
-                }
-            w["records"][key] = found
-            store.put(w)
+        found = pending.get(key) or store.record(world_id, key)
+        if found is not None:
+            for past in [found, *found["history"]]:
+                if past["ref"] == body.ref:
+                    if any(past[k] != record[k] for k in RECORD_FIELDS):
+                        raise HTTPException(409, f"같은 ref에 다른 내용이 이미 있다: {body.ref}")
+                    return {**_latest(found), "recorded": False}
+            if body.version <= found["version"]:
+                raise HTTPException(
+                    409,
+                    f"{key} v{body.version}은 지난 판이다(지금 v{found['version']})",
+                )
+            prior = {k: v for k, v in found.items() if k != "history"}
+            found = {
+                **record,
+                "seq": found["seq"],
+                "recorded_at": clock,
+                "history": [*found["history"], prior],
+            }
+        else:
+            seq = max([store.max_record_seq(world_id), *(r["seq"] for r in pending.values())]) + 1
+            found = {**record, "seq": seq, "recorded_at": clock, "history": []}
+        pending[key] = found
         return {**_latest(found), "recorded": True}
+
+    @app.post("/worlds/{world_id}/records", dependencies=[Depends(auth)])
+    def write_record(world_id: str, body: RecordBody) -> dict[str, Any]:
+        """기록 한 판을 적는다(`_write`)."""
+        with store.lock():
+            w = _known(world_id)
+            pending: dict[str, Any] = {}
+            out = _write(world_id, w["clock"], body, pending)
+            store.put_records(world_id, pending)
+        return out
+
+    @app.post("/worlds/{world_id}/records/batch", dependencies=[Depends(auth)])
+    def write_records(world_id: str, body: RecordsBatch) -> dict[str, Any]:
+        """
+        여러 판을 한 번에 — **전부 적거나 하나도 적지 않는다**(하나가 409면 아무것도 저장하지
+        않는다). 일꾼이 조작 하나에서 바뀐 기록을 한 번에 보낸다.
+        """
+        with store.lock():
+            w = _known(world_id)
+            pending: dict[str, Any] = {}
+            out = [_write(world_id, w["clock"], r, pending) for r in body.records]
+            store.put_records(world_id, pending)
+        return {"world_id": world_id, "records": out}
 
     @app.post("/worlds/{world_id}/records/reset", dependencies=[Depends(auth)])
     def reset_records(world_id: str, body: RecordsReset) -> dict[str, Any]:
         """(시연) 그 장면의 기록만 처음으로 — 다른 장면 기록과 회사 자료는 그대로다."""
         with store.lock():
-            w = _records(world(world_id))
-            before = len(w["records"])
-            w["records"] = {k: r for k, r in w["records"].items() if r["scene"] != body.scene}
-            store.put(w)
-        return {"world_id": world_id, "removed": before - len(w["records"])}
+            _known(world_id)
+            removed = store.delete_records(world_id, body.scene)
+        return {"world_id": world_id, "removed": removed}
 
     return app
 

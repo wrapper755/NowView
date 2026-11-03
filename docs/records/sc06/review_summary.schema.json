@@ -1,0 +1,558 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc06/review_summary.schema.json",
+  "title": "장면 6 review_summary",
+  "description": "U601 요약 — 3과제의 기대·확인 효과·차이·완료 판단·Agent 후보(경영관리 담당의 조회)",
+  "type": "object",
+  "required": [
+    "agent",
+    "as_of",
+    "basis_version",
+    "batch",
+    "calculation_hash",
+    "calculation_version",
+    "cause_overview",
+    "checks",
+    "data_close",
+    "data_status",
+    "judgments",
+    "newer_calculation",
+    "period",
+    "report_date",
+    "report_version",
+    "review_id",
+    "scope",
+    "tasks",
+    "totals"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "string"
+    },
+    "calculation_version": {
+      "type": "string"
+    },
+    "calculation_hash": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_status": {
+      "type": "string"
+    },
+    "basis_version": {
+      "type": "string"
+    },
+    "newer_calculation": {
+      "type": "null"
+    },
+    "period": {
+      "type": "object",
+      "required": [
+        "end",
+        "label",
+        "start"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "data_close": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "display",
+        "models",
+        "plant",
+        "product",
+        "unit"
+      ],
+      "properties": {
+        "plant": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "models": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "display": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "activity_judgment",
+          "actual_krw",
+          "calculation_status",
+          "completed_at",
+          "evidence_refs",
+          "expected_krw",
+          "focus",
+          "followup",
+          "judgment_id",
+          "months",
+          "name",
+          "performance",
+          "task_id",
+          "variance_krw"
+        ],
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "expected_krw": {
+            "type": "integer"
+          },
+          "actual_krw": {
+            "type": "integer"
+          },
+          "variance_krw": {
+            "type": "integer"
+          },
+          "calculation_status": {
+            "type": "string"
+          },
+          "months": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activity_judgment": {
+            "type": "string"
+          },
+          "judgment_id": {
+            "type": "string"
+          },
+          "performance": {
+            "type": "string"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "followup": {
+            "type": "string"
+          },
+          "focus": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": [
+        "actual_krw",
+        "calculation_status",
+        "confirmed_subtotal",
+        "expected_krw",
+        "variance_krw"
+      ],
+      "properties": {
+        "expected_krw": {
+          "type": "integer"
+        },
+        "actual_krw": {
+          "type": "integer"
+        },
+        "variance_krw": {
+          "type": "integer"
+        },
+        "calculation_status": {
+          "type": "string"
+        },
+        "confirmed_subtotal": {
+          "type": "object",
+          "required": [
+            "actual_krw",
+            "expected_krw",
+            "tasks"
+          ],
+          "properties": {
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "expected_krw": {
+              "type": "integer"
+            },
+            "actual_krw": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "activity_state",
+          "alternatives",
+          "collection_label",
+          "collection_state",
+          "decision",
+          "due_at",
+          "evidence_id",
+          "hold_reasons",
+          "impact",
+          "judged_at",
+          "judged_by",
+          "judgment_id",
+          "judgment_state",
+          "missing",
+          "owner",
+          "target",
+          "task_id"
+        ],
+        "properties": {
+          "judgment_id": {
+            "type": "string"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "collection_label": {
+            "type": "string"
+          },
+          "collection_state": {
+            "type": "string"
+          },
+          "missing": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "alternatives": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "impact": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "judged_by": {
+            "type": "object",
+            "required": [
+              "account",
+              "name",
+              "role",
+              "userId"
+            ],
+            "properties": {
+              "account": {
+                "type": "string"
+              },
+              "userId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "judged_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "owner": {
+            "type": "object",
+            "required": [
+              "account",
+              "name",
+              "role",
+              "userId"
+            ],
+            "properties": {
+              "account": {
+                "type": "string"
+              },
+              "userId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "due_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "evidence_id": {
+            "type": "string"
+          },
+          "judgment_state": {
+            "type": "string"
+          },
+          "activity_state": {
+            "type": "string"
+          },
+          "hold_reasons": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "agent": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "candidate_cause",
+          "draft",
+          "human",
+          "input_scope",
+          "links",
+          "mode",
+          "reviewed_at",
+          "reviewed_by",
+          "run_id",
+          "seq",
+          "state",
+          "task"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "input_scope": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "draft": {
+            "type": "string"
+          },
+          "candidate_cause": {
+            "type": "null"
+          },
+          "human": {
+            "type": "string"
+          },
+          "reviewed_by": {
+            "type": "object",
+            "required": [
+              "account",
+              "name",
+              "role",
+              "userId"
+            ],
+            "properties": {
+              "account": {
+                "type": "string"
+              },
+              "userId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "cause_overview": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual_urgent_cost_krw",
+          "cause",
+          "count",
+          "label"
+        ],
+        "properties": {
+          "cause": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "actual_urgent_cost_krw": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "batch": {
+      "type": "object",
+      "required": [
+        "batch_id",
+        "counts",
+        "loaded_at",
+        "problems",
+        "seed_id",
+        "sha256"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string"
+        },
+        "seed_id": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "problems": {
+          "type": "array"
+        },
+        "loaded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "counts": {
+          "type": "object",
+          "required": [
+            "changes",
+            "evidence",
+            "held_orders",
+            "orders"
+          ],
+          "properties": {
+            "orders": {
+              "type": "integer"
+            },
+            "held_orders": {
+              "type": "integer"
+            },
+            "changes": {
+              "type": "integer"
+            },
+            "evidence": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "check_id",
+          "label",
+          "value"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

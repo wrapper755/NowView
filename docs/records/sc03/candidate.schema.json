@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/candidate.schema.json",
+  "title": "장면 3 candidate",
+  "description": "개선 후보 — 메커니즘·제약·포함/제외 판단과 사유·연결 과제(U35)",
+  "type": "object",
+  "required": [
+    "candidate",
+    "candidate_id",
+    "constraints",
+    "decided_at",
+    "decided_by",
+    "decision",
+    "decision_reason",
+    "dept",
+    "effect_12m",
+    "effect_2027",
+    "evidence_ref",
+    "mechanism",
+    "meeting_id",
+    "seq",
+    "task_id"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "meeting_id": {
+      "type": "string"
+    },
+    "dept": {
+      "type": "string"
+    },
+    "candidate": {
+      "type": "string"
+    },
+    "mechanism": {
+      "type": "string"
+    },
+    "constraints": {
+      "type": "string"
+    },
+    "evidence_ref": {
+      "type": "string"
+    },
+    "effect_2027": {
+      "type": "null"
+    },
+    "effect_12m": {
+      "type": "null"
+    },
+    "decision": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "decision_reason": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "decided_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "decided_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "task_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

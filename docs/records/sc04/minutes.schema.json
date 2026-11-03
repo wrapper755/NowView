@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/minutes.schema.json",
+  "title": "장면 4 minutes",
+  "description": "회의록(MIN41) — 기록·결정·승인서 연결(U406)",
+  "type": "object",
+  "required": [
+    "agent_drafts",
+    "approval",
+    "body",
+    "confirmed_at",
+    "confirmed_by",
+    "decision",
+    "decision_report",
+    "meeting_id",
+    "minutes_id",
+    "records",
+    "report",
+    "state"
+  ],
+  "properties": {
+    "minutes_id": {
+      "type": "string"
+    },
+    "meeting_id": {
+      "type": "string"
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decision": {
+      "type": "string"
+    },
+    "approval": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "report": {
+      "type": "string"
+    },
+    "decision_report": {
+      "type": "string"
+    },
+    "agent_drafts": {
+      "type": "array"
+    },
+    "confirmed_by": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

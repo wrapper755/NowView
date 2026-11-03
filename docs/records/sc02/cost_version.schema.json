@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/cost_version.schema.json",
+  "title": "장면 2 cost_version",
+  "description": "원가 버전 등록(C02-APP01) — 승인 단가·적용일·적용 상태(U26)",
+  "type": "object",
+  "required": [
+    "approved_proposal",
+    "cost_version_id",
+    "effective_from",
+    "models",
+    "new_price",
+    "note",
+    "old_price",
+    "parent_cost_version",
+    "part_id",
+    "price_version_id",
+    "registered_at",
+    "registered_by",
+    "run_id",
+    "seq",
+    "status"
+  ],
+  "properties": {
+    "cost_version_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "parent_cost_version": {
+      "type": "string"
+    },
+    "approved_proposal": {
+      "type": "string"
+    },
+    "price_version_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "part_id": {
+      "type": "string"
+    },
+    "old_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "new_price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "effective_from": {
+      "type": "string"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "outsource_after",
+          "outsource_before",
+          "part_after",
+          "part_before",
+          "qty_per",
+          "rest"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "qty_per": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "outsource_before": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "part_before": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "rest": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "part_after": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "outsource_after": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "registered_by": {
+      "type": "string"
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

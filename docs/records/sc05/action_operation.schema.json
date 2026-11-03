@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/action_operation.schema.json",
+  "title": "장면 5 action_operation",
+  "description": "과제 운영 상태(ACT41~43) — 담당·상태·이력",
+  "type": "object",
+  "required": [
+    "history",
+    "owner",
+    "seq",
+    "started_at",
+    "state",
+    "task_id"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "ref",
+          "state"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "background": {
+            "type": "boolean"
+          },
+          "by": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

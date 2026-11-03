@@ -20,6 +20,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.events import Hub
+from app.preparation import Preparations
 from app.sc01.domain import USERS, DomainError
 from app.sc01.process import Sc01Process
 from app.sc01.store import PostgresSc01Store, SqliteSc01Store
@@ -67,7 +68,10 @@ def proc(request) -> Iterator[Sc06Process]:
 @pytest.fixture
 def client(proc: Sc06Process) -> TestClient:
     app = FastAPI()
-    app.include_router(build_router(proc, Hub()))
+    # 앞 장면들을 각본으로 끝까지 돌리는 데 준비 기다림(기본 20초)을 넘기면 202다 — 이 시험은 조회
+    # 계약을 보지 준비 시간을 보지 않는다. 기계가 바쁘면 흔들렸다(Postgres 전체 시험 한 번 실패 ·
+    # 3단계 SQLite 전체 시험 다섯 실패, 둘 다 202).
+    app.include_router(build_router(proc, Hub(), Preparations(wait_s=900)))
     return TestClient(app)
 
 

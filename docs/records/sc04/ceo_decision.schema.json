@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/ceo_decision.schema.json",
+  "title": "장면 4 ceo_decision",
+  "description": "대표 결정(REV41) — 대안별 승인/조건부/보류·승인 범위 효과·남는 부족(U405)",
+  "type": "object",
+  "required": [
+    "approved",
+    "approved_effect",
+    "conditional",
+    "decided_at",
+    "decided_by",
+    "decision_id",
+    "gap",
+    "gap_excl_conditional",
+    "items",
+    "meeting_id",
+    "report_ref",
+    "run_id"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string"
+    },
+    "meeting_id": {
+      "type": "string"
+    },
+    "report_ref": {
+      "type": "string"
+    },
+    "items": {
+      "type": "object",
+      "required": [
+        "ALT41",
+        "ALT42",
+        "ALT43"
+      ],
+      "properties": {
+        "ALT41": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "outcome",
+            "reason"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT42": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "condition_refs",
+            "outcome",
+            "reason"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "condition_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT43": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "outcome",
+            "reason"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "outcome": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "approved": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conditional": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "approved_effect": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "gap": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "gap_excl_conditional": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "decided_by": {
+      "type": "string"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

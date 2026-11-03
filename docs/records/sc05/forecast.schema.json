@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/forecast.schema.json",
+  "title": "장면 5 forecast",
+  "description": "전망 버전(FC50·FC51-D·FC51 …) — 월별 손익·연간·상태·승인/게시(U507, 공식본 원본은 회사)",
+  "type": "object",
+  "additionalProperties": {
+    "type": [
+      "array",
+      "boolean",
+      "integer",
+      "null",
+      "object",
+      "string"
+    ]
+  }
+}

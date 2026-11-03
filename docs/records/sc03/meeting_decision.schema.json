@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc03/meeting_decision.schema.json",
+  "title": "장면 3 meeting_decision",
+  "description": "회의 결론(REV31) — 결론·조건·남은 쟁점(U35)",
+  "type": "object",
+  "required": [
+    "conditions",
+    "content",
+    "decided_at",
+    "decided_by",
+    "decision_id",
+    "meeting_id",
+    "open_questions",
+    "outcome",
+    "report_version"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string"
+    },
+    "meeting_id": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "conditions": {
+      "type": "string"
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "decided_by": {
+      "type": "string"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "report_version": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

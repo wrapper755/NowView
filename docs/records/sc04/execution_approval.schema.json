@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/execution_approval.schema.json",
+  "title": "장면 4 execution_approval",
+  "description": "확정 승인서(APR41) — 판단본 해시·책임·예산·기한(U406)",
+  "type": "object",
+  "required": [
+    "approval_id",
+    "approved_at",
+    "approved_by",
+    "approved_effect",
+    "budget_status",
+    "content_hash",
+    "decision_hash",
+    "decision_id",
+    "decision_ref",
+    "delegation",
+    "directives",
+    "gap",
+    "items",
+    "minutes_ref",
+    "opinion",
+    "overall_owner",
+    "policy_id",
+    "state",
+    "total_budget",
+    "version"
+  ],
+  "properties": {
+    "approval_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "decision_ref": {
+      "type": "string"
+    },
+    "decision_hash": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "overall_owner": {
+      "type": "string"
+    },
+    "total_budget": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "items": {
+      "type": "object",
+      "required": [
+        "ALT41",
+        "ALT42",
+        "ALT43"
+      ],
+      "properties": {
+        "ALT41": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT42": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALT43": {
+          "type": "object",
+          "required": [
+            "alt_id",
+            "budget",
+            "completion_due",
+            "conditions",
+            "decision",
+            "owner",
+            "plan_due",
+            "planned",
+            "worker"
+          ],
+          "properties": {
+            "alt_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "worker": {
+              "type": "string"
+            },
+            "budget": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "planned": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "plan_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completion_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "conditions": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "directives": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "budget_status": {
+      "type": "object",
+      "required": [
+        "committed",
+        "headroom",
+        "planned",
+        "spent"
+      ],
+      "properties": {
+        "planned": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "committed": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "spent": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "headroom": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "delegation": {
+      "type": "string"
+    },
+    "policy_id": {
+      "type": "string"
+    },
+    "minutes_ref": {
+      "type": "string"
+    },
+    "approved_effect": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "gap": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "opinion": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

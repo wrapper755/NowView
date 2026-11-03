@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/execution_assignment.schema.json",
+  "title": "장면 4 execution_assignment",
+  "description": "실행과제 배정·인수(ACT41~43·SUP41·전체 책임) — 배정버전·인수/반려(U407)",
+  "type": "object",
+  "additionalProperties": {
+    "type": [
+      "array",
+      "integer",
+      "null",
+      "string"
+    ]
+  }
+}

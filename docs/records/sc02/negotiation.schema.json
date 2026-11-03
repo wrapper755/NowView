@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/negotiation.schema.json",
+  "title": "장면 2 negotiation",
+  "description": "협상 기록 — 차수·결과·합의 단가·미해결 사항(U23)",
+  "type": "object",
+  "required": [
+    "analysis_required",
+    "due_at",
+    "effective_date",
+    "evidence_ids",
+    "held_at",
+    "negotiation_id",
+    "outcome",
+    "participants",
+    "price",
+    "recorded_by",
+    "request_id",
+    "revision",
+    "round_no",
+    "unresolved"
+  ],
+  "properties": {
+    "negotiation_id": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer"
+    },
+    "round_no": {
+      "type": "integer"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "held_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recorded_by": {
+      "type": "string"
+    },
+    "participants": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "price": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "effective_date": {
+      "type": "string"
+    },
+    "unresolved": {
+      "type": "string"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "analysis_required": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

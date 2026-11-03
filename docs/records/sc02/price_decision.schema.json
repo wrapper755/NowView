@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/price_decision.schema.json",
+  "title": "장면 2 price_decision",
+  "description": "결재 한 단계 — 팀장·임원·대표의 결정·의견·시각(U25)",
+  "type": "object",
+  "required": [
+    "actor",
+    "authority_version",
+    "comment",
+    "decided_at",
+    "decision",
+    "decision_id",
+    "proposal_key",
+    "step"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string"
+    },
+    "proposal_key": {
+      "type": "string"
+    },
+    "step": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authority_version": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

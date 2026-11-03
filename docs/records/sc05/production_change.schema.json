@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/production_change.schema.json",
+  "title": "장면 5 production_change",
+  "description": "생산 변경 공유·구매 확인 — 공유/확인 분, 대행, 정상·긴급 판단(U504)",
+  "type": "object",
+  "required": [
+    "ack_at",
+    "ack_by",
+    "ack_minutes",
+    "background",
+    "change_id",
+    "decision",
+    "delegate",
+    "history",
+    "model_id",
+    "note",
+    "order_ref",
+    "plan_ref",
+    "received_at",
+    "response",
+    "seq",
+    "share_minutes",
+    "shared_at",
+    "shared_by",
+    "state"
+  ],
+  "properties": {
+    "change_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "plan_ref": {
+      "type": "string"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shared_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "ack_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "shared_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "ack_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "delegate": {
+      "type": "boolean"
+    },
+    "decision": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "order_ref": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "note": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "response": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "decided_at",
+        "decided_by",
+        "inventory",
+        "need_date",
+        "normal_date",
+        "open_orders",
+        "rationale"
+      ],
+      "properties": {
+        "inventory": {
+          "type": "integer"
+        },
+        "open_orders": {
+          "type": "integer"
+        },
+        "need_date": {
+          "type": "string"
+        },
+        "normal_date": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decided_by": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string"
+    },
+    "background": {
+      "type": "boolean"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "by",
+          "state"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "by": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "received_by": {
+      "type": "string"
+    },
+    "memo": {
+      "type": "string"
+    },
+    "share_summary": {
+      "type": "string"
+    },
+    "agent_ref": {
+      "type": "string"
+    },
+    "ack_note": {
+      "type": "string"
+    },
+    "share_minutes": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "ack_minutes": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc05/action_start.schema.json",
+  "title": "장면 5 action_start",
+  "description": "운영 착수(START51) — 계획 버전·조건·품의·요건(U503)",
+  "type": "object",
+  "required": [
+    "comment",
+    "conditions",
+    "plan_version",
+    "requests",
+    "requirements",
+    "start_id",
+    "started_at",
+    "started_by",
+    "task_id"
+  ],
+  "properties": {
+    "start_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "plan_version": {
+      "type": "string"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "started_by": {
+      "type": "string"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "ok"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

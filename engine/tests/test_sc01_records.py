@@ -121,7 +121,7 @@ def test_company_outage_keeps_the_operation_unsaved(proc: Sc01Process, monkeypat
     def down(*_a, **_k):
         raise CompanyUnavailable("회사 시스템에 닿지 않는다")
 
-    monkeypatch.setattr(proc.company, "write_record", down)
+    monkeypatch.setattr(proc.company, "write_records", down)
     with pytest.raises(CompanyUnavailable):
         demo.run_step(proc, doc["demo_run_id"], 2)
     after = proc.get(doc["demo_run_id"])

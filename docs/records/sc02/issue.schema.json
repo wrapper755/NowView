@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/issue.schema.json",
+  "title": "장면 2 issue",
+  "description": "원가 상승 이슈(ISSUE-COST01) — 위험·열림·분석별 이력",
+  "type": "object",
+  "required": [
+    "cause",
+    "history",
+    "issue_id",
+    "models",
+    "plant_id",
+    "request_id",
+    "risk",
+    "status"
+  ],
+  "properties": {
+    "issue_id": {
+      "type": "string"
+    },
+    "cause": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "plant_id": {
+      "type": "string"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "risk",
+          "run_id"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "run_id": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,536 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/price_run.schema.json",
+  "title": "장면 2 price_run",
+  "description": "단가 영향 분석 한 번 — 기간별(잔여·12개월·Q3) 원가·손익 연결·승인선 판정. 숫자는 규칙 계산(U22)",
+  "type": "object",
+  "required": [
+    "at",
+    "by",
+    "input_hash",
+    "is_stale",
+    "kind",
+    "price_version_id",
+    "result",
+    "run_id",
+    "seq",
+    "status"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "price_version_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "input_hash": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "by": {
+      "type": "string"
+    },
+    "is_stale": {
+      "type": "boolean"
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "amount_risk",
+        "assumptions",
+        "ceo_required",
+        "comparison",
+        "computable",
+        "effective_date",
+        "kind",
+        "monthly",
+        "new_price",
+        "next12",
+        "next12_models",
+        "old_price",
+        "part_id",
+        "periods",
+        "problems",
+        "q3_models",
+        "rate",
+        "rate_risk",
+        "remaining",
+        "risk",
+        "supplier_id",
+        "version_id",
+        "versions"
+      ],
+      "properties": {
+        "version_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "part_id": {
+          "type": "string"
+        },
+        "supplier_id": {
+          "type": "string"
+        },
+        "old_price": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "new_price": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "effective_date": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "object",
+          "required": [
+            "authority",
+            "cost",
+            "fixed",
+            "quantity",
+            "rule"
+          ],
+          "properties": {
+            "quantity": {
+              "type": "string"
+            },
+            "cost": {
+              "type": "string"
+            },
+            "fixed": {
+              "type": "string"
+            },
+            "rule": {
+              "type": "string"
+            },
+            "authority": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "rate": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "rate_risk": {
+          "type": "string"
+        },
+        "remaining": {
+          "type": "object",
+          "required": [
+            "computable",
+            "from",
+            "increase",
+            "purchase_qty",
+            "reasons",
+            "to"
+          ],
+          "properties": {
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "purchase_qty": {
+              "type": "integer"
+            },
+            "increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "computable": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        },
+        "next12": {
+          "type": "object",
+          "required": [
+            "computable",
+            "from",
+            "increase",
+            "purchase_qty",
+            "reasons",
+            "to"
+          ],
+          "properties": {
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "purchase_qty": {
+              "type": "integer"
+            },
+            "increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "computable": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "type": "array"
+            }
+          },
+          "additionalProperties": true
+        },
+        "amount_risk": {
+          "type": "string"
+        },
+        "risk": {
+          "type": "string"
+        },
+        "ceo_required": {
+          "type": "boolean"
+        },
+        "comparison": {
+          "type": "object",
+          "required": [
+            "base_increase",
+            "base_version",
+            "deferral_effect",
+            "from",
+            "increase",
+            "price_effect",
+            "reduction",
+            "to"
+          ],
+          "properties": {
+            "base_version": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "base_increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "increase": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "reduction": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "price_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "deferral_effect": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "problems": {
+          "type": "array"
+        },
+        "computable": {
+          "type": "boolean"
+        },
+        "periods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "bridge_diff",
+              "computable",
+              "cost_effect",
+              "fixed",
+              "from",
+              "kind",
+              "label",
+              "profit_combined",
+              "profit_f01",
+              "profit_volume",
+              "revenue_f02",
+              "target_gap",
+              "target_profit",
+              "to",
+              "total_change",
+              "volume_effect"
+            ],
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "computable": {
+                "type": "boolean"
+              },
+              "revenue_f02": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "fixed": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "profit_f01": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "profit_volume": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cost_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "profit_combined": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "total_change": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "target_profit": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "target_gap": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "bridge_diff": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "q3_models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "cm_combined",
+              "cm_f01",
+              "computable",
+              "cost_effect",
+              "model_id",
+              "volume_effect"
+            ],
+            "properties": {
+              "model_id": {
+                "type": "string"
+              },
+              "computable": {
+                "type": "boolean"
+              },
+              "cm_f01": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cost_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cm_combined": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "next12_models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "cm_combined",
+              "cm_f01",
+              "computable",
+              "cost_effect",
+              "model_id",
+              "volume_effect"
+            ],
+            "properties": {
+              "model_id": {
+                "type": "string"
+              },
+              "computable": {
+                "type": "boolean"
+              },
+              "cm_f01": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cost_effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cm_combined": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "monthly": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "assumed",
+              "cost",
+              "f01",
+              "f01_cm",
+              "f02",
+              "f02_cm",
+              "model_id",
+              "part_qty",
+              "period",
+              "revenue",
+              "target_cm",
+              "unit_cm",
+              "volume"
+            ],
+            "properties": {
+              "period": {
+                "type": "string"
+              },
+              "model_id": {
+                "type": "string"
+              },
+              "f01": {
+                "type": "integer"
+              },
+              "f02": {
+                "type": "integer"
+              },
+              "assumed": {
+                "type": "boolean"
+              },
+              "unit_cm": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "part_qty": {
+                "type": "integer"
+              },
+              "f01_cm": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "f02_cm": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "volume": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "cost": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "target_cm": {
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "revenue": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "assumptions": {
+          "type": "object",
+          "required": [
+            "cost",
+            "forecast",
+            "inventory",
+            "lag",
+            "next_year"
+          ],
+          "properties": {
+            "inventory": {
+              "type": "string"
+            },
+            "lag": {
+              "type": "string"
+            },
+            "next_year": {
+              "type": "string"
+            },
+            "forecast": {
+              "type": "string"
+            },
+            "cost": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/improvement_review.schema.json",
+  "title": "장면 4 improvement_review",
+  "description": "검토건(MR-2706-01) — 장면 4 상태·위험·전망·Target·착수/완료 시각",
+  "type": "object",
+  "required": [
+    "completed_at",
+    "forecast",
+    "review_id",
+    "risk",
+    "started_at",
+    "started_by",
+    "state",
+    "target"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "risk": {
+      "type": "string"
+    },
+    "forecast": {
+      "type": "string"
+    },
+    "target": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "started_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "completed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

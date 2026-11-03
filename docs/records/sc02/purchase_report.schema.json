@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc02/purchase_report.schema.json",
+  "title": "장면 2 purchase_report",
+  "description": "구매 팀장 보고 — 요약·필요성·협상 방향(U21)",
+  "type": "object",
+  "required": [
+    "conclusion",
+    "need",
+    "negotiation_direction",
+    "participants",
+    "report_id",
+    "reported_at",
+    "reported_by",
+    "request_id",
+    "summary"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "reported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reported_by": {
+      "type": "string"
+    },
+    "participants": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "need": {
+      "type": "string"
+    },
+    "negotiation_direction": {
+      "type": "string"
+    },
+    "conclusion": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

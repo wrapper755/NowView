@@ -1,0 +1,710 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc07/improvement.schema.json",
+  "title": "장면 7 improvement",
+  "description": "U701 보기 A — 개선 사유·기존 검토(AG62 원본·제한 입력)·개선한 검토 방식·기준·절차",
+  "type": "object",
+  "required": [
+    "after",
+    "areas",
+    "as_of",
+    "before",
+    "dataset_version",
+    "execution_mode",
+    "fictional",
+    "improvement",
+    "improvement_id",
+    "source",
+    "version_bundle"
+  ],
+  "properties": {
+    "dataset_version": {
+      "type": "string"
+    },
+    "improvement_id": {
+      "type": "string"
+    },
+    "version_bundle": {
+      "type": "object",
+      "required": [
+        "agent",
+        "measure",
+        "projection",
+        "verification_set"
+      ],
+      "properties": {
+        "agent": {
+          "type": "string"
+        },
+        "measure": {
+          "type": "string"
+        },
+        "projection": {
+          "type": "string"
+        },
+        "verification_set": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fictional": {
+      "type": "boolean"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "improvement": {
+      "type": "object",
+      "required": [
+        "application",
+        "excluded",
+        "framework",
+        "improvement_id",
+        "main",
+        "process",
+        "proposed_on",
+        "rules",
+        "source",
+        "versions"
+      ],
+      "properties": {
+        "improvement_id": {
+          "type": "string"
+        },
+        "proposed_on": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "main": {
+          "type": "object",
+          "required": [
+            "after",
+            "before",
+            "item_id",
+            "scope",
+            "target"
+          ],
+          "properties": {
+            "item_id": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "after": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "framework": {
+          "type": "object",
+          "required": [
+            "after",
+            "before",
+            "item_id",
+            "scope",
+            "target"
+          ],
+          "properties": {
+            "item_id": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "after": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "process": {
+          "type": "object",
+          "required": [
+            "after",
+            "before",
+            "item_id",
+            "scope",
+            "target"
+          ],
+          "properties": {
+            "item_id": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "after": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "application": {
+          "type": "object",
+          "required": [
+            "after",
+            "before",
+            "item_id",
+            "scope",
+            "target"
+          ],
+          "properties": {
+            "item_id": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "after": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "excluded": {
+          "type": "object",
+          "required": [
+            "after",
+            "before",
+            "item_id",
+            "scope",
+            "target"
+          ],
+          "properties": {
+            "item_id": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "before": {
+              "type": "string"
+            },
+            "after": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "content",
+              "guard",
+              "rule_id",
+              "version"
+            ],
+            "properties": {
+              "rule_id": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "guard": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "note",
+              "previous",
+              "value"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "value": {
+                "type": [
+                  "integer",
+                  "string"
+                ]
+              },
+              "previous": {
+                "type": "string"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "change",
+        "evidence_id",
+        "order",
+        "report_state",
+        "report_version"
+      ],
+      "properties": {
+        "report_version": {
+          "type": "string"
+        },
+        "report_state": {
+          "type": "string"
+        },
+        "order": {
+          "type": "object",
+          "required": [
+            "approved_by",
+            "cost_krw",
+            "order_id"
+          ],
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "cost_krw": {
+              "type": "integer"
+            },
+            "approved_by": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "change": {
+          "type": "object",
+          "required": [
+            "cause",
+            "change_id",
+            "confirmed_at",
+            "evidence_id",
+            "order_id",
+            "required_at",
+            "shared_at",
+            "supply_at"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string"
+            },
+            "order_id": {
+              "type": "string"
+            },
+            "shared_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "confirmed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "supply_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "cause": {
+              "type": "string"
+            },
+            "evidence_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "evidence_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "before": {
+      "type": "object",
+      "required": [
+        "agent",
+        "agent_version",
+        "evidence_id",
+        "payload",
+        "projection_version"
+      ],
+      "properties": {
+        "agent": {
+          "type": "object",
+          "required": [
+            "at",
+            "candidate_cause",
+            "draft",
+            "human",
+            "input_scope",
+            "links",
+            "mode",
+            "reviewed_at",
+            "reviewed_by",
+            "run_id",
+            "state",
+            "task"
+          ],
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "input_scope": {
+              "type": "string"
+            },
+            "task": {
+              "type": "string"
+            },
+            "draft": {
+              "type": "string"
+            },
+            "candidate_cause": {
+              "type": "string"
+            },
+            "human": {
+              "type": "string"
+            },
+            "reviewed_by": {
+              "type": "string"
+            },
+            "reviewed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "state": {
+              "type": "string"
+            },
+            "mode": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "agent_version": {
+          "type": "string"
+        },
+        "projection_version": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "input_id",
+            "order_cost",
+            "order_id",
+            "primary_confirmed_at",
+            "shared_at"
+          ],
+          "properties": {
+            "input_id": {
+              "type": "string"
+            },
+            "order_id": {
+              "type": "string"
+            },
+            "change_id": {
+              "type": "string"
+            },
+            "shared_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "primary_confirmed_at": {
+              "type": "null"
+            },
+            "order_cost": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        },
+        "evidence_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "after": {
+      "type": "object",
+      "required": [
+        "agent_version",
+        "candidate_cause",
+        "candidate_label",
+        "confirmed_at",
+        "confirmed_by",
+        "cutoff_status",
+        "data_status",
+        "deadline_status",
+        "elapsed_minutes",
+        "elapsed_seconds",
+        "evidence_refs",
+        "execution_mode",
+        "facts",
+        "input_id",
+        "internal_review",
+        "invalid",
+        "missing_fields",
+        "next_action",
+        "payload",
+        "projection_version",
+        "supply_gap_minutes",
+        "supply_status",
+        "threshold_min"
+      ],
+      "properties": {
+        "input_id": {
+          "type": "string"
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmed_by": {
+          "type": "string"
+        },
+        "elapsed_seconds": {
+          "type": "integer"
+        },
+        "elapsed_minutes": {
+          "type": "integer"
+        },
+        "deadline_status": {
+          "type": "string"
+        },
+        "cutoff_status": {
+          "type": "string"
+        },
+        "supply_status": {
+          "type": "string"
+        },
+        "supply_gap_minutes": {
+          "type": "integer"
+        },
+        "candidate_cause": {
+          "type": "string"
+        },
+        "data_status": {
+          "type": "string"
+        },
+        "invalid": {
+          "type": "array"
+        },
+        "missing_fields": {
+          "type": "array"
+        },
+        "internal_review": {
+          "type": "boolean"
+        },
+        "threshold_min": {
+          "type": "integer"
+        },
+        "candidate_label": {
+          "type": "string"
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence_refs",
+              "text"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "evidence_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next_action": {
+          "type": "string"
+        },
+        "agent_version": {
+          "type": "string"
+        },
+        "projection_version": {
+          "type": "string"
+        },
+        "execution_mode": {
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "change_id",
+            "delegation",
+            "deputy_confirmed_at",
+            "evidence_refs",
+            "evidence_status",
+            "input_id",
+            "order_cutoff_at",
+            "order_id",
+            "primary_confirmed_at",
+            "required_at",
+            "shared_at",
+            "timely_supply_at",
+            "version_bundle"
+          ],
+          "properties": {
+            "input_id": {
+              "type": "string"
+            },
+            "order_id": {
+              "type": "string"
+            },
+            "change_id": {
+              "type": "string"
+            },
+            "shared_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "primary_confirmed_at": {
+              "type": "null"
+            },
+            "deputy_confirmed_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "delegation": {
+              "type": "object",
+              "required": [
+                "valid"
+              ],
+              "properties": {
+                "valid": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": true
+            },
+            "required_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "timely_supply_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "order_cutoff_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "evidence_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "evidence_status": {
+              "type": "string"
+            },
+            "version_bundle": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "areas": {
+      "type": "object",
+      "required": [
+        "after",
+        "before",
+        "rules"
+      ],
+      "properties": {
+        "before": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "rules": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

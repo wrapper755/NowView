@@ -1,0 +1,516 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "sc04/effect_run.schema.json",
+  "title": "장면 4 effect_run",
+  "description": "효과 계산 한 번 — 월별 대응안 효과·중복 제거·월 손익·잔여 부족. 숫자는 규칙 계산(U402·U403)",
+  "type": "object",
+  "required": [
+    "assumptions_hash",
+    "basis_ref",
+    "calculated_at",
+    "conditional",
+    "created_by",
+    "include",
+    "kind",
+    "result",
+    "run_id",
+    "seq",
+    "status"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "basis_ref": {
+      "type": "string"
+    },
+    "assumptions_hash": {
+      "type": "string"
+    },
+    "include": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "conditional": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "calculated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "alts",
+        "duplicate_total",
+        "effect_total",
+        "errors",
+        "fixed_cost_monthly",
+        "fixed_saving_total",
+        "lines",
+        "months",
+        "normal_annual_total",
+        "passed",
+        "periods",
+        "status"
+      ],
+      "properties": {
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "added",
+              "alt_id",
+              "applied",
+              "avoided",
+              "draft_discount",
+              "duplicate",
+              "fixed_saving",
+              "logistics",
+              "month",
+              "net",
+              "one_off",
+              "qty",
+              "start",
+              "support"
+            ],
+            "properties": {
+              "alt_id": {
+                "type": "string"
+              },
+              "month": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "applied": {
+                "type": "boolean"
+              },
+              "qty": {
+                "type": "integer"
+              },
+              "avoided": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "added": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "logistics": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "support": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "one_off": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "draft_discount": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "duplicate": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "net": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "fixed_saving": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "alts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "alt_id",
+              "counted",
+              "duplicate",
+              "fixed_saving",
+              "name",
+              "net_2027",
+              "normal_annual",
+              "normal_monthly",
+              "one_off",
+              "start"
+            ],
+            "properties": {
+              "alt_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "counted": {
+                "type": "boolean"
+              },
+              "net_2027": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "one_off": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "duplicate": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "fixed_saving": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "normal_monthly": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "normal_annual": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "months": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "base",
+              "effect",
+              "effect_excl",
+              "period",
+              "target"
+            ],
+            "properties": {
+              "period": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "base": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "effect": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "effect_excl": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "periods": {
+          "type": "object",
+          "required": [
+            "q3",
+            "q4",
+            "remaining",
+            "year"
+          ],
+          "properties": {
+            "year": {
+              "type": "object",
+              "required": [
+                "base",
+                "effect",
+                "forecast",
+                "forecast_excl_conditional",
+                "gap",
+                "gap_before",
+                "gap_excl_conditional",
+                "kind",
+                "label",
+                "target"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "base": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_before": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            },
+            "q3": {
+              "type": "object",
+              "required": [
+                "base",
+                "effect",
+                "forecast",
+                "forecast_excl_conditional",
+                "gap",
+                "gap_before",
+                "gap_excl_conditional",
+                "kind",
+                "label",
+                "target"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "base": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_before": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            },
+            "q4": {
+              "type": "object",
+              "required": [
+                "base",
+                "effect",
+                "forecast",
+                "forecast_excl_conditional",
+                "gap",
+                "gap_before",
+                "gap_excl_conditional",
+                "kind",
+                "label",
+                "target"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "base": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_before": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            },
+            "remaining": {
+              "type": "object",
+              "required": [
+                "base",
+                "effect",
+                "forecast",
+                "forecast_excl_conditional",
+                "gap",
+                "gap_before",
+                "gap_excl_conditional",
+                "kind",
+                "label",
+                "target"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "base": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "effect": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_before": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "forecast_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "gap_excl_conditional": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "effect_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "normal_annual_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "duplicate_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "fixed_saving_total": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "fixed_cost_monthly": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "errors": {
+          "type": "array"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "status": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
