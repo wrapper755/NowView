@@ -159,8 +159,7 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
   그림 ↔ 정의를 잠근다.
 * 결재마다 `assignees`(사람 이름)와 `answered_by_as`·`answered_via_as`를 둔다. 역할표(`domain.NODE_ROLES`)와 어긋나면 시험이 잡는다.
 * 결재 뒤 기록 태스크에는 오류 경계(`TASK_FAILED` → 같은 결재)를 단다.
-* 그림을 바꾸면 Studio에서 패키지를 다시 내보내 배포한다. TS 토폴로지 사본(`tests/fixtures/sc0N-process.json`)은 엔진 시험이 다시
-  만드는 명령을 알려 준다.
+* 그림을 바꾸면 Studio에서 패키지를 다시 내보내 배포한다(원본은 Company1 `bpm/`, 엔진 사본은 `scripts/sync-bpm.sh`).
 
 ## 7. 운영계에 올릴 때
 

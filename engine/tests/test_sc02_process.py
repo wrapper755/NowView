@@ -670,21 +670,6 @@ def test_http_errors_and_shapes(proc: Sc02Process) -> None:
     }
 
 
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc02Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc02-process.json`) = BPMN. BPMN을 고치면 여기서
-    실패한다 — 저장소 루트에서 다시 만든다:
-    `curl -s localhost:8077/sc02/process | python3 -m json.tool --indent 1`
-    `> tests/fixtures/sc02-process.json`
-    """
-    import json
-
-    from app.sc02.view import topology
-
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc02-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
-
-
 def _form(doc: dict, node_id: str) -> dict:
     (w,) = [w for w in view(doc)["bpm"]["waiting"] if w["nodeId"] == node_id]
     return {f["key"]: f.get("default") for f in w["fields"]}

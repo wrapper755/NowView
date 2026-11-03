@@ -105,8 +105,8 @@ for _ in $(seq 1 30); do
 done
 # 웹 → BFF → 엔진을 한 번에 지나는 경로로 본다. 예전 `/api/engine`은 LangGraph와 함께 지웠다 —
 # 남겨 두었더니 배포가 성공해도 마지막 줄이 404 페이지 HTML을 찍었다.
-echo "web → engine (/api/engine/sc01/process):"
-curl -s http://127.0.0.1:3100/api/engine/sc01/process | head -c 120; echo
+echo "web → engine (/api/engine/companies):"
+curl -s http://127.0.0.1:3100/api/engine/companies | head -c 120; echo
 curl -s -o /dev/null -w "web / → %{http_code}\n" http://127.0.0.1:3100/'
 
 # 외부 주소는 cloudflared 터널이 정한다(Cloudflare 대시보드의 라우트).

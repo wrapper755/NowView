@@ -265,6 +265,10 @@ class CompanyClient:
         """일감 기록 한 줄 — 사이트 자동 모드가 답한 결재의 기록이 왔는지 본다(role-split §5.3)."""
         return self._call("POST", f"/worlds/{world_id}/worker-log", entry)
 
+    def worker_log_entries(self, world_id: str) -> list[dict[str, Any]]:
+        """일감 기록(적힌 순서) — 대시보드가 업무별 일감을 보인다(`app/dashboard.py`)."""
+        return self._call("GET", f"/worlds/{world_id}/worker-log")
+
     def price_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
         return self._call("GET", f"/worlds/{world_id}/price-requests/inbox?after={after}")
 

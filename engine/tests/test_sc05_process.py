@@ -11,7 +11,6 @@ SC05 업무 흐름 — Chaeksas BPM 위에서 기본 시연(D501~D518)과 예외
 from __future__ import annotations
 
 import copy
-import json
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
@@ -33,7 +32,7 @@ from app.sc05 import demo, domain
 from app.sc05.api import build_router
 from app.sc05.process import PROCESS_PATH, Sc05Process
 from app.sc05.seed import kst, load_seed
-from app.sc05.view import topology, view
+from app.sc05.view import view
 from app.store import build_postgres_backend
 
 PREFIXES = ("sc01", "sc02", "sc03", "sc04", "sc05")
@@ -963,17 +962,6 @@ def test_http_errors_and_shapes(proc: Sc05Process) -> None:
         "Start_Operation",
         "Complete_Scene",
     }
-
-
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc05Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc05-process.json`) = BPMN. BPMN을 고치면 실패한다 —
-    다시 만든다:
-    `curl -s localhost:8077/sc05/process | python3 -m json.tool --indent 1 >
-    tests/fixtures/sc05-process.json`
-    """
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc05-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
 
 def test_request_approval_before_submission_is_a_conflict_not_missing() -> None:

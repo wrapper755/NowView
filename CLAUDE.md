@@ -16,8 +16,8 @@ npm run start      # 빌드 산출물 실행
 **단일 테스트 실행**
 
 ```bash
-npx vitest run tests/sc01.test.ts                   # 파일 하나
-npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나만
+npx vitest run tests/dashboard.test.ts             # 파일 하나
+npx vitest run tests/dashboard.test.ts -t "미산출"   # 이름으로 하나만
 ```
 
 **BPM 엔진 (Python · `engine/`)**
@@ -26,7 +26,7 @@ npx vitest run tests/sc01.test.ts -t "판정 보류"     # 이름으로 하나�
 cd engine
 uv sync
 uv run uvicorn app.main:app --port 8077 --reload   # http://localhost:8077/docs  (키: --env-file .env.local)
-uv run pytest                                      # 643개 (SQLite만, LLM 제외)
+uv run pytest                                      # SQLite만, LLM 제외 (Postgres 시험은 skip)
 uv run pytest -m llm                               # ollama 실호출 (OLLAMA_URL 필요, 약 100초)
 uv run ruff check .
 ```
@@ -36,12 +36,13 @@ uv run ruff check .
 (`engine/.env.local`의 `COMPANY_COMPANY1_URL`·`COMPANY_COMPANY1_KEY` = company1 `legacy/.env.local`의 `COMPANY1_LEGACY_KEY`).
 
 ```bash
-scripts/sync-bpm.sh         # company1 bpm/의 BPMN을 engine/processes/로 가져온다 (바뀌면 TS 토폴로지 사본도 다시 만든다)
+scripts/sync-bpm.sh         # company1 bpm/의 BPMN을 engine/processes/로 가져온다
 scripts/sync-scenarios.sh   # company1 scenarios/의 각본을 engine/scenarios/로 가져온다 (엔진 시험 전용 각본 실행기가 읽는다)
 ```
 
 **시연은 회사 사이트가 몬다**(2026-11-03, `docs/role-split.md` §5) — 세계(= 데모 실행) 만들기·초기화·시계·원천 보내기·결재·
-명령(착수·회의 기록·Agent 요청 …)·자동 모드는 Company1 사이트(:3100 `/demo`·직원 결재 화면)에서 한다. NowView 화면은 읽기 전용이고,
+명령(착수·회의 기록·Agent 요청 …)·자동 모드는 Company1 사이트(:3100 `/demo`·직원 결재 화면)에서 한다. 업무 화면(`/work/{회차}/sc0N`)도
+사이트에 있다. NowView 웹은 회사 목록·회사 대시보드·관리자뿐이고(2026-11-03 4단계 — 장면 화면을 걷었다),
 엔진은 기간계를 2초마다 읽어 따라간다(`engine/app/follower.py`). 엔진의 장면 쓰기 HTTP 경로는 **엔진 시험 전용**이다
 (`NOWVIEW_TEST_INPUTS=1` — `tests/conftest.py`가 켠다. 아니면 405).
 
@@ -88,7 +89,7 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   `up`을 다시 해도 compose가 기존 컨테이너를 재사용해 계속 접속이 안 된다 —
   `docker compose down` 후 다시 올려야 한다. 실제로 dev 서버가 3000을 잡고 있어 겪었다.
 * 두 백엔드를 모두 검증하려면:
-  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (881개)
+  `TEST_DATABASE_URL=postgresql://nowview:nowview@localhost:55432/nowview uv run pytest` (869개)
 
 * **`--reload`를 빼면 코드 수정이 반영되지 않는다.** 실제로 그 때문에 Pydantic 별칭
   변경이 적용되지 않아 422를 받고 원인을 한참 찾았다.
@@ -103,29 +104,9 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **`package.json`의 `name`은 `nowview`** 다. 디렉토리명 `NowView`는 npm 명명 규칙(대문자 불가) 위반이라 `create-next-app .`이 거부한다. 재스캐폴딩이 필요하면 소문자 하위 디렉토리에 생성한 뒤 내용을 올려야 한다.
 * **`AGENTS.md`는 `next dev`가 자동 생성·재삽입한다.** Next.js 16 자체 에이전트 규칙 블록이며, 지워도 되살아난다. 커밋에 포함시켜 트리를 깨끗하게 유지한다. 이 프로젝트의 지침은 `AGENTS.md`가 아니라 이 파일이다.
 * **Tailwind v4에는 `tailwind.config.ts`가 없다.** 테마는 `app/globals.css`의 `@theme`/CSS 변수로 설정한다. Shadcn도 `components.json`에서 `tailwind.config: ""`로 이를 반영한다.
-* **React Flow는 스타일시트를 직접 import해야 한다.** `import '@xyflow/react/dist/style.css'` 없이는 노드·엣지가 레이아웃 없이 렌더되어 "아무것도 안 보이는" 상태가 된다. 첫 React Flow 화면을 만들 때 함께 넣는다.
-* **React Flow는 부모에 명시적 높이가 필요하다.** `h-[440px]` 같은 고정 높이가 없으면 캔버스가 접힌다.
-* **`markerEnd`의 색에 CSS 변수를 쓰면 화살촉이 사라진다.** React Flow가 색 문자열을 marker DOM id에
-  그대로 끼워 넣고 `url(#...)`로 참조하는데, `var(--x)`의 괄호가 그 참조를 깨뜨린다. 콘솔 경고가 없어
-  원인을 찾기 어렵다. **라이트/다크 값이 같은** 팔레트 스텝만 리터럴로 쓴다 — `#0ca30c`(status-good),
-  `#898781`(muted). 선(path)은 `style`로 칠하므로 CSS 변수를 그대로 써도 된다.
-* **숨겨진 브라우저 패널에서는 React Flow를 검증할 수 없다.** 패널이 표시되지 않으면 `document.hidden`이
-  true가 되어 `requestAnimationFrame`과 `ResizeObserver` 콜백이 전혀 발화하지 않는다. React Flow는 이
-  둘로 노드를 측정하므로 초기화가 끝나지 않고 **엣지 0개 + fitView 미적용** 상태가 된다 —
-  기본 노드 2개짜리 최소 예제도 동일하게 실패하므로 앱 버그로 오진하지 말 것. 반면 Recharts는 마운트 시
-  컨테이너 폭을 동기로 읽어 정상 렌더되므로, "차트는 되는데 플로우만 안 된다"는 정상 증상이다.
-  **같은 상태에서 스크롤·resize 이벤트도 배달되지 않고 `behavior: "smooth"` 스크롤도 움직이지
-  않는다** — 검증 방법은 4.10에, ResizeObserver에 기대면 안 되는 이유는 4.12에 적어 두었다.
-* **React Flow / Recharts는 클라이언트 컴포넌트다.** 둘 다 브라우저 전용 API에 의존하므로 사용하는 파일 최상단에 `'use client'`가 필요하다. App Router 기본값은 서버 컴포넌트다.
-* **Recharts 커스텀 `shape` + entrance 애니메이션은 같이 쓰면 안 된다.** `<Bar shape={<Custom/>}>`에
-  애니메이션이 켜져 있으면 막대가 `height: 0`에 멈춘 채 렌더된다 — 에러도 콘솔 경고도 없고 SVG 골격만
-  그려지므로 원인 파악이 오래 걸린다. 커스텀 shape를 쓸 때는 `isAnimationActive={false}`를 함께 준다.
-  (이전 Cockpit의 브릿지 차트에서 실제로 겪었다.)
-* **`<Cell radius>`는 배열을 받지 못한다** (타입이 `string | number`). 모서리별 반경이 필요하면
-  `<Bar shape>`로 `<Rectangle radius={[…]}/>`를 직접 그린다.
-* **커스텀 `tick` 엘리먼트를 주면 Recharts 기본 클래스가 붙지 않는다.** `.recharts-cartesian-axis-tick-value`
-  선택자로 축 라벨을 찾는 테스트는 실패한다. 또한 v3의 zIndex 레이어 구조 때문에 축 눈금이
-  `.recharts-xAxis`의 자손이 아닐 수 있으므로, 좌표 기준으로 찾는 편이 안전하다.
+* **React Flow·Recharts·Zustand는 걷었다**(2026-11-03 4단계 — 장면 화면과 함께). 캔버스(`markerEnd`의 CSS 변수, 숨겨진
+  패널에서 측정이 끝나지 않음)·차트(커스텀 `shape` + 애니메이션 `height: 0`, `<Cell radius>`, 커스텀 `tick`)의 함정은 git 이력의
+  이 절에 있다(`79f6ea9` 이전). 다시 들이면 그 함정부터 본다.
 * **테마 의존 UI를 `useState`+`useEffect`(mounted 플래그)로 그리면 lint가 막는다** —
   `react-hooks/set-state-in-effect`. 적용 테마를 렌더 결과에 반영하는 대신 `dark:` 변형(CSS)으로
   전환하면 마크업이 양쪽 테마에서 동일해져 hydration 불일치도 같이 사라진다.
@@ -151,7 +132,8 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
 * **세 서버로 나눈다**(2026-11-03 사용자 결정, `docs/role-split.md`) — BPM 서버(Center)는 흐름·결재, NowView는 일꾼·외부 서비스
   연계·N개 회사 대시보드·관리자, 회사 사이트(Company1)는 **업무에 관한 것 전부**(직원 업무함·결재·업무 판단 화면·회사 자료·업무 설명·
   시연 조작). **경영 기록의 원본은 회사 시스템(기간계)이다** — 아래 10-31의 「경영 기록은 NowView 몫」을 바꿨다(규칙 계산은 그대로
-  NowView). 회사 사이트는 NowView를 부르지 않는다. 지금 장면 화면·플레이어는 전환 중이다 — 단계는 그 문서 §4.
+  NowView). 회사 사이트는 NowView를 부르지 않는다. NowView의 장면 화면·플레이어·해설은 걷었다(4단계, 그 문서 §4) — NowView 웹에는
+  회사 목록·**회사 대시보드**(업무별 BPM 진행·일꾼 일감·핵심 지표, 사이트 업무 화면으로 링크 — 4.6)·관리자만 있다.
 * **일꾼은 BPM 프로세스 ↔ 회사 시스템의 중계자다**(2026-10-31 확정, `docs/worker-interfaces.md`). 회사의 자료·확정 기록(조직·
   계획·실적·원가·고객계획 원천·원천 확인 상태)은 **회사 시스템**에 있고, **규칙 계산·경영 기록(이슈·업무·검토·Agent)은 NowView**
   몫이다. 가상 자동차 부품사의 회사 시스템은 **별도 리포 Company1의 기간계**(:8191)이고 엔진이 `app/company.py`로 읽고 적는다.
@@ -245,9 +227,8 @@ Management Evolution 상세는 범위 밖이다. **SC07**은 6단계(Management 
 ## 3. Tech Stack
 
 * **Frontend**: Next.js 16.3.6 (App Router, Turbopack), React 19.2, TypeScript 5, Tailwind CSS v4, Shadcn/UI (`radix-nova` 프리셋 / Radix 기반 / Lucide 아이콘)
-* **Process Visualization**: `@xyflow/react` 12.12 (React Flow) — BPMN 토폴로지를 엔진에서 받아 그린다
-* **Data Visualization**: **Recharts** 3.10 (단일 차트 라이브러리)
-* **State Management**: Zustand 5.0 (데모 실행 사본 · 행위자 · 플레이어)
+* **화면**: 회사 목록 · 회사 대시보드 · 관리자뿐이다(4.6). 캔버스(React Flow)·차트(Recharts)·스토어(Zustand)는 장면 화면과 함께
+  걷었다(2026-11-03) — 업무 화면은 회사 사이트(Company1)에 있다
 * **Backend / API**: Next Route Handler 하나가 엔진을 프록시한다(BFF, 4.3)
 * **BPM**: **Chaeksas BPM** (`chaeksas-core`, BPMN 2.0 해석기 — git 커밋 고정 의존성으로 임베드)
 * **Engine**: Python 3.12 · FastAPI · uv
@@ -258,12 +239,12 @@ Management Evolution 상세는 범위 밖이다. **SC07**은 6단계(Management 
 | 영역 | 선택 | 배제한 대안 | 사유 |
 |---|---|---|---|
 | BPM | **Chaeksas BPM** (`chaeksas-core` 라이브러리 임베드) | LangGraph StateGraph(이전 선택), Camunda 8, Chaeksas Center 연동 | 2026-10-19 사용자 결정. BPMN 2.0을 그대로 해석하므로 업무 흐름이 **BPMN 파일 하나**에 있고 Chaeksas Studio로 열 수 있다. Camunda는 Zeebe 브로커 운영이 과중했다. Center·서버 실행기 경유는 정의마다 서명·배포가 필요하고 결재 응답이 관리자 토큰 전용이며 작업 결과 값을 돌려주지 않아 배제했다(4.5). |
-| 차트 | Recharts | Apache ECharts | Shadcn/UI·Tailwind와의 컴포지션이 자연스럽다. 차트 라이브러리는 하나만 쓴다 — 두 개를 섞으면 테마·툴팁·반응형 동작이 갈라진다. |
+| 차트 | Recharts(지금은 차트가 없어 의존성을 뺐다) | Apache ECharts | Shadcn/UI·Tailwind와의 컴포지션이 자연스럽다. 차트 라이브러리는 하나만 쓴다 — 두 개를 섞으면 테마·툴팁·반응형 동작이 갈라진다. 대시보드에 차트를 다시 두면 이것을 쓴다. |
 | Shadcn 프리미티브 | Radix (`-b radix`) | Base UI, React Aria | 기존 shadcn/ui 문서·스니펫이 Radix 기반이라 이식 비용이 가장 낮다. |
 | 테마 전환 | next-themes (`attribute="class"`) | 직접 구현 | 초기 렌더에 잘못된 테마가 번쩍이는(FOUC) 문제를 직접 처리하지 않아도 된다. `.dark` 클래스 방식이 Tailwind v4 `@custom-variant dark`와 `globals.css`의 `.dark .viz-root`를 동시에 만족시켜, UI 토큰과 차트 색이 항상 함께 전환된다. |
 
-**토폴로지의 원천은 BPMN 파일**(`engine/processes/*.bpmn`)이다. 화면은 `GET /sc01/process`로 받아
-React Flow로 그린다(배치는 화면이 계산한다 — BPMN에 DI가 없다).
+**토폴로지의 원천은 BPMN 파일**(`engine/processes/*.bpmn`)이다. 엔진은 `GET /scN/process`로 내지만 그것을 그리던 캔버스는
+걷었다 — 대시보드는 그림의 결재 수만 센다(4.6). 실행 상세는 Center 콘솔이다.
 
 ---
 
@@ -288,65 +269,26 @@ NowView/
 ├── docs/                         # role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
-│   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트
+│   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트(지금 차트는 없다 — 4.4)
 │   ├── page.tsx                  # 회사 목록 — INNONOW 브랜드 영역 + 공개 회사 목록(이름·설명·업무)
 │   ├── admin/page.tsx            # 관리자 모드 — 로그인 · 일꾼 상태(요청 코드·토픽·최근 일감) · 연결 · 설정 편집(공개 화면에 링크 없음)
-│   ├── c/[company]/              # 회사 화면 — 회사는 설정이라 서버가 묻지 않고 클라이언트가 공개 목록으로 확인한다
-│   │   ├── layout.tsx            # 공통 줄(회사 이름·역할·해설) · 업무 사이드바 · 화면 메뉴 · 데모 플레이어 · 세션 동기화
-│   │   ├── page.tsx              # 회사 운영 현황 — 그 회사가 쓰는 업무(없는 회사면 그렇게 말한다)
-│   │   ├── sc01/                 # 장면 1 — page(UI01 경영 현황) · plans(UI02·03) · risk(UI04) · tasks(UI05) · handoff(UI06) · process(BPM)
-│   │   ├── sc02/                 # 장면 2 — page(현황·D00) · request(U21) · analysis(U22) · negotiation(U23)
-│   │   │                         #   · proposal(U24) · approval(U25) · cost(U26) · handoff(U27) · process(BPM)
-│   │   ├── sc03/                 # 장면 3 — page(업무함 U31) · analysis(U32) · confirm(U33) · meeting(U34·U35)
-│   │   │                         #   · tasks(U36) · handoff(U37) · process(BPM)
-│   │   ├── sc04/                 # 장면 4 — page(결과 업무함 U401) · verify(U402) · recommend(U403) · report(U404)
-│   │   │                         #   · meeting(U405) · approval(U406) · actions(U407) · handoff(U408) · process(BPM)
-│   │   ├── sc05/                 # 장면 5 — page(과제 현황 U501) · plan(U502) · ready(U503 조건·품의·착수) · changes(U504)
-│   │   │                         #   · results(U505) · operating(U506) · forecast(U507) · handoff(U508) · process(BPM)
-│   │   ├── sc06/                 # 장면 6 — page(완료·성과 검토 U601, ACT42 차이 상세 포함) · confirm(확인 절차 결재)
-│   │   │                         #   · report(U602 보고 요약) · process(BPM)
-│   │   ├── sc07/                 # 장면 7 — page(관리모델 개선 및 적용 U701, 보기 A 개선 전후·B 검증·적용) · confirm(확인·적용 절차)
-│   │   │                         #   · process(BPM)
-│   ├── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — sc01~sc07 + 읽기 전용 companies. `/admin`은 중계하지 않는다
+│   ├── c/[company]/page.tsx      # 회사 대시보드(4.6) — 회사는 설정이라 서버가 묻지 않고 클라이언트가 읽는다
+│   ├── api/engine/[scene]/[[...path]]/route.ts  # 엔진 프록시(BFF) — `companies`·`companies/{회사}/dashboard`(GET)만. 장면 경로는 404
 │   └── api/admin/                # 관리자 — login(비밀번호 → 서명 쿠키)·session·[...path](세션이 있으면 엔진 /admin/*로, X-Admin-Key)
 ├── components/
 │   ├── ui/                       # Shadcn 원시 컴포넌트
-│   ├── shared/                   # section-nav(섹션 탭), commentary(해설), disclosure(접기), form-field(결재 칸),
-│   │                             #   scenario-nav(업무 사이드바 · 머리의 업무 · 화면 메뉴), demo-player-switch(장면별 플레이어),
-│   │                             #   preparation-note(장면 시작 준비 중 — 앞 업무 진행 표시), top-bar(공통 줄),
-│   │                             #   company-link(장면 경로 → 회사 주소 링크)
+│   ├── shared/                   # top-bar(공통 줄) · brand-hero(첫 화면 머리 — Center 로그인 상단과 같은 INNONOW 로고·문구,
+│   │                             #   로고는 `public/brand/`)
 │   ├── admin/                    # 관리자 모드 — admin-console(로그인·설정 JSON 편집) · status-panel(일꾼·연결·최근 일감)
-│   ├── companies/company-list.tsx # 공개 회사 목록 · 회사 운영 현황(클라이언트가 공개 목록을 받는다)
-│   │                             #   brand-hero(첫 화면 머리 — Center 로그인 상단과 같은 INNONOW 로고·문구, 로고는 `public/brand/`)
-│   ├── sc01/                     # SC01 화면들 + 공용 조각(bits, action-form, actor-switcher,
-│   │                             #   session-sync, demo-player, use-dashboard, profit-trend-chart)
-│   ├── sc02/                     # SC02 화면들 + bits · action-form · analysis-parts · session-sync · demo-player
-│   ├── sc03/                     # SC03 화면들 + bits · action-form · bridge-chart(손익 브리지) · agent-card · session-sync · demo-player
-│   ├── sc04/                     # SC04 화면들 + bits · action-form · agent-card(AG41~43) · session-sync · demo-player
-│   ├── sc05/                     # SC05 화면들 + bits(Tile·Requirements) · action-form · agent-card(AG51~58) · session-sync · demo-player
-│   ├── sc06/                     # SC06 화면 — review(U601)·report(U602)·confirm(확인 절차 결재 폼)·process(BPM) + bits(LoadGate·EvidenceChip)
-│   │                             #   · session-sync(머리는 SSE, 조회는 멱등) · demo-player(확인 절차 7단계 각본 + 조회 세 동작)
-│   ├── sc07/                     # SC07 화면 — improvement(U701 A·B)·confirm(확인·적용 결재 폼)·process(BPM) + bits(LoadGate·EvidenceChip)
-│   │                             #   · session-sync(머리는 SSE, 조회 셋은 멱등) · demo-player(확인·적용 5단계 각본 + 두 동작)
-│   ├── flow/sc01-canvas.tsx      # React Flow 전용 (장면 2·3도 같은 캔버스 — `maxColumns`만 다르다)
+│   ├── companies/company-list.tsx # 공개 회사 목록 · 회사 대시보드(회차 선택 · 업무 카드 — 진행·열린 결재·지표·일감·사이트 링크)
 │   ├── theme-provider.tsx
 │   └── theme-toggle.tsx
 ├── lib/
 │   ├── utils.ts                  # cn()
-│   ├── companies.ts              # 업무 목록 SCENES(엔진 SCENE_WORKS와 시험이 대조) · useCompanies(공개 목록) · companyPath
-│   ├── admin-session.ts          # 관리자 세션(서버 전용) — 비밀번호 대조·서명 쿠키
-│   ├── company-nav.ts            # 장면 경로 ↔ 회사 주소 — useScenePath · useCompanyRouter(장면 코드는 회사를 모른다)
-│   ├── preparation.ts            # 장면 시작 202(준비 중) → 준비 상태를 읽다가 문서를 받는다(4.3)
-│   ├── sc01/                     # types · client · format · scenes(데모 장면) · process-layout
-│   ├── sc02/                     # types · client · format · scenes(엔진 각본 → 장면)
-│   ├── sc03/                     # types · client(완료 실패의 blockingItems) · format(백만원) · scenes
-│   ├── sc04/                     # types · client(예산 위임 조회) · format(목표 초과 표기) · scenes
-│   ├── sc05/                     # types · client(Agent 검토 기록) · format(미확인·비해당·활동 목록 글) · scenes
-│   ├── sc06/                     # types · client(조회 4개 · 착수·결재·각본·초기화) · format(미확인·산정 보류·미산정·부호)
-│   │                             #   · scenes(확인 절차 7단계 + 세 동작)
-│   ├── sc07/                     # types · client(조회 4개 · 착수·결재·각본·초기화) · format(원인 후보 말·미확인) · scenes(5단계 + 두 동작)
-│   └── store/                    # sc01(데모 실행 사본·행위자·플레이어), sc02~sc05(장면 사본·플레이어), sc06(조회·펼침), sc07(조회·보기 A/B), ui-prefs(해설)
-├── tests/                        # Vitest — sc01~sc07.test.ts, fixtures/sc0{1,2,3,4,5,6,7}-process.json
+│   ├── companies.ts              # 업무 목록 SCENES(엔진 SCENE_WORKS와 시험이 대조) · useCompanies(공개 목록)
+│   ├── dashboard.ts              # 대시보드 응답 모양 · 표기(억·만·미산출·KST 시각) · 회사 사이트 업무 화면 주소
+│   └── admin-session.ts          # 관리자 세션(서버 전용) — 비밀번호 대조·서명 쿠키
+├── tests/dashboard.test.ts       # Vitest — 대시보드 표기·사이트 주소
 └── engine/                       # Python BPM 엔진 (별도 프로세스)
     ├── pyproject.toml            # uv · chaeksas-core(git 커밋 고정)
     ├── scenarios/sc0{1..7}.json  # 각본 사본 — 원본은 Company1 scenarios/(scripts/sync-scenarios.sh)
@@ -368,9 +310,10 @@ NowView/
     │   ├── main.py               # FastAPI — health + /sc01 ~ /sc07 라우터 + C15 일꾼 기동
     │   ├── worker_file.py        # 설치가 Center 키 셋(일꾼·연동용·대리 답용)을 짓고 Center 폴더에 해시 파일을 쓴다(ADR-0122) · center_key
     │   ├── config.py             # NowView 설정 — 회사·회사 시스템 주소·BPM 프로세스 → 회사·업무·토픽(엔진 DB nowview_config, 기본값)
-    │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies · 관리 /admin/status·config(X-Admin-Key)
+    │   ├── companies.py          # Settings · 업무 목록 SCENE_WORKS · 공개 GET /companies·/companies/{회사}/dashboard · 관리 /admin/status·config(X-Admin-Key)
+    │   ├── dashboard.py          # 회사 대시보드 — 업무별 BPM 진행·열린 결재·핵심 지표(경영 기록에서 고른다)·일꾼 일감(회사 일감 기록)
     │   ├── records.py            # 경영 기록 공통 — 바뀐 판만 골라 한 번에 적기(batch)·장면 기록 처음으로·`SC0N:` 접두(장면마다 sc0N/records.py)
-│   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
+    │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
     │   ├── follower.py           # 세계 따라가기 — 기간계의 세계·회차·시각·수신함·명령을 읽어 데모 실행을 만들고·초기화하고·따라간다(role-split §5)
     │   ├── scenarios.py          # 각본 사본(engine/scenarios/) → 장면 Step — 시험 전용 각본 실행기의 BASE
@@ -392,60 +335,47 @@ NowView/
                                   #   test_sc02_calc · _process · _external, test_sc03_calc · _process · _external,
                                   #   test_sc04_calc · _process · _external, test_sc05_calc · _process · _external,
                                   #   test_sc06_calc · _process · _external, test_sc07_calc · _process · _external,
-                                  #   test_events · _notify · test_preparation · test_consumer · test_follower
+                                  #   test_events · _notify · test_preparation · test_consumer · test_follower · test_companies · test_dashboard,
+                                  #   test_records_sc02~sc07(+ records_contract · records_chain)
 ```
 
 **디렉토리 규칙**
-* `components/sc01/`~`sc05/` — 장면별 화면 전용. 장면 6 이후도 같은 원칙으로 나눈다.
-* `components/flow/` — React Flow 노드·엣지·캔버스 **전용**.
-* `components/shared/` — 두 화면 이상이 쓰는 조각 중 SC01에 묶이지 않은 것만 둔다.
-* `engine/app/sc01/`~`sc05/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
+* 웹은 화면 셋(회사 목록·회사 대시보드·관리자)뿐이다. **장면별 화면을 NowView에 다시 만들지 않는다** — 업무 화면은 회사 사이트
+  (Company1 `web/app/work/[world]/sc0N`)가 경영 기록으로 그린다(`docs/role-split.md`).
+* `components/shared/` — 두 화면 이상이 쓰는 조각만 둔다.
+* `engine/app/sc01/`~`sc07/` — 업무 규칙. 화면(TS)은 규칙을 다시 구현하지 않는다(4.3).
 
-### 4.1 데모 플레이어
+### 4.1 각본 실행기 (엔진 시험 전용)
 
-> **2026-11-03 걷었다**(`docs/role-split.md` §5) — 화면의 플레이어·결재 폼·시작 카드는 없고 NowView 화면은 읽기 전용이다. 시연은
-> Company1 사이트(`/demo` 시연 조작·자동 모드·직원 결재 화면)가 몬다. 아래의 각본 실행(`demo.run_step`)·`_follow_script`·
-> `_clock_to_script`·대리 답(`_relay`)은 **엔진 시험 전용**으로 남았다(`app.company.engine_drives`). 아래는 그 실행기의 기록이다.
+> 화면의 데모 플레이어·결재 폼·시작 카드는 2026-11-03에 걷었고(2단계, `docs/role-split.md` §5), 장면 화면 자체도 같은 날 걷었다
+> (4단계). 시연은 Company1 사이트(`/demo` 시연 조작·자동 모드·직원 결재 화면)가 몬다. 각본 실행(`demo.run_step`)·`_follow_script`·
+> `_clock_to_script`·대리 답(`_relay`)은 **엔진 시험 전용**으로 남았다(`app.company.engine_drives`). 아래는 그 실행기의 규칙이다.
 
-`components/sc01/demo-player.tsx`가 하단 고정 바로 상주했다. 장면은 `lib/sc01/scenes.ts`(SC01 설계서
-2.10 기본 시연 순서, 11장면), 각본(누가·언제·무엇을)은 엔진 `app/sc01/demo.py`(EV01~EV07)다.
+각본(누가·언제·무엇을)은 Company1 `scenarios/sc0N.json`의 사본(`engine/scenarios/`)을 장면마다 `app/sc0N/demo.py`가 단계로 읽는다.
 
-* **앞으로는 실행, 뒤로는 읽기.** 장면이 엔진의 각본 지점보다 앞이면 그 단계까지 `POST …/script/{i}`로
-  **실제로 실행**한다 — 역할 검사·업무 규칙을 그대로 탄다(지름길 없음). 이미 지나간 장면이면 그 시점의
-  이력을 읽어 보여 주기만 한다(`past`). "초기화"만 데모 실행을 S0로 되돌린다.
-* **장면 → 이력 seq는 그 지점에 처음 도달한 기록부터 시각이 같은 동안의 마지막 기록이다**(`historySeqFor`). 지점의
-  마지막 기록을 쓰면 다음 단계 직전의 가상시계 이동이 섞여 "이 장면의 상태 + 다음 장면의 시각"이 보인다. 처음 기록만
-  쓰면 Center 실행에서 대리 답 순간(지점만 찍힘)을 골라 그 결재의 기록 전 상태가 보였다(2026-11-02, 장면 4 「MT41 보고」로
-  되감자 「개회 전」).
-* 장면 이동은 한 핸들러에서 상태 적용과 라우팅을 함께 한다 — 상태를 감시하는 effect로 라우팅하면
-  GNB로 직접 이동할 때 플레이어가 되돌려 버린다.
-* **자동 재생은 자기 예약 루프다.** 장면이 반영된 뒤 7초 머문다. 자동 재생 effect는 `jump`에 의존하지
-  않고 ref로 쓴다 — 의존하면 화면이 바뀔 때마다 타이머가 다시 걸린다. 요청에 일련번호를 붙여 최신
-  응답만 반영한다.
-* **바깥에서 답해도 각본이 따라간다**(2026-11-01). 회사 사이트(Company1 직원 화면)·Center 콘솔·NowView 화면에서 결재에
-  답하면 기록 작업(원천 확인은 계산 요청)의 효과가 각본 지점(`script_index`·`step`)을 옮긴다(`process._follow_script` — 장면 3과
-  같은 `script_follow.ahead`·`pending`, 생산·자재 인수는 순서가 바뀌어도 된다). 플레이어 위치도 엔진의 `scriptIndex`를 따라간다
-  (장면 2~5와 같다). 예전에는 사이트에서 원천을 확인한 뒤 「다음」이 「단계를 건너뛸 수 없다」(409)였다. 각본과 다른 답(예: 다른
-  담당자 배정)은 각본 지점을 옮기지 않는다 — 기록이 거절되면 같은 결재가 다시 열린다.
-  **시계도 따라간다**(2026-11-01) — 바깥 답이 각본의 다음 단계를 지나가면 그 효과를 내기 전에 가상시계를 그 단계 시각으로
-  옮기고(뒤로는 안 간다, `_clock_to_script` — 장면 1·2) 저장 직전에 회사 세계 시각도 맞춘다. 예전에는 회사 사이트로만
-  진행하자 결재·원가 등록·인수가 전부 수신 시각으로 적혔다.
+* **실행은 실제로 한다.** `POST …/script/{i}`는 그 단계까지 역할 검사·업무 규칙을 그대로 탄다(지름길 없음). "초기화"만 데모 실행을
+  S0로 되돌린다.
+* **바깥에서 답해도 각본이 따라간다**(2026-11-01). 회사 사이트·Center 콘솔에서 결재에 답하면 기록 작업(원천 확인은 계산 요청)의
+  효과가 각본 지점(`script_index`·`step`)을 옮긴다(`process._follow_script` — `script_follow.ahead`·`pending`, 병렬 인수는 순서가
+  바뀌어도 된다). 각본과 다른 답(예: 다른 담당자 배정)은 각본 지점을 옮기지 않는다 — 기록이 거절되면 같은 결재가 다시 열린다.
+  **시계도 따라간다** — 엔진 시험에서 바깥 답이 각본의 다음 단계를 지나가면 그 효과를 내기 전에 가상시계를 그 단계 시각으로
+  옮긴다(뒤로는 안 간다, `_clock_to_script`). 운영·로컬 기동에서는 시계의 원본이 기간계이고 엔진은 읽기만 한다(follower).
 
 ### 4.2 상태 영속화
 
-`lib/store/sc01.ts`는 `persist`로 localStorage(`nowview-sc01`)에 **데모 실행 id · 행위자 · 장면 · 펼침**만
-저장한다. 문서는 저장하지 않는다 — 새로고침하면 엔진에서 다시 받는다(낡은 값이 먼저 보이지 않게).
-
-* **`skipHydration: true`가 핵심이다.** 화면이 정적 프리렌더라 서버 HTML은 항상 기본 상태인데, 모듈 로드
-  시점에 복원하면 첫 클라이언트 렌더가 달라져 하이드레이션이 깨진다. `Sc01SessionSync`가 mount 이후 복원한다.
-* 저장 형태를 바꾸면 `version`을 올린다.
-* **저장된 데모 실행이 엔진에 없으면(DB 초기화 등) 새로 만든다.** 개발 모드의 StrictMode가 effect를 두 번
-  돌려 실행이 둘 생겼다 — 진행 중인 생성 요청을 공유한다(`pendingCreate`).
+NowView 웹은 브라우저에 아무것도 저장하지 않는다 — 장면 스토어(`lib/store/*`, localStorage `persist`·`skipHydration`)는 장면
+화면과 함께 걷었다(2026-11-03). 대시보드의 회차 선택은 화면 상태이고, 새로고침하면 엔진이 고른 기본 회차로 돌아간다(4.6).
 
 ### 4.3 API 계층
 
 ```
-브라우저 ──/api/engine/{sc01|sc02}/*──▶ Next Route Handler(BFF, 그대로 중계) ──/{sc01|sc02}/*──▶ 엔진(127.0.0.1:8077)
+브라우저 ──/api/engine/companies[/{회사}/dashboard]──▶ Next Route Handler(BFF, GET만 중계) ──/companies…──▶ 엔진(127.0.0.1:8077)
+
+GET  /companies                            → 공개 회사 목록(이름·설명·업무 번호·회사 사이트 주소)
+GET  /companies/{회사}/dashboard?world=     → 회사 대시보드(4.6) — 따라가는 세계 목록 + 고른 세계의 업무별 진행·지표·일감
+
+     아래 장면 경로는 BFF가 중계하지 않는다(2026-11-03 4단계 — 화면을 걷었다). 엔진 시험과 기록 대조(기록 본문 = 화면 응답,
+     role-split §4)가 쓴다. 쓰기 경로는 NOWVIEW_TEST_INPUTS=1일 때만 열린다(role-split §5.5).
 
 GET  /sc01/process · /users · /rules · /script · /customer-plans/{id}
 POST /sc01/demo-runs  {caseId, executor}   → 새 데모 실행(S0). executor = embedded|studio|center (N2)
@@ -581,9 +511,8 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
     진행 중인 것을 함께 기다린다(두 번 돌리지 않는다).
   * **준비 상태는 엔진 메모리에만 있다** — 운영 엔진은 워커 하나다. 엔진이 다시 뜨면 조회가 404이고 배경 진행도 멈춘다. 다시
     시작하면 앞 장면의 남은 단계부터 잇는다(각본은 지난 단계를 건너뛴다). 개발 중 `--reload`가 진행 중인 준비를 끊는다.
-  * 화면: 각 클라이언트의 `create`(장면 6은 `open`)가 202면 `lib/preparation.ts`로 3초마다 읽다가 문서를 받는다 — 시작 카드·
-    플레이어는 그대로 결과를 기다리고, 준비 중에는 「앞 업무를 끝까지 진행하는 중 — 고객 생산계획 변경 대응 EV07 · 외주 단가 인상
-    검토 D08 (2분 10초)」처럼 보인다(`preparation-note.tsx`, 업무 이름).
+  * 이 길은 엔진 시험 전용이다 — 운영에서는 사이트의 `open` 명령이 앞 장면을 돌리지 않는다(앞 장면이 끝나지 않았으면 409,
+    role-split §5.2). 그것을 기다리던 화면(`lib/preparation.ts`·`preparation-note.tsx`)은 장면 화면과 함께 걷었다.
 * **시스템 작업은 Center에 쌓인 일감을 엔진이 가져간다**(Pull, 2026-10-31 — Chaeksas ADR-0102, 계약 C15).
   `engine/app/consumer.py`. 서버 실행기·Studio가 서비스 태스크를 **Center에 외부 작업으로 올리면**, 토픽
   (= BPMN `app_id`, 설정 `topics` — 기본 확장 `external` 하나, 장면 1~7)을 맡은 엔진 안의 일꾼이 롱폴링으로 가져가 `ScNProcess.operate`를 부르고
@@ -660,18 +589,20 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
   * **모든 작업 본문에 `{{run_id}}`·`{{node_id}}`를 싣는다**(0.3.0, N2). 이름이 `chaeksas_run_id`인 것은
     작업 입력의 `run_id`가 이미 **계산** id라서다. 실행 id가 없는 호출(0.2.0 정의)은 422다 — 묶을 수 없다.
 
-* **BFF는 장면(`sc01`~`sc06`)만 고르고 나머지 경로는 옮겨 적지 않고 그대로 중계한다.** 그 밖에는 읽기 전용 `companies`(GET — 목록, 그리고 회사 운영 현황 `companies/{회사}/works?demoRunId=`)뿐이다. 관리 API는 `/api/admin/*`(관리자 세션)만 중계한다. 목록 밖은 404 —
-  엔진의 다른 경로(`/health` 등)를 열지 않는다. 바깥 Chaeksas가 BFF를 부르는 길은 없다(C15 일꾼). 업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 ·
-  입력 422 — API-03)은 전부 엔진에 있다. 같은 검사를 BFF에 또 두면 두 곳이 갈라진다. 넘기는 헤더는
-  `X-Demo-Actor`·`Idempotency-Key`뿐이다.
-* **화면은 규칙을 다시 구현하지 않는다.** 금액·비율은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다
-  (`lib/sc01/format.ts`). 판정 임계값도 `/rules`로 받아 표시한다.
-* **페이지는 정적 프리렌더(`○`)다.** 데이터는 클라이언트에서 받는다 — 서버에서 엔진을 부르면 전부 `ƒ`가
-  되고, 엔진이 꺼져 있으면 페이지가 깨진다.
-* **엔진이 꺼져 있는 것은 고장이 아니라 상태다.** 클라이언트는 throw하지 않고 `{ ok: false }`를 돌려
-  화면이 배너로 말한다.
+* **BFF는 `companies`(목록)와 `companies/{회사}/dashboard`의 GET만 중계한다**(2026-11-03 4단계). 장면 경로(`sc01`~`sc07`)는
+  404다 — 화면을 걷었고, 업무 화면은 회사 사이트가 기간계의 경영 기록으로 그린다. 관리 API는 `/api/admin/*`(관리자 세션)만 중계한다.
+  목록 밖은 404 — 엔진의 다른 경로(`/health` 등)를 열지 않는다. 쓰기는 405다. 바깥 Chaeksas가 BFF를 부르는 길은 없다(C15 일꾼).
+  업무 규칙(권한 403 · 없음 404 · 상태 충돌 409 · 입력 422 — API-03)은 전부 엔진에 있다.
+* **화면은 규칙을 다시 구현하지 않는다.** 금액은 엔진이 문자열 DECIMAL로 주고 화면은 단위만 바꾼다(`lib/dashboard.ts`).
+* **화면은 서버에서 엔진을 부르지 않는다.** `/`·`/admin`은 정적 프리렌더(`○`)이고, `/c/[company]`는 회사가 설정이라 `ƒ`지만
+  서버 쪽은 틀만 그린다 — 데이터는 클라이언트가 받는다. 서버에서 엔진을 부르면 엔진이 꺼졌을 때 페이지가 깨진다.
+* **엔진이 꺼져 있는 것은 고장이 아니라 상태다.** 클라이언트는 throw하지 않고 화면이 배너로 말한다. 회사 시스템에 닿지
+  않으면 대시보드는 200에 세계 없이 사유(`problem`)를 싣는다.
 
 ### 4.4 데이터 시각화 규칙
+
+> **지금 NowView에는 차트가 없다**(2026-11-03 — 장면 화면과 함께 걷었다, Recharts 의존성도 뺐다). `--viz-*` 팔레트와 검증기는
+> 대시보드에 차트를 다시 둘 때를 위해 남겼다. 아래 규칙은 그때 그대로 쓴다.
 
 차트 색은 `app/globals.css`의 **`--viz-*` 변수만** 사용한다. 이유와 제약:
 
@@ -689,8 +620,8 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
   검사 항목은 lightness band · chroma floor · CVD 분리(protan/deutan) · 정상시야 분리 ·
   서피스 대비이며, 하나라도 FAIL이면 종료코드 1이다.
 * **단위가 다른 두 계열을 한 차트에 겹치지 않는다.** 축이 둘이면 없는 상관관계를 만들어낸다.
-  SC01의 손익 추이는 모두 원 단위라 한 축이고, 물량(대분)은 표로 둔다.
-* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반). `ProfitTrendChart`의 "표로 보기"가 그 예다.
+  (예전 SC01 손익 추이는 모두 원 단위라 한 축이었고, 물량(대분)은 표로 뒀다.)
+* 모든 차트에는 표 뷰를 둔다(값이 툴팁에만 갇히면 접근성 위반).
 
 ### 4.5 BPM — Chaeksas 위의 SC01 (엔진)
 
@@ -713,9 +644,9 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   전용, 작업 결과 값 미반환이라 화면이 결과를 읽을 길이 없다. 대신 **우리가 붙인 것**: SSE(기존
   허브·notifier), 지난 시점(Chaeksas 스냅샷은 현재 하나뿐이라 `sc01_history`에 매번 문서 전체),
   폼이 못 거는 업무 규칙(의견·근거 필수, 담당자만 인수 — `process.check_answer`).
-* **화면은 내장을 고르지 않는다**(2026-10-27). 플레이어의 실행 위치는 Center·Studio뿐이고 API 기본(`POST /demo-runs`의
-  `executor`)이 `center`다. 지금 실행이 내장(이전에 만든 것)이면 플레이어는 Center를 고른 것으로 보이고 초기화가 Center로
-  바꾼다. 엔진의 내장 경로·`Sc01Process.create()`의 기본값(내장)은 시험이 업무 규칙을 같은 프로세스에서 잠그는 데 쓴다.
+* **운영 데모 실행은 내장을 쓰지 않는다**(2026-10-27). 세계 따라가기(`follower.py`)가 만드는 데모 실행은 Center이고, API 기본
+  (`POST /demo-runs`의 `executor`)도 `center`다. 엔진의 내장 경로·`Sc01Process.create()`의 기본값(내장)은 시험이 업무 규칙을 같은
+  프로세스에서 잠그는 데 쓴다.
 * **사람 결정의 업무 효과는 결재 뒤의 「… 기록」 서비스 태스크가 낸다**(`Record_*` → `record_*` 작업,
   `docs/chaeksas-integration.md` §5). 결재를 내장·Studio·Center 어디서 닫았든 같은 길이다 — 예전에는
   내장 실행기의 답 훅에만 있어 Studio 실행에서 원천이 확인되지 않고 계산이 409였다(2026-10-25 실측).
@@ -732,15 +663,15 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
   * **업무가 없으면 기록 때 연다**(`opened_late`). 바깥 실행에서는 대기가 열리는 순간을 모른다 — 기한
     판정이 그만큼 느슨하다(Studio). Center 실행은 폴링이 결재를 읽을 때 연다(N3, 아래) — 대리 답이 폴러보다
     먼저 결재를 찾으면 대리 답 때 연다(장면 1~6 `_relay`, 5.10 — 장면 1은 운영 Center 각본에서 DQ·SALES 2건, 장면 2는 9/12건으로 드러났다).
-  * 캔버스는 기록 태스크를 결재 노드에 접어 그린다(`canvasTopology`, 토폴로지의 `recordOf`) — 그대로
-    두면 노드가 20 → 27개가 되어 글자가 읽히지 않았다.
+  * (걷은 캔버스는 기록 태스크를 결재 노드에 접어 그렸다 — 토폴로지의 `recordOf`. 그대로 두면 노드가 20 → 27개가 되어
+    글자가 읽히지 않았다. 대시보드는 결재(`userTask`)만 센다.)
   * **기록이 거절되면 같은 결재로 되돌아간다** — 기록 태스크마다 오류 경계(`Bnd_Record_*`, `TASK_FAILED`).
     Center 콘솔 답은 사전 검사를 거치지 않아 예전에는 실행이 실패로 끝났다. 결재 `show`의 `error_message`에는
     **사유가 없다** — HTTP 어댑터가 4xx 본문을 버리고 「…이 409를 돌려줬다」만 남긴다. 사유는 감사 이력
     `answer_rejected`에 있다. 검사가 부수 효과보다 먼저라 거절된 답은 기록·업무를 남기지 않고, 성공한 기록은
     `error_message: null`을 돌려줘 낡은 사유를 비운다. 캔버스는 경계도 결재에 접는다.
 * **실행 위치는 데모 실행마다 하나다**(`bpm.executor` = `embedded`|`studio`|`center`, N2). 만들 때·초기화할
-  때 고른다(플레이어의 실행 위치 선택, `POST /demo-runs {executor}`). 바깥이면 **내장 엔진은 그 문서에서
+  때 고른다(`POST /demo-runs {executor}` — 세계 따라가기는 늘 Center). 바깥이면 **내장 엔진은 그 문서에서
   step하지 않는다** — 수신은 원천만 등록하고, 화면 답·각본은 409, 진행은 작업 호출이 알려 준 노드뿐이다.
   예전에는 수신이 내장 BPM을 늘 시작해서 바깥 실행과 한 문서에서 함께 돌았다(내장 쪽이 Approve_DQ에 멈춘
   채 남았다, 2026-10-25 실측).
@@ -753,8 +684,8 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
     (`docs/chaeksas-integration.md` §5).
   * 바깥 실행의 업무는 대기 id를 (실행, 결재, 원천·계산)으로 지어 `sync_tasks`에 넘긴다 — 정정 뒤의 새
     실행이 같은 결재에 오면 인수한 업무에 재확인, 끝난 업무에 재검토 업무가 생긴다(내장과 같은 규칙).
-  * 캔버스는 바깥 실행이 끝나도 알려 주지 않은 노드를 미실행으로 칠하지 않는다 — 시작·게이트웨이처럼
-    작업 호출이 없는 노드는 지나왔어도 모른다. 토큰 위치도 비워 둔다(호출이 끝나면 토큰은 이미 갔다).
+  * 바깥 실행은 작업 호출이 없는 노드(시작·게이트웨이)를 지나왔어도 모른다 — `visited`에 없다. 그래서 대시보드는 지나온
+    **결재** 수만 센다(결재는 기록 작업이 알려 준다). 토큰 위치도 비워 둔다(호출이 끝나면 토큰은 이미 갔다).
   * **보완 대기인지는 바로 앞 원천으로 본다**(`receive_external`). `corrects`는 같은 고객계획의 첫 원천을
     가리켜, 보완 → 정정 → 확인 뒤의 또 다른 정정본을 보완 대기로 오인했다(N3 시험에서 드러남).
 * **Center 실행(`center`)은 NowView가 기동하고, 화면 답이 대리 답이며, 진행을 폴링한다**(N3,
@@ -807,10 +738,10 @@ engine/processes/sc01.bpmn ──read_process──▶ Chaeksas Engine (step·pe
 장면 완료는 **후속 업무 인수**이지 위험 해소·전망 승인이 아니다 — 끝나도 F02는 `UNDER_REVIEW`,
 ISSUE-B07은 열린 중요다.
 
-**노드 상태는 저장하지 않고 파생한다**(`lib/sc01/process-layout.ts`). 엔진이 주는 것은 지나온 노드
-(`visited` — 조작마다 RunLog가 새로 열리므로 문서에 누적한다), 사람 대기(`waiting`), 토큰 위치다.
-**실행 중에는 안 간 분기를 미실행으로 칠하지 않는다** — 게이트웨이가 돌기 전에는 갈 수도 있다.
-실행이 끝났을 때만 안 간 노드가 미실행이다. 종료 이벤트는 완료 기록을 남기지 않으므로 끝났으면 완료로 본다.
+**노드 상태는 저장하지 않는다.** 엔진이 주는 것은 지나온 노드(`visited` — 조작마다 RunLog가 새로 열리므로 문서에 누적한다),
+사람 대기(`waiting`), 토큰 위치다. 걷은 캔버스는 거기서 노드 상태를 파생했다(실행 중에는 안 간 분기를 미실행으로 칠하지
+않는다 — 게이트웨이가 돌기 전에는 갈 수도 있다). 대시보드의 「지나온 결재 / 그림의 결재」도 같은 이유로 완료율이 아니다 —
+갈래가 있는 그림은 끝나도 모든 결재를 지나지 않는다.
 
 **만들며 드러난 것**
 
@@ -871,53 +802,34 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
   넣자마자 기한 초과 알림 순서가 같은 이유로 틀린 것을 하나 더 잡았다.
 * `seq` 이전에 저장된 문서는 `upgrade`가 id의 숫자·배정 시각으로 순서를 되살린다.
 
-### 4.6 SC01 화면
+### 4.6 회사 대시보드 (`/c/{회사}`)
 
-| 경로 | 화면 | 핵심 |
+2026-11-03 4단계(`docs/role-split.md`) — 장면 화면 48개(UI01~06·U21~U27·U31~U37·U401~U408·U501~U508·U601·U602·U701, 장면별 BPM
+흐름 캔버스)와 플레이어·해설·업무 사이드바·섹션 탭·역할 선택을 걷고, 회사 화면을 이것 하나로 바꿨다. **업무 판단 화면이 아니다** —
+업무 화면·해설·업무 설명은 회사 사이트(Company1 `/work/{회차}/sc0N`, `/scenario`)에 있고, 실행 상세는 Center 콘솔이다.
+
+| 칸 | 어디서 | 메모 |
 |---|---|---|
-| `/c/company1/sc01` | UI01 경영 현황 | T01·F01·(계산 후) F02 손익, 목표 차이 vs 사건 영향, 모델별 표, 이슈·업무 요약 |
-| `…/sc01/plans` | UI02·03 고객계획 | 수신 목록, CP01 → 수신본 변경 비교, 자동 검증, 원천 확인·비교 계산 |
-| `…/sc01/risk` | UI04 위험 검토 | 계산 선택(정정 시 이전 결과·정정 이력), 상태 칩, 지표 타일(임계값은 `/rules`), 경보 행 비교(15행은 접기), 이슈 이력, **AI 초안 ↔ 담당자 검토 의견**, 배정·Review 요청 |
-| `…/sc01/tasks` | UI05 업무 | 알림, 업무 목록(기한 초과·재확인 요청), 상세·계산별 확인·이력, 인수·재확인 |
-| `…/sc01/handoff` | UI06 인계 | 이슈 근거, 장면 완료 조건, 후속 업무, 정정 이력, 감사 이력, 다음 장면(이야기만) |
-| `…/sc01/process` | BPM 흐름 | BPMN 캔버스, 지금 기다리는 사람 업무, 노드 상세(분기 조건) |
+| 시연 회차 | 회사 시스템 `GET /worlds` 중 엔진이 따라가는 것(장면 1 문서가 있다) | 사이트가 만든 세계(`origin: site`)를 최근 초기화 순으로 앞에 둔다 — 기간계는 id 순이다. 기본은 맨 앞 |
+| BPM 진행 | 장면 문서의 `bpm.state`·`visited`, 그림의 결재(`userTask`) 수 | 「지나온 결재 n / 그림의 결재 m」 — 갈래가 있는 그림은 끝나도 m에 못 미친다. 완료율로 읽지 않게 수를 쓴다 |
+| 열린 결재 | 문서의 `bpm.waiting`(Center 폴러가 채운다) | 제목만 — 결재는 사이트에서 한다 |
+| 핵심 지표 | 그 장면 `records_of(doc)`(회사에 적는 경영 기록)에서 고른다(`app/dashboard.py` `METRICS`) | 사이트와 같은 숫자. 없으면 `null` → 「미산출」(0이 아니다) |
+| 일꾼 일감 | 회사 시스템 `GET /worlds/{w}/worker-log`의 그 장면 줄 | 건수·실패·최근 5건(작업 이름·세계 시각). 엔진 메모리의 최근 일감(관리자 모드)은 토픽·실행 id까지 있어 공개하지 않는다 |
+| 사이트 링크 | 회사 설정의 공개 `site_url` + `/work/{회차}/sc0N` | `site_url`이 없으면(환경 `COMPANY_{ID}_SITE_URL`도 없으면) 링크하지 않는다 |
 
-* **변경을 받는 곳은 `Sc01SessionSync` 하나다**(레이아웃 상주). 화면·패널마다 받으면 같은 화면의 두
-  패널이 서로 다른 순간을 보고 요청이 패널 수만큼 는다(이전 구현에서 겪었다). SSE가 기본, 서 있지
-  않은 동안만 폴링(15초)이다. 조작 응답은 스토어에 **즉시** 반영한다 — SSE를 기다리면 누른 뒤 잠깐
-  옛 상태가 보인다.
-* **폼 칸은 BPMN의 `chk:approval.fields`에서 온다**(`ActionForm`). 화면이 폼을 따로 정의하면 BPMN과
-  갈라진다. **칸의 기본값은 기본 시연 각본(`demo.BASE`)의 답이다**(`view._defaults`, 2026-11-01 — 장면 6과 같다) —
-  손으로 쓰기 어려운 의견·근거를 시나리오에 맞게 미리 채운다. 고쳐서 내도 되고, 틀리면 엔진이 거절한다.
-  결재 검토 자료의 `데모실행ID`(그림 `company1.sc01` 0.1.2부터 `show`)는 회사 사이트가 기간계 세계를 찾는 데 쓴다 — 업무 화면은 감춘다. `…담당자` 칸은 사용자 마스터에서 고른다 — 이름을 손으로 치면 배정이 거절된다.
-* **거절은 상태로 보인다.** 엔진이 403/409/422로 거절하면 사유를 그대로 띄우고 입력은 지우지 않는다.
-  버튼 비활성(역할 불일치·필수 칸)은 편의일 뿐 강제가 아니다.
-* **지난 시점에서는 조작할 수 없다.** 배너와 "현재로" 버튼을 둔다 — 표시하지 않으면 지금 처리할 수
-  있다고 착각한다. 대시보드도 그 시점의 문서로 계산한다(`?seq=`) — 그래야 S0 장면에 F02가 안 보인다.
-* **상태를 칩 하나로 뭉치지 않는다**(설계서 1.9) — 자료 확인 · 계산 · 위험 · 업무 · 전망 승인 · 장면.
-  "장면 1 인계 완료" · "전망 승인" · "위험 해소"는 서로 다른 말이다(UI06-02).
-* **고객 원천 비교(UI02)와 전망 비교(UI04)를 섞지 않는다.** 전자는 CP01 → CP02, 후자는 승인 전망
-  F01 → 검토 전망 F02다(UI02-02).
-* 화면 머리는 **제목 한 줄 + 상태 한 줄**(가상시각 · 장면 상태 · "시연 데이터")이다. 화면 id·질문·범위는
-  해설 모드에서만 보인다(설계서 2.3의 항목은 그대로 있고 표시 시점만 갈랐다). 사용자 id는 화면에 내지 않고 "역할 이름"으로 바꿔 보인다(`useUserName`).
-* **AI 초안과 담당자 의견은 다른 카드다**(AG-03). "의견에 가져오기"는 폼을 초안으로 다시 열 뿐이고
-  제출은 사람이 한다 — 가져왔다는 사실과 검토 시점의 초안 id가 기록된다.
-* **더 오래된 문서로 덮지 않는다**(`setLive`). 배경 초안 완료 SSE가 그 초안을 시작한 조작의 HTTP 응답보다
-  먼저 오자 응답이 "생성 중"으로 되돌렸다 — 감사 이력 길이(늘기만 한다)로 순서를 가린다.
-* 플레이어에 **시연 사례 선택**(기본 · EX08)과 **가상시계 "다음 영업일 18:30"**(EX07)이 있다.
+장면마다 고른 지표(기본 시연 끝 = 통합가상데이터, `tests/test_dashboard.py`가 잠근다): 1 연간 공장관리손익 F02 33.09억 · 목표 대비
+−1.68억 · 사건 영향 −1,400만, 2 12개월 원가 증가 18,817,440 · 협상 감소 12,544,960, 3 통합 손익 3,299,986,680 · 부족 177,303,320,
+4 개선 효과 127,800,000 · 남는 부족 49,503,320(인계 전이면 최신 효과 계산), 5 전망 손익 3,428,986,680 · 남는 부족 48,303,320,
+6 Q4 기대 91.8 · 확인 87.0 · 차이 −4.8백만원, 7 적용 상태 「운영 설정 반영 확인」(ST707).
 
-**단순화 원칙** — "글자가 꽉 차 답답하다"는 지적으로 정리했다. 1280px에서 `main` 글자 수가
-경영 현황 1,063 → 489 · 고객계획 909 → 417 · 위험 검토 2,130 → 852 · 인계 **6,019 → 513**자다.
-
-* **화면마다 판단에 쓸 숫자를 먼저 보인다.** 경영 현황은 공장관리손익 한 숫자, 위험 검토는 고른 모델의
-  지표 네 개다. "왜 이렇게 보는가"는 해설 모드(4.11)로 옮겼다.
-* **지우지 않고 접는다**(`components/shared/disclosure.tsx`, 네이티브 `<details>`). 15행 비교 표·감사
-  이력·근거·AI 초안의 사실·질문은 확인할 때만 펼친다. 표는 **바뀐 행·경보 행만 먼저** 보이고 전체는 접는다
-  — 정상 14행에 경보 한 행이 묻혔다. 인계 화면의 6천 자는 거의 전부 펼쳐진 감사 이력이었다(최근 5건만 보인다).
-* **접지 않는 것**: 검증 오류(고칠 것이다), 미산출 사유, 오독을 막는 문구("감소액은 영업이익 변화가
-  아니다", "공장관리손익은 전사 영업이익이 아니다"). 해설이 아니라 숫자를 바르게 읽게 하는 문장이다.
-* 섹션 탭(4.10)은 카드 제목에서 만들어지므로 **제목에 버튼·값을 넣지 않는다** — 월 선택 버튼을 제목 밖으로 뺐다.
-* 닫힌 `<details>` 안의 글자는 `innerText`에 잡히지 않는다 — 위 수치는 그 기준으로 쟀다.
+* **지표를 새로 계산하지 않는다.** 대시보드가 view를 다시 뺄셈하면 사이트와 다른 숫자가 생길 수 있다 — 회사에 적는 기록의 칸만
+  고른다. 그래서 고른 칸이 기록에서 빠지면(스키마 시험이 막는다) 지표도 「미산출」이 된다. 한 장면의 기록을 짓다 실패하면 그 장면
+  지표만 비고 로그(`nowview.dashboard`)에 남는다.
+* **10초마다 다시 읽는다** — SSE를 걷었다. 일꾼이 세계를 2초마다 따라가므로 그보다 촘촘할 까닭이 없다.
+* 화면 머리·카드 글에는 「장면 N」 대신 업무 이름을 쓴다(`SCENE_WORKS`). 장면 번호는 카드 앞 숫자뿐이다.
+* 걷은 장면 화면의 규칙(상태를 칩 하나로 뭉치지 않는다 · 고객 원천 비교와 전망 비교를 섞지 않는다 · AI 초안과 담당자 의견은
+  다른 카드 · 판단에 쓸 숫자를 먼저 · 오독을 막는 문구는 접지 않는다)은 회사 사이트 업무 화면이 이어받는다. 걷기 전의 화면 설명은
+  git 이력(`79f6ea9`)의 이 절에 있다.
 
 ### 4.7 숫자와 가상 데이터의 규칙
 
@@ -944,48 +856,45 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_sc01_process.py` | Chaeksas 위의 기본 시연 EV01~EV07(AT01~AT09), 권한 403, 멱등, stale write 409, 시계, 초기화, 보완 경로 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc01_agent.py` | Agent 계약 검증(틀린 금액·비율·물량, 없는 근거, 빠진 항목), EX08, 실패 응답 비노출, 재생성·채택·지연, **잠금 밖 실행**, `-m llm` 실호출 |
 | `engine/tests/test_sc01_exceptions.py` | EX03 정정(이력 보존·재검토 업무·재확인·최신 run 인계), EX07 알림(중복 없음), 멱등키, 이전 형식 문서 |
-| `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀, **TS 토폴로지 사본 = BPMN** |
+| `engine/tests/test_sc01_api.py` | HTTP 오류 코드(API-03), 대시보드 노출(F02는 계산 후), 지난 시점, 동시 읽기·쓰기 회귀 |
 | `engine/tests/test_sc01_records.py` | 경영 기록 — 기본 시연 동안 적은 **모든 판**(최신·지난 판)이 봉투·종류별 스키마(`docs/records/`)를 통과, 회사 기록 = 엔진 문서(B07 중요·b 7월 M01 700·M03 −1,400만·완료 조건·대시보드 기간), 바뀌지 않은 기록은 판 하나, 회사가 못 받으면 저장 안 함 → 다시 하면 이어짐, 사이트 예시(`docs/records/sc01/examples/base-end.json`)가 스키마를 통과하고 지금 적는 기록 목록과 같다(다시 만들기 `NOWVIEW_WRITE_RECORD_EXAMPLES=1`) — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_records_sc02.py`~`sc07.py` | 장면 2~7 경영 기록 — 기본 시연(장면 2는 X01도)의 **모든 판**이 봉투·종류별 스키마(`docs/records/sc0N/`, `records_contract.py`)를 통과, `SC0N:` 접두, 회사 기록 = 엔진 화면 응답(분석·효과·전망·조회 응답·업무 수), 회사가 못 받으면 저장 안 함 → 다시 하면 이어짐, 사이트 예시가 최신(장면 잇기는 `records_chain.py`) — SQLite |
 | `engine/tests/test_sc01_center.py` | N3 — 가짜 Center(C3·C5·C6·C12 계약 그대로) + 진짜 Chaeksas 엔진의 실행기 흉내로 각본 끝까지(대리 답), 사전 검사가 Center보다 먼저, Center 거절 사유, 설정 없음 503, 정정 메시지·대체, **바깥 답(회사 사이트 흉내)이 각본 지점을 옮김**(병렬 인수 순서 바뀜·플레이어와 섞기) — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_calc.py` | **통합가상데이터 v0.2 파생 시트와 대조** — 단가안비교 5안 전부, 통합손익 17행 전부, Q3 모델별, 정합성검증 V05·V06·V09·V16·V17, 2027 행 = SC01 시드, 2028 = F01×97%(엑셀 ROUND), X02~X10 경계·기간·누락·중복 |
-| `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc02_process.py` | Chaeksas 위의 기본 시연 D00~D12(T21~T30), 권한·순서·버전 403/409, 멱등, X01·X02·X04~X07·X09·X10, 기한·알림·시계·초기화, BPMN ↔ 역할표, HTTP — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc02_external.py` | 기본 확장 `external` ↔ BPMN(본문 입력·답한 사람·오류 경계·확장 선언), Studio 흉내(진짜 엔진 + `origin: test` 일감)로 인계까지, 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·폴링·도달한 종료), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc03_calc.py` | **통합가상데이터 v0.3 파생 시트와 대조** — 통합손익(연간·Q3·잔여·12개월), 통합모델손익 a~e, SC03검증 V31·V32·V39·V40, 숫자 원천 = v0.2, 구매 증가 156,812개·18,817,440원, E33 정합 실패, E34 −1,988,000원, 엑셀 시각 KST·초 반올림 |
-| `engine/tests/test_sc03_process.py` | Chaeksas 위의 기본 시연 D30~D41 — **끝난 문서 = SC03 시트**(사실확인·쟁점·후보·과제·인계·이벤트 시각), T31 재착수, T33 무응답 차단, T34 담당·기한 필수, 차단 → 재분석, T35 제외 사유 누락 시 전체 미저장, T36 C32·C33 → AT32, T37 3/4 완료 422·타부서 403, E35-M 책임자 NULL 전건 보류, T38 구버전 인수 409, 멱등, E31·E33·E34·E36·E37, 화면 답이 각본 지점을 옮김(병렬 순서 바뀜·조회 건너뜀), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc03_process.py` | Chaeksas 위의 기본 시연 D30~D41 — **끝난 문서 = SC03 시트**(사실확인·쟁점·후보·과제·인계·이벤트 시각), T31 재착수, T33 무응답 차단, T34 담당·기한 필수, 차단 → 재분석, T35 제외 사유 누락 시 전체 미저장, T36 C32·C33 → AT32, T37 3/4 완료 422·타부서 403, E35-M 책임자 NULL 전건 보류, T38 구버전 인수 409, 멱등, E31·E33·E34·E36·E37, 화면 답이 각본 지점을 옮김(병렬 순서 바뀜·조회 건너뜀), BPMN ↔ 역할표, HTTP — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc04_calc.py` | **통합가상데이터 v0.4 파생 시트와 대조** — SC04월효과 36행 전부(보고·판단), SC04월손익 월·연간·Q3·Q4·잔여, SC04비교 대안별 효과·정상 연간, SC04검증, 숫자 시트 = v0.3, T403(2,900 → 124.8M)·E401 감가상각 회피 차단·E402 중복 180만원·E403 승인 범위 121.6M, 입력 한도(전망·원가·긴급 역전·일회성비), E407 위임 조회 |
-| `engine/tests/test_sc04_process.py` | Chaeksas 위의 기본 시연 D401~D413 — **끝난 문서 = SC04 시트**(예산과제·조건지시·인계·이벤트 23건 시각·행위자·회의 기록), T401 재착수·재등록, T402 보고본/판단본 분리, 작성자 ≠ 확인자·AT33 제외·Q31·Q32 이력, 다른 부서 403, 보완 요청 새 버전, E401·E402 검증 차단 → 담당 임원 보완, 추천 2~3개·우선순위, 회의 기록 역할, 판단 변경 사유·임원 확인, T403, 대표만 결정·판단본 409, T407 승인서 누락 422 무저장, T406 보류 과제 미생성, T408 2/3 종료 422·타인 403, T409 반려·보완·구버전 409, T411·T412·T413, 시계·초기화·각본, **바깥 답(회사 사이트·화면)이 각본 지점·시계를 옮김**(순서 바뀜·제 단계 시각·폼 기본값), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc04_process.py` | Chaeksas 위의 기본 시연 D401~D413 — **끝난 문서 = SC04 시트**(예산과제·조건지시·인계·이벤트 23건 시각·행위자·회의 기록), T401 재착수·재등록, T402 보고본/판단본 분리, 작성자 ≠ 확인자·AT33 제외·Q31·Q32 이력, 다른 부서 403, 보완 요청 새 버전, E401·E402 검증 차단 → 담당 임원 보완, 추천 2~3개·우선순위, 회의 기록 역할, 판단 변경 사유·임원 확인, T403, 대표만 결정·판단본 409, T407 승인서 누락 422 무저장, T406 보류 과제 미생성, T408 2/3 종료 422·타인 403, T409 반려·보완·구버전 409, T411·T412·T413, 시계·초기화·각본, **바깥 답(회사 사이트·화면)이 각본 지점·시계를 옮김**(순서 바뀜·제 단계 시각·폼 기본값), BPMN ↔ 역할표, HTTP — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc04_external.py` | 기본 확장 `external` ↔ BPMN(입력·출력·답한 사람·오류 경계), Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc05_calc.py` | **통합가상데이터 v0.5 파생 시트와 대조** — v0.4 45개 시트 그대로, 기초 손익 = SC05모델손익 60행, FC50 = 장면 4 판단 가정 손익, SC05월효과 18행, SC05월손익 월·연간·마감·전망·Q3, 모델별 효과, 변경 대사(9월 −1.2M · 11~12월 +2.4M · 차이 0), X506 재가산 대사 실패, X508 3,427,786,680, SC05초기지표, 임계값 같으면 정상·NULL 미확인, X509 중복·비용 NULL, 납기·품질 미수집, SC05예산(정산 이중 차감 없음), 고객계획 a~e 월합계 0 |
-| `engine/tests/test_sc05_process.py` | Chaeksas 위의 기본 시연 D501~D518 — **끝난 문서 = SC05 시트**(계획·활동·조건품의·예산원장·변경공유·구매표본 60건·운영계획·전망버전·인계·이벤트 시각·사람·Agent 상태), SC05착수조건 GT51~55, T501~T532(X501 착수 422·T506 9/1 전 READY·T502 권한·T503 누락 저장·확정 422·T504 v1 유지·T507/X502 범위 이탈·T509 예산 초과·T512/X504·T513 전결 경계·대행 확인·T516/X509·T518·T521/X506·T522·T523/X505·T524/X507·T525/X508·T526 새 RUN·T527 게시 멱등·T528 시계만으로 승인 없음·T530 Agent 실패·T531), BPMN ↔ 역할표, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc05_process.py` | Chaeksas 위의 기본 시연 D501~D518 — **끝난 문서 = SC05 시트**(계획·활동·조건품의·예산원장·변경공유·구매표본 60건·운영계획·전망버전·인계·이벤트 시각·사람·Agent 상태), SC05착수조건 GT51~55, T501~T532(X501 착수 422·T506 9/1 전 READY·T502 권한·T503 누락 저장·확정 422·T504 v1 유지·T507/X502 범위 이탈·T509 예산 초과·T512/X504·T513 전결 경계·대행 확인·T516/X509·T518·T521/X506·T522·T523/X505·T524/X507·T525/X508·T526 새 RUN·T527 게시 멱등·T528 시계만으로 승인 없음·T530 Agent 실패·T531), BPMN ↔ 역할표, HTTP — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc05_external.py` | 기본 확장 `external` ↔ BPMN, Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·구매 확인 대행 담당자), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠 |
 | `engine/tests/test_sc06_calc.py` | **통합가상데이터 v0.6 파생 시트와 대조** — 기존 71개 시트 = v0.5, BASE61 = 장면 5 FC51 산정본(어긋나면 409), 과제성과·월효과 9행·원인집계·운영지표·분기손익·SC06요약·검증 17항목(계산값), 보고 결론 숫자 ↔ 산정, X61-01 비용 null 산정 보류·확인 소계, X61-02 판단 보류, X61-03 중복 대사 대기, X61-04 Agent 후보, AT61-06/X61-05 재적재 새 산정·확인 재수행 대상·같은 입력 되돌림, X61-06 미산정 ≠ 0, X61-07 원인 비용 + 미달 대사 오류, X61-08 검토 가능, 오류값 422·쉼표 문자열, 연결 누락·승인 전 발주, 고정비 절감 거절, AT61-12·14 |
-| `engine/tests/test_sc06_process.py` | 장면 5 완료까지 각본 실행 후 적재(확인 전 DRAFT · 새 실행·도중 실행), 다시 열어도 재적재 없음, **확인 절차 각본 끝의 기록 일곱 건 = SC06보고 시트**(행위자·시각·상태·글·근거)·보고본이 CALC61-v1에 묶임, 담당만 답함 403, 결론 숫자가 다르면 확정 422 REPORT_INVALID → 보완 요청 → 다시 결론·확정, 재확인 요청 → 두 확인 이력·다시 열림, 초기화는 확인만 되돌림, BPMN ↔ 역할표·담당 이름, HTTP 착수·결재·각본·폼 기본값, 조회 계약 4개(문맥 칸·3과제·원인·PO61-1103·AG62·근거·확인 다섯 단계·후속·연간 FC51 그대로), 403 ACCESS_DENIED(오류에 금액·근거 없음)·409 VERSION_MISMATCH·404, **조회가 문서·이력·감사를 바꾸지 않는다**, Studio 장면 5 409, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc06_process.py` | 장면 5 완료까지 각본 실행 후 적재(확인 전 DRAFT · 새 실행·도중 실행), 다시 열어도 재적재 없음, **확인 절차 각본 끝의 기록 일곱 건 = SC06보고 시트**(행위자·시각·상태·글·근거)·보고본이 CALC61-v1에 묶임, 담당만 답함 403, 결론 숫자가 다르면 확정 422 REPORT_INVALID → 보완 요청 → 다시 결론·확정, 재확인 요청 → 두 확인 이력·다시 열림, 초기화는 확인만 되돌림, BPMN ↔ 역할표·담당 이름, HTTP 착수·결재·각본·폼 기본값, 조회 계약 4개(문맥 칸·3과제·원인·PO61-1103·AG62·근거·확인 다섯 단계·후속·연간 FC51 그대로), 403 ACCESS_DENIED(오류에 금액·근거 없음)·409 VERSION_MISMATCH·404, **조회가 문서·이력·감사를 바꾸지 않는다**, Studio 장면 5 409 — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc06_external.py` | 기본 확장 `external` ↔ BPMN(계약 검사·입력·출력·답한 사람·오류 경계), Studio 흉내로 대표 보고까지(늦게 연 업무·같은 기록), 결론 숫자 틀린 확정 → 기록 거절 → 같은 결재(남은 항목은 감사 이력), `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·담당 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **Center 각본이 자기 기록을 기다려 사이트가 먼저 답한 결재를 다시 대리 답하지 않음** |
 | `engine/tests/test_sc03_external.py` | 기본 확장 `external` ↔ BPMN(입력·출력·답한 사람·오류 경계), Studio 흉내로 완료까지(늦게 연 업무·같은 숫자), 기록 거절 → 같은 결재, `origin` ↔ 실행 위치 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·과제 책임자 이름 결재), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, **콘솔 답 거절 → 같은 업무에 잇고 사유가 폼에·반영 중(`inflight`)·화면 답이 각본 지점을 옮김**, 회신기한 형식 사전 검사 |
 | `engine/tests/test_consumer.py` | C15 일꾼 — manifest가 여섯 장면 그림의 서비스 호출·입력·출력을 다 덮는다, 가짜 Center와 들이기(요청 코드 → 승인 → 봉한 토큰) → manifest → 가져가기 → `complete`, `origin`이 선언과 다르면 사유와 함께 `fail`(conflict), 같은 멱등 칸 다른 본문 `idempotency_conflict`, Center 없으면 꺼짐. 장면별 바깥 실행 시험의 Studio·서버 실행기 흉내도 이 수행기를 지난다(`conftest.C15Calls` — Center처럼 출력 필수 칸을 본다) |
 | `engine/tests/test_companies.py` | NowView 설정·회사 — 업무 목록 = 화면 사본, 설정 기본값·저장·검사(겹침·없는 회사·없는 업무), 공개 목록에 등록 정보 없음·`/worker` 없음, 관리 API 키(401·503)·설정 편집(토픽 바꾸면 재시작 필요), 일꾼이 보낸 BPM 프로세스 id로 업무를 찾음(없으면 `not_found`) |
+| `engine/tests/test_dashboard.py` | 회사 대시보드 — 장면 1→7 기본 시연 끝의 업무별 지표 = 통합가상데이터 숫자(경영 기록에서 고른다), 결재 진행(지나온 ≤ 그림), 시작 전 업무, 일감 기록은 그 장면 것만·새것이 앞, 따라가는 세계만·사이트 세계가 앞, 따라가지 않는 세계를 고르면 사유, 회사 시스템이 없으면 200 + 사유 |
+| `tests/dashboard.test.ts` | 대시보드 표기 — 억·만·원과 부호(−), 없는 값은 0이 아니라 「미산출」, 가상시각은 KST 그대로, 회사 사이트 업무 화면 주소(사이트·세계가 없으면 링크 없음) |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
-| `tests/sc02.test.ts` | 장면 2 배치(기록 태스크 접기·보완 고리), 도달한 종료만 완료, 엔진 각본 → 장면, 기간 표기 |
-| `tests/sc05.test.ts` | 장면 5 배치(기록 태스크·오류 경계 접기, 보완·범위 이탈·반려·대표 변경 고리·대사 실패 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·단계 코드별 화면), 사람 노드 41개 전부 화면, 미확인·비해당 표기, Agent 활동 → 폼 글(빈칸을 0으로 메우지 않는다) |
-| `tests/sc06.test.ts` | 장면 6 표기(null ≠ 0 — 미확인·산정 보류·미산정·비해당, 차이 부호), 세 동작 210초, 화면·펼침 → 장면, 확인 절차 7단계 = 엔진 각본 D601~D607, 확인 절차 화면·BPM 흐름은 엔진 각본 위치 |
 | `engine/tests/test_sc07_calc.py` | **통합가상데이터 v0.7과 대조** — 앞 92개 시트 = v0.6(값·수식), `SC07판단` 5행(유효 확인·소요 분·120분·마감·적시 공급·후보), `SC07검증결과` 8행을 규칙으로 다시 계산(데이터 PASS를 옮기지 않는다), `SC07요약`·`SC07적용` 판정 ST707·운영 실행 미확인, AT703 무효·지정만 대행, AT704 누락 사유(MISSING·ACCESS_DENIED·NOT_JOINED, 0분 아님), AT705 120분·121분·120분 1초·재공유, AT706 마감 초과 추가 검토, 시각 역전 DATA_INVALID, AT707 페이로드 정답 차단, AT709 확인 조건(CFO 미확인·역할 중복·구버전), AT710 적용 증적(예약·버전·범위·미래 시각), 적재 검사(중복·참조 누락·버전 공란), KST 시각 |
-| `engine/tests/test_sc07_process.py` | 장면 6 대표 보고까지 각본 실행 후 적재(확인 전), Studio 장면 6 409, **각본 끝 = SC07확인이력·SC07적용**(행위자·시각·글·버전·업무 완료 시각), AT708 장면 1~6 문서 불변, 장면 6 기록이 바뀌면 TC707 실패 → 「검증 미통과」 끝, 담당 403·대상 버전 422·순서 409, 보완 요청 → 「보완 필요」 끝, 예약 설정 「일치」 422 → 불일치 → 다시 반영, 초기화, 조회 계약 넷·미실행은 NOT_RUN·403·404·409, **조회가 문서·이력을 바꾸지 않는다**, BPMN ↔ 역할표·담당 이름, HTTP, **TS 토폴로지 사본 = BPMN** — **SQLite·Postgres 양쪽** |
+| `engine/tests/test_sc07_process.py` | 장면 6 대표 보고까지 각본 실행 후 적재(확인 전), Studio 장면 6 409, **각본 끝 = SC07확인이력·SC07적용**(행위자·시각·글·버전·업무 완료 시각), AT708 장면 1~6 문서 불변, 장면 6 기록이 바뀌면 TC707 실패 → 「검증 미통과」 끝, 담당 403·대상 버전 422·순서 409, 보완 요청 → 「보완 필요」 끝, 예약 설정 「일치」 422 → 불일치 → 다시 반영, 초기화, 조회 계약 넷·미실행은 NOT_RUN·403·404·409, **조회가 문서·이력을 바꾸지 않는다**, BPMN ↔ 역할표·담당 이름, HTTP — **SQLite·Postgres 양쪽** |
 | `engine/tests/test_sc07_external.py` | 기본 확장 `external` 0.7.0 ↔ BPMN(계약 검사·입력·출력·답한 사람·`데모실행ID`·오류 경계), Studio 흉내로 후속 점검까지(늦게 연 업무·같은 기록), 예약 설정 「일치」 → 기록 거절 → 같은 결재, 콘솔 관리자 답은 담당으로 기록, `origin` ↔ 실행 위치 409, 착수 전 열기 409, 가짜 Center + 실행기 흉내로 각본 끝까지(대리 답·운영담당 이름 결재·거절 0), 사전 검사가 Center보다 먼저, 설정 없음 사유·503, 초기화가 작업을 거둠, 사이트가 먼저 답한 결재를 각본이 다시 대리 답하지 않음 |
-| `tests/sc07.test.ts` | 장면 7 표기(원인 후보 말·누락은 0분 아님), 두 동작 120초, 확인·적용 5단계 = 엔진 각본 D701~D705, 절차 화면·BPM 흐름은 엔진 각본 위치·U701은 보기 A·B, BPMN 배치(기록 태스크·경계 접기·불일치 고리), 실행 중 안 간 「보완 필요」 끝 보존 |
-| `tests/sc04.test.ts` | 장면 4 배치(기록 태스크·오류 경계 접기, 보완 요청·검증 보완·승인 보완·반려 보완 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(노드·종류·조회 코드별 화면), 모든 사람 노드의 화면, 목표 초과 표기 |
-| `tests/sc03.test.ts` | 장면 3 배치(기록 태스크·오류 경계 접기, 재분석·재확인·재배정 고리), 실행 중 안 간 갈래 보존, 엔진 각본 → 장면(종류별 화면), 모든 사람 노드의 화면, 백만원 표기·NULL |
-| `tests/sc01.test.ts` | 화면이 엔진 응답을 **잘못 읽는** 종류 — BPMN 배치(되돌아가는 흐름·줄 접기), 노드 상태 파생, 장면 → 이력 seq, 표기(누락·판정 보류·억/만) |
 
-* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 881개). 자리표시자·행 접근·JSON
+* 엔진 테스트는 SQLite와 Postgres 두 백엔드를 모두 돈다(Postgres 포함 869개, 2026-11-03). 자리표시자·행 접근·JSON
   타입이 전부 달라 한쪽만 돌리면 나머지가 배포 시점에 터진다. CI는 `REQUIRE_POSTGRES=1`로 skip을
   실패로 바꾼다.
-* `tests/fixtures/sc0{1,2,3,4,5,6}-process.json`은 BPMN 토폴로지의 사본이다. BPMN을 고치면 엔진 테스트가
-  실패하며 다시 만드는 명령을 알려 준다.
-* 렌더링 테스트는 두지 않는다 — 레이아웃·가독성은 브라우저에서 본다(4.10~4.14의 실측들).
+* TS 토폴로지 사본(`tests/fixtures/sc0N-process.json`)과 그것을 BPMN과 대조하던 엔진 시험은 캔버스와 함께 걷었다(2026-11-03).
+* 렌더링 테스트는 두지 않는다 — 레이아웃·가독성은 브라우저에서 본다(4.13·4.14).
 
 ### 4.9 실시간 전파 (SSE · Postgres LISTEN/NOTIFY)
+
+> **웹은 SSE를 쓰지 않는다**(2026-11-03 — 장면 화면과 `SessionSync`를 걷었다, BFF도 `…/events`를 중계하지 않는다). 대시보드는
+> 10초 폴링이다(4.6). 엔진의 SSE 허브·`pg_notify` 전파는 엔진 시험(`test_events`·`test_notify`·장면 API 시험)이 쓰는 그대로 남겼다.
 
 **폴링이 아니라 push다.** 상태가 바뀌는 계기가 전부 우리 코드를 지나간다(수신·응답·시계·초기화).
 Chaeksas가 몰래 진행하는 일은 없다 — 서비스 태스크도 그 호출 안에서 돈다.
@@ -994,7 +903,7 @@ Chaeksas가 몰래 진행하는 일은 없다 — 서비스 태스크도 그 호
 조작(워커 A) → notifier.publish("sc01:{id}")
    SQLite  → hub.fanout                        (같은 프로세스)
    Postgres→ SELECT pg_notify('nowview_instance', id) → LISTEN 중인 모든 워커 → hub.fanout
-엔진 GET /sc01/demo-runs/{id}/events → BFF 중계 → EventSource → Sc01SessionSync → 스토어
+엔진 GET /sc01/demo-runs/{id}/events → (예전: BFF 중계 → EventSource → Sc01SessionSync → 스토어)
 ```
 
 * **`event: ready`가 초기 전송의 끝을 알린다.** 클라이언트는 이것을 받으면 폴백 폴링을 멈춘다.
@@ -1014,107 +923,17 @@ Chaeksas가 몰래 진행하는 일은 없다 — 서비스 태스크도 그 호
 **실측**(SC01): 실제 엔진에서 각본 9단계를 HTTP로 돌리는 동안 SSE가 변경 16건을 모두 실어 BPM 대기
 지점이 `Approve_DQ → … → Accept_FIN → []`로 바뀌는 것을 받았다. (이전 구현에서 두 프로세스·같은
 Postgres로 잰 워커 간 전파는 0.026초였다.)
-### 4.10 섹션 탭 (앵커 네비게이션)
+### 4.10~4.12 섹션 탭 · 해설 모드 · 데모 플레이어 — 걷었다
 
-> 4.10~4.14의 실측값은 이전 화면(Cockpit 등 다섯 화면) 기준이다. 규칙은 SC01 화면에도 그대로 쓰인다.
+장면 화면과 함께 걷었다(2026-11-03). 해설·업무 설명은 회사 사이트(`/scenario`·업무 화면)로 갔다. 설명과 실측은 git 이력(`79f6ea9`)의
+이 절에 있다. 다른 화면에 다시 쓸 만한 교훈만 남긴다:
 
-다섯 화면 모두 스크롤이 길어(Cockpit 기준 약 4,000px) 원하는 섹션을 찾기 어렵다.
-`components/shared/section-nav.tsx`가 **GNB 바로 아래 한 줄**로 섹션 탭을 놓는다.
-
-**먼저 왼쪽 레일로 만들었다가 걷어냈다.** 쓸모보다 방해가 컸다:
-
-* 화면 위(GNB)와 왼쪽(목차)으로 **시선 축이 둘로 갈렸다.** 찾기 쉬우라고 넣은 것이
-  오히려 어디를 봐야 할지 흩뜨렸다.
-* 겹쳐 띄우면 카드를 가리므로 **펼칠 때 본문을 밀어내야 했다** — 목차를 여닫을 때마다
-  레이아웃이 통째로 움직였다. 1600px 화면에서도 `max-w-7xl` 좌우 여백이 152px뿐이라
-  208px짜리 레일이 들어갈 자리가 애초에 없었다.
-* 그래서 "언제 자동으로 펼칠 것인가"(폭 경계)라는 문제가 따라붙었는데, 헤더 안에 넣으니
-  그 문제 자체가 사라졌다.
-
-남은 규칙:
-
-* **항목은 선언하지 않고 지금 그려진 DOM에서 파생한다.** 화면별 섹션 목록을 손으로 적어
-  두면 조건부 섹션(미답 질문, 엔진 패널, 승인 후 나타나는 것들)과 데이터가 들어간 제목
-  ("실행 과제 3건")이 곧 어긋난다 — 설계표를 손으로 쓰지 않는 것과 같은 이유다(4.15).
-  수집 대상은 `main` 안의 `h1` · `h2` · `[data-slot="card-title"]`이고, 스크롤 목표는
-  그 제목을 감싼 카드·섹션이다. 빼려면 `data-index-skip`을 단다.
-* **탭 라벨은 제목의 앞머리만 쓴다**(`—` 뒤 부연과 건수를 뗀다). 부연은 카드에 가면 바로
-  보이고, 건수를 남기면 값이 바뀔 때마다 탭 폭이 흔들린다.
-* **앵커 id는 제목에서 만들되 숫자를 뺀다.** "실행 과제 3건"이 승인으로 4건이 되면 id가
-  달라져 링크가 일회용 좌표가 된다.
-* **첫 항목은 "맨 위"다.** 화면 이름은 GNB가 이미 말하고 있어 그대로 쓰면 같은 말이 두 번
-  나온다.
-* **`requestAnimationFrame`을 쓰면 안 된다.** 숨겨진 브라우저 패널에서 콜백이 발화하지
-  않아 목차가 영영 비어 있다 — React Flow 함정과 같은 원인이고 실제로 그렇게 만들었다가
-  검증에서 드러났다. 수집·스크롤 감지 모두 `setTimeout`이다.
-* **덧붙여 드러난 것**: 그 상태에서는 **스크롤·resize 이벤트가 아예 배달되지 않고**
-  (실측 0건) `behavior: "smooth"`도 움직이지 않는다. 숨겨진 패널에서 검증하려면
-  `dispatchEvent(new Event("scroll"))`로 직접 깨우고 `behavior: "auto"`로 확인해야 한다.
-* 앵커 여백은 두 곳에 걸린다 — JS 스크롤은 헤더 높이를 **실측**하고, hash 이동(새로고침·
-  링크 붙여넣기)은 `globals.css`의 리터럴(96px)을 쓴다. 헤더 구성을 바꾸면 함께 본다.
-
-**실측**: 다섯 화면 모두 탭이 생성되고(4~6항목), 어느 화면에서도 탭 줄이 넘치지 않는다
-(1497px에서 `scrollWidth == clientWidth`). 앵커 이동 후 섹션 상단이 헤더 아래 12px에
-놓인다. 정적 프리렌더(`○`)는 다섯 화면 모두 그대로다.
-
-### 4.11 해설 모드
-
-이 화면들은 **방법론을 설명하는 자료**와 **경영자가 쓰는 화면**을 겸한다. 카드 설명
-20개 중 8개가 "왜 이렇게 보는가"를 말하는 문장이었고, 그것이 상시로 박혀 있으니 정작
-봐야 할 수치가 문장에 묻혔다. 지우지 않고 **모드로 갈랐다** — 시연 때 켜고 평소엔 끈다.
-
-* 스위치는 GNB에 있다(`components/shared/commentary-toggle.tsx`). 상태는
-  `lib/store/ui-prefs.ts`이며 **기본은 꺼짐**, localStorage에 남는다.
-* **데모·엔진 스토어와 분리했다.** 저 둘은 시나리오별로 갈라진 "어느 안건이 어디까지
-  갔는가"이고, 해설을 켰는지는 안건과 무관하다. 섞으면 시나리오를 바꿀 때 표시 설정까지
-  흔들릴 여지를 만든다.
-* **무엇을 감추고 무엇을 남길지의 기준**: "이 수치가 무엇인가 · 몇 건인가 · 무엇을 누르면
-  되는가"는 화면을 쓰는 데 필요하므로 남긴다. "왜 이렇게 보는가 · 이 구분이 왜 중요한가"는
-  방법론 설명이므로 `<Commentary>`로 감싼다. 한 문장 안에서 갈리는 경우가 많아
-  **문장 단위로 쪼갰다**(예: "1~3Q는 마감 확정, 4Q는 전망이다"는 남기고 "분기 합은 전사
-  Target·Forecast와 일치한다"는 감춘다).
-* 화면 하단의 Mock 데이터 주석 5개도 해설이다.
-* `skipHydration`은 다른 스토어와 같은 이유다(4.2). 서버 HTML은 항상 꺼짐 상태이고
-  `StoreHydrator`가 mount 이후 복원한다.
-
-**실측**: Cockpit 기준 문서 높이가 켬 4,139px → 끔 4,017px이다. 줄어드는 양보다
-**한 화면에 문장 덩어리가 4개에서 0개로 주는 것**이 목적이다.
-
-### 4.12 데모 플레이어는 자리를 차지한다
-
-떠 있는 카드였을 때 **스크롤 도중 본문 위를 덮었다.** 하단 여백(`pb-48`)은 문서 끝에만
-자리를 비우므로 중간을 보고 있을 때는 소용이 없다. 화면 폭 전체를 쓰는 **하단 고정 바**로
-바꿨고, 본문은 그 높이만큼 아래를 비운다.
-
-* **높이를 상수로 박지 않는다.** 예전 주석에 "플레이어 최대 높이 170px"이라고 적어 두었고
-  그 값은 이미 실제와 달랐다. 접으면 얇아지고, 화면이 좁으면 컨트롤이 한 줄 더 내려간다
-  (1497px에서 78.5px, 820px에서 117px — 실측). 플레이어가 **자기를 재서**
-  `--demo-player-h`에 넣고 `globals.css`가 그것을 읽는다.
-* **ResizeObserver만으로는 부족하다.** 숨겨진 탭에서 발화하지 않아 폭이 바뀌어도 값이 낡은
-  채로 남는 것을 실제로 봤다 — `resize`도 함께 듣고, CSS에는 폴백(7rem)을 둔다.
-* 내레이션은 두 줄로 제한한다. 바 높이가 들쭉날쭉하면 본문에 비워 둔 자리와 어긋난다.
-
-**넓은 화면에서는 오른쪽 단이다**(xl, 2026-10-27). 맨 위는 화면 폭 전체의 **공통 줄**(로고·역할·해설·테마, 높이 3rem 고정
-— `body pt-12`)이고, 업무와 무관한 것만 둔다. 사이드바·오른쪽 플레이어·가운데 머리가 `top-12`에 맞물린다. 공통 줄은 `<header>`가
-아니다 — 섹션 탭이 첫 `header`의 **아래 끝**으로 스크롤 여백을 잰다. 그 아래 화면은 세 단이다 — 왼쪽 업무 사이드바(lg, `w-56`, 장면을 「장면 N」이
-아니라 수행하는 업무 이름으로 보인다 — `scenario-nav.tsx`의 `WORKS`), 가운데 머리·본문, 오른쪽 플레이어(`w-80`, 높이 전체,
-장면 목록을 제목으로 세로로 보인다). 가운데 머리 맨 윗줄은 지금 업무 이름이고, 업무마다 다른
-화면 메뉴는 그 아래 줄, 섹션 탭은 또 그 아래다(공통 줄 + 머리 약 166px — `scroll-margin-top` 184px).
-
-* 본문 여백은 `body:has([data-demo-player="expanded"])`가 xl에서 오른쪽 20rem·아래 1rem으로 바꾼다. 접으면 오른쪽 아래 알약이다.
-* **회사 첫 화면(`/c/{회사}`)에는 사이드바·플레이어가 없다**(2026-11-01) — 카드가 업무 목록을 겸하고 업무마다 지금 상태(BPM 상태·
-  가상시각, 장면 문서가 없으면 「시작 전」)를 싣는다 — 엔진 `GET /companies/{회사}/works`가 한 번에 준다(장면마다 읽으면 시작 전
-  업무가 404로 콘솔을 메웠다). 사이드바를 두면 같은 목록이 둘, 장면 1 플레이어는 첫 화면을 장면 1처럼 보이게
-  했다. 사이드바 자리는 `body:has([data-work-sidebar]) .work-shell`이 준다(lg 14rem). 카드 목록은 `data-index-skip` — 섹션 탭이 또
-  같은 목록을 만들었다.
-* 플레이어 여섯 벌이 같은 클래스를 쓴다 — 하나를 고치면 여섯을 같이 고친다. 오른쪽 단에서 컨트롤 묶음은 `sm:shrink-0`
-  때문에 한 줄 폭(777px)으로 잘렸다 — `xl:w-full xl:shrink`로 접힌다.
-  lg~xl(하단 바 + 사이드바)에서는 `sm:flex-nowrap` 때문에 줄을 못 바꿔 1024px에서 이전·자동 재생·다음·접기가 화면 밖으로
-  밀렸다(장면 5의 「다음 단계 시각 9/1 09:00」이 길어 넷 다, 장면 4도 접기 9px, 2026-11-02) — 묶음을 `max-w-full flex-wrap`으로 둔다.
-* **화면 글에 「장면 N」을 쓰지 않는다**(2026-10-27) — 업무 이름(`WORKS`의 label)으로 쓴다. 플레이어 안의 시연 순서는
-  「단계」다. 「장면」·SC0N은 설계 문서·코드·주석의 용어로만 남는다. 바꾸기 전에 저장된 데모 실행의 문서 글(인계 메모 등)은
-  그대로라 새 데모 실행부터 바뀐 글이 보인다.
-* lg~xl(사이드바만 있을 때) 하단 바는 `lg:left-56`로 사이드바를 덮지 않는다. lg 미만에서는 사이드바 대신 머리의 업무 선택이다.
+* **숨겨진 브라우저 패널에서는 `requestAnimationFrame`·`ResizeObserver`가 발화하지 않고 스크롤·resize 이벤트도 배달되지 않는다**
+  (`behavior: "smooth"`도 움직이지 않는다). 그런 패널에서 검증하려면 `dispatchEvent(new Event("scroll"|"resize"))`로 깨우고
+  `behavior: "auto"`로 본다. 타이머가 필요하면 `setTimeout`을 쓴다.
+* **목차·탭은 선언하지 않고 지금 그려진 DOM에서 파생한다** — 손으로 적은 목록은 조건부 카드와 곧 어긋났다.
+* **고정 UI의 높이를 상수로 박지 않는다** — 화면 폭에 따라 달라졌다. 재서 CSS 변수로 넘긴다.
+* 방법론 설명(「왜 이렇게 보는가」)과 화면 사용에 필요한 말(「이 수치가 무엇인가」)은 문장 단위로 가른다.
 
 ### 4.13 UI 토큰과 서드파티 스타일
 
@@ -1133,26 +952,17 @@ Postgres로 잰 워커 간 전파는 0.026초였다.)
   경계 강화가 카드에는 먹지 않는다.
 
 **화면 틀은 남색 + 남보라 강조다**(2026-10-27, "단색이라 대시보드·데모 성격에 맞게"). 토큰은 `--brand`(278°) ·
-`--brand-soft` · `--ink`(틀 남색) · `--demo-surface`(플레이어 면)이고 `--primary`·`--ring`이 `--brand`를 따른다.
+`--brand-soft` · `--ink`(틀 남색)이고 `--primary`·`--ring`이 `--brand`를 따른다.
 
 * **색상(hue)을 차트와 비켜 잡았다** — 계열색 파랑(255°)·주황, 상태색 초록·노랑·주황·빨강과 겹치지 않는 남보라다. 틀의
   강조가 차트에서 계열·상태로 읽히면 4.4의 역할 분리가 깨진다. `--brand`를 차트에 쓰지 않는다. `--card`는 그대로다.
-* 공통 줄·업무 사이드바는 `.chrome-ink`다 — 그 안의 토큰(배경·글자·muted·border)을 어두운 판으로 바꾼다. **`.dark`를
-  붙이지 않는다** — 테마 버튼 아이콘이 `dark:` 변형으로 갈려 라이트에서도 해 아이콘이 보인다. `color-scheme: dark`라
-  역할 선택의 펼침 목록도 어둡다.
-* 강조를 쓰는 곳: 활성 업무(채움), 화면 메뉴·섹션 탭의 밑줄, 기본 버튼(자동 재생·장면 시작), 플레이어의 지금 장면·단계 칩·윗선.
+* 공통 줄은 `.chrome-ink`다 — 그 안의 토큰(배경·글자·muted·border)을 어두운 판으로 바꾼다. **`.dark`를
+  붙이지 않는다** — 테마 버튼 아이콘이 `dark:` 변형으로 갈려 라이트에서도 해 아이콘이 보인다.
+* 강조를 쓰는 곳: 기본 버튼, 카드 hover 테두리, 회사 사이트 링크, 결재 진행 막대.
 
-**서드파티 CSS는 우리 뒤에 주입된다.** `@xyflow/react/dist/style.css`는 컴포넌트에서
-import되므로 `globals.css`보다 나중에 온다 — 같은 특이도로 덮어쓰려 하면 **진다.**
-클래스를 두 번 적어(`.react-flow__controls-button.react-flow__controls-button`)
-특이도를 올린다.
-
-* **다크에서 React Flow 확대·축소 아이콘이 보이지 않았다.** 버튼 배경은 라이브러리가
-  `#fefefe`로 박아 두는데 아이콘은 `currentColor`를 타고 우리 foreground(`#fafafa`)를
-  따라간다 — **흰 버튼에 흰 아이콘**이다. 색이 빠진 게 아니라 대비가 사라진 것이라
-  콘솔 경고가 없고, 요소는 DOM에 멀쩡히 있어서 찾기 어렵다. 실측 대비 1.0 → **17.2:1**.
-* `Controls`를 쓰는 화면을 추가하면 같은 문제가 이미 해결되어 있다 — 토큰으로 칠하므로
-  테마 전환도 따라온다.
+**서드파티 CSS는 우리 뒤에 주입된다** — 컴포넌트에서 import한 라이브러리 스타일시트는 `globals.css`보다 나중에 와서 같은
+특이도로는 진다(클래스를 두 번 적어 특이도를 올린다). 예전 React Flow 확대·축소 버튼이 다크에서 흰 버튼에 흰 아이콘이 됐다(대비
+1.0 — 콘솔 경고 없음). 캔버스를 걷으며 그 덮어쓰기도 걷었다.
 
 **`scripts/validate_palette.js`가 없었다 — 넣었다.** `globals.css` 주석과 4.4가 오래
 그 명령을 가리키고 있었지만 파일이 커밋된 적이 없었다. 즉 "색을 바꾸면 검증기를 돌린다"가
@@ -1172,50 +982,16 @@ import되므로 `globals.css`보다 나중에 온다 — 같은 특이도로 덮
 
 ### 4.14 좁은 화면 (모바일)
 
-데모를 폰으로 보다 세 가지가 드러났다. 셋 다 **좁을 때만** 나고 데스크톱에서는 보이지 않는다.
+장면 화면을 폰으로 보다 드러난 것들(실측 표는 git 이력 `79f6ea9`의 이 절). 대시보드에도 그대로 쓴다:
 
-**`flex-1`은 `flex-wrap`에서 줄바꿈을 유발하지 못한다.** `flex: 1 1 0%`라 기여 폭이 0이고,
-형제가 자리를 다 가져가도 "안 들어간다"가 성립하지 않아 혼자 눌린다. 엔진 패널의 설명
-문단이 375px에서 **폭 22px · 높이 512px**로 한 글자씩 세로로 쌓였다 — 카드가 1,175px로
-부풀어 그 아래 내용이 사실상 닿지 않았다.
-
-* 버튼과 한 줄을 나눠 쓰는 문단은 **`basis-full sm:flex-1 sm:basis-0`**로 좁을 때 한 줄을
-  통째로 쓰게 한다. 아이콘+문단+버튼처럼 아이콘을 떼면 어색한 줄은 대신 **`min-w-[12rem]`**을
-  줘서 버튼이 아래로 내려가게 한다.
-* **`min-w-0`과 같이 쓸 수 없다** — 최소 폭을 주려면 그것을 빼야 한다.
-* 이 형태를 찾는 법: `main` 안에서 **폭 60px 미만인데 높이 120px 넘고 자식이 없는** 요소를
-  훑으면 나온다. 눈으로 찾지 말 것.
-
-**고정 UI가 화면의 3분의 1을 먹었다.** 360×640에서 sticky 헤더 84px + 데모 바 137px =
-**35%**다. 본문에 남는 434px보다 React Flow 캔버스(360px)가 커서 "캔버스 하나 = 한 화면"이
-됐다. 줄인 것:
-
-| | 전 | 후 |
-|---|---|---|
-| 데모 바 | 137px | 123px (스크러버 감춤 · 내레이션 1줄) |
-| 캔버스 | 360px | 240px (`sm:h-[360px]`) |
-| 첫 카드 (트래커) | 1,175px | 641px |
-
-* **스크러버는 좁을 때 감춘다.** 장면 8개를 가로로 나눈 칸이라 손가락으로 짚기 어렵고
-  세로를 28px 먹는다. 이동은 이전/다음으로 한다.
-* **`shrink-0`이 잘라 먹는다.** 플레이어 컨트롤 묶음이 360px 화면에서 **478px**로 삐져나가
-  시나리오 탭과 버튼 일부가 보이지 않았다. 페이지 가로 스크롤은 안 생기므로(`scrollWidth`가
-  같다) **넘침 검사로는 안 잡힌다** — 자식 폭을 직접 재야 한다.
-* **`line-clamp`는 반응형으로 건다**(`line-clamp-1 sm:line-clamp-2`). 바 높이는 본문이
-  비워 둔 자리(`--demo-player-h`)와 맞물리므로 값 자체는 여전히 재서 넣는다(4.12).
-
-**부차적 컨트롤은 좁을 때 라벨을 버린다.** 해설 토글이 GNB에서 고정 폭을 차지해 정작
-화면 이동에 쓰는 메뉴를 좁은 스크롤 영역으로 밀어냈다. 아이콘만 남기고(59px → 30px)
-헤더 간격도 좁혔더니(`gap-6` → `gap-3 sm:gap-6`) GNB가 134px → **170px**가 됐다.
-**`sr-only` 라벨을 함께 둔다** — `title`만으로는 접근성 이름이 약하다.
-
-**검증은 숨겨진 패널에서 하기 어렵다.** 뷰포트를 바꿔도 `resize`가 배달되지 않아
-`--demo-player-h` 같은 실측값이 낡은 채 남는다(4.10·4.12와 같은 원인) — 실제로 78.5px로
-남아 있어 버그로 오진할 뻔했다. `dispatchEvent(new Event("resize"))`로 깨운 뒤 재야 하고,
-"native size"로 되돌리면 0×0이 되므로 **폭·높이를 명시**한다.
-
-**데스크톱은 건드리지 않았다.** 전부 `sm:` 분기이고, 1280×800에서 해설 라벨·스크러버·
-플레이어 79px·캔버스 360px·문단 752px가 이전과 같은 것을 확인했다.
+* **`flex-1`은 `flex-wrap`에서 줄바꿈을 유발하지 못한다** — 기여 폭이 0이라 혼자 눌려 글자가 세로로 쌓였다(폭 22px · 높이 512px).
+  버튼과 한 줄을 나눠 쓰는 문단은 `basis-full sm:flex-1 sm:basis-0`. 찾는 법: `main` 안에서 폭 60px 미만·높이 120px 초과·자식 없는
+  요소를 훑는다.
+* **`shrink-0`·긴 `<select>`가 잘라 먹는다** — 페이지 가로 스크롤이 안 생겨도 자식이 화면 밖으로 나간다. 문서 폭(`scrollWidth`)과
+  요소 오른쪽 끝을 함께 잰다. 대시보드의 회차 선택이 375px에서 그랬다(옵션 글이 길다 — 좁을 때 `w-full min-w-0`).
+* **표 안의 `sr-only`가 문서 폭을 늘렸다**(`position:absolute`가 스크롤 상자를 벗어난다) — 표 머리의 이름은 `aria-label`로 준다.
+* 부차적 컨트롤은 좁을 때 라벨을 버리고 `sr-only` 라벨을 둔다.
+* 숨겨진 패널에서 뷰포트를 바꾸면 `resize`가 오지 않는다(4.10~4.12) — 폭·높이를 명시해 바꾸고 재기 전에 깨운다.
 
 ### 4.15 이전 구현(가동률 시나리오 · LangGraph)에서 남긴 교훈
 
@@ -1247,6 +1023,9 @@ Mock 데이터와 LangGraph 엔진으로 보여 줬다. SC01로 바꾸며 코드
 * **LLM을 요청 안에서 여러 번 부르면 프록시가 끊는다.** Cloudflare 원본 응답 타임아웃은 약 100초다 —
   Agent 3개를 연달아 돌린 생성이 524로 끊기고 인스턴스는 고아가 됐다. 긴 진행은 배경으로 보내고
   SSE로 알리며, 배경 실패는 상태에 남긴다. 노드 사이 스냅샷이 "끝남"으로 새지 않게 진행 중 표시를 둔다.
+
+> **4.16~4.21과 5.3·5.6~5.11의 화면 이야기**(U21… 화면 · 플레이어 · BPM 캔버스 · GNB 장면 칩 · 375px 실측 · 화면 검수)는 걷은
+> NowView 장면 화면의 기록이다(2026-11-03 4단계). 엔진의 업무 규칙·계산·Center 실측은 그대로 유효하고, 업무 화면은 회사 사이트에 있다.
 
 ### 4.16 SC02 — 단가 인상 검토와 수익성 영향의 경영검토 연결 (장면 2)
 
@@ -1761,7 +1540,7 @@ engine/processes/sc07.bpmn ──▶ Studio·Center ── external ──▶ ap
 
 ## 5. 다음 단계와 선행 조건
 
-CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10), 장면 7(5.11)은 끝났다(장면 1~7 모두
+CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3 — 2026-11-03 걷었다, 4.6), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10), 장면 7(5.11)은 끝났다(장면 1~7 모두
 로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 장면 1~6 코드를 올렸고, 운영 Center 연결이 남았다.
 
 ### 5.1 CI — 완료
@@ -1963,13 +1742,13 @@ scripts/deploy.sh --logs engine 80
   것이어서, 볼 사람을 미리 등록해야 하는 방식은 그 목적과 맞지 않는다. 아래 사실만
   알고 두는 것이다.
 
-  실제로 열려 있는 것은 읽기만이 아니다(SC01 기준). **`X-Demo-Actor` 헤더로 아무 역할이나 될 수
-  있고**, 데모 실행을 횟수 제한 없이 만들 수 있으며(행이 쌓인다), id를 알면 남의 실행을 초기화할 수
-  있다(id는 무작위 8자리 hex). Agent를 `llm` 모드로 켜면 비용 위험이 다시 생긴다 — 계산마다 모델을 한 번
-  (실패 시 두 번) 부르고, 영업담당·팀장 역할이면 "다시 생성"으로 횟수 제한 없이 부를 수 있다. 운영 기본은 `mock`이다.
+  **이 판(2026-11-03 4단계)부터 NowView 웹으로 열린 것은 회사 목록·대시보드 읽기뿐이다** — BFF가 장면 경로(404)·쓰기(405)·
+  행위자 헤더를 막는다. 업무 조작(결재·시연 조작)은 회사 사이트로 갔으니 남용 걱정도 그쪽(`company1.nowview.work`, 5단계의 사이트
+  비밀번호)으로 옮겨 갔다. **운영계에 떠 있는 판(10-28)은 아직 예전이다** — `X-Demo-Actor`로 아무 역할이나 되고 데모 실행을
+  만들고 초기화할 수 있다. Agent를 `llm` 모드로 켜면 비용 위험이 생긴다(운영 기본은 `mock`).
 
   **시스템 작업(서비스 태스크의 업무 기록)은 웹에 경로가 없다**(2026-10-31, 4.3) — 엔진의 C15 일꾼이 Center에서
-  가져간다. 바깥에서 HTTP로 업무를 적는 길이 닫혔다. 화면이 쓰는 업무 조작(행위자 헤더)은 여전히 열려 있다.
+  가져간다.
 
   **막을 자리를 짚을 때 층을 틀리기 쉽다.** 엔진(8077)은 **이미 127.0.0.1 전용이고**
   외부에서 연결 거부다 — 그래서 *엔진에* API key를 걸어도 BFF↔엔진 사이만 인증되고
@@ -1978,8 +1757,8 @@ scripts/deploy.sh --logs engine 80
   않는다. 막을 자리는 **BFF 앞**(Cloudflare Access · WAF 레이트 리밋)이거나 **BFF 안**
   (라우트 핸들러 검사)이다.
 
-  비용·남용만 겨냥하려면 링크 공유를 잃지 않는 쪽이 싸다 — `POST /api/engine/sc01/demo-runs`에
-  WAF 레이트 리밋(무료 플랜 규칙 1개).
+  비용·남용만 겨냥하려면 링크 공유를 잃지 않는 쪽이 싸다 — WAF 레이트 리밋(무료 플랜 규칙 1개). 4단계 판을 올리면 NowView
+  쪽에는 걸 쓰기 경로가 없다.
   검색 색인은 별개다: `robots.txt`에 `Disallow`가 없다(Cloudflare가 넣는 것은
   content-signal 주석뿐이다).
 

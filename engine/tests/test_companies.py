@@ -229,34 +229,3 @@ def test_scenario_copies_match_company1() -> None:
         )
 
 
-class _Scene:
-    """장면 하나 — 저장소에 데모 실행 문서가 있거나 없다."""
-
-    def __init__(self, docs: dict[str, dict]) -> None:
-        self.store = self
-        self.docs = docs
-
-    def load(self, demo_run_id: str):
-        doc = self.docs.get(demo_run_id)
-        return (doc, 1) if doc is not None else None
-
-
-def test_works_show_each_scene_state_and_none_for_not_started(settings: Settings) -> None:
-    """회사 운영 현황 — 업무마다 BPM 상태·가상시각, 문서가 없으면 404가 아니라 `none`(시작 전)."""
-    done = {"bpm": {"state": "done"}, "clock": "2027-06-16T11:45:00+09:00"}
-    running = {"bpm": {"state": "running"}, "clock": "2027-06-20T10:00:00+09:00"}
-    scenes = {1: _Scene({"demo-1": done}), 2: _Scene({"demo-1": running})}
-    scenes |= {n: _Scene({}) for n in (3, 4, 5, 6, 7)}
-    app = FastAPI()
-    app.include_router(
-        build_router(settings, _Worker(), _Center(), _Poller(), {"company1": _System()}, scenes)
-    )
-    client = TestClient(app)
-    rows = client.get("/companies/company1/works", params={"demoRunId": "demo-1"}).json()
-    assert rows[:3] == [
-        {"scene": 1, "state": "done", "clock": "2027-06-16T11:45:00+09:00"},
-        {"scene": 2, "state": "running", "clock": "2027-06-20T10:00:00+09:00"},
-        {"scene": 3, "state": "none", "clock": None},
-    ]
-    assert len(rows) == 7
-    assert client.get("/companies/nope/works", params={"demoRunId": "demo-1"}).status_code == 404

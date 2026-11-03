@@ -8,7 +8,6 @@ v0.3의 장면 3 시트(기본 시연 종료 시점의 완성 레코드)와 대�
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
@@ -29,7 +28,7 @@ from app.sc03 import demo, domain
 from app.sc03.api import build_router
 from app.sc03.process import PROCESS_PATH, Sc03Process
 from app.sc03.seed import kst, load_seed
-from app.sc03.view import topology, view
+from app.sc03.view import view
 from app.store import build_postgres_backend
 
 TABLES = "sc01_demo_run, sc01_history, sc02_demo_run, sc02_history, sc03_demo_run, sc03_history"
@@ -630,17 +629,6 @@ def test_http_errors_and_shapes(proc: Sc03Process) -> None:
         "Accept_AT31",
         "Complete_Scene",
     }
-
-
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc03Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc03-process.json`) = BPMN. BPMN을 고치면 실패한다
-    — 다시
-    만든다: `curl -s localhost:8077/sc03/process | python3 -m json.tool --indent 1`
-    `> tests/fixtures/sc03-process.json`
-    """
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc03-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
 
 # ─────────────────────── 화면 직접 진행의 단계 추적(2026-10-28) ───────────────────────

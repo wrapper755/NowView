@@ -8,10 +8,8 @@ SC06 적재 · 확인 절차(BPM) · 조회 서비스 — 장면 5 인계에서 
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
 from chaeksas.contracts.bpmn_ext import read_process
@@ -33,7 +31,6 @@ from app.sc06 import confirm, demo, domain
 from app.sc06.api import build_router
 from app.sc06.process import PROCESS_PATH, Sc06Process
 from app.sc06.seed import kst, load_seed
-from app.sc06.view import topology
 from app.store import build_postgres_backend
 
 PREFIXES = ("sc01", "sc02", "sc03", "sc04", "sc05", "sc06")
@@ -562,16 +559,6 @@ def test_http_procedure_routes(client: TestClient) -> None:
         "D606",
         "D607",
     ]
-
-
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc06Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc06-process.json`) = BPMN. BPMN을 고치면 실패한다 —
-    다시 만든다: `curl -s localhost:8077/sc06/process | python3 -m json.tool --indent 1 >
-    tests/fixtures/sc06-process.json`
-    """
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc06-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
 
 def test_the_expected_effect_basis_is_the_company_official_forecast(proc: Sc06Process) -> None:

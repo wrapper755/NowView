@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # BPMN 사본을 Company1에서 가져온다 — 업무 흐름(BPMN)의 원본은 Company1 리포의 `bpm/`이다(가상 자동차 부품사가
-# 자기 업무를 정의한다). NowView 엔진은 사본을 둔다: 내장 실행기 시험, BPM 흐름 화면의 토폴로지, 장면 3·5의 사전
-# 검사가 그림을 읽는다. 사본이 원본과 다르면 엔진 시험(`test_bpmn_copies_match_company1`)이 알린다.
+# 자기 업무를 정의한다). NowView 엔진은 사본을 둔다: 내장 실행기 시험과 장면 3·5의 사전 검사가 그림을 읽는다.
+# 사본이 원본과 다르면 엔진 시험(`test_bpmn_copies_match_company1`)이 알린다.
 #
 #   scripts/sync-bpm.sh            # ../Company1 에서
 #   COMPANY1_DIR=/path scripts/sync-bpm.sh
@@ -22,7 +22,7 @@ for bpmn in "$SRC"/*/process/*.bpmn; do
   fi
 done
 if [[ $changed == 1 ]]; then
-  echo "그림이 바뀌었다 — 엔진 시험을 돌리고, 실패가 알려 주는 명령으로 tests/fixtures/sc0N-process.json을 다시 만든다."
+  echo "그림이 바뀌었다 — 엔진 시험을 돌린다."
 else
   echo "사본이 원본과 같다."
 fi

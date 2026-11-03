@@ -17,10 +17,8 @@ SC07확인이력·SC07적용 시트와 같은지, 결재 규칙(담당 403 · �
 from __future__ import annotations
 
 import copy
-import json
 import sqlite3
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
 from chaeksas.contracts.bpmn_ext import read_process
@@ -42,7 +40,6 @@ from app.sc06.process import Sc06Process
 from app.sc07 import confirm, demo, domain
 from app.sc07.api import build_router
 from app.sc07.process import PROCESS_PATH, Sc07Process
-from app.sc07.view import topology
 from app.store import build_postgres_backend
 
 PREFIXES = ("sc01", "sc02", "sc03", "sc04", "sc05", "sc06", "sc07")
@@ -493,12 +490,3 @@ def test_http_procedure_routes(client: TestClient, rid: str) -> None:
     assert {n["recordOf"] for n in topo["nodes"] if n["recordOf"]} == set(confirm.NODE_ROLES)
 
 
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc07Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc07-process.json`) = BPMN. BPMN을 고치면 실패한다 —
-    다시
-    만든다: `curl -s localhost:8077/sc07/process | python3 -m json.tool --indent 1 >
-    tests/fixtures/sc07-process.json`
-    """
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc07-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)

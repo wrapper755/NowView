@@ -24,10 +24,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import ValidationError
 
 from .config import ConfigStore, NowViewConfig
+from .sc01.domain import DomainError
 
 #: NowView가 아는 업무(장면) — 코드에 화면·처리기가 있다. 화면 쪽 사본은 `lib/companies.ts`의
 #: `SCENES` (시험이 대조).
@@ -114,27 +115,72 @@ def build_router(
     def companies() -> list[dict[str, Any]]:
         return public_companies(settings.config)
 
-    @router.get("/companies/{company_id}/works")
-    def works(company_id: str, demo_run_id: str = Query(alias="demoRunId")) -> list[dict[str, Any]]:
+    @router.get("/companies/{company_id}/dashboard")
+    def dashboard(company_id: str, world: str | None = None) -> dict[str, Any]:
         """
-        회사 운영 현황 — 그 회사 업무마다 이 데모 실행의 지금 상태(BPM 상태·가상시각). 장면 문서가
-        없으면 `none`(시작 전)이다. 화면이 장면마다 문서를 읽으면 시작 전 업무가 404로 콘솔을 메웠다
-        (2026-11-01) — 한 번에 묻고 없는 것은 상태로 돌려준다.
+        회사 대시보드 — 세계(시연 회차) 목록과, 고른 세계의 업무마다 BPM 진행·일꾼 일감·핵심 지표
+        (`app/dashboard.py`). 세계는 회사 시스템의 것 중 이 엔진이 따라가는 것(장면 1 문서가 있다)만
+        보이고, 사이트가 만든 세계(`origin: site`)를 최근에 만들거나 초기화한 순서로 앞에 둔다 —
+        회사 시스템은 세계를 id 순서로 준다. `world`가 없으면 맨 앞 세계다. 회사 시스템에 닿지
+        않으면 세계 없이 사유를 싣는다.
         """
+        from app import dashboard as board  # dashboard가 SCENE_WORKS를 읽는다 — 순환을 피한다
+
         public = next((c for c in public_companies(settings.config) if c["id"] == company_id), None)
         if public is None:
             raise HTTPException(404, f"없는 회사: {company_id}")
-        rows = []
+        procs = scenes or {}
+        system = systems.get(company_id)
+        problem: str | None = None
+        worlds: list[dict[str, Any]] = []
+        try:
+            listed = system.worlds() if system is not None else []
+        except DomainError as exc:
+            listed, problem = [], str(exc)
+        followed = [
+            w
+            for w in listed
+            if procs.get(1) is not None and procs[1].store.load(w["world_id"]) is not None
+        ]
+        followed.sort(key=lambda w: w.get("reset_at") or "", reverse=True)
+        followed.sort(key=lambda w: w.get("origin") != "site")
+        for w in followed:
+            worlds.append(
+                {
+                    "worldId": w["world_id"],
+                    "origin": w.get("origin"),
+                    "caseId": w.get("case_id"),
+                    "generation": w.get("generation"),
+                    "clock": w.get("clock"),
+                }
+            )
+        known = {w["worldId"] for w in worlds}
+        chosen = world if world in known else (worlds[0]["worldId"] if worlds else None)
+        if world is not None and world not in known:
+            problem = problem or f"따라가는 세계가 아니다: {world} — 맨 앞 세계를 보인다"
+        log_rows: list[dict[str, Any]] = []
+        if chosen is not None and system is not None:
+            try:
+                log_rows = system.worker_log_entries(chosen)
+            except DomainError as exc:
+                problem = problem or str(exc)
+        works = []
         for no in public["scenes"]:
-            proc = (scenes or {}).get(no)
-            found = proc.store.load(demo_run_id) if proc is not None else None
-            if found is None:
-                rows.append({"scene": no, "state": "none", "clock": None})
-                continue
-            doc = found[0]
-            state = (doc.get("bpm") or {}).get("state") or "not_started"
-            rows.append({"scene": no, "state": state, "clock": doc.get("clock")})
-        return rows
+            proc = procs.get(no)
+            found = proc.store.load(chosen) if proc is not None and chosen is not None else None
+            works.append(
+                {
+                    **board.work(no, proc, found[0] if found else None),
+                    "worker": board.worker_entries(log_rows, no),
+                }
+            )
+        return {
+            "company": {k: public[k] for k in ("id", "name", "description", "siteUrl")},
+            "worlds": worlds,
+            "world": chosen,
+            "problem": problem,
+            "works": works,
+        }
 
     @router.get("/admin/status", dependencies=[Depends(admin)])
     def status() -> dict[str, Any]:

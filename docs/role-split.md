@@ -30,21 +30,21 @@ NowView를 부르지 않는다.** 업무 화면에 필요한 것은 전부 회�
 | 무엇 | 지금 | 정리 후 원본 | 단계 |
 |---|---|---|---|
 | 결재 답 | NowView 장면 화면 7벌 `ActionForm`·플레이어 대리 답 / 회사 사이트 결재 화면 / Center 콘솔 | 회사 사이트(콘솔은 관리용) | 2 |
-| 업무 판단 화면 | NowView 장면 화면 48개(약 1만 7천 줄) | 회사 사이트 | 1·3 |
+| 업무 판단 화면 | NowView 장면 화면 48개(약 1만 7천 줄) | 회사 사이트(NowView 화면은 4단계에 걷었다) | 1·3·4 |
 | 경영 기록 | NowView 엔진 문서(`sc0N_demo_run`)에만 | 회사 시스템 | 1·3 |
 | 「내 업무」 | NowView 업무(열림·인수·기한·알림) / Center 열린 결재 | 회사 시스템의 업무 기록(일꾼이 적는다). 결재함은 Center | 1 |
 | 각본(예시 값) | NowView `demo.py` 원본 / Company1 `scenarios/*.json` 손 사본 | Company1 `scenarios/`(자동 모드가 쓴다). NowView 시험은 사본으로 읽는다 | 2 |
 | 직원 명단 | NowView `domain.USERS`·`ACCOUNTS` / 기간계 `org.json` | 기간계(`GET /company/org/users`) | 2 |
 | 진행 조작 | NowView 데모 플레이어(각본·시계·초기화·수신) | 회사 사이트 시연 조작 + 자동 모드 | 2 |
 | 세계 시각 | NowView가 쥐고 기간계에 맞춘다 | 기간계가 쥐고 NowView가 읽는다 | 2 |
-| 업무 설명 | NowView 해설 모드·업무 사이드바 / Company1 `/scenario` | Company1 `/scenario` | 4 |
-| BPM 흐름 보기 | NowView 장면별 캔버스 / Center 콘솔 | NowView 대시보드(회사·업무별 진행)만. 실행 상세는 콘솔 | 4 |
+| 업무 설명 | NowView 해설 모드·업무 사이드바 / Company1 `/scenario` | Company1 `/scenario`(NowView 쪽은 4단계에 걷었다) | 4 |
+| BPM 흐름 보기 | NowView 장면별 캔버스 / Center 콘솔 | NowView 대시보드(회사·업무별 진행 — 지나온 결재 수·열린 결재)만. 실행 상세는 콘솔 | 4 |
 | BPMN | Company1 원본 → NowView `sync-bpm.sh` 사본 | 그대로(정리 끝) | — |
-| 시드 엑셀 | NowView `engine/seed/` / Company1 `legacy/seed/` 사본 | 회사 자료 = 기간계. NowView는 규칙(R01)·시험 대조용 사본 | 4 |
+| 시드 엑셀 | NowView `engine/seed/` / Company1 `legacy/seed/` 사본 | 회사 자료 = 기간계. NowView는 규칙(R01)·시험 대조용 사본 | 4(남김 — 아래) |
 
 **의도적으로 남기는 중복**: NowView 엔진 문서는 일꾼의 **작업 상태**(BPM 진행·멱등·계산 입력)로 남는다. 경영 기록은 저장 직전에
 회사에 적고 회사가 받지 못하면 그 조작을 저장하지 않으므로(지금 `_company_writes` → `_commit`과 같은 길) 둘이 갈라지지 않는다. 화면용
-칸은 NowView 화면을 걷을 때(4단계) 줄인다.
+칸은 NowView 화면을 걷을 때(4단계) 줄이려 했지만 남겼다 — 경영 기록 본문이 그 칸(`view.view`)으로 지어진다(4단계 결과).
 
 ## 3. 경영 기록 계약 (회사 시스템 — 1단계에서 만든다)
 
@@ -142,8 +142,33 @@ POST /worlds/{w}/records/reset {scene}           (시연) 그 장면 기록만 �
    남은 것: 장면 3을 사이트 직접 답과 섞어 돌리지 않았다, 사이트는 지난 판(되감기)을 그리지 않는다, X·E 사례는 엔진 시험의 스키마
    검사만이다(장면 2 X01만 스키마 뽑기에 넣었다), 개발 중 엔진·site-api의 `--reload`가 진행 중인 기록 작업을 끊는다(실측 — 「기한 안에
    끝내지 않았다」로 자동 모드가 멈췄고 「다시 진행」으로 이었다).
-4. **NowView 정리** — 장면 화면을 걷고 대시보드(회사·업무별 BPM 진행·일감·핵심 지표)와 관리자만 남긴다. 해설·업무 설명은 회사 사이트로,
-   엔진 문서의 화면용 칸을 줄인다.
+4. **NowView 정리 — 끝**(2026-11-03). NowView 웹에는 회사 목록(`/`)·**회사 대시보드**(`/c/{회사}`)·관리자(`/admin`)만 남았다.
+   * **걷은 것**(웹, 파일 173개 · 약 2만 7천 줄 — 토폴로지 사본 약 7천 줄 포함): 장면 화면 48개(`app/c/[company]/sc01`~`sc07`, `components/sc01`~`sc07`, `lib/sc01`~`sc07`),
+     장면 스토어(`lib/store/*`), 회사 화면 틀(`app/c/[company]/layout.tsx` — 업무 사이드바·화면 메뉴·섹션 탭·역할 선택·해설 토글·세션 동기화),
+     공용 조각(`scenario-nav`·`section-nav`·`commentary*`·`disclosure`·`company-site-note`·`company-link`·`lib/company-nav.ts`), BPM 캔버스
+     (`components/flow`), 장면별 TS 시험 7개와 토폴로지 사본(`tests/fixtures/*`), 엔진의 「TS 토폴로지 사본 = BPMN」 시험 7개, 의존성
+     `@xyflow/react`·`recharts`·`zustand`, 섹션 탭·사이드바·React Flow용 CSS, 엔진 `GET /companies/{회사}/works`(대시보드로 바꿨다).
+   * **대시보드**(`components/companies/company-list.tsx` · `lib/dashboard.ts` ← 엔진 `GET /companies/{회사}/dashboard?world=`,
+     `app/dashboard.py`): 시연 회차(엔진이 따라가는 세계 — 사이트가 만든 것을 최근 초기화 순으로 앞에) 선택, 업무마다 BPM 상태·가상시각·
+     「지나온 결재 n / 그림의 결재 m」·열린 결재·핵심 지표·일꾼 일감(기간계 `worker-log`의 그 장면 줄 — 건수·실패·최근 5건)·회사 사이트
+     `{site_url}/work/{회차}/sc0N` 링크. **지표는 회사에 적는 경영 기록(`records_of`)에서 고르기만 한다** — 사이트와 같은 숫자다. 기본
+     시연 끝의 지표가 통합가상데이터와 같은 것을 `engine/tests/test_dashboard.py`가 잠근다(장면 1 33.09억·−1.68억·−1,400만 … 장면 7
+     「운영 설정 반영 확인」). 10초 폴링(SSE를 쓰지 않는다).
+   * **BFF**는 `companies`·`companies/{회사}/dashboard`의 GET만 중계한다 — 장면 경로는 404, 쓰기는 405.
+   * **남긴 것**(걷어도 되는지 불분명하거나 다른 데가 쓴다):
+     * 엔진의 장면 읽기 경로(`/scN/demo-runs/{id}`·history·`events` SSE·`dashboard?seq`·`process`·`rules`·조회 넷) — 엔진 시험이 쓰고, 3단계
+       대조(기록 본문 = 화면 응답)의 기준이다. BFF가 중계하지 않으니 바깥에서는 닿지 않는다.
+     * **엔진 문서·view의 「화면용」 칸**(`view.view`의 `waiting[].fields` 기본값 `_defaults`·`answerHere`·`center.inflight`·`scriptIndex` …) —
+       경영 기록 본문이 `view.view`로 지어지고(`app/sc0N/records.py`), 결재 폼 기본값은 시험이 잠근다(「폼 기본값」). 칸을 빼면 기록
+       스키마가 바뀐다 — 사이트와 같이 정해야 할 일이라 손대지 않았다.
+     * `--viz-*` 팔레트·`scripts/validate_palette.js` — 지금 차트는 없지만 대시보드에 다시 둘 때 쓴다.
+     * 시드 엑셀 — 규칙(R01)과 시험 대조가 쓴다.
+   * **확인**: `npm run lint`·`npm run test`(4개)·`npm run build`, 엔진 `uv run pytest`(Postgres 포함 869개 통과)·`ruff`. SQLite만 돌린
+     첫 실행에서 `test_sc06_external`의 타이밍 시험 하나(0.3초 지연 vs 0.5초 대기)가 한 번 졌다 — 다시 돌리면 통과하고 HEAD 사본에서도 같다. 브라우저로 회사 목록 →
+     대시보드(`demo-db9e1a3e` — 장면 1→7을 사이트로 돈 회차의 지표·일감 전부, 375px 문서 폭) → 「회사 사이트에서 보기」(`:3100/work/
+     demo-db9e1a3e/sc03`, 같은 숫자 3,299.99·177.30백만원)를 봤다. 옛 주소 `/c/company1/sc01`·`/api/engine/sc01/…`는 404다.
+   * 남은 것: 대시보드에 회차의 지난 시점 보기가 없다(사이트도 없다), 예전(엔진이 만든) 세계가 회차 목록에 함께 보인다 — 정리하려면
+     기간계에서 지운다.
 5. **운영** — `company1.nowview.work` 배포(사이트 비밀번호 하나), 운영 Center 연결(CLAUDE.md 5.4).
 
 각 단계 끝에 로컬 Center로 그 장면을 끝까지 돌려(회사 사이트 답과 자동 모드를 섞어) 기록·시각이 지금 NowView 실행과 같은지 대조한다.
@@ -223,8 +248,8 @@ GET  /worlds/{w}/worker-log?after=   (사이트 자동 모드) — 답한 결재
 
 ### 5.5 NowView에 남는 것
 
-* 화면은 읽기 전용이다 — 결재 폼·시작 카드·플레이어를 걷고, 보는 사람(역할 선택)은 남긴다(장면 6·7 조회 권한 403 때문). BFF는 GET·SSE만
-  중계한다.
+* 화면은 읽기 전용이다 — 결재 폼·시작 카드·플레이어를 걷었다. 4단계에 장면 화면·역할 선택도 걷어 회사 목록·대시보드·관리자만
+  남았다. BFF는 `companies` 계열 GET만 중계한다.
 * 엔진의 쓰기 HTTP 경로(`actions`·`script`·`clock`·`reset`·`receive`·…)와 각본 실행기·대리 답(`_relay`)·장면 시작 준비(앞 장면 각본 실행)는
   **시험 전용**이다 — `NOWVIEW_TEST_INPUTS=1`일 때만 경로를 연다(엔진 시험이 켠다). 운영·로컬 기동에는 없다.
 * 각본은 `engine/scenarios/sc0N.json`(Company1 사본, `scripts/sync-scenarios.sh`)을 읽어 기본(BASE) 단계를 만든다. 시험 사례(EX·X·E…)는

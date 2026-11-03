@@ -34,11 +34,6 @@ export type PublicCompany = {
   siteUrl?: string | null;
 };
 
-/** 회사 안의 화면 경로 — 장면 화면은 `/sc01/…`처럼 회사를 빼고 적고, 실제 주소는 `/c/{회사}/sc01/…`다. */
-export function companyPath(companyId: string, scenePath: string): string {
-  return `/c/${companyId}${scenePath === "/" ? "" : scenePath}`;
-}
-
 type CompaniesState = { companies: PublicCompany[] | null; error: string | null };
 
 let cache: Promise<PublicCompany[]> | null = null;

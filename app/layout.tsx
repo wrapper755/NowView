@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * 뼈대만 둔다 — 공통 줄(`TopBar`)은 화면마다 다르다: 회사 목록·일꾼 화면은 로고·테마뿐이고, 회사 화면(`/c/{회사}`)은 회사
- * 이름·역할 전환·해설을 더하고 업무 사이드바를 둔다(`app/c/[company]/layout.tsx`).
+ * 뼈대만 둔다 — 공통 줄(`TopBar`)은 화면이 둔다: 회사 목록·관리자는 로고·테마뿐이고, 회사 대시보드(`/c/{회사}`)는 회사 이름을
+ * 더한다.
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

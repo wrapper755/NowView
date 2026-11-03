@@ -10,7 +10,6 @@ SC04 업무 흐름 — Chaeksas BPM 위에서 기본 시연(D401~D413)과 예외
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
@@ -31,7 +30,7 @@ from app.sc04 import demo, domain
 from app.sc04.api import build_router
 from app.sc04.process import PROCESS_PATH, Sc04Process
 from app.sc04.seed import kst, load_seed
-from app.sc04.view import topology, view
+from app.sc04.view import view
 from app.store import build_postgres_backend
 
 PREFIXES = ("sc01", "sc02", "sc03", "sc04")
@@ -789,17 +788,6 @@ def test_http_errors_and_shapes(proc: Sc04Process) -> None:
     }
     shown = view(proc.get(rid))
     assert shown["scene"] == "SC04" and shown["reportId"] is None
-
-
-def test_ts_topology_fixture_is_the_bpmn(proc: Sc04Process) -> None:
-    """
-    화면 테스트의 토폴로지 사본(`tests/fixtures/sc04-process.json`) = BPMN. BPMN을 고치면 실패한다
-    — 다시
-    만든다: `curl -s localhost:8077/sc04/process | python3 -m json.tool --indent 1`
-    `> tests/fixtures/sc04-process.json`
-    """
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc04-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == topology(proc.process)
 
 
 # ─────────────────────── 바깥 답(회사 사이트·화면)의 단계 추적 ───────────────────────

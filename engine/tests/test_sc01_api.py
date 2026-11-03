@@ -242,21 +242,6 @@ def test_rules_come_from_the_seed(client) -> None:
     assert rules["감소율_중요"] == "0.05" and rules["감소액_관심"] == "5000000"
 
 
-def test_ts_fixture_matches_the_bpmn(client) -> None:
-    """
-    TS 테스트(`tests/sc01.test.ts`)가 쓰는 토폴로지 사본이 BPMN과 같은지 본다.
-
-    BPMN을 고치면 여기서 실패한다 — 저장소 루트에서 사본을 다시 만든다:
-    `curl -s localhost:8077/sc01/process | python3 -m json.tool --indent 1`
-    `> tests/fixtures/sc01-process.json`
-    """
-    import json
-    from pathlib import Path
-
-    fixture = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "sc01-process.json"
-    assert json.loads(fixture.read_text(encoding="utf-8")) == client.get("/sc01/process").json()
-
-
 # ───────────── 시스템 작업 — 바깥 BPM의 일감을 C15 일꾼이 가져와 부르는 길 ─────────────
 
 
