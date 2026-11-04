@@ -169,7 +169,14 @@ POST /worlds/{w}/records/reset {scene}           (시연) 그 장면 기록만 �
      demo-db9e1a3e/sc03`, 같은 숫자 3,299.99·177.30백만원)를 봤다. 옛 주소 `/c/company1/sc01`·`/api/engine/sc01/…`는 404다.
    * 남은 것: 대시보드에 회차의 지난 시점 보기가 없다(사이트도 없다), 예전(엔진이 만든) 세계가 회차 목록에 함께 보인다 — 정리하려면
      기간계에서 지운다.
-5. **운영** — `company1.nowview.work` 배포(사이트 비밀번호 하나), 운영 Center 연결(CLAUDE.md 5.4).
+5. **운영** — 끝(2026-11-04, CLAUDE.md 5.4). 한 서버(`hetzner-server`)에 BPM(`bpm.nowview.work`·`console.nowview.work`, docker compose) →
+   NowView(`www.nowview.work`) → Company1(`company1.nowview.work`, systemd 셋 — 기간계 8191·사이트 API 8190·웹 3200) 순서로 올렸다.
+   * **사이트 비밀번호 하나**를 Company1 웹에 새로 넣었다(`web/proxy.ts`·`/login` — 쿠키 값은 비밀번호의 HMAC, `SITE_PASSWORD`가 없으면 열림).
+   * 키는 모두 설치가 짓고 Center 일꾼 폴더에 해시만 둔다 — NowView 셋(일꾼·연동용·대리 답용) + 사이트의 대리 답용 하나. Company1 배포는
+     NowView 틀 그대로다(`scripts/deploy.sh`·`deploy/bootstrap.sh`, 비밀은 `/etc/company1.env`).
+   * 운영 DB(10-28 판의 데모 실행 49건)를 비웠다. 엔진이 회사 주소 없이 처음 떠 저장한 설정이 env를 덮어 따라가기가 안 떴다 — 관리 API로 고쳤다.
+   * **확인**: 회차 `demo-f478fd07`을 장면 1~7 자동으로 끝까지(약 38분). 일꾼 일감 135건 실패 0, 대시보드 지표가 4.6 기대값과 같다(F02 33.09억 …
+     Q4 91.8 → 87.0 · 「운영 설정 반영 확인」), 사이트 업무 화면 `/work/demo-f478fd07/sc07` 200. 로그인 폼을 브라우저로 지나 보지는 않았다.
 
 각 단계 끝에 로컬 Center로 그 장면을 끝까지 돌려(회사 사이트 답과 자동 모드를 섞어) 기록·시각이 지금 NowView 실행과 같은지 대조한다.
 

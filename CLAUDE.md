@@ -1544,7 +1544,7 @@ engine/processes/sc07.bpmn ──▶ Studio·Center ── external ──▶ ap
 ## 5. 다음 단계와 선행 조건
 
 CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3 — 2026-11-03 걷었다, 4.6), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10), 장면 7(5.11)은 끝났다(장면 1~7 모두
-로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 장면 1~6 코드를 올렸고, 운영 Center 연결이 남았다.
+로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 2026-11-04에 BPM·NowView·Company1 세 서버를 올려 장면 1~7을 끝까지 돌렸다.
 
 ### 5.1 CI — 완료
 
@@ -1638,26 +1638,32 @@ UI01~UI06과 BPM 흐름 화면이 엔진 `/sc01/*`을 쓴다(4.6). 기본 시연
 * **BPMN 15층을 한 줄로 펴면 캔버스에서 글자가 안 읽힌다** — 5열마다 줄을 접는다.
 * **dev의 StrictMode가 데모 실행을 둘 만들었다** — 생성 요청을 공유한다(4.2).
 
-### 5.4 운영계 배포 — 장면 1~6 코드 반영 · Center 연결 전
+### 5.4 운영계 배포 — 세 서버 운영 중 (2026-11-04)
 
-> **2026-10-28 운영계(`www.nowview.work`)에 main(`8d089dd` + deploy.sh 제외 목록)을 올렸다** — 장면 1~6 화면·API가
-> 외부 주소에서 200이다. 그 전에는 장면 1만 있는 예전 판(내장 BPM)이 떠 있었다(이 절이 「가동률·LangGraph」라고 적고
-> 있었지만 실제로는 이미 SC01 판이었다 — 배포 전에 `/health`로 본다).
-> * **Center에 아직 잇지 않았다** — `/health.center.url`이 null이라 데모 실행(기본 Center)의 화면 진행·각본은 503이다.
->   같은 서버에 운영 Chaeksas Center(127.0.0.1:8800)·서버 실행기 컨테이너가 있다. 사람이 할 것: CON-07 확장 정의
->   `nowview-sc01`~`sc06` 서명·등록(외부 앱 키 = `NOWVIEW_SYSTEM_KEY`, 시험용 키 = `NOWVIEW_SYSTEM_KEY_TEST`, 서버 주소는
->   기본값 그대로) → Studio 패키지 6개(SC01~06) 승인·배포 → CON-11 연동용·대리 답용
->   키 → `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`
->   → `systemctl restart nowview-engine`.
-> * 시스템 작업 키 두 개는 `deploy.sh --bootstrap`이 서버에서 지었다 — **2026-10-31 Pull 전환(4.3) 뒤로는 읽는 곳이 없다.**
+> **2026-11-04 세 서버 역할 분담 5단계로 운영에 올렸다** — 한 서버(`hetzner-server`)에 셋이다. 순서는 BPM → NowView → Company1이다
+> (`docs/chaeksas-integration.md` §7이 절차다).
 >
-> **2026-10-31 Chaeksas가 바깥 호출을 Pull로 바꿨다(ADR-0102, C15) — NowView는 엔진이 C15 일꾼이 됐다**(4.3). 이 판을
-> 올리기 전에 운영 Chaeksas(Center·서버 실행기)도 C15 판(`554d7fa` 이후)이어야 한다 — 옛 Center는 일감을 쌓지 않고
-> 어댑터로 `/operations/…`를 부르는데 그 경로가 없어졌다. 사람이 할 것은 `docs/chaeksas-integration.md` §7이다 — 확장
-> 일꾼은 Center 일꾼 폴더의 파일로 들이고 확장 정의는 일꾼이 올린다(ADR-0121, 콘솔 등록·승인 없음), 패키지·연동용·대리 답용
-> 키는 콘솔에서 한다.
-> * **DB는 비우지 않았다** — 예전 데모 실행 33건·LangGraph 테이블(`checkpoint*`, `instance_spec`)이 남아 있다. 옛 문서는
->   읽을 때 채우고(`domain.upgrade`) 새 데모 실행과 무관하다. 비우는 명령은 자동 권한 검사가 막았다 — 비우려면 사람이 한다.
+> | 무엇 | 자리 | 바깥 주소 |
+> |---|---|---|
+> | BPM Center·콘솔·서버 실행기 (docker compose — BPM 리포 `server/deploy/`, 옛 이름 Chaeksas) | 127.0.0.1:8800 · 8501 | `https://bpm.nowview.work` · `https://console.nowview.work` |
+> | NowView 웹·엔진 (systemd, main `053cfb9`) | 127.0.0.1:3100 · 8077 | `https://www.nowview.work` |
+> | Company1 기간계·사이트 API·웹 (systemd, Company1 `scripts/deploy.sh`) | 127.0.0.1:8191 · 8190 · 3200 | `https://company1.nowview.work` (사이트 비밀번호 하나) |
+>
+> * **키는 셋 다 설치가 지었다** — `app.worker_file`이 서버에서 일꾼·연동용·대리 답용 키를 짓고 해시를 Center 일꾼 폴더
+>   (`/root/Workspace/BPM/server/deploy/consumers`)에 썼다. 원문은 서버 `engine/.consumer/keys.json`뿐이다. 사이트도 제 대리 답 키를 따로 쓴다
+>   (`company1-site-relay.key.json`, 원문은 `/etc/company1.env`). `/etc/nowview.env`의 옛 키 줄(`CHAEKSAS_INTEGRATION_KEY`·`RELAY_KEY`·
+>   `INTAKE_WORKER`·`NOWVIEW_SYSTEM_KEY*`)은 주석으로 걷었다 — 환경 변수가 보관 파일을 이겨서 남기면 옛 키로 불렀다.
+> * **저장된 설정이 env를 이긴다** — 엔진이 회사 주소 없이 처음 뜨며 기본 설정을 `nowview_config`에 적었고, 그 `system_url: null`이 나중에 넣은
+>   `COMPANY_COMPANY1_URL`을 덮어 세계 따라가기가 뜨지 않았다(`/health.follower.running: false`). 관리 API로 고치고 엔진을 다시 띄웠다(따라가기는
+>   뜰 때만 시작한다).
+> * **운영 DB를 비웠다**(사용자 결정) — 10-28 판의 데모 실행 49건 중 하나가 「진행 중」으로 남아 새 Center에 없는 실행을 2초마다 읽었다. 비우기 전
+>   덤프는 서버 `/root/backup/nowview-db-20261104*.sql.gz`(0600)다. 엔진이 테이블을 다시 만든다.
+> * **운영에서 장면 1→7을 자동 모드로 끝까지 돌렸다**(회차 `demo-f478fd07`, 22:03 → 22:41 약 38분 — site-api로 회차를 만들고 직원 전부 켜기 ·
+>   장면 1~7 자동). 일꾼 일감 135건 실패 0, 엔진·사이트 API 오류 로그 0. 대시보드(`www.nowview.work/c/company1`) 지표가 4.6의 기대값과 같다:
+>   F02 33.09억 · 목표 대비 −1.68억 · 사건 −1,400만 / 원가 증가 18,817,440 · 협상 감소 12,544,960 / 통합 3,299,986,680 · 부족 177,303,320 /
+>   개선 효과 127,800,000 · 남는 부족 49,503,320 / 전망 3,428,986,680 · 남는 부족 48,303,320 / Q4 91.8 → 87.0백만원 / 「운영 설정 반영 확인」.
+>   사이트 로그인 화면을 브라우저로 지나 본 것은 아니다(쿠키 값으로 200·없으면 `/login` 307만 확인했다).
+> * 사이트 비밀번호는 데모용 고정값이다(사용자 결정 — 서버 `/etc/company1.env`의 `SITE_PASSWORD`). 계정이 없어 신원 확인이 아니라 남용을 막는 문이다.
 > * **rsync가 `.claude/worktrees`를 올리지 않는다** — 다른 세션의 worktree 사본이 서버에 겹으로 쌓인다. 같은 이유로 로컬
 >   `eslint .`도 그 사본까지 훑어 오류 수천 개를 낸다(`--ignore-pattern '.claude/**'`로 돌린다).
 
@@ -1673,8 +1679,8 @@ scripts/deploy.sh --status
 scripts/deploy.sh --logs engine 80
 ```
 
-* **서버에 docker가 없다.** `docker compose`는 로컬 검증용으로 남고, 운영은 systemd로
-  돈다 — Chaeksa가 이미 그 방식이라 서버에 새 런타임을 들이지 않았다.
+* **NowView는 docker를 쓰지 않는다.** `docker compose`는 로컬 검증용으로 남고, 운영은 systemd로
+  돈다(Company1도 같다). 서버의 docker는 BPM Center 묶음(compose)만 쓴다.
 * **`--delete`로 rsync한다.** 없으면 삭제한 화면·데이터 파일이 서버에 남아 라우트로
   계속 잡힌다. `.git`은 올리지 않는다 — 배포본은 체크아웃이 아니라 산출물이다.
 * **빌드는 서버에서 한다.** 로컬 `.next`를 올리면 절대경로·플랫폼 의존 바이너리가 섞여
@@ -1747,8 +1753,8 @@ scripts/deploy.sh --logs engine 80
 
   **이 판(2026-11-03 4단계)부터 NowView 웹으로 열린 것은 회사 목록·대시보드 읽기뿐이다** — BFF가 장면 경로(404)·쓰기(405)·
   행위자 헤더를 막는다. 업무 조작(결재·시연 조작)은 회사 사이트로 갔으니 남용 걱정도 그쪽(`company1.nowview.work`, 5단계의 사이트
-  비밀번호)으로 옮겨 갔다. **운영계에 떠 있는 판(10-28)은 아직 예전이다** — `X-Demo-Actor`로 아무 역할이나 되고 데모 실행을
-  만들고 초기화할 수 있다. Agent를 `llm` 모드로 켜면 비용 위험이 생긴다(운영 기본은 `mock`).
+  비밀번호)으로 옮겨 갔다 — 운영계도 이 판이다(2026-11-04). 사이트는 비밀번호 하나로 닫혀 있지만 그 비밀번호를 아는 사람은 누구나
+  아무 직원으로 결재하고 회차를 만들고 지울 수 있다. Agent를 `llm` 모드로 켜면 비용 위험이 생긴다(운영 기본은 `mock`).
 
   **시스템 작업(서비스 태스크의 업무 기록)은 웹에 경로가 없다**(2026-10-31, 4.3) — 엔진의 C15 일꾼이 Center에서
   가져간다.
@@ -1760,7 +1766,7 @@ scripts/deploy.sh --logs engine 80
   않는다. 막을 자리는 **BFF 앞**(Cloudflare Access · WAF 레이트 리밋)이거나 **BFF 안**
   (라우트 핸들러 검사)이다.
 
-  비용·남용만 겨냥하려면 링크 공유를 잃지 않는 쪽이 싸다 — WAF 레이트 리밋(무료 플랜 규칙 1개). 4단계 판을 올리면 NowView
+  비용·남용만 겨냥하려면 링크 공유를 잃지 않는 쪽이 싸다 — WAF 레이트 리밋(무료 플랜 규칙 1개). NowView
   쪽에는 걸 쓰기 경로가 없다.
   검색 색인은 별개다: `robots.txt`에 `Disallow`가 없다(Cloudflare가 넣는 것은
   content-signal 주석뿐이다).
@@ -2008,7 +2014,7 @@ Center + 실행기 흉내로 대표 보고까지 잠갔다. 브라우저에서�
   카드)·BPM 흐름(노드 14개 완료)을 확인했다.
 * **새 보고 버전(RPT61-v2) 흐름** — 재적재가 새 산정과 재확인 대상을 알리는 데까지다. 새 보고본 작성·확인은 없다.
 * **Agent LLM 러너** — AG61~63은 고정 기록 재현뿐이다(장면 2~5와 같다).
-* 운영계는 코드만 올렸다 — 운영 Center 연결은 5.4.
+* 운영계(5.4)에서 장면 1→7을 자동 모드로 끝까지 돌렸다(2026-11-04).
 
 ### 5.11 장면 7(SC07) — 완료 (확인·적용 절차 Studio·Center 실행 + U701 조회)
 

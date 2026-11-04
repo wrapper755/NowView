@@ -163,16 +163,31 @@ NowView가 Center에 쓰는 키는 셋이다 — 일꾼(일감 가져가기·끝
 
 ## 7. 운영계에 올릴 때
 
-운영 서버(`www.nowview.work`)에도 같은 서버에 Chaeksas Center(127.0.0.1:8800)와 서버 실행기가 있다.
+2026-11-04에 이 순서로 올렸다(CLAUDE.md 5.4). 운영 서버 `hetzner-server` 한 대에 셋이 있다.
 
-1. 운영 Chaeksas가 C15 판(Pull)이고 일꾼 폴더(ADR-0121)가 있는 판이어야 한다 — 옛 판은 일감을 쌓지 않고 폴더를 읽지 않는다.
-2. `scripts/deploy.sh --bootstrap` — `/etc/nowview.env`에 빠진 관리자 비밀(`NOWVIEW_ADMIN_PASSWORD`·`SECRET`·`KEY`)을 더한다.
-3. 회사 시스템 시뮬레이터를 서버에 올린다 — **아직 배포 스크립트·systemd 유닛이 없다**(남은 일).
-4. `scripts/deploy.sh`로 NowView를 올린다.
-5. 서버에서 3장 1의 명령으로 키를 짓고 운영 Center 폴더에 파일을 쓴 뒤 Center를 다시 띄운다(보관 파일은 서버의
-   `engine/.consumer/` — 배포 rsync가 빼는 자리다. 배포 스크립트에 아직 이 단계가 없다 — 남은 일).
-6. 운영 Center 콘솔에서 3장 2를 한다. `/etc/nowview.env`에 `CHAEKSAS_CENTER_URL`·`COMPANY_COMPANY1_*`를
-   넣고 `systemctl restart nowview-engine`.
+| 무엇 | 자리 | 바깥 주소 |
+|---|---|---|
+| BPM Center·콘솔·서버 실행기 (docker compose, BPM 리포 `server/deploy/`) | 서버 `/root/Workspace/BPM/server/deploy` · 127.0.0.1:8800·8501 | `https://bpm.nowview.work` · `https://console.nowview.work` |
+| NowView 웹·엔진 (systemd) | `/root/Workspace/NowView` · 127.0.0.1:3100·8077 | `https://www.nowview.work` |
+| Company1 기간계·사이트 API·웹 (systemd) | `/root/Workspace/Company1` · 127.0.0.1:8191·8190·3200 | `https://company1.nowview.work` (사이트 비밀번호 하나) |
+
+1. **BPM을 먼저 올린다** — 일꾼 폴더(ADR-0122)와 폴더 키(`*.key.json`, ADR-0123)가 있는 판이어야 한다. 일꾼 폴더는 compose 옆의
+   `server/deploy/consumers/`이다(컨테이너 `/consumers`, 읽기 전용).
+2. `scripts/deploy.sh --bootstrap` — `/etc/nowview.env`에 빠진 관리자 비밀(`NOWVIEW_ADMIN_*`)을 더하고 빌드·재시작한다.
+   **옛 판의 키 줄(`CHAEKSAS_INTEGRATION_KEY`·`CHAEKSAS_RELAY_KEY`·`NOWVIEW_SYSTEM_KEY*`·`CHAEKSAS_INTAKE_WORKER`)은 지운다** — 환경 변수가
+   보관 파일을 이겨서, 남겨 두면 옛 Center의 키로 부른다.
+3. 서버에서 키를 짓고 폴더에 해시 파일을 쓴다:
+   `cd /root/Workspace/NowView/engine && uv run --frozen python -m app.worker_file /root/Workspace/BPM/server/deploy/consumers`
+   (원문은 서버의 `engine/.consumer/keys.json` — 배포 rsync가 빼는 자리다). 그다음 `docker compose restart center`, `systemctl restart nowview-engine`.
+   엔진 로그에 「확장 external 0.7.0판을 올렸다」·「일꾼이 토픽 external를 가져간다」가 나오면 된다.
+4. Company1 리포에서 `scripts/deploy.sh --bootstrap` — `/etc/company1.env`(기간계 키·사이트 비밀번호·**사이트용 대리 답 키**)를 짓고,
+   사이트용 대리 답 키의 해시를 Center 폴더(`company1-site-relay.key.json`)에 쓴다. Center를 다시 띄워야 들인다.
+5. `/etc/nowview.env`에 `COMPANY_COMPANY1_URL=http://127.0.0.1:8191`·`COMPANY_COMPANY1_KEY`(= `/etc/company1.env`의 `COMPANY1_LEGACY_KEY`)·
+   `COMPANY_COMPANY1_SITE_URL`. **설정이 DB에 이미 저장돼 있으면 그것이 env를 이긴다** — 엔진이 처음 뜰 때 기본 설정(그때의 env)을
+   `nowview_config`에 적는다. 회사 주소 없이 한 번 띄웠다면 관리자 모드(또는 `PUT /admin/config`)로 `system_url`·`site_url`을 고치고
+   엔진을 다시 띄운다(세계 따라가기는 엔진이 뜰 때만 시작한다).
+6. 사람이 할 것: Cloudflare 터널 라우트(`company1.nowview.work` → `http://127.0.0.1:3200`), Studio로 `company1.sc01`~`sc07`을
+   `https://bpm.nowview.work`에 올리기 → 콘솔 `https://console.nowview.work`에서 승인·서버 실행기에 배포.
 
 ## 8. 남은 일
 
