@@ -1218,6 +1218,20 @@ class Sc01Process:
         )
         return entry
 
+    def discard(self, demo_run_id: str) -> None:
+        """
+        사이트가 세계를 지웠다(`app/follower.py`) — 데모 실행 문서와 이력을 지운다. Center에 기동한
+        작업은 먼저 거둔다(장면 2~7 `discard`와 같다 — 남기면 서버 실행기 자리를 쥔다).
+        """
+        found = self.store.load(demo_run_id)
+        if found is not None:
+            doc = found[0]
+            job = (((doc.get("bpm") or {}).get("center") or {}).get("job") or {}).get("job_id")
+            if job and not self.center.config.missing(integration=True):
+                self._cancel_center_job(doc, job)
+        self.store.delete(demo_run_id)
+        self.publish(f"sc01:{demo_run_id}")
+
     def reset(
         self,
         demo_run_id: str,

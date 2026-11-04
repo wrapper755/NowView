@@ -1053,13 +1053,22 @@ def _user(value: Any) -> str:
         return str(value or "")
 
 
+def _epoch(doc: dict) -> str:
+    """
+    문서를 새로 만들 때마다 다른 값(`domain.new_demo_run`) — 이 칸 전의 문서는 빈 값(예전 키
+    그대로).
+    """
+    found = doc.get("center_epoch")
+    return f":e{found}" if found else ""
+
+
 def _center_key(doc: dict, request_id: str) -> str:
     """
     Center 멱등 키 — 초기화 회차를 넣는다. SC01 `_center_key`와 같은 이유다: 없으면 초기화 전의
     작업이 그대로 돌아온다.
     """
     generation = sum(1 for a in doc["audit"] if a["action"] == "demo_run_reset")
-    return f"sc02:{doc['demo_run_id']}:r{generation}:{request_id}:start"
+    return f"sc02:{doc['demo_run_id']}{_epoch(doc)}:r{generation}:{request_id}:start"
 
 
 def _check_expect(doc: dict, expect: dict[str, Any]) -> None:

@@ -315,7 +315,7 @@ NowView/
     │   ├── records.py            # 경영 기록 공통 — 바뀐 판만 골라 한 번에 적기(batch)·장면 기록 처음으로·`SC0N:` 접두(장면마다 sc0N/records.py)
     │   ├── company.py            # 회사 시스템 클라이언트 — 회사 자료 읽기(→ Seed)·원천 수신·원천 상태 쓰기·세계, 503 = CompanyUnavailable
     │   ├── consumer.py           # C15 일꾼 — Center에서 서비스 태스크 일감을 가져가 장면 N operate (4.3)
-    │   ├── follower.py           # 세계 따라가기 — 기간계의 세계·회차·시각·수신함·명령을 읽어 데모 실행을 만들고·초기화하고·따라간다(role-split §5)
+    │   ├── follower.py           # 세계 따라가기 — 기간계의 세계·회차·시각·수신함·명령을 읽어 데모 실행을 만들고·초기화하고·따라간다(role-split §5). 사이트가 지운 세계는 데모 실행(장면 1~7)을 거둔다(`_sweep`, 2026-11-04). 사이트가 「장면 N부터 다시」 하면 기간계가 남긴 `rewind` 명령으로 N 이상 데모 실행을 거두고 Center 작업을 취소한다(`_rewind`). 시나리오 1(`scenario_id: s1`) 회차만 들인다(`SCENARIO`)
     │   ├── scenarios.py          # 각본 사본(engine/scenarios/) → 장면 Step — 시험 전용 각본 실행기의 BASE
     │   ├── store.py              # 백엔드 선택 (SQLite 파일 / Postgres 풀)
     │   ├── events.py · notify.py # SSE 허브 · 프로세스 경계 전파
@@ -579,6 +579,9 @@ GET  /sc07/demo-runs/{id}/evidence/{evidenceId}           → SC07근거 EV71~78
     `schema`가 없는 계약이다.
   * **Center 멱등 키에는 초기화 회차가 들어간다**(`_center_key`). 초기화하면 원천 번호가 다시 SRC02라
     `데모실행:원천`만으로는 초기화 전의 작업이 그대로 돌아왔다(N5 실측 — 거절된 작업이 돌아와 새 접수가 안 됐다).
+    장면 2~7 문서는 회차 초기화·「장면부터 다시」 때 **지우고 새로 만들어** 초기화 회차가 늘 0이다 — 문서마다 다른
+    `center_epoch`(`domain.new_demo_run`)를 키에 넣는다. 없을 때는 거둔 옛 작업(취소됨)이 같은 키로 돌아와 새 실행이 서지
+    않았다(2026-11-04 로컬 실측, 사이트 「장면 2부터 다시」).
   * **앞 작업이 NowView를 부르기 전에 끝났으면 기다리지 않는다.** 수신 때 `GET /jobs/{id}`로 읽어 거절·만료·취소·
     실행 끝이면 `center_job_ended`를 남기고 새로 보낸다. 읽지 못하면 막는다(모르면 막는 쪽). 실행기가 `not_ready`로
     거절한 접수 작업 때문에 다음 수신이 영영 409였다(N5 실측).

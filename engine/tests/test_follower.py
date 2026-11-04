@@ -200,3 +200,64 @@ def test_task_opens_at_the_time_of_the_record_before_it() -> None:
     ]
     assert doc["clock"] == "2027-06-16T11:30:00+09:00"
     PROGRESS_AT.pop("demo-opened")
+
+
+def test_deleted_world_takes_its_demo_run_away(scenes, company_system, world) -> None:
+    f = _follow(scenes, company_system, world)
+    scenes[2].store.insert(world, {"demo_run_id": world, "step": "D00", "clock": "2027-06-17"})
+    # 세계 없이 엔진이 만든 문서(시험·예전 실행)는 건드리지 않는다
+    scenes[1].create(demo_run_id="demo-engine-only", case_id="BASE", executor="center")
+    f._sweep({world})
+    assert scenes[1].store.load(world) is not None  # 아직 있는 세계
+    company_system._call("DELETE", f"/worlds/{world}")
+    f._sweep({w["world_id"] for w in company_system.worlds()})
+    assert scenes[1].store.load(world) is None and scenes[2].store.load(world) is None
+    assert scenes[1].store.history(world) == []
+    assert scenes[1].store.load("demo-engine-only") is not None
+
+
+def test_other_scenario_world_is_not_followed(scenes, company_system) -> None:
+    """회차는 시나리오 하나에 속한다 — 이 엔진은 시나리오 1(장면 1~7)만 맡는다."""
+    rid = f"demo-{uuid.uuid4().hex[:8]}"
+    company_system._call(
+        "POST", "/worlds", {"world_id": rid, "origin": "site", "scenario_id": "s2"}
+    )
+    assert company_system.world(rid)["scenario_id"] == "s2"
+    _follow(scenes, company_system, rid)
+    assert scenes[1].store.load(rid) is None
+
+
+def test_rewind_discards_the_scene_and_later(scenes, company_system, world) -> None:
+    """사이트가 장면 N부터 다시 했다 — N 이상 데모 실행을 거두고 앞 장면은 둔다."""
+    f = _follow(scenes, company_system, world)
+    for n in (2, 3):
+        scenes[n].store.insert(world, {"demo_run_id": world, "step": "D00", "clock": "2027-06-17"})
+    f._seen[world]["price_inbox"] = 1
+    company_system._call(
+        "POST",
+        f"/worlds/{world}/commands",
+        {"scene": 2, "kind": "rewind", "actor": "u-demo", "body": {"scene": 2}, "ref": "rw-1"},
+    )
+    f._follow(company_system.world(world))
+    assert scenes[1].store.load(world) is not None
+    assert scenes[2].store.load(world) is None and scenes[3].store.load(world) is None
+    assert f._seen[world]["price_inbox"] == 0
+    done = company_system._call("GET", f"/worlds/{world}/commands")[-1]
+    assert done["state"] == "DONE" and done["result"] == {"discarded": [2, 3]}
+
+
+def test_center_key_differs_for_a_recreated_scene_document() -> None:
+    """
+    장면 2~7 문서는 회차 초기화·장면부터 다시 때 지우고 새로 만든다 — 초기화 회차가 늘 0이라
+    문서마다 다른 값(`center_epoch`)을 Center 멱등 키에 넣는다. 없으면 거둔 옛 작업(취소됨)이
+    그대로 돌아와 새 실행이 서지 않았다(로컬 실측). 이 칸 전의 문서는 예전 키 그대로다.
+    """
+    from app.sc02.process import _center_key as key2
+    from app.sc05.process import _center_key as key5
+
+    a = {"demo_run_id": "demo-x", "audit": [], "center_epoch": "aaaa"}
+    b = {**a, "center_epoch": "bbbb"}
+    assert key2(a, "REQ-2706-01") != key2(b, "REQ-2706-01")
+    assert key5(a) != key5(b)
+    old = {"demo_run_id": "demo-x", "audit": []}
+    assert key5(old) == "sc05:demo-x:r0:start"

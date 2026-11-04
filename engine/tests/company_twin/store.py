@@ -45,6 +45,11 @@ class WorldStore:
             )
             self._db.commit()
 
+    def all(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._db.execute("SELECT doc FROM world ORDER BY id").fetchall()
+        return [json.loads(r[0]) for r in rows]
+
     def records(self, world_id: str, scene: int | None = None) -> dict[str, dict[str, Any]]:
         sql = "SELECT key, doc FROM record WHERE world_id = ?"
         args: tuple[Any, ...] = (world_id,)
@@ -83,6 +88,14 @@ class WorldStore:
                 rows,
             )
             self._db.commit()
+
+    def delete(self, world_id: str) -> bool:
+        """세계와 그 기록을 함께 지운다 — 없던 세계면 거짓(Company1 기간계와 같다)."""
+        with self._lock:
+            n = self._db.execute("DELETE FROM world WHERE id = ?", (world_id,)).rowcount
+            self._db.execute("DELETE FROM record WHERE world_id = ?", (world_id,))
+            self._db.commit()
+        return n > 0
 
     def delete_records(self, world_id: str, scene: int | None = None) -> int:
         """그 세계의(장면을 주면 그 장면의) 기록을 지운다 — 지운 개수."""

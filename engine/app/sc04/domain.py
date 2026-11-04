@@ -27,6 +27,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import secrets
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -427,6 +428,11 @@ def new_demo_run(
     clock = max(parse_at(baseline["handoff"]["as_of"]), parse_at(SCHEDULE["start_at"]))
     return {
         "demo_run_id": demo_run_id,
+        # 문서를 새로 만들 때마다 다른 값 — Center 멱등 키에 넣는다(`process._center_key`).
+        # 장면 문서는 회차 초기화·장면부터 다시 때 지우고 새로 만들어 초기화 회차가 늘
+        # 0이라, 이것 없이는 거둔 옛 작업(취소됨)이 같은 키로 그대로 돌아와 새 실행이
+        # 서지 않았다(로컬 실측 2026-11-04).
+        "center_epoch": secrets.token_hex(4),
         "seed_id": SEED_ID,
         "case_id": case_id,
         "created_at": created_at.isoformat(),

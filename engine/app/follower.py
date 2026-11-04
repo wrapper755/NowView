@@ -38,6 +38,9 @@ log = logging.getLogger("nowview.follower")
 INTERVAL_S = 2.0
 #: 일꾼이 사이트 명령을 수행할 때의 행위자 — 명령 자체의 `actor`를 쓴다. 시계·초기화는 시연관리자다.
 SYSTEM_ACTOR = "u-demo"
+#: 이 엔진이 맡는 시나리오 — 회사 사이트 카탈로그의 시나리오 1(장면 1~7).
+#: 회차는 시나리오 하나에 속한다.
+SCENARIO = "s1"
 
 #: 데모 실행마다 일감(서비스 태스크)을 처리한 세계 시각 — 노드 id → 시각. 결재는 앞 기록 작업
 #: 바로 뒤에 열리지만 Center에 오르기까지 10초 남짓 걸려, 폴러가 그 결재를 읽을 때는 사이트가 이미
@@ -127,9 +130,33 @@ class Follower:
     def tick(self) -> None:
         """세계를 한 바퀴 — 시험은 이것을 직접 부른다."""
         self.company.ensure_roster()
-        for summary in self.company.worlds():
+        worlds = self.company.worlds()
+        for summary in worlds:
             with self._guard:
                 self._follow(summary)
+        with self._guard:
+            self._sweep({w["world_id"] for w in worlds})
+
+    def _sweep(self, present: set[str]) -> None:
+        """
+        사이트가 지운 세계 — 그 데모 실행(장면 1~7 문서·이력)을 거둔다. 세계를 따라 만든 문서
+        (`world_generation`이 있다)만 본다 — 엔진 시험이 만든 문서·세계 전의 문서는 둔다. 목록을
+        읽지 못한 바퀴(예외)는 여기까지 오지 않는다.
+        """
+        sc01 = self.scenes[1]
+        for row in sc01.store.list():
+            rid = row["demoRunId"]
+            if rid in present:
+                continue
+            found = sc01.store.load(rid)
+            if found is None or found[0].get("world_generation") is None:
+                continue
+            log.info("세계 %s가 지워졌다 — 데모 실행을 거둔다", rid)
+            for n in sorted(self.scenes, reverse=True):
+                if self.scenes[n].store.load(rid) is not None:
+                    self.scenes[n].discard(rid)
+            self._seen.pop(rid, None)
+            PROGRESS_AT.pop(rid, None)
 
     # ───────────── 한 세계 ─────────────
 
@@ -140,6 +167,8 @@ class Follower:
         found = sc01.store.load(rid)
         if found is None and w.get("origin") != "site":
             return  # 사이트가 만든 세계가 아니다 — 예전 엔진·다른 엔진(작업 사본)의 세계
+        if found is None and w.get("scenario_id", SCENARIO) != SCENARIO:
+            return  # 다른 시나리오의 회차 — 장면 1~7(시나리오 1)만 맡는다
         if found is None:
             sc01.create(
                 demo_run_id=rid,
@@ -320,6 +349,22 @@ def _reset_scene(f: Follower, p: Any, rid: str, c: dict[str, Any]) -> dict[str, 
     return {"scene": doc.get("scene")}
 
 
+def _rewind(f: Follower, p: Any, rid: str, c: dict[str, Any]) -> dict[str, Any]:
+    """
+    사이트가 장면 N부터 다시 했다(기간계 `rewind` — 기록·명령·회사 자료·시각은 거기서 걷었다).
+    N 이상 장면의 데모 실행을 거두고 Center 작업을 취소한다. 그 장면은 사이트가 다시 연다.
+    """
+    n = int(c["body"].get("scene") or c["scene"])
+    gone = []
+    for m in sorted(f.scenes, reverse=True):
+        if m >= n and m >= 2 and f.scenes[m].store.load(rid) is not None:
+            f.scenes[m].discard(rid)
+            gone.append(m)
+    if n <= 2:
+        f._seen.get(rid, {})["price_inbox"] = 0  # 기간계가 단가 요청 수신함을 비웠다
+    return {"discarded": sorted(gone)}
+
+
 #: 명령 종류 → 수행(role-split §5.2). 각 장면 프로세스의 같은 이름 조작을 부른다 — 장면에 없으면
 #: AttributeError가 아니라 422로 돌려준다(`_run_command` 앞에서 거른다).
 COMMANDS: dict[str, Callable[[Follower, Any, str, dict[str, Any]], dict[str, Any] | None]] = {
@@ -335,6 +380,7 @@ COMMANDS: dict[str, Callable[[Follower, Any, str, dict[str, Any]], dict[str, Any
     "negotiation_due": _negotiation_due,
     "budget_policy": _budget_policy,
     "reset_scene": _reset_scene,
+    "rewind": _rewind,
 }
 
 

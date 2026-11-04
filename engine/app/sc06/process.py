@@ -831,10 +831,19 @@ def _note_official(doc: dict, record: dict[str, Any]) -> None:
     )
 
 
+def _epoch(doc: dict) -> str:
+    """
+    문서를 새로 만들 때마다 다른 값(`domain.new_demo_run`) — 이 칸 전의 문서는 빈 값(예전 키
+    그대로).
+    """
+    found = doc.get("center_epoch")
+    return f":e{found}" if found else ""
+
+
 def _center_key(doc: dict) -> str:
     """Center 멱등 키 — 초기화 회차를 넣는다(장면 1~5와 같은 함정)."""
     generation = sum(1 for a in doc["audit"] if a["action"] == "demo_run_reset")
-    return f"sc06:{doc['demo_run_id']}:r{generation}:start"
+    return f"sc06:{doc['demo_run_id']}{_epoch(doc)}:r{generation}:start"
 
 
 def _mark(doc: dict, event_code: str | None, script_index: int | None) -> None:

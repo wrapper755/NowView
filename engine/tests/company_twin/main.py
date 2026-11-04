@@ -42,6 +42,8 @@ class NewWorld(BaseModel):
     #: 누가 만들었나 — 회사 사이트(`site`)가 만든 세계만 NowView 일꾼이 데모 실행으로 들인다.
     #: 예전에 NowView가 만든 세계(`engine`)·다른 엔진(작업 사본)의 세계를 집어 오지 않게.
     origin: str = "engine"
+    #: 이 회차가 도는 시나리오(사이트 카탈로그) — 일꾼은 시나리오 1(`s1`)만 맡는다
+    scenario_id: str = "s1"
 
 
 class CommandBody(BaseModel):
@@ -367,6 +369,7 @@ def build_app(store: WorldStore) -> FastAPI:
             "world_id": w["world_id"],
             "case_id": w.get("case_id", "BASE"),
             "origin": w.get("origin", "engine"),
+            "scenario_id": w.get("scenario_id", "s1"),
             "generation": w.get("generation", 1),
             "reset_at": w.get("reset_at"),
             "clock": w["clock"],
@@ -384,6 +387,7 @@ def build_app(store: WorldStore) -> FastAPI:
             found = store.get(body.world_id)
             if found is None:
                 found = _new_world(body.world_id, case_id=body.case_id, origin=body.origin)
+                found["scenario_id"] = body.scenario_id
                 store.put(found)
         return _world_summary(found)
 
@@ -398,6 +402,14 @@ def build_app(store: WorldStore) -> FastAPI:
     @app.get("/worlds/{world_id}", dependencies=[Depends(auth)])
     def get_world(world_id: str) -> dict[str, Any]:
         return _world_summary(world(world_id))
+
+    @app.delete("/worlds/{world_id}", dependencies=[Depends(auth)])
+    def delete_world(world_id: str) -> dict[str, Any]:
+        """세계를 지운다 — 세계 문서와 경영 기록을 함께(Company1 기간계와 같다)."""
+        with store.lock():
+            world(world_id)
+            store.delete(world_id)
+        return {"world_id": world_id, "deleted": True}
 
     @app.post("/worlds/{world_id}/reset", dependencies=[Depends(auth)])
     def reset(world_id: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
