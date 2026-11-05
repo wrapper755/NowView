@@ -112,6 +112,33 @@ def _sc07(found: list[Record]) -> list[Metric]:
     return [_text("적용 상태", state.get("label") or state.get("state"))]
 
 
+def _s2sc02(found: list[Record]) -> list[Metric]:
+    """SC02요약의 칸 — 최초 영향·대조 일치·관찰·잔여 위험·보류·사람 확인(건수, 미산출은 None)."""
+    s = (_latest(found, "dashboard") or {}).get("summary")
+
+    def n(key: str, unit: str = "건") -> Metric:
+        return _text(LABELS_22[key], None if s is None else f"{s[key]}{unit}")
+
+    return [
+        n("initial_impact"),
+        n("matched"),
+        n("observe"),
+        n("residual"),
+        n("hold"),
+        n("confirmations", "회"),
+    ]
+
+
+LABELS_22 = {
+    "initial_impact": "최초 영향 약정",
+    "matched": "반영 대조 일치",
+    "observe": "통제 종료·관찰",
+    "residual": "현재 잔여 위험",
+    "hold": "판정 보류",
+    "confirmations": "담당자 확인",
+}
+
+
 def _s2sc01(found: list[Record]) -> list[Metric]:
     board = _latest(found, "dashboard") or {}
     kpi = board.get("kpi") or {}
@@ -137,6 +164,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     6: _sc06,
     7: _sc07,
     21: _s2sc01,
+    22: _s2sc02,
 }
 
 
@@ -155,6 +183,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s2.sc01 import records as s21
 
         return s21.records_of(doc, proc.master())
+    if scene == 22:
+        from app.s2.sc02 import records as s22
+
+        return s22.records_of(doc, proc.master())
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 

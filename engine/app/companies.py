@@ -41,12 +41,16 @@ SCENE_WORKS: dict[int, str] = {
     6: "완료·성과 검토",
     7: "관리모델 개선·적용",
     21: "납기 위험 조기 감지",
+    22: "정형통제 실행과 주문별 분기",
 }
 #: 업무 번호 → (시나리오, 그 시나리오의 장면) — 회차(세계)는 시나리오 하나에 속한다. 시나리오 2
 #: 장면 N은
 #: 20 + N이다(`docs/platform.md` §7 — 문자열 키로 바꾸면 저장된 설정을 옮겨야 해서 번호 공간을
 #: 나눴다).
-WORKS: dict[int, tuple[str, int]] = {n: ("s1", n) for n in range(1, 8)} | {21: ("s2", 1)}
+WORKS: dict[int, tuple[str, int]] = {n: ("s1", n) for n in range(1, 8)} | {
+    21: ("s2", 1),
+    22: ("s2", 2),
+}
 
 
 def works_of(scenario_id: str | None) -> list[int]:

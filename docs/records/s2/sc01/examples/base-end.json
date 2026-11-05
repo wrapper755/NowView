@@ -24,7 +24,7 @@
      "outcome": "FIRST",
      "outcome_label": "최초",
      "job_id": null,
-     "external_run_id": "test_20261104_143815_bccf64",
+     "external_run_id": "test_20261105_050810_db379c",
      "state": "done",
      "visited": [
       "Task_Evaluate",
@@ -39,7 +39,7 @@
      "outcome": "RECORD",
      "outcome_label": "기록",
      "job_id": null,
-     "external_run_id": "test_20261104_143815_02a9cb",
+     "external_run_id": "test_20261105_050810_9dc98e",
      "state": "done",
      "visited": [
       "Task_Evaluate",
@@ -54,7 +54,7 @@
      "outcome": "ALERT",
      "outcome_label": "경보",
      "job_id": null,
-     "external_run_id": "test_20261104_143815_f8d0ef",
+     "external_run_id": "test_20261105_050810_fc136c",
      "state": "done",
      "visited": [
       "Task_Evaluate",
@@ -109,7 +109,7 @@
     "product": "A",
     "label": "울산공장 / 기존사업 A제품"
    },
-   "dataset_version": "SYN-S2-SC01-v0.1",
+   "dataset_version": "SYN-S2-SC02-v0.2",
    "kpi": {
     "period": {
      "start": "2026-10-01",
@@ -775,7 +775,7 @@
     {
      "evidence_id": "EVD-COMMITMENT",
      "source": "납기약정",
-     "source_key": "SYN-S2-SC01-v0.1",
+     "source_key": "SYN-S2-SC02-v0.2",
      "revision": null,
      "as_of": "2026-11-04T09:00:00+09:00",
      "kind": "약정",
@@ -784,7 +784,7 @@
     {
      "evidence_id": "EVD-PLAN",
      "source": "기존 조립계획·BOM·배정재고",
-     "source_key": "SYN-S2-SC01-v0.1",
+     "source_key": "SYN-S2-SC02-v0.2",
      "revision": null,
      "as_of": "2026-11-04T09:00:00+09:00",
      "kind": "계획",
@@ -793,7 +793,7 @@
     {
      "evidence_id": "EVD-SHIPMENT",
      "source": "정기차 마감",
-     "source_key": "SYN-S2-SC01-v0.1",
+     "source_key": "SYN-S2-SC02-v0.2",
      "revision": null,
      "as_of": "2026-11-04T09:00:00+09:00",
      "kind": "출하",

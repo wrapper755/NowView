@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -6066,6 +6066,417 @@
                 "type": "string"
               },
               "doc_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "handoff_id": {
+                "type": "string"
+              },
+              "next_node": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "propose_case_plan",
+          "description": "공통 BPM platform.case-plan (CP29·30) — 계획 지원 Agent(A03)가 사건에 필요한 재사용 업무 단위(U01~U09)를 제안한다. 같은 사건에 다시 오면 같은 제안. 시나리오 2 장면 2는 통합 점검 → 변경안 → 사람 확인 → 반영 → 재평가(규칙 처리)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "plan_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "check_case_plan",
+          "description": "공통 BPM platform.case-plan (CP28·31) — 규칙 엔진(Y01)이 위임 범위·필수 사람 확인·순서를 검사한다. 위임 범위 안이면 PASS(구성 승인 없음), 필수 확인 누락·순환·미등록·권한 초과면 BLOCKED",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "apply_case_plan",
+          "description": "공통 BPM platform.case-plan (CP32) — 검사를 통과한 수행계획을 사건에 적용한다. 업무 데이터(생산계획 등)는 바꾸지 않는다 — 계획 적용(plan_apply)은 업무 확인과 다른 승인이다(F24)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "production_plan": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "draft_production_change",
+          "description": "시나리오 2 장면 2 N04 (U02) — 생산계획 지원 Agent(A02, 규칙 처리)가 장면 1 분석의 배정 입고분으로 모델별 빈 라인 시간에 조립을 놓은 변경안을 쓴다. 자재·라인·품질·타 주문 영향 점검(CONFLICT면 확정 불가). 확인 뒤 전제가 바뀌어 다시 오면 새 판",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "draft_id": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "check": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "confirm_production_change",
+          "description": "시나리오 2 장면 2 N05 (U03) 확인 기록 — 생산관리 책임자(H03)만, 최신 변경안 버전·내용 식별값이 맞아야 한다. 같은 판의 같은 결정은 기존 결과(중복 클릭). 보완 요청이면 원계획 유지. 확정할 수 없는 변경안의 확정은 거절",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "comment",
+              "content_hash",
+              "decision",
+              "demo_run_id",
+              "version"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "comment": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "approval_id": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "apply_production_change",
+          "description": "시나리오 2 장면 2 N06 (U04) — 확인 유효성과 지금 원계획 버전을 다시 검사하고, 확인된 범위만 주문 한 행씩 실행키(run·확인 ID·약정)로 회사 생산계획에 반영한다. 원계획이 바뀌었으면 STALE(새 판·재확인). 응답 유실은 결과 미확인(실패가 아니다)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "applied": {
+                "type": "integer"
+              },
+              "unknown": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "requery_production_plan",
+          "description": "시나리오 2 장면 2 N06 (U04) — 회사 생산계획을 다시 읽어 승인본과 주문별로 대조한다(일치·불일치·미반영). 원천 조회로 미반영이 확인된 결과 미확인 주문만 retry(같은 실행키). 불일치 행은 보존하고 다시 반영하지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "matched": {
+                "type": "integer"
+              },
+              "retry": {
+                "type": "boolean"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "reassess_delivery_risk",
+          "description": "시나리오 2 장면 2 N07 (U05) — 재조회 일치 행만으로 출하 준비(저장 종료 + 준비)·탑승 가능한 첫 정기차(마감 ≥ 준비)·납기 여유(약정 − 예상 도착)를 판정한다. 0 이상 인수 관찰, 음수 운송 확인, 대조 미완료·자료 누락은 보류(0분으로 메우지 않는다)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "assessment_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "residual": {
+                "type": "boolean"
+              },
+              "observe": {
+                "type": "integer"
+              },
+              "transport": {
+                "type": "integer"
+              },
+              "hold": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "hand_off_residual_risk",
+          "description": "시나리오 2 장면 2 N08 — 운송 확인 주문만 장면 3(N09 운송 대안 사실 확인)으로 인계한다(HAND-02). 같은 판정 판이면 새 인계를 만들지 않는다. 긴급차·비용 전결·경영검토 상신은 하지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
                 "type": "string"
               }
             }

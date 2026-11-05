@@ -29,6 +29,7 @@ from .events import hub
 from .follower import Follower, Synced
 from .notify import build_notifier
 from .s2.sc01.process import S2Sc01Process
+from .s2.sc02.process import S2Sc02Process
 from .sc01.api import build_router as build_sc01_router
 from .sc01.center import CenterClient, CenterConfig
 from .sc01.poller import CenterPoller
@@ -115,15 +116,28 @@ _S1 = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
 s2sc01 = S2Sc01Process(
     build_sc01_store(backend, "s2sc01"), company=company, center=center, publish=notifier.publish
 )
-_SCENES = {**_S1, 21: s2sc01}
+# 시나리오 2 장면 2 — 장면 1 인계(HAND-01)에서 사이트의 「장면 열기」로 연다. 공통 BPM 수행계획 구성
+# 호출 → 변경안 → H03 확인 결재(사이트가 대리 답) → 반영·재조회 → 재평가 → 장면 3 인계. 업무 번호
+# 22.
+s2sc02 = S2Sc02Process(
+    build_sc01_store(backend, "s2sc02"),
+    company=company,
+    sc01=s2sc01,
+    center=center,
+    publish=notifier.publish,
+)
+_SCENES = {**_S1, 21: s2sc01, 22: s2sc02}
 # 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 시나리오 1
 # 일곱 장면과 시나리오 2 장면 1.
-poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07, s2sc01)
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07, s2sc01, s2sc02)
 # 세계 따라가기 — 회사 사이트가 기간계에 만든 세계·시계·원천·명령을 읽어 따라간다(role-split §5.3).
 # 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`). 회차의 시나리오로 갈라 따라간다.
-follower = Follower(company, _S1, s2=s2sc01)
+follower = Follower(company, _S1, s2=s2sc01, s2_scenes={2: s2sc02})
 # 일감 기록의 장면은 그 회차 시나리오의 장면 번호다(시나리오 2 장면 1 → 1)
-_WORKERS = {n: Synced(p, follower, n) for n, p in _S1.items()} | {21: Synced(s2sc01, follower, 1)}
+_WORKERS = {n: Synced(p, follower, n) for n, p in _S1.items()} | {
+    21: Synced(s2sc01, follower, 1),
+    22: Synced(s2sc02, follower, 2),
+}
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _WORKERS))
 app.include_router(
     build_companies_router(settings, consumer, center, poller, {"company1": company}, _SCENES)
@@ -189,6 +203,7 @@ def health() -> dict[str, Any]:
                 sc06.process.id,
                 sc07.process.id,
                 s2sc01.process.id,
+                s2sc02.process.id,
             ],
         },
         "demoRuns": len(sc01.store.list()),

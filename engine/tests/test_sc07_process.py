@@ -488,5 +488,3 @@ def test_http_procedure_routes(client: TestClient, rid: str) -> None:
     ]  # fmt: skip
     topo = client.get("/sc07/process").json()
     assert {n["recordOf"] for n in topo["nodes"] if n["recordOf"]} == set(confirm.NODE_ROLES)
-
-

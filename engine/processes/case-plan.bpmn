@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  공통 BPM — 사건 수행계획 구성(공통 플랫폼 업무설계서 v0.3 CP29~38 · 시나리오 2 노드 N03A). **공유 BPM 프로세스**다
+  (패키지 종류 process_lib) — 업무 BPM 프로세스가 호출 활동(callActivity)으로 부른다.
+
+  사건에 필요한 재사용 업무 단위(U01~U09)를 계획 지원 Agent(A03)가 제안하고(`propose_case_plan`) → 규칙 엔진(Y01)이
+  위임 범위·필수 사람 확인·순서를 검사하고(`check_case_plan`) → 통과하면 사건에 적용한다(`apply_case_plan`). 위임 범위 안
+  조합은 **사람 승인 없이** 적용된다(「정상 흐름에 구성 승인 추가 없음」) — 그 대신 필수 확인(U03 등)을 뺀 조합은 적용
+  하지 않고 끝난다(`End_Blocked`). 수행계획 적용은 업무 데이터(생산계획 등)를 바꾸지 않는다 — 계획 적용(plan_apply)과
+  업무 확인(예: production_plan_apply)은 다른 승인이다(F24).
+
+  어떤 단위를 고르고 무엇을 검사하는지는 일감을 보낸 바깥 BPM 프로세스(실행 신원 = 바깥 패키지 id)의 업무가 정한다 —
+  NowView 일꾼이 그것으로 업무를 고른다. 부르는 쪽은 Studio 「설치」로 이 패키지를 자기 `libs/`에 받는다(판 고정 복사본).
+  이 그림을 고치면 판을 올리고, 부르는 패키지마다 다시 설치·내보낸다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_case_plan">
+  <bpmn:process id="platform.case-plan" name="공통 — 사건 수행계획 구성" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.10.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "사건ID", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="사건 인계 수신"/>
+    <bpmn:serviceTask id="Task_Propose" name="수행 업무 제안 (A03)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "propose_case_plan", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"수행계획ID": "plan_id", "계획판": "version", "계획항목수": "items"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Check" name="위임·필수 통제 검사 (Y01)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "check_case_plan", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"계획검사": "result", "검사위반수": "issues", "검사사유": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Check" name="허용 조합인가" default="Flow_blocked"/>
+    <bpmn:serviceTask id="Task_ApplyPlan" name="수행계획 적용">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "apply_case_plan", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"계획상태": "state", "원계획버전": "production_plan"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_Applied" name="수행계획 적용 — 업무 데이터는 그대로"/>
+    <bpmn:endEvent id="End_Blocked" name="적용 차단 — 보완할 업무 표시"/>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Propose"/>
+    <bpmn:sequenceFlow id="Flow_proposed" sourceRef="Task_Propose" targetRef="Task_Check"/>
+    <bpmn:sequenceFlow id="Flow_checked" sourceRef="Task_Check" targetRef="Gw_Check"/>
+    <bpmn:sequenceFlow id="Flow_pass" name="허용" sourceRef="Gw_Check" targetRef="Task_ApplyPlan">
+      <bpmn:conditionExpression>계획검사 == 'PASS'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_blocked" name="차단" sourceRef="Gw_Check" targetRef="End_Blocked"/>
+    <bpmn:sequenceFlow id="Flow_applied" sourceRef="Task_ApplyPlan" targetRef="End_Applied"/>
+  </bpmn:process>
+</bpmn:definitions>

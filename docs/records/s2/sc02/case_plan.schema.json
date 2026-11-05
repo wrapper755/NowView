@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/case_plan.schema.json",
+  "title": "s2/sc02 case_plan",
+  "description": "사건 수행계획(M06·M07) — A03 제안 항목(U01~U05)·Y01 검사·적용 상태·흐름 단계 N03A~N08·역할 목록",
+  "type": "object",
+  "required": [
+    "applied_at",
+    "case_id",
+    "case_state",
+    "check",
+    "execution_mode",
+    "flow",
+    "items",
+    "plan_id",
+    "production_plan_version",
+    "proposed_at",
+    "proposed_by",
+    "roles",
+    "source",
+    "state",
+    "version"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "delegation",
+          "link_mode",
+          "name",
+          "owner",
+          "predecessor",
+          "reason",
+          "selection",
+          "seq",
+          "state",
+          "steps",
+          "unit"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "selection": {
+            "type": "string"
+          },
+          "delegation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "owner": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "predecessor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "link_mode": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "proposed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "proposed_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "check": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "checked_at",
+        "issues",
+        "needs_approval",
+        "result",
+        "rules"
+      ],
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "issues": {
+          "type": "array"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "needs_approval": {
+          "type": "boolean"
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string"
+    },
+    "applied_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "production_plan_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "kind",
+          "label",
+          "role_id",
+          "steps",
+          "title"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duty": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "node",
+          "role",
+          "state"
+        ],
+        "properties": {
+          "node": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "alert_id",
+        "case_id",
+        "commitments",
+        "handoff_id",
+        "revision_id"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "alert_id": {
+          "type": "string"
+        },
+        "revision_id": {
+          "type": "string"
+        },
+        "commitments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "handoff_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "case_state": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

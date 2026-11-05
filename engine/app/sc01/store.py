@@ -56,7 +56,7 @@ def _postgres_ddl(p: str) -> list[str]:
 
 # : 장면마다 테이블 쌍이 따로다(`sc01_*` ~ `sc05_*`). 고정된 식별자만 받는다 — SQL에 그대로
 # 들어간다.
-PREFIXES = ("sc01", "sc02", "sc03", "sc04", "sc05", "sc06", "sc07", "s2sc01")
+PREFIXES = ("sc01", "sc02", "sc03", "sc04", "sc05", "sc06", "sc07", "s2sc01", "s2sc02")
 
 
 def _prefix(value: str) -> str:

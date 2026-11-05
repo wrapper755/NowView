@@ -31,7 +31,7 @@ from app.sc01.domain import DomainError, parse_at
 from app.sc01.store import build_sc01_store
 from app.store import build_sqlite_backend
 
-SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC01-v0.1.xlsx"
+SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC02-v0.2.xlsx"
 KST = calc.KST
 AT = {
     "P-v0": "2026-11-02T09:00:00+09:00",
@@ -512,7 +512,7 @@ def test_dashboard_shows_the_scenario_2_board_for_a_scenario_2_world(
     )
     body = TestClient(app).get("/companies/company1/dashboard").json()
     assert body["worlds"][0]["scenarioId"] == "s2"
-    [work] = body["works"]
+    work = next(w for w in body["works"] if w["scene"] == 21)
     assert (work["scene"], work["work"], work["state"]) == (21, "납기 위험 조기 감지", "done")
     assert work["worker"]["count"] == 1
     assert [m["value"] for m in work["metrics"]] == ["99%", "98%", "1건", "2건"]
@@ -537,7 +537,7 @@ def test_every_written_version_matches_the_common_record_schemas(proc, company, 
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """
-    확장 `external` 0.9.0이 최신 계약 검사를 통과하고, 업무 그림과 그것이 호출하는 공통 BPM
+    확장 `external`(0.9.0 이상)이 최신 계약 검사를 통과하고, 업무 그림과 그것이 호출하는 공통 BPM
     (`platform.case-intake`)의 서비스 호출 넷이 정의의 입력·출력과 맞는다. 호출 활동의 대상은
     받아 둔 정의에 있고, 내보내는 값은 공통 BPM이 만드는 변수다.
     """
@@ -554,7 +554,8 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     ).read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
-    assert manifest.version == "0.9.0"
+    # 확장 판은 다음 업무가 작업을 더할 때마다 오른다 — 이 그림은 0.9.0 이상이면 된다
+    assert satisfies(manifest.version, ">=0.9.0,<1")
     operations = {o["name"]: o for o in json.loads(raw)["service"]["adapter"]["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
     called = {p.id: p for p in (read_process(path.read_bytes()) for path in CALLED_PATHS)}

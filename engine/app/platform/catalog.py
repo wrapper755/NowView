@@ -51,6 +51,19 @@ UNITS: dict[str, dict[str, Any]] = {
 
 #: 위임 수준(CP28) — A 조회·분석·초안, B 사람 확인 후 반영, C 사전 조건 내 자동 실행
 DELEGATION = {"A": "조회·분석·초안", "B": "사람 확인 후 확정 반영", "C": "사전 조건 내 자동 실행"}
+#: 업무 단위의 위임 수준과 기본 수행 역할 — 시나리오 2 장면 2 수행계획(SC02수행계획 「담당」)에서
+#: 쓰는 다섯만 둔다. U03은 사람 확인 그 자체라 위임 수준이 없다. U06~U09는 그 장면이 오면 정한다.
+UNIT_PLAN: dict[str, dict[str, Any]] = {
+    "U01": {"delegation": "A", "owner": ["A03", "Y01"]},
+    "U02": {"delegation": "A", "owner": ["A02"]},
+    "U03": {"delegation": None, "owner": ["H03"]},
+    "U04": {"delegation": "B", "owner": ["Y01"]},
+    "U05": {"delegation": "A", "owner": ["Y01", "A01"]},
+}
+
+#: 역할의 직위 배정(가안 — 구현명세 Q03 「구체 사용자 매핑」 전). H03 생산관리 책임자(관리자)는
+#: 회사 명단의 생산팀장이다. 결재 담당자 이름(`chk:approval.assignees`)과 시험이 맞춰 본다.
+HOLDERS: dict[str, list[str]] = {"H03": ["배정훈"]}
 
 #: 실행 방식(F05) — 화면이 구분해 보인다. 가상자료 재현을 실제 AI 호출로 표시하지 않는다.
 EXECUTION_MODES = {
@@ -104,11 +117,13 @@ __all__ = [
     "CASE_STATES",
     "DELEGATION",
     "EXECUTION_MODES",
+    "HOLDERS",
     "HUMAN",
     "RISK_STATES",
     "ROLES",
     "RUN_STATES",
     "SYSTEM",
     "UNITS",
+    "UNIT_PLAN",
     "role",
 ]

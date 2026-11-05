@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/handoff.schema.json",
+  "title": "s2/sc02 handoff",
+  "description": "장면 인계(HAND-02) — 운송 확인 주문·근거 버전·하지 않은 일",
+  "type": "object",
+  "required": [
+    "approval_id",
+    "assessment",
+    "case_id",
+    "demo_run_id",
+    "draft_id",
+    "evidence_at",
+    "handed_at",
+    "handoff_id",
+    "held",
+    "items",
+    "next_label",
+    "next_node",
+    "not_done",
+    "observed",
+    "production_plan_version"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "demo_run_id": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "arrival",
+          "commitment_id",
+          "missed",
+          "promised_at",
+          "qty",
+          "ready_at",
+          "shortfall_min",
+          "stored",
+          "truck_id"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "ready_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "truck_id": {
+            "type": "string"
+          },
+          "arrival": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "shortfall_min": {
+            "type": "integer"
+          },
+          "missed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "cutoff",
+                "late_min",
+                "truck_id"
+              ],
+              "properties": {
+                "truck_id": {
+                  "type": "string"
+                },
+                "cutoff": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "late_min": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "stored": {
+            "type": "object",
+            "required": [
+              "applied_at",
+              "approval_id",
+              "commitment_id",
+              "end",
+              "execution_key",
+              "line_id",
+              "model",
+              "qty",
+              "start",
+              "version"
+            ],
+            "properties": {
+              "commitment_id": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "line_id": {
+                "type": "string"
+              },
+              "qty": {
+                "type": "integer"
+              },
+              "start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "version": {
+                "type": "string"
+              },
+              "approval_id": {
+                "type": "string"
+              },
+              "execution_key": {
+                "type": "string"
+              },
+              "applied_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "draft_id": {
+      "type": "string"
+    },
+    "approval_id": {
+      "type": "string"
+    },
+    "production_plan_version": {
+      "type": "string"
+    },
+    "assessment": {
+      "type": "object",
+      "required": [
+        "assessment_id",
+        "version"
+      ],
+      "properties": {
+        "assessment_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "held": {
+      "type": "array"
+    },
+    "next_node": {
+      "type": "string"
+    },
+    "next_label": {
+      "type": "string"
+    },
+    "not_done": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

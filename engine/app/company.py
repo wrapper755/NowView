@@ -347,6 +347,17 @@ class CompanyClient:
     def receipt(self, world_id: str, doc_id: str) -> dict[str, Any]:
         return self._call("GET", f"/worlds/{world_id}/receipt-revisions/{doc_id}")
 
+    def production_plan(self, world_id: str) -> dict[str, Any]:
+        """장면 2 — 저장된 생산계획을 다시 읽는다(버전·약정별 수량·착수·종료·확인 ID·실행키)."""
+        return self._call("GET", f"/worlds/{world_id}/production-plan")
+
+    def apply_plan_row(self, world_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """
+        장면 2 — 확인된 주문 한 행을 실행키로 반영한다(같은 키는 다시 적지 않는다). 기준 원계획
+        버전이 지금과 다르면 409(`DomainError`).
+        """
+        return self._call("POST", f"/worlds/{world_id}/production-plan/apply", body)
+
     # ───────────── 구매 (장면 2) ─────────────
 
     def purchase_master(self) -> dict[str, Any]:

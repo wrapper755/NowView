@@ -1,0 +1,906 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S2:SC02",
+  "version": 11,
+  "scene": 2,
+  "state": "HANDED_OFF",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "정형통제 실행과 주문별 분기",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s2",
+   "scene": 2,
+   "title": "정형통제 실행과 주문별 분기",
+   "caseId": "BASE",
+   "clock": "2026-11-04T09:12:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "job_id": null,
+    "external_run_id": "test_20261105_052328_d34776",
+    "state": "done",
+    "visited": [
+     "Task_Propose",
+     "Task_Check",
+     "Task_ApplyPlan",
+     "Task_Draft",
+     "Approve_Change",
+     "Record_Approve_Change",
+     "Task_Apply",
+     "Task_Requery",
+     "Task_Reassess",
+     "Task_Handoff",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null
+   },
+   "source": {
+    "handoff_id": "HAND-01",
+    "case_id": "CASE-S2-01",
+    "analysis": {
+     "analysis_id": "ANA-01",
+     "version": 1,
+     "data_as_of": "2026-11-04T09:00:00+09:00"
+    },
+    "commitments": [
+     "COM-S",
+     "COM-R"
+    ]
+   },
+   "flow": [
+    {
+     "node": "N03A",
+     "name": "수행계획 구성",
+     "role": "A03",
+     "state": "done"
+    },
+    {
+     "node": "N04",
+     "name": "생산계획 변경안 작성",
+     "role": "A02",
+     "state": "done"
+    },
+    {
+     "node": "N05",
+     "name": "생산계획 변경 확인",
+     "role": "H03",
+     "state": "done"
+    },
+    {
+     "node": "N06",
+     "name": "반영·재조회 대조",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N07",
+     "name": "주문별 납기 재평가",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N08",
+     "name": "운송 확인 인계 (장면 3)",
+     "role": "Y01",
+     "state": "done"
+    }
+   ],
+   "companyLog": [
+    {
+     "at": "2026-11-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "생산계획 원계획 읽기 PROD-V1"
+    },
+    {
+     "at": "2026-11-04T09:12:00+09:00",
+     "direction": "out",
+     "what": "생산계획 반영 COM-S → PROD-V2 (demo-example:APP-01:COM-S)"
+    },
+    {
+     "at": "2026-11-04T09:12:00+09:00",
+     "direction": "out",
+     "what": "생산계획 반영 COM-R → PROD-V2 (demo-example:APP-01:COM-R)"
+    }
+   ],
+   "handoff": "N09"
+  },
+  "ref": "demo-example:scene/S2:SC02:v11",
+  "seq": 10,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "company1:ULS:A:SC02",
+  "version": 5,
+  "scene": 2,
+  "state": null,
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "납기 상황판 — 장면 2",
+  "body": {
+   "as_of": "2026-11-04T09:12:00+09:00",
+   "scope": {
+    "company": "company1",
+    "plant": "울산",
+    "product": "A"
+   },
+   "dataset_version": "SYN-S2-SC02-v0.2",
+   "kpi": {
+    "period": {
+     "start": "2026-10-01",
+     "end": "2026-11-01",
+     "label": "2026년 10월"
+    },
+    "numerator": 99,
+    "denominator": 100,
+    "otd": "0.9900",
+    "target": "0.98",
+    "meets_target": true,
+    "late": [
+     "H199"
+    ],
+    "by_model": [
+     {
+      "model": "a",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "b",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "c",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "d",
+      "due": 20,
+      "on_time": 19,
+      "otd": "0.9500"
+     },
+     {
+      "model": "e",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     }
+    ]
+   },
+   "summary": {
+    "initial_impact": 2,
+    "matched": 2,
+    "observe": 1,
+    "residual": 1,
+    "hold": 0,
+    "confirmations": 1
+   },
+   "orders": [
+    {
+     "commitment_id": "COM-S",
+     "route": "OBSERVE",
+     "route_label": "인수 관찰",
+     "margin_min": 60
+    },
+    {
+     "commitment_id": "COM-R",
+     "route": "TRANSPORT",
+     "route_label": "운송 확인",
+     "margin_min": -30
+    }
+   ],
+   "case_id": "CASE-S2-01",
+   "notice": "예상 도착은 계획 기준 전망이다 — 실제 인수 전이라 마감 OTD에 합산하지 않는다. 통제 실행 완료와 위험 상태는 따로 본다"
+  },
+  "ref": "demo-example:dashboard/company1:ULS:A:SC02:v5",
+  "seq": 11,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "case_plan",
+  "record_id": "CP-S2-V1",
+  "version": 9,
+  "scene": 2,
+  "state": "APPLIED",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "사건 수행계획",
+  "body": {
+   "plan_id": "CP-S2-V1",
+   "version": 1,
+   "case_id": "CASE-S2-01",
+   "items": [
+    {
+     "seq": 1,
+     "unit": "U01",
+     "name": "통합 납기 영향 점검",
+     "steps": [
+      "N03",
+      "N07"
+     ],
+     "selection": "required",
+     "delegation": "A",
+     "owner": [
+      "A03",
+      "Y01"
+     ],
+     "predecessor": "HAND-01",
+     "reason": "ANA-01 및 입고 개정 재사용 — 필수 H03 확인 포함",
+     "link_mode": "new",
+     "state": "완료"
+    },
+    {
+     "seq": 2,
+     "unit": "U02",
+     "name": "생산계획 변경안 작성",
+     "steps": [
+      "N04"
+     ],
+     "selection": "conditional",
+     "delegation": "A",
+     "owner": [
+      "A02"
+     ],
+     "predecessor": "U01",
+     "reason": "분할 입고로 기존 착수가 어렵다 — 배정과 모델별 빈 라인으로 조립 배치",
+     "link_mode": "new",
+     "state": "완료"
+    },
+    {
+     "seq": 3,
+     "unit": "U03",
+     "name": "생산계획 변경 확인",
+     "steps": [
+      "N05"
+     ],
+     "selection": "required_if_change",
+     "delegation": null,
+     "owner": [
+      "H03"
+     ],
+     "predecessor": "U02",
+     "reason": "생산계획을 바꾸는 단계 — 두 주문을 포함한 변경안 한 버전을 사람이 확인",
+     "link_mode": "new",
+     "state": "완료"
+    },
+    {
+     "seq": 4,
+     "unit": "U04",
+     "name": "확인 계획 반영과 재조회",
+     "steps": [
+      "N06"
+     ],
+     "selection": "conditional",
+     "delegation": "B",
+     "owner": [
+      "Y01"
+     ],
+     "predecessor": "U03",
+     "reason": "확인된 버전만 반영하고 저장소에서 다시 읽어 대조",
+     "link_mode": "new",
+     "state": "완료"
+    },
+    {
+     "seq": 5,
+     "unit": "U05",
+     "name": "잔여 위험과 종료 판단",
+     "steps": [
+      "N07",
+      "N08"
+     ],
+     "selection": "required",
+     "delegation": "A",
+     "owner": [
+      "Y01",
+      "A01"
+     ],
+     "predecessor": "U04",
+     "reason": "반영본으로 주문별 납기를 다시 판정 — 남은 위험만 후속",
+     "link_mode": "new",
+     "state": "완료"
+    }
+   ],
+   "proposed_at": "2026-11-04T09:00:00+09:00",
+   "proposed_by": "A03",
+   "execution_mode": "rule",
+   "check": {
+    "result": "PASS",
+    "issues": [],
+    "rules": [
+     "registered",
+     "required",
+     "required_if_change",
+     "order",
+     "delegation"
+    ],
+    "needs_approval": false,
+    "checked_at": "2026-11-04T09:00:00+09:00"
+   },
+   "state": "APPLIED",
+   "applied_at": "2026-11-04T09:00:00+09:00",
+   "production_plan_version": "PROD-V1",
+   "roles": [
+    {
+     "role_id": "A03",
+     "kind": "agent",
+     "label": "사건대응 계획 지원 Agent",
+     "title": null,
+     "duty": "수행 업무 제안",
+     "steps": [
+      "N03A"
+     ]
+    },
+    {
+     "role_id": "Y01",
+     "kind": "system",
+     "label": "시스템 자동처리 (규칙 엔진)",
+     "title": null,
+     "duty": "위임·필수 통제 검사 · 반영·재조회 · 재평가",
+     "steps": [
+      "N03A",
+      "N06",
+      "N07",
+      "N08"
+     ]
+    },
+    {
+     "role_id": "A02",
+     "kind": "agent",
+     "label": "생산계획 지원 Agent",
+     "title": null,
+     "duty": "생산계획 변경안 작성",
+     "steps": [
+      "N04"
+     ]
+    },
+    {
+     "role_id": "H03",
+     "kind": "human",
+     "label": "생산관리 책임자",
+     "title": "관리자",
+     "duty": "생산계획 변경 확인 (한 번)",
+     "steps": [
+      "N05"
+     ]
+    }
+   ],
+   "flow": [
+    {
+     "node": "N03A",
+     "name": "수행계획 구성",
+     "role": "A03",
+     "state": "done"
+    },
+    {
+     "node": "N04",
+     "name": "생산계획 변경안 작성",
+     "role": "A02",
+     "state": "done"
+    },
+    {
+     "node": "N05",
+     "name": "생산계획 변경 확인",
+     "role": "H03",
+     "state": "done"
+    },
+    {
+     "node": "N06",
+     "name": "반영·재조회 대조",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N07",
+     "name": "주문별 납기 재평가",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N08",
+     "name": "운송 확인 인계 (장면 3)",
+     "role": "Y01",
+     "state": "done"
+    }
+   ],
+   "source": {
+    "case_id": "CASE-S2-01",
+    "alert_id": "AL-S2-01",
+    "revision_id": "P-v2",
+    "commitments": [
+     "COM-S",
+     "COM-R"
+    ],
+    "handoff_id": "HAND-01"
+   },
+   "case_state": "진행 중"
+  },
+  "ref": "demo-example:case_plan/CP-S2-V1:v9",
+  "seq": 12,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "production_change",
+  "record_id": "PP-DRAFT-V1",
+  "version": 2,
+  "scene": 2,
+  "state": "CONFIRMED",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "생산계획 변경안",
+  "body": {
+   "draft_id": "PP-DRAFT-V1",
+   "version": 1,
+   "case_id": "CASE-S2-01",
+   "plan_id": "CP-S2-V1",
+   "content_hash": "sha256:d28b4553568d4da5",
+   "base_version": "PROD-V1",
+   "rows": [
+    {
+     "commitment_id": "COM-S",
+     "order_id": "O-S",
+     "model": "a",
+     "qty": 80,
+     "lot_id": "L2S",
+     "allocated_qty": 80,
+     "extra_stock": 0,
+     "line_id": "ULS-A-a",
+     "original_start": "2026-11-05T07:00:00+09:00",
+     "available_at": "2026-11-05T08:30:00+09:00",
+     "window_start": "2026-11-05T08:30:00+09:00",
+     "window_end": "2026-11-05T11:00:00+09:00",
+     "assembly_min": 120,
+     "prep_min": 30,
+     "start": "2026-11-05T08:30:00+09:00",
+     "end": "2026-11-05T10:30:00+09:00",
+     "ready_at": "2026-11-05T11:00:00+09:00",
+     "promised_at": "2026-11-05T15:00:00+09:00",
+     "first_truck": {
+      "truck_id": "S-1",
+      "cutoff": "2026-11-05T11:30:00+09:00",
+      "boardable": true
+     },
+     "conflicts": [],
+     "issues": [],
+     "ok": true
+    },
+    {
+     "commitment_id": "COM-R",
+     "order_id": "O-R",
+     "model": "b",
+     "qty": 240,
+     "lot_id": "L2R",
+     "allocated_qty": 240,
+     "extra_stock": 0,
+     "line_id": "ULS-A-b",
+     "original_start": "2026-11-05T09:00:00+09:00",
+     "available_at": "2026-11-05T11:30:00+09:00",
+     "window_start": "2026-11-05T11:30:00+09:00",
+     "window_end": "2026-11-05T16:00:00+09:00",
+     "assembly_min": 240,
+     "prep_min": 30,
+     "start": "2026-11-05T11:30:00+09:00",
+     "end": "2026-11-05T15:30:00+09:00",
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "first_truck": {
+      "truck_id": "R-1",
+      "cutoff": "2026-11-05T13:30:00+09:00",
+      "boardable": false
+     },
+     "conflicts": [],
+     "issues": [],
+     "ok": true
+    }
+   ],
+   "background": [
+    {
+     "commitment_id": "COM-C1",
+     "model": "c",
+     "line_id": "ULS-A-c",
+     "qty": 60,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    },
+    {
+     "commitment_id": "COM-C2",
+     "model": "c",
+     "line_id": "ULS-A-c",
+     "qty": 90,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    },
+    {
+     "commitment_id": "COM-D1",
+     "model": "d",
+     "line_id": "ULS-A-d",
+     "qty": 100,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    },
+    {
+     "commitment_id": "COM-D2",
+     "model": "d",
+     "line_id": "ULS-A-d",
+     "qty": 70,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    },
+    {
+     "commitment_id": "COM-E1",
+     "model": "e",
+     "line_id": "ULS-A-e",
+     "qty": 120,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    },
+    {
+     "commitment_id": "COM-E2",
+     "model": "e",
+     "line_id": "ULS-A-e",
+     "qty": 60,
+     "start": "2026-11-05T08:00:00+09:00",
+     "end": null,
+     "version": "PROD-V1",
+     "kept": true
+    }
+   ],
+   "confirmable": true,
+   "checks": {
+    "material": true,
+    "line": true,
+    "quality": true,
+    "background_kept": 6
+   },
+   "inputs": {
+    "analysis": "ANA-01",
+    "analysis_version": 1,
+    "revision_id": "P-v2",
+    "data_as_of": "2026-11-04T09:00:00+09:00"
+   },
+   "drafted_at": "2026-11-04T09:00:00+09:00",
+   "drafted_by": "A02",
+   "execution_mode": "rule",
+   "state": "CONFIRMED",
+   "supersedes": null
+  },
+  "ref": "demo-example:production_change/PP-DRAFT-V1:v2",
+  "seq": 13,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "confirmation",
+  "record_id": "APP-01",
+  "version": 3,
+  "scene": 2,
+  "state": "APPLIED",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "생산계획 변경 확인",
+  "body": {
+   "approval_id": "APP-01",
+   "kind": "production_plan_apply",
+   "draft_id": "PP-DRAFT-V1",
+   "content_hash": "sha256:d28b4553568d4da5",
+   "base_version": "PROD-V1",
+   "case_id": "CASE-S2-01",
+   "decision": "확정",
+   "state": "APPLIED",
+   "actor": "배정훈",
+   "actor_role": "H03",
+   "via": null,
+   "comment": "생산 가능시간 확인",
+   "confirmed_at": "2026-11-04T09:12:00+09:00",
+   "targets": [
+    "COM-S",
+    "COM-R"
+   ],
+   "target_version": "PROD-V2",
+   "note": "생산 가능시간의 확정 — 운송 승인·고객 약정 변경이 아니다"
+  },
+  "ref": "demo-example:confirmation/APP-01:v3",
+  "seq": 14,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "production_plan",
+  "record_id": "PROD-V2",
+  "version": 2,
+  "scene": 2,
+  "state": "MATCHED",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "반영본 재조회",
+  "body": {
+   "target_version": "PROD-V2",
+   "apply": {
+    "approval_id": "APP-01",
+    "draft_id": "PP-DRAFT-V1",
+    "target_version": "PROD-V2",
+    "rows": {
+     "COM-S": {
+      "state": "MATCHED",
+      "execution_key": "demo-example:APP-01:COM-S",
+      "attempts": [
+       {
+        "at": "2026-11-04T09:12:00+09:00",
+        "outcome": "ACK",
+        "created": true,
+        "mode": "company"
+       }
+      ]
+     },
+     "COM-R": {
+      "state": "MATCHED",
+      "execution_key": "demo-example:APP-01:COM-R",
+      "attempts": [
+       {
+        "at": "2026-11-04T09:12:00+09:00",
+        "outcome": "ACK",
+        "created": true,
+        "mode": "company"
+       }
+      ]
+     }
+    }
+   },
+   "readback": {
+    "version": "PROD-V2",
+    "read_at": "2026-11-04T09:12:00+09:00",
+    "approval_id": "APP-01",
+    "rows": {
+     "COM-S": {
+      "match": "MATCHED",
+      "match_label": "일치",
+      "diffs": [],
+      "stored": {
+       "commitment_id": "COM-S",
+       "model": "a",
+       "line_id": "ULS-A-a",
+       "qty": 80,
+       "start": "2026-11-05T08:30:00+09:00",
+       "end": "2026-11-05T10:30:00+09:00",
+       "version": "PROD-V2",
+       "approval_id": "APP-01",
+       "execution_key": "demo-example:APP-01:COM-S",
+       "applied_at": "2026-11-04T09:12:00+09:00"
+      }
+     },
+     "COM-R": {
+      "match": "MATCHED",
+      "match_label": "일치",
+      "diffs": [],
+      "stored": {
+       "commitment_id": "COM-R",
+       "model": "b",
+       "line_id": "ULS-A-b",
+       "qty": 240,
+       "start": "2026-11-05T11:30:00+09:00",
+       "end": "2026-11-05T15:30:00+09:00",
+       "version": "PROD-V2",
+       "approval_id": "APP-01",
+       "execution_key": "demo-example:APP-01:COM-R",
+       "applied_at": "2026-11-04T09:12:00+09:00"
+      }
+     }
+    },
+    "background": [
+     {
+      "commitment_id": "COM-C1",
+      "line_id": "ULS-A-c",
+      "qty": 60,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     },
+     {
+      "commitment_id": "COM-C2",
+      "line_id": "ULS-A-c",
+      "qty": 90,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     },
+     {
+      "commitment_id": "COM-D1",
+      "line_id": "ULS-A-d",
+      "qty": 100,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     },
+     {
+      "commitment_id": "COM-D2",
+      "line_id": "ULS-A-d",
+      "qty": 70,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     },
+     {
+      "commitment_id": "COM-E1",
+      "line_id": "ULS-A-e",
+      "qty": 120,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     },
+     {
+      "commitment_id": "COM-E2",
+      "line_id": "ULS-A-e",
+      "qty": 60,
+      "start": "2026-11-05T08:00:00+09:00",
+      "end": null,
+      "version": "PROD-V1"
+     }
+    ]
+   }
+  },
+  "ref": "demo-example:production_plan/PROD-V2:v2",
+  "seq": 15,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "assessment",
+  "record_id": "JDG-S2-01",
+  "version": 1,
+  "scene": 2,
+  "state": null,
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "주문별 납기 재평가 v1",
+  "body": {
+   "assessment_id": "JDG-S2-01",
+   "version": 1,
+   "case_id": "CASE-S2-01",
+   "draft_id": "PP-DRAFT-V1",
+   "approval_id": "APP-01",
+   "production_plan_version": "PROD-V2",
+   "assessed_at": "2026-11-04T09:12:00+09:00",
+   "execution_mode": "rule",
+   "rows": [
+    {
+     "commitment_id": "COM-S",
+     "model": "a",
+     "qty": 80,
+     "match": "MATCHED",
+     "match_label": "일치",
+     "stored_end": "2026-11-05T10:30:00+09:00",
+     "ready_at": "2026-11-05T11:00:00+09:00",
+     "prep_min": 30,
+     "truck_id": "S-1",
+     "cutoff": "2026-11-05T11:30:00+09:00",
+     "departure": "2026-11-05T12:00:00+09:00",
+     "arrival": "2026-11-05T14:00:00+09:00",
+     "promised_at": "2026-11-05T15:00:00+09:00",
+     "margin_min": 60,
+     "missed": [],
+     "route": "OBSERVE",
+     "route_label": "인수 관찰",
+     "reasons": [
+      "준비 11:00 ≤ S-1 마감 11:30 — 도착 14:00 · 약정 15:00 · 여유 60분"
+     ],
+     "missing": []
+    },
+    {
+     "commitment_id": "COM-R",
+     "model": "b",
+     "qty": 240,
+     "match": "MATCHED",
+     "match_label": "일치",
+     "stored_end": "2026-11-05T15:30:00+09:00",
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "prep_min": 30,
+     "truck_id": "R-2",
+     "cutoff": "2026-11-05T16:30:00+09:00",
+     "departure": "2026-11-05T17:00:00+09:00",
+     "arrival": "2026-11-05T19:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "margin_min": -30,
+     "missed": [
+      {
+       "truck_id": "R-1",
+       "cutoff": "2026-11-05T13:30:00+09:00",
+       "late_min": 150
+      }
+     ],
+     "route": "TRANSPORT",
+     "route_label": "운송 확인",
+     "reasons": [
+      "R-1 마감 13:30에 150분 늦어 다음 정기차 적용",
+      "준비 16:00 ≤ R-2 마감 16:30 — 도착 19:00 · 약정 18:30 · 여유 -30분"
+     ],
+     "missing": []
+    }
+   ],
+   "note": "예상 도착은 계획 기준 전망이다 — 실제 인수 지연 실적이 아니다"
+  },
+  "ref": "demo-example:assessment/JDG-S2-01:v1",
+  "seq": 16,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "HAND-02",
+  "version": 1,
+  "scene": 2,
+  "state": "N09",
+  "at": "2026-11-04T09:12:00+09:00",
+  "by": null,
+  "title": "장면 3 인계",
+  "body": {
+   "handoff_id": "HAND-02",
+   "case_id": "CASE-S2-01",
+   "demo_run_id": "demo-example",
+   "items": [
+    {
+     "commitment_id": "COM-R",
+     "qty": 240,
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "truck_id": "R-2",
+     "arrival": "2026-11-05T19:00:00+09:00",
+     "shortfall_min": 30,
+     "missed": [
+      {
+       "truck_id": "R-1",
+       "cutoff": "2026-11-05T13:30:00+09:00",
+       "late_min": 150
+      }
+     ],
+     "stored": {
+      "commitment_id": "COM-R",
+      "model": "b",
+      "line_id": "ULS-A-b",
+      "qty": 240,
+      "start": "2026-11-05T11:30:00+09:00",
+      "end": "2026-11-05T15:30:00+09:00",
+      "version": "PROD-V2",
+      "approval_id": "APP-01",
+      "execution_key": "demo-example:APP-01:COM-R",
+      "applied_at": "2026-11-04T09:12:00+09:00"
+     }
+    }
+   ],
+   "draft_id": "PP-DRAFT-V1",
+   "approval_id": "APP-01",
+   "production_plan_version": "PROD-V2",
+   "assessment": {
+    "assessment_id": "JDG-S2-01",
+    "version": 1
+   },
+   "evidence_at": "2026-11-04T09:12:00+09:00",
+   "observed": [
+    "COM-S"
+   ],
+   "held": [],
+   "next_node": "N09",
+   "next_label": "운송 대안 사실 확인 (장면 3 · U06) — 기존 운송 확인 업무 참조 여부 확인",
+   "not_done": [
+    "긴급차 확보",
+    "추가 운송비 전결 판단",
+    "경영검토 상신"
+   ],
+   "handed_at": "2026-11-04T09:12:00+09:00"
+  },
+  "ref": "demo-example:handoff/HAND-02:v1",
+  "seq": 17,
+  "recorded_at": "2026-11-04T09:12:00+09:00"
+ }
+]

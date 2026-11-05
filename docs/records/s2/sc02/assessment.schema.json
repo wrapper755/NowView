@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/assessment.schema.json",
+  "title": "s2/sc02 assessment",
+  "description": "주문별 납기 재평가 — 출하 준비·이용 정기차·예상 도착·약정·여유·후속 경로·보류 사유",
+  "type": "object",
+  "required": [
+    "approval_id",
+    "assessed_at",
+    "assessment_id",
+    "case_id",
+    "draft_id",
+    "execution_mode",
+    "note",
+    "production_plan_version",
+    "rows",
+    "version"
+  ],
+  "properties": {
+    "assessment_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "draft_id": {
+      "type": "string"
+    },
+    "approval_id": {
+      "type": "string"
+    },
+    "production_plan_version": {
+      "type": "string"
+    },
+    "assessed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "arrival",
+          "commitment_id",
+          "cutoff",
+          "departure",
+          "margin_min",
+          "match",
+          "match_label",
+          "missed",
+          "missing",
+          "model",
+          "prep_min",
+          "promised_at",
+          "qty",
+          "ready_at",
+          "reasons",
+          "route",
+          "route_label",
+          "stored_end",
+          "truck_id"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "match": {
+            "type": "string"
+          },
+          "match_label": {
+            "type": "string"
+          },
+          "stored_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ready_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "prep_min": {
+            "type": "integer"
+          },
+          "truck_id": {
+            "type": "string"
+          },
+          "cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "departure": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrival": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "margin_min": {
+            "type": "integer"
+          },
+          "missed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "cutoff",
+                "late_min",
+                "truck_id"
+              ],
+              "properties": {
+                "truck_id": {
+                  "type": "string"
+                },
+                "cutoff": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "late_min": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "route": {
+            "type": "string"
+          },
+          "route_label": {
+            "type": "string"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

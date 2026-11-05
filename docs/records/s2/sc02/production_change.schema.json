@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/production_change.schema.json",
+  "title": "s2/sc02 production_change",
+  "description": "생산계획 변경안(M20) — 판·기준 원계획·대상 약정 행(전후 시각·배정·라인·준비)·점검표·배경 주문",
+  "type": "object",
+  "required": [
+    "background",
+    "base_version",
+    "case_id",
+    "checks",
+    "confirmable",
+    "content_hash",
+    "draft_id",
+    "drafted_at",
+    "drafted_by",
+    "execution_mode",
+    "inputs",
+    "plan_id",
+    "rows",
+    "state",
+    "supersedes",
+    "version"
+  ],
+  "properties": {
+    "draft_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "plan_id": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "base_version": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "allocated_qty",
+          "assembly_min",
+          "available_at",
+          "commitment_id",
+          "conflicts",
+          "end",
+          "extra_stock",
+          "first_truck",
+          "issues",
+          "line_id",
+          "lot_id",
+          "model",
+          "ok",
+          "order_id",
+          "original_start",
+          "prep_min",
+          "promised_at",
+          "qty",
+          "ready_at",
+          "start",
+          "window_end",
+          "window_start"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "lot_id": {
+            "type": "string"
+          },
+          "allocated_qty": {
+            "type": "integer"
+          },
+          "extra_stock": {
+            "type": "integer"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "original_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "window_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "window_end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assembly_min": {
+            "type": "integer"
+          },
+          "prep_min": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ready_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "first_truck": {
+            "type": "object",
+            "required": [
+              "boardable",
+              "cutoff",
+              "truck_id"
+            ],
+            "properties": {
+              "truck_id": {
+                "type": "string"
+              },
+              "cutoff": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "boardable": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          },
+          "conflicts": {
+            "type": "array"
+          },
+          "issues": {
+            "type": "array"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "commitment_id",
+          "end",
+          "kept",
+          "line_id",
+          "model",
+          "qty",
+          "start",
+          "version"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "line_id": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "null"
+          },
+          "version": {
+            "type": "string"
+          },
+          "kept": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "confirmable": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "object",
+      "required": [
+        "background_kept",
+        "line",
+        "material",
+        "quality"
+      ],
+      "properties": {
+        "material": {
+          "type": "boolean"
+        },
+        "line": {
+          "type": "boolean"
+        },
+        "quality": {
+          "type": "boolean"
+        },
+        "background_kept": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "analysis",
+        "analysis_version",
+        "data_as_of",
+        "revision_id"
+      ],
+      "properties": {
+        "analysis": {
+          "type": "string"
+        },
+        "analysis_version": {
+          "type": "integer"
+        },
+        "revision_id": {
+          "type": "string"
+        },
+        "data_as_of": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "drafted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "drafted_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "supersedes": {
+      "type": "null"
+    }
+  },
+  "additionalProperties": true
+}

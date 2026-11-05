@@ -83,12 +83,15 @@ class Follower:
         scenes: Mapping[int, Any],
         *,
         s2: Any | None = None,
+        s2_scenes: Mapping[int, Any] | None = None,
         interval_s: float = INTERVAL_S,
     ) -> None:
         self.company = company
         self.scenes = dict(scenes)
         #: 시나리오 2 장면 1(`app/s2/sc01/process.py`) — 시나리오 2 회차를 따라간다(공통 플랫폼)
         self.s2 = s2
+        #: 시나리오 2 장면 2~(`app/s2/sc0N/process.py`) — 사이트의 「장면 열기」 명령으로 연다
+        self.s2_scenes = dict(s2_scenes or {})
         self.interval_s = interval_s
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -146,6 +149,14 @@ class Follower:
         (`world_generation`이 있다)만 본다 — 엔진 시험이 만든 문서·세계 전의 문서는 둔다. 목록을
         읽지 못한 바퀴(예외)는 여기까지 오지 않는다.
         """
+        for n in sorted(self.s2_scenes, reverse=True):
+            p = self.s2_scenes[n]
+            for row in p.store.list():
+                rid = row["demoRunId"]
+                found = p.store.load(rid)
+                if rid in present or found is None or found[0].get("world_generation") is None:
+                    continue
+                p.discard(rid)
         if self.s2 is not None:
             for row in self.s2.store.list():
                 rid = row["demoRunId"]
@@ -225,18 +236,70 @@ class Follower:
             seen.update(generation=w["generation"], receipts=0)
         elif found[0].get("world_generation", 1) != w["generation"]:
             log.info("세계 %s 초기화 회차 %s — 시나리오 2를 처음으로", rid, w["generation"])
+            for n in sorted(self.s2_scenes, reverse=True):  # 장면 2~ 문서는 지운다(다시 연다)
+                if self.s2_scenes[n].store.load(rid) is not None:
+                    self.s2_scenes[n].discard(rid)
             p.reset(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
             seen.update(generation=w["generation"], receipts=0)
         else:
             seen.setdefault("generation", w["generation"])
             seen.setdefault("receipts", len(found[0].get("receipts", {})))
-        current = p.store.load(rid)
-        if current is not None and parse_at(w["clock"]) > parse_at(current[0]["clock"]):
-            p.follow_clock(rid, w["clock"])
+        self._clock_s2(rid, w["clock"])
         if w.get("receipt_revisions", 0) > seen.get("receipts", 0):
             for item in self.company.receipt_inbox(rid, after=seen.get("receipts", 0)):
                 p.receive_inbox(rid, item["doc_id"])
                 seen["receipts"] = item["seq"]
+        if w.get("pending_commands"):
+            for command in self.company.commands(rid, "PENDING"):
+                self._run_s2_command(rid, command)
+
+    def _clock_s2(self, rid: str, at: str) -> None:
+        for p in [self.s2, *(self.s2_scenes[n] for n in sorted(self.s2_scenes))]:
+            found = None if p is None else p.store.load(rid)
+            if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
+                p.follow_clock(rid, at)
+
+    def _run_s2_command(self, rid: str, command: dict[str, Any]) -> None:
+        """
+        시나리오 2 회차의 명령 — 장면 N(≥2) 열기·그 장면만 처음으로·장면 N부터 다시. 명령의 장면은
+        그 회차 시나리오의 장면 번호다(업무 번호가 아니다).
+        """
+        scene, kind = command["scene"], command["kind"]
+        try:
+            if kind == "rewind":
+                n = int(command["body"].get("scene") or scene)
+                gone = []
+                for m in sorted(self.s2_scenes, reverse=True):
+                    if m >= n and self.s2_scenes[m].store.load(rid) is not None:
+                        self.s2_scenes[m].discard(rid)
+                        gone.append(m)
+                result: dict[str, Any] = {"discarded": sorted(gone)}
+            else:
+                p = self.s2_scenes.get(scene)
+                if p is None:
+                    raise DomainError(f"시나리오 2에 없는 장면: {scene}", 404)
+                body = command.get("body") or {}
+                if kind == "open":
+                    doc = p.create(
+                        rid,
+                        case_id=body.get("case_id") or "BASE",
+                        executor="center",
+                        actor=command["actor"],
+                    )
+                elif kind == "reset_scene":
+                    doc = p.reset(rid, actor=SYSTEM_ACTOR, case_id=body.get("case_id"))
+                else:
+                    raise DomainError(f"시나리오 2 장면 {scene}에 없는 명령: {kind}", 422)
+                result = {"scene": doc.get("scene"), "clock": doc.get("clock")}
+            self.company.command_result(rid, command["command_id"], state="DONE", result=result)
+        except DomainError as exc:
+            self.company.command_result(
+                rid,
+                command["command_id"],
+                state="REJECTED",
+                status=getattr(exc, "status", 409),
+                reason=str(exc),
+            )
 
     def _reset(self, rid: str, w: dict[str, Any]) -> None:
         """사이트가 세계를 초기화했다 — 장면 1은 S0로, 장면 2~7 문서는 지운다(다시 연다)."""
@@ -272,11 +335,7 @@ class Follower:
             return
         with self._guard:
             self._clock(demo_run_id, at)
-            s2 = self.s2
-            if s2 is not None:
-                found = s2.store.load(demo_run_id)
-                if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
-                    s2.follow_clock(demo_run_id, at)
+            self._clock_s2(demo_run_id, at)
         if node_id:
             PROGRESS_AT.setdefault(demo_run_id, {})[node_id] = at
 

@@ -121,7 +121,7 @@ def test_public_companies_show_no_registration(client: TestClient, monkeypatch) 
             "id": "company1",
             "name": "가상 자동차 부품사",
             "description": body[0]["description"],
-            "scenes": [1, 2, 3, 4, 5, 6, 7, 21],
+            "scenes": [1, 2, 3, 4, 5, 6, 7, 21, 22],
             # 회사 사이트는 공개 웹이다 — 회사 시스템 주소와 다르다
             "siteUrl": "http://site.example",
         }
@@ -229,5 +229,3 @@ def test_scenario_copies_match_company1() -> None:
         assert copy.read_bytes() == original.read_bytes(), (
             f"{copy.name} — scripts/sync-scenarios.sh"
         )
-
-

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/confirmation.schema.json",
+  "title": "s2/sc02 confirmation",
+  "description": "확인(M12 production_plan_apply) — H03 확인 한 건·대상 판·내용 식별값·두 약정",
+  "type": "object",
+  "required": [
+    "actor",
+    "actor_role",
+    "approval_id",
+    "base_version",
+    "case_id",
+    "comment",
+    "confirmed_at",
+    "content_hash",
+    "decision",
+    "draft_id",
+    "kind",
+    "note",
+    "state",
+    "target_version",
+    "targets",
+    "via"
+  ],
+  "properties": {
+    "approval_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "draft_id": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "base_version": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "actor_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target_version": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

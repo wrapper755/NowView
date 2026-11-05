@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc02/production_plan.schema.json",
+  "title": "s2/sc02 production_plan",
+  "description": "반영본 재조회(M21) — 저장소에서 다시 읽은 행·주문별 대조·실행키·시도 이력",
+  "type": "object",
+  "required": [
+    "apply",
+    "readback",
+    "target_version"
+  ],
+  "properties": {
+    "target_version": {
+      "type": "string"
+    },
+    "apply": {
+      "type": "object",
+      "required": [
+        "approval_id",
+        "draft_id",
+        "rows",
+        "target_version"
+      ],
+      "properties": {
+        "approval_id": {
+          "type": "string"
+        },
+        "draft_id": {
+          "type": "string"
+        },
+        "target_version": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "attempts",
+              "execution_key",
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "execution_key": {
+                "type": "string"
+              },
+              "attempts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "at",
+                    "created",
+                    "mode",
+                    "outcome"
+                  ],
+                  "properties": {
+                    "at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "outcome": {
+                      "type": "string"
+                    },
+                    "created": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "readback": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "approval_id",
+        "background",
+        "read_at",
+        "rows",
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "read_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approval_id": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "diffs",
+              "match",
+              "match_label",
+              "stored"
+            ],
+            "properties": {
+              "match": {
+                "type": "string"
+              },
+              "match_label": {
+                "type": "string"
+              },
+              "diffs": {
+                "type": "array"
+              },
+              "stored": {
+                "type": "object",
+                "required": [
+                  "applied_at",
+                  "approval_id",
+                  "commitment_id",
+                  "end",
+                  "execution_key",
+                  "line_id",
+                  "model",
+                  "qty",
+                  "start",
+                  "version"
+                ],
+                "properties": {
+                  "commitment_id": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "line_id": {
+                    "type": "string"
+                  },
+                  "qty": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "end": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "version": {
+                    "type": "string"
+                  },
+                  "approval_id": {
+                    "type": "string"
+                  },
+                  "execution_key": {
+                    "type": "string"
+                  },
+                  "applied_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "background": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "commitment_id",
+              "end",
+              "line_id",
+              "qty",
+              "start",
+              "version"
+            ],
+            "properties": {
+              "commitment_id": {
+                "type": "string"
+              },
+              "line_id": {
+                "type": "string"
+              },
+              "qty": {
+                "type": "integer"
+              },
+              "start": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "end": {
+                "type": "null"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
