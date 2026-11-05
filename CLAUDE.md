@@ -1555,8 +1555,8 @@ engine/processes/sc07.bpmn ──▶ Studio·Center ── external ──▶ ap
 
 CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3 — 2026-11-03 걷었다, 4.6), Agent와 예외 경로(5.5), 장면 2(5.6), 장면 3(5.7), 장면 4(5.8), 장면 5(5.9), 장면 6(5.10), 장면 7(5.11)은 끝났다(장면 1~7 모두
 로컬 Center에 올려 진짜 서버 실행기로 돌렸다). 운영계(5.4)에는 2026-11-04에 BPM·NowView·Company1 세 서버를 올려 장면 1~7을 끝까지 돌렸다.
-**시나리오 2 장면 1**(`docs/s2/sc01.md`)은 엔진 시험까지다 — Center에 공통 BPM `platform.case-intake`(공유 패키지)·`company1.s2.sc01`
-배포·로컬/운영 실측은 남았다.
+**시나리오 2 장면 1**(`docs/s2/sc01.md`)은 로컬 Center에서 끝까지 갔다(2026-11-05 — 공통 BPM `platform.case-intake` 공유 패키지 +
+`company1.s2.sc01` 0.9.1, 호출 활동이 같은 실행 안에서 공통 BPM을 돈다). 운영계 반영은 남았다.
 
 ### 5.1 CI — 완료
 

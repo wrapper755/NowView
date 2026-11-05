@@ -435,6 +435,30 @@ NODE_OF = {
 }
 
 
+def _mark_running(doc: dict) -> None:
+    """
+    폴러가 고를 칸(`bpm.executor`·`bpm.state` — 저장소 `running_external`이 본다). 개정마다 실행이
+    따로라 하나라도 돌면 `running`이다.
+    """
+    runs = [entry.get("run") or {} for entry in doc.get("receipts", {}).values()]
+    busy = any(r.get("state") == "running" for r in runs)
+    doc["bpm"] = {"executor": doc["executor"], "state": "running" if busy else "idle"}
+
+
+def _failure_of(events: list[dict[str, Any]]) -> str | None:
+    """실행 기록에서 실패 사유 — 실패한 노드의 메시지, 없으면 `run_finished`의 오류."""
+    for event in reversed(events):
+        data = event.get("data") or {}
+        if event.get("kind") == "node_state" and data.get("state") == "failed":
+            return f"{data.get('error_code') or 'failed'}: {data.get('message') or '-'}"
+    for event in reversed(events):
+        if event.get("kind") == "run_finished":
+            data = event.get("data") or {}
+            code = data.get("error_code") or data.get("status")
+            return f"{code}: {data.get('error_message') or '-'}"
+    return None
+
+
 # ─────────────────────────── 프로세스 ───────────────────────────
 
 
@@ -459,6 +483,7 @@ class S2Sc01Process:
         }
         self._locks: dict[str, threading.Lock] = {}
         self._guard = threading.Lock()
+        self._swept = False
 
     def _lock(self, demo_run_id: str) -> threading.Lock:
         with self._guard:
@@ -482,6 +507,7 @@ class S2Sc01Process:
         records.write(self.company, doc, SCENE, records_of(doc, self.master()))
 
     def _commit(self, doc: dict, version: int, event: str) -> dict:
+        _mark_running(doc)
         self._write_records(doc)
         try:
             self.store.save(doc["demo_run_id"], doc, version, event)
@@ -642,6 +668,63 @@ class S2Sc01Process:
             job_id=job["job_id"],
             doc_id=entry["doc_id"],
         )
+
+    # ───────────── Center 실행의 끝 ─────────────
+
+    def poll_center(self) -> int:
+        """
+        결재가 없어 실행의 끝은 보통 일감이 알려 준다. 그러나 **일감이 오기 전에 실행이 실패하면**
+        (호출 대상이 패키지에 없다 등) 알려 줄 일감이 없어 개정이 영영 「실행 중」이었다(2026-11-05
+        로컬 Center 실측). 도는 개정의 작업 상태를 읽어 거절·취소·실패를 사유와 함께 남긴다.
+        """
+        if self.center.config.missing(integration=True):
+            return 0
+        changed = 0
+        ids = self.store.running_external("center")
+        if not self._swept:
+            # 이 칸(`bpm`) 전에 저장된 문서는 저장소가 고르지 못한다 — 뜬 뒤 한 번 다 본다
+            self._swept = True
+            ids = [r["demoRunId"] for r in self.store.list()]
+        for demo_run_id in ids:
+            try:
+                changed += self.sync_center(demo_run_id)
+            except (CenterError, DomainError) as exc:
+                log.warning("Center 진행을 읽지 못했다 (%s): %s", demo_run_id, exc)
+        return changed
+
+    def sync_center(self, demo_run_id: str) -> int:
+        ended: dict[str, tuple[str, str | None]] = {}
+        doc = self.get(demo_run_id)
+        if doc["executor"] != "center":
+            return 0
+        for doc_id, entry in doc["receipts"].items():
+            run = entry.get("run") or {}
+            if run.get("state") != "running" or not run.get("job_id"):
+                continue
+            info = self.center.job(run["job_id"])
+            state, status = info.get("state"), info.get("run_status")
+            if state in ("rejected", "expired", "cancelled"):
+                ended[doc_id] = ("failed", f"작업 {state}: {info.get('state_reason') or '-'}")
+            elif status in ("failed", "cancelled"):
+                ext = run.get("external_run_id") or info.get("run_id")
+                reason = _failure_of(self.center.run_events(ext)) if ext else None
+                ended[doc_id] = ("failed", f"실행 {status} — {reason or '사유 없음'}")
+            elif status == "success":
+                ended[doc_id] = ("done", None)
+        if not ended:
+            return 0
+        with self._lock(demo_run_id):
+            doc, version = self._load(demo_run_id)
+            for doc_id, (state, problem) in ended.items():
+                run = doc["receipts"][doc_id]["run"]
+                if run.get("state") != "running":
+                    continue  # 그 사이 일감이 끝을 알렸다
+                run.update(state=state, problem=problem)
+                if problem:
+                    note = {"doc_id": doc_id, "reason": problem}
+                    audit(doc, actor="system", action="center_run_failed", **note)
+            self._commit(doc, version, "center")
+        return len(ended)
 
     def _cancel_jobs(self, doc: dict) -> None:
         for entry in doc.get("receipts", {}).values():

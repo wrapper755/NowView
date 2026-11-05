@@ -602,3 +602,67 @@ def test_common_bpm_jobs_carry_the_calling_package(proc, company, rid) -> None:
         "hand_off_case_analysis",
     ]
     assert proc.get(rid)["handoff"]["next_node"] == "N03A"
+
+
+class _EndedCenter:
+    """
+    Center 흉내 — 작업은 받지만 실행이 일감 전에 실패한다(2026-11-05 로컬 실측: 배포된 패키지에
+    공통 BPM 사본이 없어 `call_target_missing`).
+    """
+
+    def __init__(self) -> None:
+        from app.sc01.center import CenterConfig
+
+        self.config = CenterConfig(url="http://center.test", integration_key="k")
+        self.jobs: list[str] = []
+
+    def start_job(self, inputs, **kw) -> dict:
+        self.jobs.append(f"job_{len(self.jobs) + 1}")
+        return {"job_id": self.jobs[-1]}
+
+    def job(self, job_id: str) -> dict:
+        return {"job_id": job_id, "state": "done", "run_status": "failed", "run_id": "run_x"}
+
+    def run_events(self, run_id: str) -> list[dict]:
+        message = "[Call_CaseIntake] 호출 대상이 패키지에 없다: platform.case-intake"
+        return [
+            {"kind": "run_started", "data": {}},
+            {
+                "kind": "node_state",
+                "node_id": "Call_CaseIntake",
+                "data": {
+                    "state": "failed",
+                    "error_code": "call_target_missing",
+                    "message": message,
+                },
+            },
+            {"kind": "run_finished", "data": {"status": "failed"}},
+        ]
+
+    def cancel_job(self, job_id: str) -> dict:
+        return {}
+
+
+def test_center_run_that_fails_before_any_job_is_recorded_with_its_reason(
+    tmp_path, company
+) -> None:
+    """
+    일감이 오기 전에 실패한 Center 실행 — 폴러가 작업 상태를 읽어 그 개정을 「실패」와 사유로
+    남긴다.
+    예전에는 알려 줄 일감이 없어 영영 「실행 중」이었다.
+    """
+    backend = build_sqlite_backend(str(tmp_path / "engine.sqlite"))
+    center = _EndedCenter()
+    proc = S2Sc01Process(build_sc01_store(backend, "s2sc01"), company=company, center=center)
+    rid = f"s2-{uuid.uuid4().hex[:8]}"
+    proc.create(rid, executor="center")
+    doc_id = _send(proc, company, rid, "P-v0")
+    run = proc.get(rid)["receipts"][doc_id]["run"]
+    assert (run["state"], run["job_id"]) == ("running", "job_1")
+    assert proc.get(rid)["bpm"]["state"] == "running"
+    assert proc.poll_center() == 1
+    doc = proc.get(rid)
+    run = doc["receipts"][doc_id]["run"]
+    assert run["state"] == "failed" and "call_target_missing" in run["problem"]
+    assert doc["bpm"]["state"] == "idle" and doc["audit"][-1]["action"] == "center_run_failed"
+    assert proc.poll_center() == 0  # 도는 실행이 없다

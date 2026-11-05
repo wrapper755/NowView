@@ -107,19 +107,18 @@ app.include_router(build_sc06_router(sc06, hub))
 # 돈다. 테이블은 `sc07_*`.
 sc07 = Sc07Process(build_sc01_store(backend, "sc07"), sc06, publish=notifier.publish)
 app.include_router(build_sc07_router(sc07, hub))
-# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 일곱 장면
-# 모두.
-poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07)
 # 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다. 토픽은
 # 설정에서, 일감마다 보낸 BPM 프로세스 id → 설정의 업무(장면) → 그 장면의 프로세스다.
 _S1 = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
 # 시나리오 2 장면 1(공통 플랫폼 첫 업무, `docs/platform.md`) — 구매 개정 하나 = BPM 실행 하나.
-# 결재가 없어
-# 폴러가 읽지 않는다(일감이 진행을 알려 준다). 업무 번호 21 = 시나리오 2 장면 1.
+# 결재가 없어 진행은 일감이 알려 준다. 폴러는 일감 전에 실패한 실행의 끝만 읽는다. 업무 번호 21.
 s2sc01 = S2Sc01Process(
     build_sc01_store(backend, "s2sc01"), company=company, center=center, publish=notifier.publish
 )
 _SCENES = {**_S1, 21: s2sc01}
+# 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 시나리오 1
+# 일곱 장면과 시나리오 2 장면 1.
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07, s2sc01)
 # 세계 따라가기 — 회사 사이트가 기간계에 만든 세계·시계·원천·명령을 읽어 따라간다(role-split §5.3).
 # 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`). 회차의 시나리오로 갈라 따라간다.
 follower = Follower(company, _S1, s2=s2sc01)
