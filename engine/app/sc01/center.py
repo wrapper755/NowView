@@ -69,6 +69,8 @@ class CenterConfig:
     sc06_package: str = "company1.sc06"
     #: 장면 7 패키지(`processes/sc07.bpmn` — 개선 확인·적용 절차)
     sc07_package: str = "company1.sc07"
+    #: 시나리오 2 장면 1 패키지(`processes/s2-sc01.bpmn` — 개정 하나 = 실행 하나)
+    s2_sc01_package: str = "company1.s2.sc01"
 
     @classmethod
     def from_env(cls) -> CenterConfig:
@@ -83,6 +85,7 @@ class CenterConfig:
             sc05_package=os.getenv("CHAEKSAS_SC05_PACKAGE") or "company1.sc05",
             sc06_package=os.getenv("CHAEKSAS_SC06_PACKAGE") or "company1.sc06",
             sc07_package=os.getenv("CHAEKSAS_SC07_PACKAGE") or "company1.sc07",
+            s2_sc01_package=os.getenv("CHAEKSAS_S2_SC01_PACKAGE") or "company1.s2.sc01",
         )
 
     def missing(self, *, relay: bool = False, integration: bool = False) -> str | None:
@@ -113,6 +116,7 @@ class CenterConfig:
             "sc05Package": self.sc05_package,
             "sc06Package": self.sc06_package,
             "sc07Package": self.sc07_package,
+            "s2Sc01Package": self.s2_sc01_package,
         }
 
 

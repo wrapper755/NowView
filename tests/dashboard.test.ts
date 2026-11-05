@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatClock, formatKrw, formatMetric, workUrl } from "@/lib/dashboard";
+import { caseUrl, formatClock, formatKrw, formatMetric, formatPercent, workUrl } from "@/lib/dashboard";
 
 describe("대시보드 표기", () => {
   it("금액은 억·만·원으로, 부호는 −를 쓴다", () => {
@@ -26,5 +26,22 @@ describe("대시보드 표기", () => {
     expect(workUrl("http://localhost:3100", "demo-db9e1a3e", 3)).toBe("http://localhost:3100/work/demo-db9e1a3e/sc03");
     expect(workUrl(null, "demo-1", 1)).toBeNull();
     expect(workUrl("http://localhost:3100", null, 1)).toBeNull();
+  });
+});
+
+describe("시나리오 2 — 공통 플랫폼", () => {
+  it("업무 번호 21은 회사 사이트의 시나리오 2 장면 1 화면이다", () => {
+    expect(workUrl("https://site", "demo-1", 21)).toBe("https://site/work/demo-1/s2/sc01");
+    expect(workUrl("https://site", "demo-1", 1)).toBe("https://site/work/demo-1/sc01");
+  });
+  it("사건 열기는 돌아올 곳과 약정을 넘긴다(맥락 유지)", () => {
+    const url = caseUrl("https://site", "demo-1", "https://nv/c/company1?world=demo-1", "COM-R");
+    expect(url).toBe("https://site/work/demo-1/s2/sc01?back=https%3A%2F%2Fnv%2Fc%2Fcompany1%3Fworld%3Ddemo-1&commitment=COM-R");
+    expect(caseUrl(null, "demo-1", "x")).toBeNull();
+  });
+  it("비율은 %로, 분모 0은 「대상 없음」(0%가 아니다)", () => {
+    expect(formatPercent("0.9900")).toBe("99%");
+    expect(formatPercent("0.9500")).toBe("95%");
+    expect(formatPercent(null)).toBe("대상 없음");
   });
 });

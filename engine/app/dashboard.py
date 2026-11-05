@@ -30,9 +30,7 @@ Metric = dict[str, Any]
 def _latest(found: list[Record], kind: str, record_id: str | None = None) -> Record | None:
     """그 종류의 마지막 기록 — `records_of`는 문서 순서(`domain.ordered`)로 낸다."""
     rows = [
-        r
-        for r in found
-        if r["kind"] == kind and (record_id is None or r["record_id"] == record_id)
+        r for r in found if r["kind"] == kind and (record_id is None or r["record_id"] == record_id)
     ]
     return rows[-1]["body"] if rows else None
 
@@ -114,6 +112,22 @@ def _sc07(found: list[Record]) -> list[Metric]:
     return [_text("적용 상태", state.get("label") or state.get("state"))]
 
 
+def _s2sc01(found: list[Record]) -> list[Metric]:
+    board = _latest(found, "dashboard") or {}
+    kpi = board.get("kpi") or {}
+    kri = board.get("kri") or {}
+    rate = kpi.get("otd")
+    shown = None if rate is None else f"{float(rate) * 100:.0f}%"
+    return [
+        _text(f"납기준수율 ({_dig(kpi, 'period', 'label') or '마감기간'})", shown),
+        _text(
+            "OTD 목표", None if kpi.get("target") is None else f"{float(kpi['target']) * 100:.0f}%"
+        ),
+        _text("공급 경보", None if not board else f"{kri.get('alerts', 0)}건"),
+        _text("영향 납기약정", None if not board else f"{kri.get('affected_commitments', 0)}건"),
+    ]
+
+
 METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     1: _sc01,
     2: _sc02,
@@ -122,6 +136,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     5: _sc05,
     6: _sc06,
     7: _sc07,
+    21: _s2sc01,
 }
 
 
@@ -136,6 +151,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
 
     if scene == 1:
         return r1.records_of(doc, proc.seed)
+    if scene == 21:
+        from app.s2.sc01 import records as s21
+
+        return s21.records_of(doc, proc.master())
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 
@@ -152,12 +171,15 @@ def work(scene: int, proc: Any, doc: dict | None) -> dict[str, Any]:
     approvals = _approvals(proc)
     bpm = doc.get("bpm") or {}
     visited = set(bpm.get("visited") or [])
+    found: list[Record] = []
     try:
         found = _records(scene, proc, doc)
         metrics = METRICS[scene](found)
     except Exception:  # 지표는 부수적이다 — 한 업무의 문서가 낡아도 대시보드 전체가 죽지 않게
         log.exception("장면 %s 지표를 짓지 못했다 (%s)", scene, doc.get("demo_run_id"))
         metrics = []
+    if scene == 21:
+        return {**head, **_s2_runs(doc), "metrics": metrics, "board": _latest(found, "dashboard")}
     waiting = [
         {"nodeId": w.get("node_id"), "title": w.get("title")}
         for w in bpm.get("waiting") or []
@@ -170,6 +192,26 @@ def work(scene: int, proc: Any, doc: dict | None) -> dict[str, Any]:
         "progress": {"approvals": len(approvals), "passed": len(visited & approvals)},
         "waiting": waiting,
         "metrics": metrics,
+    }
+
+
+def _s2_runs(doc: dict) -> dict[str, Any]:
+    """
+    시나리오 2 장면 1 — 개정 하나 = 실행 하나라 실행이 여럿이다. 결재가 없다(조회만). 흐름 끝은
+    장면 2 인계가
+    났을 때다.
+    """
+    runs = [r["run"] for r in doc.get("receipts", {}).values()]
+    state = "not_started"
+    if doc.get("handoff"):
+        state = "done"
+    elif any(r.get("state") == "running" for r in runs) or runs:
+        state = "running"
+    return {
+        "state": state,
+        "clock": doc.get("clock"),
+        "progress": {"approvals": 0, "passed": 0, "runs": len(runs)},
+        "waiting": [],
     }
 
 

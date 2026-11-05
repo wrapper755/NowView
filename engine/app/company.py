@@ -100,6 +100,7 @@ class CompanyClient:
         self._client = client
         self.timeout_s = timeout_s
         self._seed: Seed | None = None
+        self._s2_master: dict[str, Any] | None = None
         self._roster = False
         self._worlds: set[str] = set()
         self._guard = threading.Lock()
@@ -118,6 +119,7 @@ class CompanyClient:
             self.url = url
             self._client = None
             self._seed = None
+            self._s2_master = None
             self._roster = False
             self._worlds = set()
 
@@ -225,11 +227,17 @@ class CompanyClient:
 
     # ───────────── 세계 ─────────────
 
-    def ensure_world(self, world_id: str) -> None:
-        """세계를 만든다(멱등). 이 프로세스에서 이미 만든 세계는 다시 묻지 않는다."""
+    def ensure_world(self, world_id: str, scenario_id: str | None = None) -> None:
+        """
+        세계를 만든다(멱등). 이 프로세스에서 이미 만든 세계는 다시 묻지 않는다. 시나리오 2 회차는
+        `scenario_id`를 준다(엔진 시험 — 운영은 사이트가 만든다).
+        """
         if world_id in self._worlds:
             return
-        self._call("POST", "/worlds", {"world_id": world_id})
+        body: dict[str, Any] = {"world_id": world_id}
+        if scenario_id:
+            body["scenario_id"] = scenario_id
+        self._call("POST", "/worlds", body)
         self._worlds.add(world_id)
 
     def reset_world(self, world_id: str) -> None:
@@ -311,6 +319,33 @@ class CompanyClient:
         """그 장면의 기록만 처음으로 — 장면을 초기화하거나 새로 열 때(다른 장면 기록은 그대로)."""
         self.ensure_world(world_id)
         return self._call("POST", f"/worlds/{world_id}/records/reset", {"scene": scene})
+
+    # ───────────── 시나리오 2 — 납기 (공통 플랫폼 첫 업무) ─────────────
+
+    def s2_master(self) -> dict[str, Any]:
+        """
+        시나리오 2 회사 자료 — 납기약정·생산 소요·배경 입고 예정·구매 개정 원천(불변, 한 번 읽어
+        둔다).
+        """
+        with self._guard:
+            if self._s2_master is not None:
+                return self._s2_master
+        found = self._call("GET", "/company/s2/master")
+        with self._guard:
+            self._s2_master = found
+        return found
+
+    def purchase_registers(self, world_id: str, fixture_id: str) -> dict[str, Any]:
+        """시연 — 구매시스템에 입고예정 개정이 등록됐다(엔진 시험만 — 운영은 사이트가 보낸다)."""
+        return self._call(
+            "POST", f"/worlds/{world_id}/sim/receipt-revisions", {"fixture_id": fixture_id}
+        )
+
+    def receipt_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/receipt-revisions/inbox?after={after}")
+
+    def receipt(self, world_id: str, doc_id: str) -> dict[str, Any]:
+        return self._call("GET", f"/worlds/{world_id}/receipt-revisions/{doc_id}")
 
     # ───────────── 구매 (장면 2) ─────────────
 

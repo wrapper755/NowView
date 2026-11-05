@@ -28,6 +28,7 @@ from .consumer import ConsumerHost, routed_by
 from .events import hub
 from .follower import Follower, Synced
 from .notify import build_notifier
+from .s2.sc01.process import S2Sc01Process
 from .sc01.api import build_router as build_sc01_router
 from .sc01.center import CenterClient, CenterConfig
 from .sc01.poller import CenterPoller
@@ -56,7 +57,8 @@ app = FastAPI(
     version="0.2.0",
     description=(
         "회사별 BPM 프로세스(Chaeksas Center)의 서비스 태스크를 수행하는 일꾼과 회사별 대시보드의 "
-        "자료. 지금 회사는 가상 자동차 부품사(company1) 하나 — 시나리오 1의 장면 1~7. "
+        "자료. 지금 회사는 가상 자동차 부품사(company1) 하나 — 시나리오 1의 장면 1~7과 "
+        "시나리오 2(납기)의 장면 1. "
         "업무 흐름은 processes/*.bpmn이다."
     ),
 )
@@ -110,11 +112,19 @@ app.include_router(build_sc07_router(sc07, hub))
 poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07)
 # 서비스 태스크의 일감을 Center에서 가져간다(C15, ADR-0102) — Center 주소가 있을 때만 뜬다. 토픽은
 # 설정에서, 일감마다 보낸 BPM 프로세스 id → 설정의 업무(장면) → 그 장면의 프로세스다.
-_SCENES = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
+_S1 = {1: sc01, 2: sc02, 3: sc03, 4: sc04, 5: sc05, 6: sc06, 7: sc07}
+# 시나리오 2 장면 1(공통 플랫폼 첫 업무, `docs/platform.md`) — 구매 개정 하나 = BPM 실행 하나.
+# 결재가 없어
+# 폴러가 읽지 않는다(일감이 진행을 알려 준다). 업무 번호 21 = 시나리오 2 장면 1.
+s2sc01 = S2Sc01Process(
+    build_sc01_store(backend, "s2sc01"), company=company, center=center, publish=notifier.publish
+)
+_SCENES = {**_S1, 21: s2sc01}
 # 세계 따라가기 — 회사 사이트가 기간계에 만든 세계·시계·원천·명령을 읽어 따라간다(role-split §5.3).
-# 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`).
-follower = Follower(company, _SCENES)
-_WORKERS = {n: Synced(p, follower, n) for n, p in _SCENES.items()}
+# 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`). 회차의 시나리오로 갈라 따라간다.
+follower = Follower(company, _S1, s2=s2sc01)
+# 일감 기록의 장면은 그 회차 시나리오의 장면 번호다(시나리오 2 장면 1 → 1)
+_WORKERS = {n: Synced(p, follower, n) for n, p in _S1.items()} | {21: Synced(s2sc01, follower, 1)}
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _WORKERS))
 app.include_router(
     build_companies_router(settings, consumer, center, poller, {"company1": company}, _SCENES)
@@ -179,6 +189,7 @@ def health() -> dict[str, Any]:
                 sc05.process.id,
                 sc06.process.id,
                 sc07.process.id,
+                s2sc01.process.id,
             ],
         },
         "demoRuns": len(sc01.store.list()),

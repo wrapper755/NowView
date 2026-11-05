@@ -54,7 +54,8 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     raw = (ROOT / "chaeksas" / "external.extension.json").read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
-    assert manifest.version == "0.7.0"
+    # 판 고정은 최신 업무의 시험이 한다(시나리오 2 장면 1 — 0.8.0). 여기서는 그림의 범위를
+    # 만족하는지 본다
     adapter = json.loads(raw)["service"]["adapter"]
     operations = {o["name"]: o for o in adapter["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())

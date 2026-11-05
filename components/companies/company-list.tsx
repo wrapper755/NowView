@@ -8,15 +8,24 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { SCENES, useCompanies } from "@/lib/companies";
+import { SupplyBoardView } from "@/components/companies/supply-board";
 import {
   type Dashboard,
   type Work,
   STATE_LABEL,
+  caseUrl,
   formatClock,
   formatMetric,
   formatWon,
   workUrl,
 } from "@/lib/dashboard";
+
+/** 사건 화면에서 돌아올 곳 — 이 대시보드의 같은 회차(공통 플랫폼 X02 — 맥락 유지). */
+function backUrl(companyId: string, world: string | null): string {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const q = world ? `?world=${encodeURIComponent(world)}` : "";
+  return `${origin}/c/${encodeURIComponent(companyId)}${q}`;
+}
 
 /** 회사 목록 — 엔진 설정의 공개 목록(이름·설명·업무). 회사는 설정이라 빌드 때 모른다. */
 export function CompanyList() {
@@ -117,7 +126,11 @@ function WorkCard({ work, href }: { work: Work; href: string | null }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
-        {progress && (
+        {progress && progress.approvals === 0 && (
+          // 시나리오 2 장면 1 — 사람 결재가 없다(조회만). 구매 개정 하나가 실행 하나다.
+          <p className="text-xs text-muted-foreground">사람 결재 없음 · 구매 개정 실행 {progress.runs ?? 0}건</p>
+        )}
+        {progress && progress.approvals > 0 && (
           <div className="space-y-1.5">
             <p className="flex justify-between text-xs text-muted-foreground">
               <span>지나온 결재</span>
@@ -183,8 +196,8 @@ function WorkCard({ work, href }: { work: Work; href: string | null }) {
  * 업무 화면·해설·업무 설명은 회사 사이트(`/work/{회차}/sc0N`)에 있고 카드가 그리로 잇는다(2026-11-03 4단계,
  * `docs/role-split.md`). 실행 상세는 Center 콘솔이다.
  */
-export function CompanyDashboard({ companyId }: { companyId: string }) {
-  const [world, setWorld] = useState<string | null>(null);
+export function CompanyDashboard({ companyId, initialWorld = null }: { companyId: string; initialWorld?: string | null }) {
+  const [world, setWorld] = useState<string | null>(initialWorld);
   const loaded = useDashboard(companyId, world);
   if (loaded.kind === "loading") return <p className="text-sm text-muted-foreground">읽는 중…</p>;
   if (loaded.kind === "error") {
@@ -202,6 +215,8 @@ export function CompanyDashboard({ companyId }: { companyId: string }) {
   }
   const { company, worlds, works, problem } = loaded.data;
   const chosen = loaded.data.world;
+  // 시나리오 2 회차 — 납기 상황판(UI-D01)이 머리에 온다(장면 1 기록 `dashboard`)
+  const board = works.find((w) => w.board)?.board ?? null;
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -225,7 +240,8 @@ export function CompanyDashboard({ companyId }: { companyId: string }) {
           >
             {worlds.map((w) => (
               <option key={w.worldId} value={w.worldId}>
-                {w.worldId} · {w.caseId ?? "BASE"} · {w.generation ?? 1}회차 · {formatClock(w.clock)}
+                {w.scenarioId === "s2" ? "시나리오 2" : "시나리오 1"} · {w.worldId} · {w.caseId ?? "BASE"} · {w.generation ?? 1}회차 ·{" "}
+                {formatClock(w.clock)}
               </option>
             ))}
           </select>
@@ -234,6 +250,12 @@ export function CompanyDashboard({ companyId }: { companyId: string }) {
         )}
       </div>
       {problem && <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">{problem}</p>}
+      {board && (
+        <SupplyBoardView
+          board={board}
+          openCase={(commitment) => caseUrl(company.siteUrl, chosen, backUrl(companyId, chosen), commitment)}
+        />
+      )}
 
       <ol className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {works.map((w) => (

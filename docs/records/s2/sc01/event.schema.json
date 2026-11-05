@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/event.schema.json",
+  "title": "s2/sc01 event",
+  "description": "원천 Event(M02) — 구매 입고예정 개정 한 건과 Y01 판정(최초·기록·경보·평가 보류·중복·늦게 옴)",
+  "type": "object",
+  "required": [
+    "affected",
+    "case_id",
+    "change_count",
+    "evaluated_at",
+    "event_id",
+    "execution_mode",
+    "judgment",
+    "judgment_label",
+    "lots",
+    "min_slack_min",
+    "missing",
+    "reasons",
+    "redeliveries",
+    "registered_at",
+    "revision_id",
+    "revision_no",
+    "rule_version",
+    "shortage",
+    "source_key",
+    "source_system",
+    "total_qty",
+    "window"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "source_system": {
+      "type": "string"
+    },
+    "source_key": {
+      "type": "string"
+    },
+    "revision_id": {
+      "type": "string"
+    },
+    "revision_no": {
+      "type": "integer"
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "available_at",
+          "inspection_min",
+          "lot_id",
+          "part_id",
+          "planned_at",
+          "qty"
+        ],
+        "properties": {
+          "lot_id": {
+            "type": "string"
+          },
+          "part_id": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "planned_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inspection_min": {
+            "type": "integer"
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "total_qty": {
+      "type": "integer"
+    },
+    "window": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "change_count": {
+      "type": "integer"
+    },
+    "min_slack_min": {
+      "type": "integer"
+    },
+    "shortage": {
+      "type": "integer"
+    },
+    "judgment": {
+      "type": "string"
+    },
+    "judgment_label": {
+      "type": "string"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missing": {
+      "type": "array"
+    },
+    "affected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "redeliveries": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

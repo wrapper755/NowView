@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/alert.schema.json",
+  "title": "s2/sc01 alert",
+  "description": "경보(M16) — KRI·규칙 버전·사유·위험 수준·연결 Event·Case",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "case_id",
+    "dedupe_key",
+    "evaluated_at",
+    "events",
+    "kri",
+    "part_id",
+    "po_line",
+    "raised_at",
+    "reasons",
+    "risk_label",
+    "risk_level",
+    "rule_version"
+  ],
+  "properties": {
+    "alert_id": {
+      "type": "string"
+    },
+    "kri": {
+      "type": "string"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "raised_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "risk_level": {
+      "type": "string"
+    },
+    "risk_label": {
+      "type": "string"
+    },
+    "part_id": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "po_line": {
+      "type": "string"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "dedupe_key": {
+      "type": "string"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

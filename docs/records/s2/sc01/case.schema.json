@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/case.schema.json",
+  "title": "s2/sc01 case",
+  "description": "Case(M03) — 유형·목표·책임 역할·상태·Event·영향 약정·역할 목록·흐름 단계",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "analysis",
+    "analysis_version",
+    "approvals",
+    "attempts",
+    "case_id",
+    "case_type",
+    "case_type_label",
+    "commitments",
+    "current_plan_version",
+    "events",
+    "flow",
+    "goal",
+    "next_node",
+    "opened_at",
+    "owner",
+    "owner_role",
+    "plant",
+    "product",
+    "production_plan",
+    "roles",
+    "state",
+    "state_label",
+    "title"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "case_type": {
+      "type": "string"
+    },
+    "case_type_label": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "plant": {
+      "type": "string"
+    },
+    "product": {
+      "type": "string"
+    },
+    "goal": {
+      "type": "string"
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "commitments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alert_id": {
+      "type": "string"
+    },
+    "current_plan_version": {
+      "type": "null"
+    },
+    "analysis": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "analysis_id",
+        "version"
+      ],
+      "properties": {
+        "analysis_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "next_node": {
+      "type": "string"
+    },
+    "state_label": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "object",
+      "required": [
+        "kind",
+        "label",
+        "role_id",
+        "title"
+      ],
+      "properties": {
+        "role_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "kind",
+          "label",
+          "role_id",
+          "steps",
+          "title"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duty": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "node",
+          "role",
+          "state"
+        ],
+        "properties": {
+          "node": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "analysis_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "revision_id",
+          "state",
+          "version"
+        ],
+        "properties": {
+          "revision_id": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "production_plan": {
+      "type": "string"
+    },
+    "approvals": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

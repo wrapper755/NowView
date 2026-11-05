@@ -87,29 +87,35 @@ def _infer(values: list[Any], depth: int = 0) -> dict[str, Any]:
     return schema
 
 
-def infer(scene: int, kind: str, bodies: list[dict], description: str) -> dict[str, Any]:
+def infer(
+    scene: int, kind: str, bodies: list[dict], description: str, folder: str | None = None
+) -> dict[str, Any]:
+    where = folder or f"sc{scene:02d}"
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": f"sc{scene:02d}/{kind}.schema.json",
-        "title": f"장면 {scene} {kind}",
+        "$id": f"{where}/{kind}.schema.json",
+        "title": f"{where} {kind}",
         "description": description,
         **_infer(bodies),
     }
 
 
-def check(scene: int, kinds: dict[str, str], versions: list[dict]) -> list[str]:
+def check(
+    scene: int, kinds: dict[str, str], versions: list[dict], where: str | None = None
+) -> list[str]:
     """
     모든 판을 봉투·종류별 스키마로 검사한다. 스키마가 없는 종류·쓰이지 않은 스키마도 문제다.
-    `NOWVIEW_WRITE_RECORD_SCHEMAS`가 켜져 있으면 이 판들로 스키마를 다시 뽑아 쓴다.
+    `NOWVIEW_WRITE_RECORD_SCHEMAS`가 켜져 있으면 이 판들로 스키마를 다시 뽑아 쓴다. `where` —
+    시나리오 2부터의 공통 기록은 `s2/sc01`이고 record_id에 장면 접두가 없다(`docs/platform.md` §3).
     """
-    folder = DOCS / f"sc{scene:02d}"
+    folder = DOCS / (where or f"sc{scene:02d}")
     by_kind: dict[str, list[dict]] = {}
     for r in versions:
         by_kind.setdefault(r["kind"], []).append(r["body"])
     if os.getenv("NOWVIEW_WRITE_RECORD_SCHEMAS"):
         folder.mkdir(parents=True, exist_ok=True)
         for kind, bodies in by_kind.items():
-            schema = infer(scene, kind, bodies, kinds.get(kind, ""))
+            schema = infer(scene, kind, bodies, kinds.get(kind, ""), where)
             text = json.dumps(schema, ensure_ascii=False, indent=2) + "\n"
             (folder / f"{kind}.schema.json").write_text(text, "utf-8")
     found: list[str] = []
@@ -128,7 +134,7 @@ def check(scene: int, kinds: dict[str, str], versions: list[dict]) -> list[str]:
         found += [f"봉투: {e.message}" for e in ENVELOPE.iter_errors(head)]
         if r["scene"] != scene:
             found.append(f"{r['record_id']}: 장면 {r['scene']}")
-        if not r["record_id"].startswith(f"SC{scene:02d}:"):
+        if where is None and not r["record_id"].startswith(f"SC{scene:02d}:"):
             found.append(f"{r['record_id']}: 장면 코드가 앞에 없다")
         schema = schemas.get(r["kind"])
         if schema is not None:
@@ -146,12 +152,12 @@ def normalized(records: list[dict], world: str) -> list[dict]:
     return json.loads(text)
 
 
-def example(company: Any, world: str, scene: int) -> list[str]:
+def example(company: Any, world: str, scene: int, where: str | None = None) -> list[str]:
     """
     사이트 시험이 쓰는 예시(그 장면 기록의 최신 판)가 지금 엔진이 적는 것과 같은 목록·판인지.
     `NOWVIEW_WRITE_RECORD_EXAMPLES`가 켜져 있으면 다시 쓴다.
     """
-    path = DOCS / f"sc{scene:02d}" / "examples" / "base-end.json"
+    path = DOCS / (where or f"sc{scene:02d}") / "examples" / "base-end.json"
     latest = [
         company.record(world, r["kind"], r["record_id"])
         for r in company.records(world, scene=scene)

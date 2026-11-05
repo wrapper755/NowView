@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.7.0",
+  "version": "0.9.0",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)의 것이다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -5909,6 +5909,174 @@
                 "type": "string"
               },
               "state": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "evaluate_receipt_change",
+          "description": "시나리오 2 장면 1 N01 (Y01 규칙 엔진) — 구매 입고예정 개정 한 건을 현행 KRI로 판정한다(최초·기록·경보·평가 보류). 같은 개정의 재수신은 기존 판정을 돌려준다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "doc_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "judgment": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "revision_id": {
+                "type": "string"
+              },
+              "change_count": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "link_case",
+          "description": "공통 BPM platform.case-intake (CP37) — 경보·원천 Event를 대응 Case에 잇는다. 활성 Case가 있으면 새로 만들지 않고 근거만 더한다. 어떤 Case인지는 일감을 보낸 업무가 정한다(시나리오 2 장면 1: 공급 대응 Case, Y01)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "doc_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "alert_id": {
+                "type": "string"
+              },
+              "affected": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "analyze_case_impact",
+          "description": "공통 BPM platform.case-intake (CP12) — Case의 영향 대상을 같은 근거 버전으로 분석한다. 재계산은 새 판. 시나리오 2 장면 1은 A01 납기 영향 분석(규칙 처리 — 약정별 소요·배정 입고분·사용 가능·착수 차질·차량 마감)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "doc_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "analysis_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer"
+              },
+              "missing": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "hand_off_case_analysis",
+          "description": "공통 BPM platform.case-intake 끝 (CP15·17) — Case·경보·영향 대상·분석 버전·근거 시각·누락을 다음 단계에 인계한다. 원천 계획은 바꾸지 않는다. 시나리오 2 장면 1은 장면 2 N03A(수행계획 구성)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id",
+              "doc_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "handoff_id": {
+                "type": "string"
+              },
+              "next_node": {
                 "type": "string"
               }
             }

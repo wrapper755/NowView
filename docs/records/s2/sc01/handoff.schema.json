@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/handoff.schema.json",
+  "title": "s2/sc01 handoff",
+  "description": "장면 인계(HAND-01) — 다음 노드 N03A·약정·분석 판·누락·원계획 유지",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "analysis",
+    "approvals",
+    "case_id",
+    "commitments",
+    "data_as_of",
+    "handed_at",
+    "handoff_id",
+    "missing",
+    "next_label",
+    "next_node",
+    "production_plan",
+    "revision_id"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "alert_id": {
+      "type": "string"
+    },
+    "revision_id": {
+      "type": "string"
+    },
+    "commitments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "required": [
+        "analysis_id",
+        "version"
+      ],
+      "properties": {
+        "analysis_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "data_as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "missing": {
+      "type": "array"
+    },
+    "next_node": {
+      "type": "string"
+    },
+    "next_label": {
+      "type": "string"
+    },
+    "production_plan": {
+      "type": "string"
+    },
+    "approvals": {
+      "type": "integer"
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/analysis.schema.json",
+  "title": "s2/sc01 analysis",
+  "description": "분석 결과(M13) — 판·기준시각·실행 방식·약정별 근거 행·근거 스냅샷(M14)·누락",
+  "type": "object",
+  "required": [
+    "actor_role",
+    "analysis_id",
+    "calculated_at",
+    "case_id",
+    "data_as_of",
+    "event_id",
+    "evidence",
+    "execution_mode",
+    "missing",
+    "note",
+    "revision_id",
+    "rows",
+    "rule_version",
+    "total_qty",
+    "version"
+  ],
+  "properties": {
+    "analysis_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "revision_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "data_as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "calculated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "actor_role": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "allocated_qty",
+          "assembly_start",
+          "available_at",
+          "commitment_id",
+          "demo_role",
+          "extra_stock",
+          "lots",
+          "missing",
+          "model",
+          "order_id",
+          "part_id",
+          "per_set",
+          "plant",
+          "product",
+          "promised_at",
+          "qty",
+          "required_qty",
+          "shipment",
+          "slack_min",
+          "start_delay_min",
+          "truck_cutoff"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "plant": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "demo_role": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "part_id": {
+            "type": "string"
+          },
+          "per_set": {
+            "type": "integer"
+          },
+          "required_qty": {
+            "type": "integer"
+          },
+          "extra_stock": {
+            "type": "integer"
+          },
+          "allocated_qty": {
+            "type": "integer"
+          },
+          "lots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "available_at",
+                "inspection_min",
+                "lot_id",
+                "planned_at",
+                "qty"
+              ],
+              "properties": {
+                "lot_id": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                },
+                "planned_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "inspection_min": {
+                  "type": "integer"
+                },
+                "available_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "available_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assembly_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "start_delay_min": {
+            "type": "integer"
+          },
+          "slack_min": {
+            "type": "integer"
+          },
+          "truck_cutoff": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "shipment": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "total_qty": {
+      "type": "object",
+      "required": [
+        "first",
+        "latest"
+      ],
+      "properties": {
+        "first": {
+          "type": "integer"
+        },
+        "latest": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "missing": {
+      "type": "array"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "as_of",
+          "evidence_id",
+          "kind",
+          "note",
+          "revision",
+          "source",
+          "source_key"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "source_key": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "as_of": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

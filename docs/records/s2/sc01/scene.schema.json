@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/scene.schema.json",
+  "title": "s2/sc01 scene",
+  "description": "장면 머리 — 시연 시각·사례·실행 위치·개정마다 BPM 실행·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "caseId",
+    "clock",
+    "companyLog",
+    "demoRunId",
+    "executor",
+    "handoff",
+    "runs",
+    "scenario",
+    "scene",
+    "title"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "scenario": {
+      "type": "string"
+    },
+    "scene": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "doc_id",
+          "external_run_id",
+          "job_id",
+          "outcome",
+          "outcome_label",
+          "problem",
+          "received_at",
+          "revision_id",
+          "state",
+          "visited"
+        ],
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "revision_id": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "outcome_label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "job_id": {
+            "type": "null"
+          },
+          "external_run_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "visited": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "problem": {
+            "type": "null"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "direction",
+          "doc_id",
+          "what"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "handoff": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

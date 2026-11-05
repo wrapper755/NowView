@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  시나리오 2 장면 1 — 납기 위험 조기 감지(N01~N03). 업무 흐름의 유일한 원천이다.
+
+  **구매 입고예정 개정 하나 = 실행 하나다.** 구매시스템에 개정이 등록되면(시연은 회사 사이트가 보낸다) NowView 일꾼이
+  이 프로세스를 기동한다(입력 `데모실행ID`·`원천개정` = 기간계 수신 문서 id). 그림이 쥐는 것은 순서와 분기뿐이다 —
+  판정(최초·기록·경보·평가 보류)과 영향 분석의 숫자는 일꾼의 규칙 계산이다(NowView `engine/app/s2/sc01/calc.py`).
+
+  단계 대응(업무설계표 01~07): 개정 판정 N01(Y01 규칙 엔진 — 이 업무의 것) → 경보면 **공통 BPM `platform.case-intake`를
+  호출**한다: Case 연결 N02(Y01) → 영향 분석 N03(A01 — 규칙 처리) → 장면 2 N03A 인계. 경보가 아니면(최초·기록·평가
+  보류) 이력만 남기고 끝난다. 공통 BPM은 Studio 「설치」로 받은 사본이 `libs/`에 있다(판 고정 — 공통 BPM을 고치면 다시
+  설치·내보낸다). 호출된 흐름도 같은 실행이라 일감의 BPM 프로세스 id는 이 패키지 id다 — 일꾼은 그것으로 업무를 고른다.
+
+  **사람 결재가 없다** — 장면 1의 사람(생산관리 담당자)은 상황판·사건 화면을 조회만 한다. 「정상 조회를 사람 할 일로
+  생성하지 않는다」(상세화면구성 04). 생산계획 변경·확인은 장면 2다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s2_sc01">
+  <bpmn:process id="company1.s2.sc01" name="S2 SC01 납기 위험 조기 감지" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.9.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "원천개정", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="입고예정 개정 수신"/>
+    <bpmn:serviceTask id="Task_Evaluate" name="입고 변경 경보 판정 (N01)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "evaluate_receipt_change", "input": {"demo_run_id": "데모실행ID", "doc_id": "원천개정"}, "output": {"판정": "judgment", "판정사유": "reason", "개정": "revision_id", "변경수": "change_count"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Alert" name="경보인가" default="Flow_recorded"/>
+    <bpmn:callActivity id="Call_CaseIntake" name="사건 접수·영향 분석 (공통 BPM — N02·N03)" calledElement="platform.case-intake">
+      <bpmn:extensionElements>
+        <chk:call>{"input": {"데모실행ID": "데모실행ID", "원천": "원천개정"}, "output": {"사건ID": "사건ID", "분석ID": "분석ID", "인계ID": "인계ID", "다음단계": "다음단계"}}</chk:call>
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="End" name="분석 완료 — 수행계획 구성 대기(N03A)"/>
+    <bpmn:endEvent id="End_Recorded" name="이력만 저장(최초·기록·평가 보류)"/>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Evaluate"/>
+    <bpmn:sequenceFlow id="Flow_evaluated" sourceRef="Task_Evaluate" targetRef="Gw_Alert"/>
+    <bpmn:sequenceFlow id="Flow_alert" name="경보" sourceRef="Gw_Alert" targetRef="Call_CaseIntake">
+      <bpmn:conditionExpression>판정 == 'ALERT'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_recorded" name="이력만" sourceRef="Gw_Alert" targetRef="End_Recorded"/>
+    <bpmn:sequenceFlow id="Flow_handed" sourceRef="Call_CaseIntake" targetRef="End"/>
+  </bpmn:process>
+</bpmn:definitions>

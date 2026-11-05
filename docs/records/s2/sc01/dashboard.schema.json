@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc01/dashboard.schema.json",
+  "title": "s2/sc01 dashboard",
+  "description": "납기 상황판(UI-D01) — 마감 OTD·목표·고유 경보·영향 약정·사건·개정 이력·11월 약정",
+  "type": "object",
+  "required": [
+    "as_of",
+    "cases",
+    "control",
+    "dataset_version",
+    "kpi",
+    "kri",
+    "notice",
+    "open_commitments",
+    "revisions",
+    "scope"
+  ],
+  "properties": {
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "company",
+        "label",
+        "plant",
+        "product"
+      ],
+      "properties": {
+        "company": {
+          "type": "string"
+        },
+        "plant": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "kpi": {
+      "type": "object",
+      "required": [
+        "by_model",
+        "denominator",
+        "late",
+        "meets_target",
+        "numerator",
+        "otd",
+        "period",
+        "target"
+      ],
+      "properties": {
+        "period": {
+          "type": "object",
+          "required": [
+            "end",
+            "label",
+            "start"
+          ],
+          "properties": {
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "numerator": {
+          "type": "integer"
+        },
+        "denominator": {
+          "type": "integer"
+        },
+        "otd": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "meets_target": {
+          "type": "boolean"
+        },
+        "late": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "by_model": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "due",
+              "model",
+              "on_time",
+              "otd"
+            ],
+            "properties": {
+              "model": {
+                "type": "string"
+              },
+              "due": {
+                "type": "integer"
+              },
+              "on_time": {
+                "type": "integer"
+              },
+              "otd": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "kri": {
+      "type": "object",
+      "required": [
+        "affected_commitments",
+        "alert_id",
+        "alerts",
+        "risk_label"
+      ],
+      "properties": {
+        "alerts": {
+          "type": "integer"
+        },
+        "affected_commitments": {
+          "type": "integer"
+        },
+        "alert_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "risk_label": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "control": {
+      "type": "object",
+      "required": [
+        "analysis_version",
+        "case_state",
+        "label"
+      ],
+      "properties": {
+        "case_state": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "analysis_version": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "commitments",
+          "opened_at",
+          "part_id",
+          "reason",
+          "state",
+          "state_label"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "part_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "commitments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "revisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "judgment",
+          "judgment_label",
+          "lots",
+          "registered_at",
+          "revision_id"
+        ],
+        "properties": {
+          "revision_id": {
+            "type": "string"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "planned_at",
+                "qty"
+              ],
+              "properties": {
+                "qty": {
+                  "type": "integer"
+                },
+                "planned_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "judgment": {
+            "type": "string"
+          },
+          "judgment_label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "open_commitments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assembly_start",
+          "available_at",
+          "commitment_id",
+          "demo_role",
+          "model",
+          "order_id",
+          "part_id",
+          "promised_at",
+          "qty",
+          "start_delay_min",
+          "truck_cutoff"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "demo_role": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "part_id": {
+            "type": "string"
+          },
+          "available_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "assembly_start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "start_delay_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "truck_cutoff": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "notice": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

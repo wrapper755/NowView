@@ -15,14 +15,50 @@ export type Work = {
   /** BPM 실행 상태 — `none`은 그 업무 문서가 아직 없다(시작 전), `not_started`는 문서는 있고 실행 전이다. */
   state: string;
   clock: string | null;
-  progress: { approvals: number; passed: number } | null;
+  /** 시나리오 2 장면 1은 결재가 없고 구매 개정마다 실행이 하나다(`runs`) */
+  progress: { approvals: number; passed: number; runs?: number } | null;
   waiting: { nodeId: string | null; title: string | null }[];
   metrics: Metric[];
   worker: { count: number; failed: number; recent: WorkerEntry[] };
+  /** 시나리오 2 납기 상황판(UI-D01) — 회사에 적은 경영 기록 `dashboard`의 본문 그대로 */
+  board?: SupplyBoard | null;
+};
+
+/** 시나리오 2 납기 상황판(UI-D01) — 엔진 `app/s2/sc01/records.py`의 `dashboard`. 숫자는 규칙 계산이고 화면은 계산하지 않는다. */
+export type SupplyBoard = {
+  as_of: string;
+  scope: { label: string };
+  dataset_version: string;
+  kpi: {
+    period: { label: string };
+    numerator: number;
+    denominator: number;
+    /** 소수 문자열(0.9900) — 분모가 0이면 null(대상 없음) */
+    otd: string | null;
+    target: string;
+    meets_target: boolean | null;
+    late: string[];
+    by_model: { model: string; due: number; on_time: number; otd: string | null }[];
+  };
+  kri: { alerts: number; affected_commitments: number; alert_id: string | null; risk_label: string | null };
+  control: { case_state: string | null; label: string; analysis_version: number | null };
+  cases: { case_id: string; opened_at: string; part_id: string | null; reason: string | null; commitments: string[]; state_label: string }[];
+  revisions: { revision_id: string; registered_at: string; lots: { qty: number; planned_at: string }[]; judgment: string; judgment_label: string }[];
+  open_commitments: {
+    commitment_id: string;
+    model: string;
+    demo_role: string;
+    qty: number;
+    promised_at: string;
+    start_delay_min: number | null;
+  }[];
+  notice: string;
 };
 
 export type World = {
   worldId: string;
+  /** 회차의 시나리오 — `s1` 손익, `s2` 납기 */
+  scenarioId?: string;
   /** `site` — 회사 사이트가 만든 세계. 그 밖은 예전(엔진이 만든) 세계다. */
   origin: string | null;
   caseId: string | null;
@@ -80,8 +116,32 @@ export function formatClock(at: string | null): string {
   return m ? `${m[1]} ${m[2]}` : at;
 }
 
-/** 회사 사이트의 그 업무 화면 — `{site}/work/{회차}/sc0N`. 회차 = 세계 = 데모 실행 id. */
+/**
+ * 회사 사이트의 그 업무 화면 — 시나리오 1은 `{site}/work/{회차}/sc0N`, 시나리오 2 장면 N(업무 번호 20 + N)은
+ * `{site}/work/{회차}/s2/sc0N`. 회차 = 세계 = 데모 실행 id.
+ */
 export function workUrl(siteUrl: string | null, world: string | null, scene: number): string | null {
   if (!siteUrl || !world) return null;
-  return `${siteUrl}/work/${encodeURIComponent(world)}/sc${String(scene).padStart(2, "0")}`;
+  const s2 = scene > 20;
+  const n = String(s2 ? scene - 20 : scene).padStart(2, "0");
+  return `${siteUrl}/work/${encodeURIComponent(world)}${s2 ? "/s2" : ""}/sc${n}`;
+}
+
+/**
+ * 「사건 열기」 — 회사 사이트의 Case 화면(UI-B02)으로. 회차·사건·약정과 돌아올 곳을 넘긴다(공통 플랫폼 X02 — 맥락 유지).
+ * 사이트는 NowView를 부르지 않는다 — 돌아올 주소는 링크일 뿐이다.
+ */
+export function caseUrl(siteUrl: string | null, world: string | null, back: string, commitment?: string): string | null {
+  const base = workUrl(siteUrl, world, 21);
+  if (!base) return null;
+  const q = new URLSearchParams({ back });
+  if (commitment) q.set("commitment", commitment);
+  return `${base}?${q.toString()}`;
+}
+
+/** 소수 비율 문자열 → 「99%」. 없으면 「대상 없음」(0%가 아니다). */
+export function formatPercent(value: string | null): string {
+  if (value === null) return "대상 없음";
+  const n = Number(value);
+  return Number.isFinite(n) ? `${Math.round(n * 1000) / 10}%` : value;
 }

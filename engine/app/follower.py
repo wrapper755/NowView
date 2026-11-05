@@ -82,10 +82,13 @@ class Follower:
         company: CompanyClient,
         scenes: Mapping[int, Any],
         *,
+        s2: Any | None = None,
         interval_s: float = INTERVAL_S,
     ) -> None:
         self.company = company
         self.scenes = dict(scenes)
+        #: 시나리오 2 장면 1(`app/s2/sc01/process.py`) — 시나리오 2 회차를 따라간다(공통 플랫폼)
+        self.s2 = s2
         self.interval_s = interval_s
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -143,7 +146,18 @@ class Follower:
         (`world_generation`이 있다)만 본다 — 엔진 시험이 만든 문서·세계 전의 문서는 둔다. 목록을
         읽지 못한 바퀴(예외)는 여기까지 오지 않는다.
         """
-        sc01 = self.scenes[1]
+        if self.s2 is not None:
+            for row in self.s2.store.list():
+                rid = row["demoRunId"]
+                found = self.s2.store.load(rid)
+                if rid in present or found is None or found[0].get("world_generation") is None:
+                    continue
+                log.info("세계 %s가 지워졌다 — 시나리오 2 데모 실행을 거둔다", rid)
+                self.s2.discard(rid)
+                self._seen.pop(rid, None)
+        sc01 = self.scenes.get(1)
+        if sc01 is None:
+            return
         for row in sc01.store.list():
             rid = row["demoRunId"]
             if rid in present:
@@ -161,6 +175,9 @@ class Follower:
     # ───────────── 한 세계 ─────────────
 
     def _follow(self, w: dict[str, Any]) -> None:
+        if w.get("scenario_id") == "s2":
+            self._follow_s2(w)
+            return
         rid = w["world_id"]
         sc01 = self.scenes[1]
         seen = self._seen.setdefault(rid, {})
@@ -188,6 +205,38 @@ class Follower:
         if w.get("pending_commands"):
             for command in self.company.commands(rid, "PENDING"):
                 self._run_command(rid, command)
+
+    def _follow_s2(self, w: dict[str, Any]) -> None:
+        """
+        시나리오 2 회차 — 장면 1 문서를 만들고·초기화하고·시각을 따라가고, 구매 개정 수신함의 새
+        문서마다
+        그 개정의 BPM 실행을 기동한다(`S2Sc01Process.receive_inbox`). 사이트가 만든 회차만 들인다.
+        """
+        p = self.s2
+        if p is None:
+            return
+        rid = w["world_id"]
+        seen = self._seen.setdefault(rid, {})
+        found = p.store.load(rid)
+        if found is None and w.get("origin") != "site":
+            return
+        if found is None:
+            p.create(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
+            seen.update(generation=w["generation"], receipts=0)
+        elif found[0].get("world_generation", 1) != w["generation"]:
+            log.info("세계 %s 초기화 회차 %s — 시나리오 2를 처음으로", rid, w["generation"])
+            p.reset(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
+            seen.update(generation=w["generation"], receipts=0)
+        else:
+            seen.setdefault("generation", w["generation"])
+            seen.setdefault("receipts", len(found[0].get("receipts", {})))
+        current = p.store.load(rid)
+        if current is not None and parse_at(w["clock"]) > parse_at(current[0]["clock"]):
+            p.follow_clock(rid, w["clock"])
+        if w.get("receipt_revisions", 0) > seen.get("receipts", 0):
+            for item in self.company.receipt_inbox(rid, after=seen.get("receipts", 0)):
+                p.receive_inbox(rid, item["doc_id"])
+                seen["receipts"] = item["seq"]
 
     def _reset(self, rid: str, w: dict[str, Any]) -> None:
         """사이트가 세계를 초기화했다 — 장면 1은 S0로, 장면 2~7 문서는 지운다(다시 연다)."""
@@ -223,6 +272,11 @@ class Follower:
             return
         with self._guard:
             self._clock(demo_run_id, at)
+            s2 = self.s2
+            if s2 is not None:
+                found = s2.store.load(demo_run_id)
+                if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
+                    s2.follow_clock(demo_run_id, at)
         if node_id:
             PROGRESS_AT.setdefault(demo_run_id, {})[node_id] = at
 

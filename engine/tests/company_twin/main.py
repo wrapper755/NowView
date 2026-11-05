@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from company_twin import seed
+from company_twin import s2, seed
 from company_twin.store import WorldStore
 
 KST = ZoneInfo("Asia/Seoul")
@@ -211,7 +211,12 @@ def _auth_dependency():
 
 
 def _new_world(
-    world_id: str, *, case_id: str = "BASE", generation: int = 1, origin: str = "engine"
+    world_id: str,
+    *,
+    case_id: str = "BASE",
+    generation: int = 1,
+    origin: str = "engine",
+    scenario_id: str = "s1",
 ) -> dict[str, Any]:
     """
     `generation`은 초기화 회차다 — 초기화할 때마다 오르고 NowView가 그것을 보고 데모 실행을
@@ -223,8 +228,10 @@ def _new_world(
         "case_id": case_id,
         "origin": origin,
         "generation": generation,
+        "scenario_id": scenario_id,
         "reset_at": datetime.now(KST).isoformat(),
-        "clock": S0_CLOCK,
+        # 시나리오 2 회차는 그 시나리오의 처음 시각에서 시작한다(기간계와 같다 — `s2.py`)
+        "clock": s2.S0_CLOCK if scenario_id == s2.SCENARIO else S0_CLOCK,
         "seq": 0,
         "commands": {},
         "commands_seq": 0,
@@ -234,6 +241,7 @@ def _new_world(
         **_new_purchase(),
         **_new_execution(),
         **_new_records(),
+        **(s2.new_world() if scenario_id == s2.SCENARIO else {}),
     }
 
 
@@ -361,6 +369,9 @@ def build_app(store: WorldStore) -> FastAPI:
             "rows": data.customer_plans[plan_id],
         }
 
+    # 시나리오 2 회사 자료·구매 개정 수신함(기간계 `s2.py`의 사본)
+    s2.mount(app, store=store, world=world, auth=auth)
+
     # ───────────── 세계 ─────────────
 
     def _world_summary(w: dict[str, Any]) -> dict[str, Any]:
@@ -378,6 +389,7 @@ def build_app(store: WorldStore) -> FastAPI:
             "price_requests": len(w.get("price_requests", {})),
             "cost_versions": len(w.get("cost_versions", {})),
             "pending_commands": sum(1 for c in w["commands"].values() if c["state"] == "PENDING"),
+            **s2.summary(w),
         }
 
     @app.post("/worlds", status_code=201, dependencies=[Depends(auth)])
@@ -386,8 +398,12 @@ def build_app(store: WorldStore) -> FastAPI:
         with store.lock():
             found = store.get(body.world_id)
             if found is None:
-                found = _new_world(body.world_id, case_id=body.case_id, origin=body.origin)
-                found["scenario_id"] = body.scenario_id
+                found = _new_world(
+                    body.world_id,
+                    case_id=body.case_id,
+                    origin=body.origin,
+                    scenario_id=body.scenario_id,
+                )
                 store.put(found)
         return _world_summary(found)
 
@@ -425,6 +441,7 @@ def build_app(store: WorldStore) -> FastAPI:
                 case_id=case,
                 generation=old.get("generation", 1) + 1,
                 origin=old.get("origin", "engine"),
+                scenario_id=old.get("scenario_id", "s1"),
             )
             store.put(fresh)
             store.delete_records(world_id)  # 기록은 세계 문서 밖에 있다 — 함께 처음으로

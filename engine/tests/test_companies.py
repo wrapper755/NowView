@@ -29,7 +29,7 @@ ADMIN_KEY = "admin-test-key"
 
 def test_scene_catalog_matches_the_screen() -> None:
     text = (ROOT / "lib" / "companies.ts").read_text("utf-8")
-    screen = {int(no): work for no, work in re.findall(r'\{ no: (\d), work: "([^"]+)"', text)}
+    screen = {int(no): work for no, work in re.findall(r'\{ no: (\d+), work: "([^"]+)"', text)}
     assert screen == SCENE_WORKS
 
 
@@ -121,7 +121,7 @@ def test_public_companies_show_no_registration(client: TestClient, monkeypatch) 
             "id": "company1",
             "name": "가상 자동차 부품사",
             "description": body[0]["description"],
-            "scenes": [1, 2, 3, 4, 5, 6, 7],
+            "scenes": [1, 2, 3, 4, 5, 6, 7, 21],
             # 회사 사이트는 공개 웹이다 — 회사 시스템 주소와 다르다
             "siteUrl": "http://site.example",
         }
@@ -193,16 +193,18 @@ def test_worker_routes_by_the_sending_bpm_process(settings: Settings) -> None:
 
 def test_bpmn_copies_match_company1() -> None:
     """
-    엔진의 BPMN은 사본이다 — 원본은 Company1 리포의 `bpm/`(가상 자동차 부품사의 업무 정의). 옆에
+    엔진의 BPMN은 사본이다 — 원본은 Company1 리포의 `bpm/`(가상 자동차 부품사의 업무 정의
+    `company1/`와 업무가 호출하는 공통 BPM `platform/`). 옆에
     Company1 리포가 있으면(`COMPANY1_DIR`, 기본 `../Company1`) 사본이 원본과 같은지 본다. 다르면
     `scripts/sync-bpm.sh`로 가져온다.
     """
     import os
 
-    source = Path(os.getenv("COMPANY1_DIR") or ROOT.parent / "Company1") / "bpm" / "company1"
-    if not source.is_dir():
+    source = Path(os.getenv("COMPANY1_DIR") or ROOT.parent / "Company1") / "bpm"
+    if not (source / "company1").is_dir():
         pytest.skip(f"Company1 BPM 원본이 없다: {source}")
-    drawings = sorted(source.glob("*/process/*.bpmn"))
+    drawings = sorted(source.glob("*/*/process/*.bpmn"))
+    assert {p.parent.parent.parent.name for p in drawings} == {"company1", "platform"}
     assert drawings, source
     for original in drawings:
         copy = ROOT / "engine" / "processes" / original.name

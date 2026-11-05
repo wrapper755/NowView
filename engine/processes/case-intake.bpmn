@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  공통 BPM — 사건 접수와 영향 분석(공통 플랫폼 업무설계서 v0.3 CP12·CP15·CP17·CP37). **공유 BPM 프로세스**다
+  (패키지 종류 process_lib) — 스스로 돌지 않고 업무 BPM 프로세스가 호출 활동(callActivity)으로 부른다.
+
+  위험 판정은 업무마다 다르다(시나리오 2 장면 1은 Y01 입고 변경 경보, 시나리오 1은 고객계획·단가 규칙). 그래서 판정은
+  부르는 쪽 그림에 두고, 이 그림은 **경보가 난 뒤의 공통 경로**만 쥔다: 원천 Event를 Case에 잇고(CP37) → 영향을
+  분석하고(CP12) → 다음 단계에 인계한다(CP15·17). 각 작업이 그 업무에서 무엇을 뜻하는지는 일감을 보낸 바깥 BPM
+  프로세스(실행 신원 = 바깥 패키지 id)로 NowView 일꾼이 고른다.
+
+  부르는 쪽은 Studio 「설치」로 이 패키지를 자기 `libs/`에 받는다 — 복사본이라 판이 내보낼 때 고정된다. 이 그림을
+  고치면 판을 올리고, 부르는 패키지마다 다시 설치·내보낸다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_case_intake">
+  <bpmn:process id="platform.case-intake" name="공통 — 사건 접수와 영향 분석" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.9.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "원천", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="경보 발생"/>
+    <bpmn:serviceTask id="Task_Link" name="경보·사건 연결">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "link_case", "input": {"demo_run_id": "데모실행ID", "doc_id": "원천"}, "output": {"사건ID": "case_id", "경보ID": "alert_id", "영향대상수": "affected"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Analyze" name="영향 분석">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "analyze_case_impact", "input": {"demo_run_id": "데모실행ID", "doc_id": "원천"}, "output": {"분석ID": "analysis_id", "분석판": "version", "미확인수": "missing"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Handoff" name="다음 단계 인계">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "hand_off_case_analysis", "input": {"demo_run_id": "데모실행ID", "doc_id": "원천"}, "output": {"인계ID": "handoff_id", "다음단계": "next_node"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End_Handed" name="인계 완료"/>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Link"/>
+    <bpmn:sequenceFlow id="Flow_linked" sourceRef="Task_Link" targetRef="Task_Analyze"/>
+    <bpmn:sequenceFlow id="Flow_analyzed" sourceRef="Task_Analyze" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_handed" sourceRef="Task_Handoff" targetRef="End_Handed"/>
+  </bpmn:process>
+</bpmn:definitions>

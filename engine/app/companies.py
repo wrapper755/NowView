@@ -40,7 +40,19 @@ SCENE_WORKS: dict[int, str] = {
     5: "결정 실행·계획 갱신",
     6: "완료·성과 검토",
     7: "관리모델 개선·적용",
+    21: "납기 위험 조기 감지",
 }
+#: 업무 번호 → (시나리오, 그 시나리오의 장면) — 회차(세계)는 시나리오 하나에 속한다. 시나리오 2
+#: 장면 N은
+#: 20 + N이다(`docs/platform.md` §7 — 문자열 키로 바꾸면 저장된 설정을 옮겨야 해서 번호 공간을
+#: 나눴다).
+WORKS: dict[int, tuple[str, int]] = {n: ("s1", n) for n in range(1, 8)} | {21: ("s2", 1)}
+
+
+def works_of(scenario_id: str | None) -> list[int]:
+    """그 시나리오의 업무 번호(장면 순)."""
+    return [n for n, (s, _scene) in sorted(WORKS.items()) if s == (scenario_id or "s1")]
+
 
 EXTENSION = Path(__file__).resolve().parents[2] / "chaeksas" / "external.extension.json"
 
@@ -137,17 +149,21 @@ def build_router(
             listed = system.worlds() if system is not None else []
         except DomainError as exc:
             listed, problem = [], str(exc)
-        followed = [
-            w
-            for w in listed
-            if procs.get(1) is not None and procs[1].store.load(w["world_id"]) is not None
-        ]
+
+        def first_doc(w: dict[str, Any]) -> bool:
+            """따라가는 세계 — 그 회차 시나리오의 첫 업무 문서가 있다."""
+            mine = works_of(w.get("scenario_id"))
+            proc = procs.get(mine[0]) if mine else None
+            return proc is not None and proc.store.load(w["world_id"]) is not None
+
+        followed = [w for w in listed if first_doc(w)]
         followed.sort(key=lambda w: w.get("reset_at") or "", reverse=True)
         followed.sort(key=lambda w: w.get("origin") != "site")
         for w in followed:
             worlds.append(
                 {
                     "worldId": w["world_id"],
+                    "scenarioId": w.get("scenario_id") or "s1",
                     "origin": w.get("origin"),
                     "caseId": w.get("case_id"),
                     "generation": w.get("generation"),
@@ -164,14 +180,16 @@ def build_router(
                 log_rows = system.worker_log_entries(chosen)
             except DomainError as exc:
                 problem = problem or str(exc)
+        scenario = next((w["scenarioId"] for w in worlds if w["worldId"] == chosen), "s1")
         works = []
-        for no in public["scenes"]:
+        for no in [n for n in public["scenes"] if n in works_of(scenario)]:
             proc = procs.get(no)
             found = proc.store.load(chosen) if proc is not None and chosen is not None else None
             works.append(
                 {
                     **board.work(no, proc, found[0] if found else None),
-                    "worker": board.worker_entries(log_rows, no),
+                    # 일감 기록의 장면은 그 회차 시나리오의 장면 번호다
+                    "worker": board.worker_entries(log_rows, WORKS[no][1]),
                 }
             )
         return {
