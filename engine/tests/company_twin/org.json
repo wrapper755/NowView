@@ -108,6 +108,12 @@
       "name": "구현담당",
       "role": "구현담당",
       "department": "미지정"
+    },
+    {
+      "user_id": "u-ship",
+      "name": "출하담당",
+      "role": "출하담당",
+      "department": "미지정"
     }
   ]
 }

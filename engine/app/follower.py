@@ -233,14 +233,14 @@ class Follower:
             return
         if found is None:
             p.create(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
-            seen.update(generation=w["generation"], receipts=0)
+            seen.update(generation=w["generation"], receipts=0, case_sources=0)
         elif found[0].get("world_generation", 1) != w["generation"]:
             log.info("세계 %s 초기화 회차 %s — 시나리오 2를 처음으로", rid, w["generation"])
             for n in sorted(self.s2_scenes, reverse=True):  # 장면 2~ 문서는 지운다(다시 연다)
                 if self.s2_scenes[n].store.load(rid) is not None:
                     self.s2_scenes[n].discard(rid)
             p.reset(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
-            seen.update(generation=w["generation"], receipts=0)
+            seen.update(generation=w["generation"], receipts=0, case_sources=0)
         else:
             seen.setdefault("generation", w["generation"])
             seen.setdefault("receipts", len(found[0].get("receipts", {})))
@@ -249,9 +249,24 @@ class Follower:
             for item in self.company.receipt_inbox(rid, after=seen.get("receipts", 0)):
                 p.receive_inbox(rid, item["doc_id"])
                 seen["receipts"] = item["seq"]
+        if w.get("case_sources", 0) > seen.get("case_sources", 0):
+            self._case_sources(rid, seen)
         if w.get("pending_commands"):
             for command in self.company.commands(rid, "PENDING"):
                 self._run_s2_command(rid, command)
+
+    def _case_sources(self, rid: str, seen: dict[str, Any]) -> None:
+        """
+        시나리오 2 장면 3의 근거 원천(운송사 회신·고객 소요 확인) — 그 장면 문서가 있으면 넘긴다
+        (기다리는 실행을 깨운다). 문서가 아직 없으면 넘기지 않는다 — 장면을 열 때 원업무 연결이
+        기간계에서 다시 읽는다. 같은 근거는 장면 문서가 한 번만 본다(다시 떠도 된다).
+        """
+        for item in self.company.case_source_inbox(rid, after=seen.get("case_sources", 0)):
+            for n in sorted(self.s2_scenes):
+                receive = getattr(self.s2_scenes[n], "receive_source", None)
+                if receive is not None:
+                    receive(rid, item["doc_id"])
+            seen["case_sources"] = item["seq"]
 
     def _clock_s2(self, rid: str, at: str) -> None:
         for p in [self.s2, *(self.s2_scenes[n] for n in sorted(self.s2_scenes))]:
@@ -273,6 +288,8 @@ class Follower:
                     if m >= n and self.s2_scenes[m].store.load(rid) is not None:
                         self.s2_scenes[m].discard(rid)
                         gone.append(m)
+                if n <= 3:  # 기간계가 장면 3 근거를 비웠다 — 수신 번호를 처음부터 다시 센다
+                    self._seen.setdefault(rid, {})["case_sources"] = 0
                 result: dict[str, Any] = {"discarded": sorted(gone)}
             else:
                 p = self.s2_scenes.get(scene)

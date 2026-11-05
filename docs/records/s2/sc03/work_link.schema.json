@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/work_link.schema.json",
+  "title": "s2/sc03 work_link",
+  "description": "원업무 참조(M11 references) — 출하팀 운송 문의·담당·받은 회신·관측 이력·새 문의 0건",
+  "type": "object",
+  "required": [
+    "case_id",
+    "commitment_id",
+    "current_reply",
+    "customer",
+    "link_id",
+    "linked_at",
+    "linked_by",
+    "new_inquiries",
+    "observations",
+    "owner_name",
+    "owner_role",
+    "read_at",
+    "ready",
+    "reasons",
+    "relation",
+    "replies",
+    "reply_state",
+    "reply_state_label",
+    "reserved",
+    "subject",
+    "work_id",
+    "work_started_at",
+    "work_state"
+  ],
+  "properties": {
+    "link_id": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "commitment_id": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "relation": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "work_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "linked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "linked_by": {
+      "type": "string"
+    },
+    "new_inquiries": {
+      "type": "integer"
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "customer_id",
+          "reply_id",
+          "reply_state",
+          "reply_state_label"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reply_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reply_state": {
+            "type": "string"
+          },
+          "reply_state_label": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "work_state": {
+      "type": "string"
+    },
+    "reserved": {
+      "type": "boolean"
+    },
+    "replies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "arrival",
+          "departure",
+          "doc_id",
+          "extra_cost_per_vehicle",
+          "received_at",
+          "sets_per_vehicle",
+          "source_id",
+          "status_text",
+          "valid_until",
+          "vehicles"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "doc_id": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "vehicles": {
+            "type": "integer"
+          },
+          "sets_per_vehicle": {
+            "type": "integer"
+          },
+          "extra_cost_per_vehicle": {
+            "type": "integer"
+          },
+          "departure": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrival": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status_text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "reply_state": {
+      "type": "string"
+    },
+    "reply_state_label": {
+      "type": "string"
+    },
+    "current_reply": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "arrival",
+        "departure",
+        "doc_id",
+        "extra_cost_per_vehicle",
+        "received_at",
+        "sets_per_vehicle",
+        "source_id",
+        "status_text",
+        "valid_until",
+        "vehicles"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string"
+        },
+        "doc_id": {
+          "type": "string"
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "vehicles": {
+          "type": "integer"
+        },
+        "sets_per_vehicle": {
+          "type": "integer"
+        },
+        "extra_cost_per_vehicle": {
+          "type": "integer"
+        },
+        "departure": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "arrival": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status_text": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "customer": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "commitment_id",
+        "condition",
+        "confirmed_at",
+        "doc_id",
+        "fixture_id",
+        "kind",
+        "promised_at",
+        "qty",
+        "registered_at",
+        "seq",
+        "source",
+        "source_id"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "commitment_id": {
+          "type": "string"
+        },
+        "qty": {
+          "type": "integer"
+        },
+        "promised_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "doc_id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "source_id": {
+          "type": "string"
+        },
+        "registered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "read_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

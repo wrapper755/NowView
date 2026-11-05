@@ -358,6 +358,17 @@ class CompanyClient:
         """
         return self._call("POST", f"/worlds/{world_id}/production-plan/apply", body)
 
+    def case_sources(self, world_id: str) -> list[dict[str, Any]]:
+        """시나리오 2 장면 3 — 받은 근거 원천 전부(운송사 회신·고객 소요 확인, 수신 순)."""
+        return self._call("GET", f"/worlds/{world_id}/case-sources")
+
+    def case_source_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/case-sources/inbox?after={after}")
+
+    def shipping_inquiry(self, world_id: str, work_id: str) -> dict[str, Any]:
+        """시나리오 2 장면 3 — 출하팀의 기존 운송 문의(원업무)와 받은 회신. 읽기만 한다."""
+        return self._call("GET", f"/worlds/{world_id}/shipping-inquiries/{work_id}")
+
     # ───────────── 구매 (장면 2) ─────────────
 
     def purchase_master(self) -> dict[str, Any]:

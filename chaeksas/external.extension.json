@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -6088,7 +6088,7 @@
         },
         {
           "name": "propose_case_plan",
-          "description": "공통 BPM platform.case-plan (CP29·30) — 계획 지원 Agent(A03)가 사건에 필요한 재사용 업무 단위(U01~U09)를 제안한다. 같은 사건에 다시 오면 같은 제안. 시나리오 2 장면 2는 통합 점검 → 변경안 → 사람 확인 → 반영 → 재평가(규칙 처리)",
+          "description": "공통 BPM platform.case-plan (CP29·30) — 계획 지원 Agent(A03)가 사건에 필요한 재사용 업무 단위(U01~U09)를 제안한다. 같은 사건에 다시 오면 같은 제안. 시나리오 2 장면 2는 통합 점검 → 변경안 → 사람 확인 → 반영 → 재평가(규칙 처리). 장면 3은 v1 완료 항목을 보존하고 U06(기존 운송 문의 참조)·조건부 U07(경영검토)을 더한 v2",
           "modes": [
             "autonomous",
             "deterministic"
@@ -6130,7 +6130,7 @@
         },
         {
           "name": "check_case_plan",
-          "description": "공통 BPM platform.case-plan (CP28·31) — 규칙 엔진(Y01)이 위임 범위·필수 사람 확인·순서를 검사한다. 위임 범위 안이면 PASS(구성 승인 없음), 필수 확인 누락·순환·미등록·권한 초과면 BLOCKED",
+          "description": "공통 BPM platform.case-plan (CP28·31) — 규칙 엔진(Y01)이 위임 범위·필수 사람 확인·순서를 검사한다. 위임 범위 안이면 PASS(구성 승인 없음), 필수 확인 누락·순환·미등록·권한 초과면 BLOCKED. 장면 3은 기준 버전·선후행·원업무 중복(진행 중인 문의가 있으면 참조여야 한다)·결정은 사람(H05)을 본다",
           "modes": [
             "autonomous",
             "deterministic"
@@ -6490,6 +6490,299 @@
               "next_node": {
                 "type": "string"
               }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "link_transport_work",
+          "description": "시나리오 2 장면 3 N09 (U06) — 출하팀의 기존 운송 문의(원업무 W-TRAN-R)를 참조로 잇고(새 문의 0건, 담당 H04 그대로) 지금 운송사 회신·영업의 고객 소요 확인을 회사 시스템에서 다시 읽는다. 두 번 와도 링크는 하나. 회신이 유효하고 고객 확인이 있으면 ready — 아니면 그림이 메시지 「사건근거」를 기다린다. 갱신 요청 뒤에는 새 근거가 와야 ready",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "link_id": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "reply_state": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "compare_transport_options",
+          "description": "시나리오 2 장면 3 N09 (A01, 규칙 처리) — 정기차 유지·전량 긴급차 두 안만 비교한다(분할 납품은 후보로 만들지 않는다). 필요 대수 = 올림(필요량 ÷ 대당 세트), 추가비 = 대수 × 대당 추가비, 여유 = 약정 − 도착, 초과액 = max(0, 추가비 − 전결 한도). 판단시각 ≥ 예약 유효시각·전량 불가·미확인 칸이면 조건 재확인. 같은 근거·같은 결과면 같은 판",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "comparison_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "express_verdict": {
+                "type": "string"
+              },
+              "excess": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "recommend_transport_option",
+          "description": "시나리오 2 장면 3 권고·재보고 기록 — 담당 팀장(H03)만, 최신 비교 판이어야 한다. 권고안 추가비 > 유효 전결 한도면 ESC-03(U07 활성, result ESCALATED), 같거나 작으면 팀장 전결 범위(WITHIN_AUTHORITY), 갱신요청이면 REFRESH. 조건 미확인·재확인 안의 권고는 거절. 같은 판의 같은 권고는 기존 결과",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "demo_run_id",
+              "reason",
+              "recommended",
+              "version"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "recommended": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "escalation_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_transport_decision",
+          "description": "시나리오 2 장면 3 N10 경영검토 결정 기록 — 생산총괄 임원(H05)만, 재보고 근거와 같은 최신 비교 판이어야 한다. 결정 시각에 근거가 바뀌었거나 회신 유효시각이 지났으면 결정하지 않는다(result STALE — 다시 연결·비교). 결정 DEC-03과 실행과제 ACT-03(담당 H04)을 남기고 같은 결정의 재전송은 기존 DEC-03. 한도가 선택안 추가비보다 작으면 거절",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id",
+              "limit",
+              "reason",
+              "version"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "limit": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "decision_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "action_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "accept_transport_action",
+          "description": "시나리오 2 장면 3 실행과제 인수 기록 — 출하 담당자(H04)만. 결정 조건(대수·한도·예약 유효시각)과 재보고 조건을 함께 인수하고 HAND-03(장면 4)을 남긴다. 인수는 지출 재승인이 아니다 — 예약·실제 인수·집행비는 null. 다시 와도 같은 HAND-03",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "handoff_id": {
+                "type": "string"
+              },
+              "error_message": {}
             }
           },
           "request": {

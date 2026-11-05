@@ -1,0 +1,1061 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S2:SC03",
+  "version": 17,
+  "scene": 3,
+  "state": "HANDED_OFF",
+  "at": "2026-11-04T09:40:00+09:00",
+  "by": null,
+  "title": "잔여 납기 위험의 경영검토와 대응 합의",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s2",
+   "scene": 3,
+   "title": "잔여 납기 위험의 경영검토와 대응 합의",
+   "caseId": "BASE",
+   "clock": "2026-11-04T09:40:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "job_id": null,
+    "external_run_id": "test_20261105_140507_8ee0b4",
+    "state": "done",
+    "visited": [
+     "Task_Propose",
+     "Task_Check",
+     "Task_ApplyPlan",
+     "Task_Link",
+     "Wait_Sources",
+     "Task_Compare",
+     "Approve_Recommend",
+     "Record_Recommend",
+     "Approve_Decision",
+     "Record_Decision",
+     "Approve_Accept",
+     "Record_Accept",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null
+   },
+   "source": {
+    "handoff_id": "HAND-02",
+    "case_id": "CASE-S2-01",
+    "commitments": [
+     "COM-R"
+    ],
+    "observed": [
+     "COM-S"
+    ],
+    "production_plan_version": "PROD-V2",
+    "approval_id": "APP-01"
+   },
+   "flow": [
+    {
+     "node": "N03A",
+     "name": "수행계획 변경 (v2)",
+     "role": "A03",
+     "state": "done"
+    },
+    {
+     "node": "U06",
+     "name": "기존 운송 문의 연결",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N09",
+     "name": "운송 대안 비교",
+     "role": "A01",
+     "state": "done"
+    },
+    {
+     "node": "ESC",
+     "name": "팀장 권고·재보고",
+     "role": "H03",
+     "state": "done"
+    },
+    {
+     "node": "N10",
+     "name": "경영검토 결정",
+     "role": "H05",
+     "state": "done"
+    },
+    {
+     "node": "ACT",
+     "name": "실행과제 인수",
+     "role": "H04",
+     "state": "done"
+    }
+   ],
+   "companyLog": [
+    {
+     "at": "2026-11-04T09:17:00+09:00",
+     "direction": "in",
+     "what": "원업무 W-TRAN-R 읽기 — IN_PROGRESS · 담당 H04"
+    },
+    {
+     "at": "2026-11-04T09:22:00+09:00",
+     "direction": "in",
+     "what": "근거 받기 CUST-R-v1 (customer_condition) — 수신 09:22"
+    },
+    {
+     "at": "2026-11-04T09:23:00+09:00",
+     "direction": "in",
+     "what": "근거 받기 Q-R-v1 (transport_reply) — 수신 09:23"
+    }
+   ],
+   "handoff": "HAND-03",
+   "reReports": 0
+  },
+  "ref": "demo-example:scene/S2:SC03:v17",
+  "seq": 18,
+  "recorded_at": "2026-11-04T09:40:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "company1:ULS:A:SC03",
+  "version": 9,
+  "scene": 3,
+  "state": null,
+  "at": "2026-11-04T09:40:00+09:00",
+  "by": null,
+  "title": "납기 상황판 — 장면 3",
+  "body": {
+   "as_of": "2026-11-04T09:40:00+09:00",
+   "scope": {
+    "company": "company1",
+    "plant": "울산",
+    "product": "A"
+   },
+   "dataset_version": "SYN-S2-SC03-v0.3",
+   "kpi": {
+    "period": {
+     "start": "2026-10-01",
+     "end": "2026-11-01",
+     "label": "2026년 10월"
+    },
+    "numerator": 99,
+    "denominator": 100,
+    "otd": "0.9900",
+    "target": "0.98",
+    "meets_target": true,
+    "late": [
+     "H199"
+    ],
+    "by_model": [
+     {
+      "model": "a",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "b",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "c",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "d",
+      "due": 20,
+      "on_time": 19,
+      "otd": "0.9500"
+     },
+     {
+      "model": "e",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     }
+    ]
+   },
+   "summary": {
+    "regular_margin_min": -30,
+    "express_margin_min": 15,
+    "express_extra_cost": 1200000,
+    "express_excess": 200000,
+    "decision": "전량 긴급 운송",
+    "action": "인수"
+   },
+   "comparison": "CMP-03 v1",
+   "case_id": "CASE-S2-01",
+   "re_reports": 0,
+   "notice": "추가비는 견적이고 도착은 전망이다 — 예약·실제 인수·집행비는 장면 4에서 연결한다. R 인수 전이라 마감 OTD는 그대로다"
+  },
+  "ref": "demo-example:dashboard/company1:ULS:A:SC03:v9",
+  "seq": 19,
+  "recorded_at": "2026-11-04T09:40:00+09:00"
+ },
+ {
+  "kind": "case_plan",
+  "record_id": "CP-S2-V2",
+  "version": 9,
+  "scene": 3,
+  "state": "APPLIED",
+  "at": "2026-11-04T09:40:00+09:00",
+  "by": null,
+  "title": "사건 수행계획 v2",
+  "body": {
+   "plan_id": "CP-S2-V2",
+   "version": 2,
+   "case_id": "CASE-S2-01",
+   "base_plan": "CP-S2-V1",
+   "items": [
+    {
+     "seq": 1,
+     "unit": "U01",
+     "name": "통합 납기 영향 점검",
+     "steps": [
+      "N03",
+      "N07"
+     ],
+     "selection": "required",
+     "delegation": "A",
+     "owner": [
+      "A03",
+      "Y01"
+     ],
+     "predecessor": "HAND-01",
+     "reason": "ANA-01 및 입고 개정 재사용 — 필수 H03 확인 포함",
+     "link_mode": "new",
+     "carried_from": "CP-S2-V1",
+     "carried_state": "완료",
+     "target": null,
+     "state": "완료"
+    },
+    {
+     "seq": 2,
+     "unit": "U02",
+     "name": "생산계획 변경안 작성",
+     "steps": [
+      "N04"
+     ],
+     "selection": "conditional",
+     "delegation": "A",
+     "owner": [
+      "A02"
+     ],
+     "predecessor": "U01",
+     "reason": "분할 입고로 기존 착수가 어렵다 — 배정과 모델별 빈 라인으로 조립 배치",
+     "link_mode": "new",
+     "carried_from": "CP-S2-V1",
+     "carried_state": "완료",
+     "target": null,
+     "state": "완료"
+    },
+    {
+     "seq": 3,
+     "unit": "U03",
+     "name": "생산계획 변경 확인",
+     "steps": [
+      "N05"
+     ],
+     "selection": "required_if_change",
+     "delegation": null,
+     "owner": [
+      "H03"
+     ],
+     "predecessor": "U02",
+     "reason": "생산계획을 바꾸는 단계 — 두 주문을 포함한 변경안 한 버전을 사람이 확인",
+     "link_mode": "new",
+     "carried_from": "CP-S2-V1",
+     "carried_state": "완료",
+     "target": null,
+     "state": "완료"
+    },
+    {
+     "seq": 4,
+     "unit": "U04",
+     "name": "확인 계획 반영과 재조회",
+     "steps": [
+      "N06"
+     ],
+     "selection": "conditional",
+     "delegation": "B",
+     "owner": [
+      "Y01"
+     ],
+     "predecessor": "U03",
+     "reason": "확인된 버전만 반영하고 저장소에서 다시 읽어 대조",
+     "link_mode": "new",
+     "carried_from": "CP-S2-V1",
+     "carried_state": "완료",
+     "target": null,
+     "state": "완료"
+    },
+    {
+     "seq": 5,
+     "unit": "U05",
+     "name": "잔여 위험과 종료 판단",
+     "steps": [
+      "N07",
+      "N08"
+     ],
+     "selection": "required",
+     "delegation": "A",
+     "owner": [
+      "Y01",
+      "A01"
+     ],
+     "predecessor": "U04",
+     "reason": "반영본으로 주문별 납기를 다시 판정 — 남은 위험만 후속",
+     "link_mode": "new",
+     "carried_from": "CP-S2-V1",
+     "carried_state": "완료",
+     "target": null,
+     "state": "완료"
+    },
+    {
+     "seq": 6,
+     "unit": "U06",
+     "name": "운송 대안 사실 확인",
+     "steps": [
+      "N09"
+     ],
+     "selection": "conditional",
+     "delegation": "A",
+     "owner": [
+      "H04",
+      "A01"
+     ],
+     "predecessor": "HAND-02",
+     "reason": "COM-R 240세트 준비 16:00 · 정기차 R-2 도착 19:00 > 약정 18:30 (30분 부족) — 출하팀의 기존 운송 문의 W-TRAN-R를 참조한다(새로 배정하지 않는다)",
+     "link_mode": "reference",
+     "ref_work_id": "W-TRAN-R",
+     "ref_owner_role": "H04",
+     "activation": "always",
+     "target": "COM-R",
+     "carried_from": null,
+     "carried_state": null,
+     "state": "완료"
+    },
+    {
+     "seq": 7,
+     "unit": "U07",
+     "name": "경영검토 준비와 대응 결정",
+     "steps": [
+      "N09",
+      "N10"
+     ],
+     "selection": "conditional",
+     "delegation": null,
+     "owner": [
+      "H03",
+      "H05"
+     ],
+     "predecessor": "U06",
+     "reason": "재보고(전결 한도 초과)가 있을 때만 활성 — 결정은 생산총괄 임원(H05)",
+     "link_mode": "new",
+     "ref_work_id": null,
+     "ref_owner_role": null,
+     "activation": "conditional",
+     "target": "COM-R",
+     "carried_from": null,
+     "carried_state": null,
+     "state": "완료"
+    }
+   ],
+   "proposed_at": "2026-11-04T09:17:00+09:00",
+   "proposed_by": "A03",
+   "execution_mode": "rule",
+   "check": {
+    "result": "PASS",
+    "issues": [],
+    "rules": [
+     "base_version",
+     "registered",
+     "order",
+     "delegation",
+     "duplicate",
+     "decision"
+    ],
+    "needs_approval": false,
+    "checked_at": "2026-11-04T09:17:00+09:00"
+   },
+   "state": "APPLIED",
+   "applied_at": "2026-11-04T09:17:00+09:00",
+   "production_plan_version": "PROD-V2",
+   "u07_active": true,
+   "roles": [
+    {
+     "role_id": "A03",
+     "kind": "agent",
+     "label": "사건대응 계획 지원 Agent",
+     "title": null,
+     "duty": "수행계획 변경 제안 (U06 참조 · 조건부 U07)",
+     "steps": [
+      "N03A"
+     ]
+    },
+    {
+     "role_id": "Y01",
+     "kind": "system",
+     "label": "시스템 자동처리 (규칙 엔진)",
+     "title": null,
+     "duty": "위임·필수 조건 검사 · 원업무 연결 · 전결 한도 대조",
+     "steps": [
+      "N03A",
+      "N09"
+     ]
+    },
+    {
+     "role_id": "A01",
+     "kind": "agent",
+     "label": "납기위험 분석 Agent",
+     "title": null,
+     "duty": "운송 대안 비교 (전량 두 안)",
+     "steps": [
+      "N09"
+     ]
+    },
+    {
+     "role_id": "H04",
+     "kind": "human",
+     "label": "출하·물류 담당자",
+     "title": "담당",
+     "duty": "기존 운송 문의 담당 · 실행과제 인수",
+     "steps": [
+      "N09",
+      "N10"
+     ]
+    },
+    {
+     "role_id": "H03",
+     "kind": "human",
+     "label": "생산관리 책임자",
+     "title": "관리자",
+     "duty": "담당 팀장 — 권고·재보고",
+     "steps": [
+      "N09"
+     ]
+    },
+    {
+     "role_id": "H05",
+     "kind": "human",
+     "label": "생산총괄 임원",
+     "title": "임원",
+     "duty": "경영검토 결정 (조건부)",
+     "steps": [
+      "N10"
+     ]
+    }
+   ],
+   "flow": [
+    {
+     "node": "N03A",
+     "name": "수행계획 변경 (v2)",
+     "role": "A03",
+     "state": "done"
+    },
+    {
+     "node": "U06",
+     "name": "기존 운송 문의 연결",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N09",
+     "name": "운송 대안 비교",
+     "role": "A01",
+     "state": "done"
+    },
+    {
+     "node": "ESC",
+     "name": "팀장 권고·재보고",
+     "role": "H03",
+     "state": "done"
+    },
+    {
+     "node": "N10",
+     "name": "경영검토 결정",
+     "role": "H05",
+     "state": "done"
+    },
+    {
+     "node": "ACT",
+     "name": "실행과제 인수",
+     "role": "H04",
+     "state": "done"
+    }
+   ],
+   "source": {
+    "case_id": "CASE-S2-01",
+    "handoff_id": "HAND-02",
+    "commitments": [
+     "COM-R"
+    ],
+    "observed": [
+     "COM-S"
+    ],
+    "production_plan_version": "PROD-V2",
+    "approval_id": "APP-01",
+    "regular": {
+     "truck_id": "R-2",
+     "cutoff": "2026-11-05T16:30:00+09:00",
+     "departure": "2026-11-05T17:00:00+09:00",
+     "arrival": "2026-11-05T19:00:00+09:00",
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "shortfall_min": 30,
+     "qty": 240
+    }
+   },
+   "kept": [
+    "COM-S 인수 관찰",
+    "생산계획 PROD-V2",
+    "확인 APP-01"
+   ],
+   "case_state": "경영검토"
+  },
+  "ref": "demo-example:case_plan/CP-S2-V2:v9",
+  "seq": 20,
+  "recorded_at": "2026-11-04T09:40:00+09:00"
+ },
+ {
+  "kind": "work_link",
+  "record_id": "LINK-03",
+  "version": 3,
+  "scene": 3,
+  "state": "VALID",
+  "at": "2026-11-04T09:23:00+09:00",
+  "by": null,
+  "title": "원업무 참조",
+  "body": {
+   "link_id": "LINK-03",
+   "case_id": "CASE-S2-01",
+   "commitment_id": "COM-R",
+   "work_id": "W-TRAN-R",
+   "relation": "references",
+   "subject": "운송 차량 가능 여부 문의",
+   "owner_role": "H04",
+   "owner_name": "출하담당",
+   "work_started_at": "2026-11-04T09:10:00+09:00",
+   "linked_at": "2026-11-04T09:17:00+09:00",
+   "linked_by": "Y01",
+   "new_inquiries": 0,
+   "observations": [
+    {
+     "at": "2026-11-04T09:17:00+09:00",
+     "reply_id": null,
+     "reply_state": "WAITING",
+     "reply_state_label": "회신 대기",
+     "customer_id": null
+    },
+    {
+     "at": "2026-11-04T09:22:00+09:00",
+     "reply_id": null,
+     "reply_state": "WAITING",
+     "reply_state_label": "회신 대기",
+     "customer_id": "CUST-R-v1"
+    },
+    {
+     "at": "2026-11-04T09:23:00+09:00",
+     "reply_id": "Q-R-v1",
+     "reply_state": "VALID",
+     "reply_state_label": "회신 유효",
+     "customer_id": "CUST-R-v1"
+    }
+   ],
+   "work_state": "IN_PROGRESS",
+   "reserved": false,
+   "replies": [
+    {
+     "source_id": "Q-R-v1",
+     "doc_id": "CS-0002",
+     "received_at": "2026-11-04T09:23:00+09:00",
+     "valid_until": "2026-11-04T12:00:00+09:00",
+     "vehicles": 3,
+     "sets_per_vehicle": 80,
+     "extra_cost_per_vehicle": 400000,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "arrival": "2026-11-05T18:15:00+09:00",
+     "status_text": "3대 동시 가능 / 미예약"
+    }
+   ],
+   "reply_state": "VALID",
+   "reply_state_label": "회신 유효",
+   "current_reply": {
+    "source_id": "Q-R-v1",
+    "doc_id": "CS-0002",
+    "received_at": "2026-11-04T09:23:00+09:00",
+    "valid_until": "2026-11-04T12:00:00+09:00",
+    "vehicles": 3,
+    "sets_per_vehicle": 80,
+    "extra_cost_per_vehicle": 400000,
+    "departure": "2026-11-05T16:15:00+09:00",
+    "arrival": "2026-11-05T18:15:00+09:00",
+    "status_text": "3대 동시 가능 / 미예약"
+   },
+   "customer": {
+    "fixture_id": "CUST-R-v1",
+    "kind": "customer_condition",
+    "source": "영업 / 고객 소요 확인",
+    "commitment_id": "COM-R",
+    "qty": 240,
+    "promised_at": "2026-11-05T18:30:00+09:00",
+    "condition": "240세트 동시 인수·검수. 분할 대안 제외.",
+    "doc_id": "CS-0001",
+    "seq": 1,
+    "source_id": "CUST-R-v1",
+    "registered_at": "2026-11-04T09:22:00+09:00",
+    "confirmed_at": "2026-11-04T09:22:00+09:00"
+   },
+   "ready": true,
+   "reasons": [],
+   "read_at": "2026-11-04T09:23:00+09:00"
+  },
+  "ref": "demo-example:work_link/LINK-03:v3",
+  "seq": 21,
+  "recorded_at": "2026-11-04T09:23:00+09:00"
+ },
+ {
+  "kind": "comparison",
+  "record_id": "CMP-03",
+  "version": 1,
+  "scene": 3,
+  "state": "CURRENT",
+  "at": "2026-11-04T09:23:00+09:00",
+  "by": null,
+  "title": "운송 대안 비교",
+  "body": {
+   "comparison_id": "CMP-03",
+   "version": 1,
+   "label": "CMP-03 v1",
+   "case_id": "CASE-S2-01",
+   "commitment_id": "COM-R",
+   "basis": {
+    "reply_id": "Q-R-v1",
+    "customer_id": "CUST-R-v1",
+    "authority_id": "AUTH-T1",
+    "production_plan_version": "PROD-V2",
+    "handoff_id": "HAND-02"
+   },
+   "snapshot": {
+    "reply": {
+     "source_id": "Q-R-v1",
+     "doc_id": "CS-0002",
+     "received_at": "2026-11-04T09:23:00+09:00",
+     "valid_until": "2026-11-04T12:00:00+09:00",
+     "vehicles": 3,
+     "sets_per_vehicle": 80,
+     "extra_cost_per_vehicle": 400000,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "arrival": "2026-11-05T18:15:00+09:00",
+     "status_text": "3대 동시 가능 / 미예약"
+    },
+    "customer": {
+     "fixture_id": "CUST-R-v1",
+     "kind": "customer_condition",
+     "source": "영업 / 고객 소요 확인",
+     "commitment_id": "COM-R",
+     "qty": 240,
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "condition": "240세트 동시 인수·검수. 분할 대안 제외.",
+     "doc_id": "CS-0001",
+     "seq": 1,
+     "source_id": "CUST-R-v1",
+     "registered_at": "2026-11-04T09:22:00+09:00",
+     "confirmed_at": "2026-11-04T09:22:00+09:00"
+    },
+    "regular": {
+     "truck_id": "R-2",
+     "cutoff": "2026-11-05T16:30:00+09:00",
+     "departure": "2026-11-05T17:00:00+09:00",
+     "arrival": "2026-11-05T19:00:00+09:00",
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "shortfall_min": 30,
+     "qty": 240
+    }
+   },
+   "alternatives": [
+    {
+     "alternative_id": "ALT-REG",
+     "name": "정기차 유지",
+     "need_qty": 240,
+     "trucks": 0,
+     "capacity": 240,
+     "extra_cost": 0,
+     "departure": "2026-11-05T17:00:00+09:00",
+     "arrival": "2026-11-05T19:00:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "margin_min": -30,
+     "excess": 0,
+     "truck_id": "R-2",
+     "basis": "장면 2 판정의 정기차 R-2",
+     "verdict": "SHORT",
+     "verdict_label": "납기 부족"
+    },
+    {
+     "alternative_id": "ALT-EXP",
+     "name": "전량 긴급차",
+     "need_qty": 240,
+     "trucks": 3,
+     "capacity": 240,
+     "extra_cost": 1200000,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "arrival": "2026-11-05T18:15:00+09:00",
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "margin_min": 15,
+     "excess": 200000,
+     "available_vehicles": 3,
+     "sets_per_vehicle": 80,
+     "cost_per_vehicle": 400000,
+     "valid_until": "2026-11-04T12:00:00+09:00",
+     "basis": "운송사 회신 Q-R-v1 (수신 09:23)",
+     "conditions": [],
+     "verdict": "ESCALATE",
+     "verdict_label": "임원 재보고"
+    }
+   ],
+   "excluded": [
+    {
+     "alternative": "분할 납품",
+     "reason": "240세트 동시 인수·검수. 분할 대안 제외."
+    }
+   ],
+   "authority": {
+    "rule_id": "AUTH-T1",
+    "source": "권한 기준 / Y01",
+    "effective_at": "2026-11-04T09:15:00+09:00",
+    "holder": "담당 팀장",
+    "limit": 1000000,
+    "condition": "추가비가 한도를 초과하면 재보고. 한도와 같으면 금액 초과 아님.",
+    "applied_limit": 1000000
+   },
+   "faster_min": 45,
+   "missing": [],
+   "judged_at": "2026-11-04T09:23:00+09:00",
+   "compared_at": "2026-11-04T09:23:00+09:00",
+   "compared_by": "A01",
+   "execution_mode": "rule",
+   "state": "CURRENT",
+   "history": [
+    {
+     "label": "CMP-03 v1",
+     "version": 1,
+     "basis": {
+      "reply_id": "Q-R-v1",
+      "customer_id": "CUST-R-v1",
+      "authority_id": "AUTH-T1",
+      "production_plan_version": "PROD-V2",
+      "handoff_id": "HAND-02"
+     },
+     "compared_at": "2026-11-04T09:23:00+09:00",
+     "state": "CURRENT"
+    }
+   ]
+  },
+  "ref": "demo-example:comparison/CMP-03:v1",
+  "seq": 22,
+  "recorded_at": "2026-11-04T09:23:00+09:00"
+ },
+ {
+  "kind": "escalation",
+  "record_id": "ESC-03",
+  "version": 2,
+  "scene": 3,
+  "state": "DECIDED",
+  "at": "2026-11-04T09:35:00+09:00",
+  "by": null,
+  "title": "팀장 권고·재보고",
+  "body": {
+   "escalation_id": "ESC-03",
+   "version": 1,
+   "case_id": "CASE-S2-01",
+   "comparison": "CMP-03 v1",
+   "choice": "ALT-EXP",
+   "reason": "고객 납기 우선 권고",
+   "recommended_by": "배정훈",
+   "recommended_role": "H03",
+   "via": null,
+   "recommended_at": "2026-11-04T09:28:00+09:00",
+   "authority": {
+    "rule_id": "AUTH-T1",
+    "holder": "담당 팀장",
+    "limit": 1000000,
+    "effective_at": "2026-11-04T09:15:00+09:00"
+   },
+   "alternative": "ALT-EXP",
+   "alternative_name": "전량 긴급차",
+   "extra_cost": 1200000,
+   "margin_min": 15,
+   "limit": 1000000,
+   "excess": 200000,
+   "to_role": "H05",
+   "to_name": "권태윤",
+   "evidence": [
+    "Q-R-v1",
+    "CUST-R-v1",
+    "AUTH-T1",
+    "PROD-V2"
+   ],
+   "state": "DECIDED",
+   "result": "ESCALATED",
+   "unit": "U07",
+   "history": [
+    {
+     "version": 1,
+     "comparison": "CMP-03 v1",
+     "choice": "ALT-EXP",
+     "result": "ESCALATED",
+     "state": "DECIDED"
+    }
+   ]
+  },
+  "ref": "demo-example:escalation/ESC-03:v2",
+  "seq": 23,
+  "recorded_at": "2026-11-04T09:35:00+09:00"
+ },
+ {
+  "kind": "decision",
+  "record_id": "DEC-03",
+  "version": 1,
+  "scene": 3,
+  "state": "DECIDED",
+  "at": "2026-11-04T09:35:00+09:00",
+  "by": null,
+  "title": "경영검토 결정",
+  "body": {
+   "decision_id": "DEC-03",
+   "case_id": "CASE-S2-01",
+   "commitment_id": "COM-R",
+   "escalation": 1,
+   "escalation_id": "ESC-03",
+   "comparison": "CMP-03 v1",
+   "selected": "ALT-EXP",
+   "selected_label": "전량 긴급 운송",
+   "not_selected": "ALT-REG",
+   "reason": "고객 약정을 비용 절감보다 우선",
+   "limit": 1200000,
+   "terms": {
+    "need_qty": 240,
+    "trucks": 3,
+    "extra_cost": 1200000,
+    "departure": "2026-11-05T16:15:00+09:00",
+    "arrival": "2026-11-05T18:15:00+09:00",
+    "promised_at": "2026-11-05T18:30:00+09:00",
+    "margin_min": 15
+   },
+   "decided_by": "권태윤",
+   "decided_role": "H05",
+   "via": null,
+   "decided_at": "2026-11-04T09:35:00+09:00",
+   "executor_role": "H04",
+   "executor_name": "출하담당",
+   "reservation_due": "2026-11-04T12:00:00+09:00",
+   "sales_follow_up": "영업은 고객 인수 시간대를 재확인한다",
+   "re_report_conditions": [
+    "3대 미확보",
+    "추가비 1,200,000원 초과",
+    "18:30 이후 도착 전망"
+   ],
+   "re_report_to": "H05",
+   "evidence": {
+    "basis": {
+     "reply_id": "Q-R-v1",
+     "customer_id": "CUST-R-v1",
+     "authority_id": "AUTH-T1",
+     "production_plan_version": "PROD-V2",
+     "handoff_id": "HAND-02"
+    },
+    "snapshot": {
+     "reply": {
+      "source_id": "Q-R-v1",
+      "doc_id": "CS-0002",
+      "received_at": "2026-11-04T09:23:00+09:00",
+      "valid_until": "2026-11-04T12:00:00+09:00",
+      "vehicles": 3,
+      "sets_per_vehicle": 80,
+      "extra_cost_per_vehicle": 400000,
+      "departure": "2026-11-05T16:15:00+09:00",
+      "arrival": "2026-11-05T18:15:00+09:00",
+      "status_text": "3대 동시 가능 / 미예약"
+     },
+     "customer": {
+      "fixture_id": "CUST-R-v1",
+      "kind": "customer_condition",
+      "source": "영업 / 고객 소요 확인",
+      "commitment_id": "COM-R",
+      "qty": 240,
+      "promised_at": "2026-11-05T18:30:00+09:00",
+      "condition": "240세트 동시 인수·검수. 분할 대안 제외.",
+      "doc_id": "CS-0001",
+      "seq": 1,
+      "source_id": "CUST-R-v1",
+      "registered_at": "2026-11-04T09:22:00+09:00",
+      "confirmed_at": "2026-11-04T09:22:00+09:00"
+     },
+     "regular": {
+      "truck_id": "R-2",
+      "cutoff": "2026-11-05T16:30:00+09:00",
+      "departure": "2026-11-05T17:00:00+09:00",
+      "arrival": "2026-11-05T19:00:00+09:00",
+      "ready_at": "2026-11-05T16:00:00+09:00",
+      "promised_at": "2026-11-05T18:30:00+09:00",
+      "shortfall_min": 30,
+      "qty": 240
+     }
+    },
+    "alternatives": [
+     {
+      "alternative_id": "ALT-REG",
+      "name": "정기차 유지",
+      "need_qty": 240,
+      "trucks": 0,
+      "capacity": 240,
+      "extra_cost": 0,
+      "departure": "2026-11-05T17:00:00+09:00",
+      "arrival": "2026-11-05T19:00:00+09:00",
+      "promised_at": "2026-11-05T18:30:00+09:00",
+      "margin_min": -30,
+      "excess": 0,
+      "truck_id": "R-2",
+      "basis": "장면 2 판정의 정기차 R-2",
+      "verdict": "SHORT",
+      "verdict_label": "납기 부족"
+     },
+     {
+      "alternative_id": "ALT-EXP",
+      "name": "전량 긴급차",
+      "need_qty": 240,
+      "trucks": 3,
+      "capacity": 240,
+      "extra_cost": 1200000,
+      "departure": "2026-11-05T16:15:00+09:00",
+      "arrival": "2026-11-05T18:15:00+09:00",
+      "promised_at": "2026-11-05T18:30:00+09:00",
+      "margin_min": 15,
+      "excess": 200000,
+      "available_vehicles": 3,
+      "sets_per_vehicle": 80,
+      "cost_per_vehicle": 400000,
+      "valid_until": "2026-11-04T12:00:00+09:00",
+      "basis": "운송사 회신 Q-R-v1 (수신 09:23)",
+      "conditions": [],
+      "verdict": "ESCALATE",
+      "verdict_label": "임원 재보고"
+     }
+    ],
+    "recommendation": {
+     "choice": "ALT-EXP",
+     "reason": "고객 납기 우선 권고",
+     "recommended_by": "배정훈"
+    }
+   },
+   "actual": {
+    "reserved_at": null,
+    "accepted_at": null,
+    "actual_cost": null
+   },
+   "note": "같은 결정에 지출 재결재 단계를 더하지 않는다 — 지출·집행은 결정 범위 안의 Control",
+   "state": "DECIDED"
+  },
+  "ref": "demo-example:decision/DEC-03:v1",
+  "seq": 24,
+  "recorded_at": "2026-11-04T09:35:00+09:00"
+ },
+ {
+  "kind": "action",
+  "record_id": "ACT-03",
+  "version": 2,
+  "scene": 3,
+  "state": "ACCEPTED",
+  "at": "2026-11-04T09:40:00+09:00",
+  "by": null,
+  "title": "실행과제",
+  "body": {
+   "action_id": "ACT-03",
+   "decision_id": "DEC-03",
+   "case_id": "CASE-S2-01",
+   "commitment_id": "COM-R",
+   "title": "긴급차 3대 확보 — 예약 유효시각 12:00 전",
+   "owner_role": "H04",
+   "owner_name": "출하담당",
+   "work_id": "W-TRAN-R",
+   "due": "2026-11-04T12:00:00+09:00",
+   "limit": 1200000,
+   "conditions": [
+    "3대 미확보",
+    "추가비 1,200,000원 초과",
+    "18:30 이후 도착 전망"
+   ],
+   "state": "ACCEPTED",
+   "assigned_at": "2026-11-04T09:35:00+09:00",
+   "accepted_at": "2026-11-04T09:40:00+09:00",
+   "accepted_by": "출하담당",
+   "comment": "예약 유효시각 전 3대 확보",
+   "re_report_required": false,
+   "re_reports": [],
+   "note": "인수는 지출 재승인이 아니다 — 예약·출발·도착은 미확정"
+  },
+  "ref": "demo-example:action/ACT-03:v2",
+  "seq": 25,
+  "recorded_at": "2026-11-04T09:40:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "HAND-03",
+  "version": 1,
+  "scene": 3,
+  "state": "ACTION_ACCEPTED",
+  "at": "2026-11-04T09:40:00+09:00",
+  "by": null,
+  "title": "장면 4 인계",
+  "body": {
+   "handoff_id": "HAND-03",
+   "case_id": "CASE-S2-01",
+   "commitment_id": "COM-R",
+   "demo_run_id": "demo-example",
+   "decision_id": "DEC-03",
+   "action_id": "ACT-03",
+   "selected": "ALT-EXP",
+   "selected_label": "전량 긴급 운송",
+   "comparison": "CMP-03 v1",
+   "evidence": [
+    "CMP-03",
+    "Q-R-v1",
+    "CUST-R-v1",
+    "AUTH-T1",
+    "PROD-V2"
+   ],
+   "owner_role": "H04",
+   "owner_name": "출하담당",
+   "due": "2026-11-04T12:00:00+09:00",
+   "limit": 1200000,
+   "expected_arrival": "2026-11-05T18:15:00+09:00",
+   "re_report_conditions": [
+    "3대 미확보",
+    "추가비 1,200,000원 초과",
+    "18:30 이후 도착 전망"
+   ],
+   "follow_up": [
+    "예약 기한 전 3대 확정 여부",
+    "실제 전량 인수시각·추가비",
+    "약정 및 예산 대비 차이"
+   ],
+   "state": "ACTION_ACCEPTED",
+   "state_label": "과제 인수 · 예약 미확정",
+   "actual": {
+    "reserved_at": null,
+    "accepted_at": null,
+    "actual_cost": null
+   },
+   "observed": [
+    "COM-S"
+   ],
+   "next_label": "장면 4 — 실제 예약·전량 인수·집행비를 이 결정과 비교",
+   "handed_at": "2026-11-04T09:40:00+09:00"
+  },
+  "ref": "demo-example:handoff/HAND-03:v1",
+  "seq": 26,
+  "recorded_at": "2026-11-04T09:40:00+09:00"
+ }
+]

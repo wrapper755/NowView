@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/comparison.schema.json",
+  "title": "s2/sc03 comparison",
+  "description": "전량 대안 비교(M13) — 판·근거(회신·고객 확인·전결 기준)·두 대안의 수량·도착·여유·추가비·초과액·판정",
+  "type": "object",
+  "required": [
+    "alternatives",
+    "authority",
+    "basis",
+    "case_id",
+    "commitment_id",
+    "compared_at",
+    "compared_by",
+    "comparison_id",
+    "excluded",
+    "execution_mode",
+    "faster_min",
+    "history",
+    "judged_at",
+    "label",
+    "missing",
+    "snapshot",
+    "state",
+    "version"
+  ],
+  "properties": {
+    "comparison_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "label": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "commitment_id": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "object",
+      "required": [
+        "authority_id",
+        "customer_id",
+        "handoff_id",
+        "production_plan_version",
+        "reply_id"
+      ],
+      "properties": {
+        "reply_id": {
+          "type": "string"
+        },
+        "customer_id": {
+          "type": "string"
+        },
+        "authority_id": {
+          "type": "string"
+        },
+        "production_plan_version": {
+          "type": "string"
+        },
+        "handoff_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "customer",
+        "regular",
+        "reply"
+      ],
+      "properties": {
+        "reply": {
+          "type": "object",
+          "required": [
+            "arrival",
+            "departure",
+            "doc_id",
+            "extra_cost_per_vehicle",
+            "received_at",
+            "sets_per_vehicle",
+            "source_id",
+            "status_text",
+            "valid_until",
+            "vehicles"
+          ],
+          "properties": {
+            "source_id": {
+              "type": "string"
+            },
+            "doc_id": {
+              "type": "string"
+            },
+            "received_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "valid_until": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "vehicles": {
+              "type": "integer"
+            },
+            "sets_per_vehicle": {
+              "type": "integer"
+            },
+            "extra_cost_per_vehicle": {
+              "type": "integer"
+            },
+            "departure": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "arrival": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "status_text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "customer": {
+          "type": "object",
+          "required": [
+            "commitment_id",
+            "condition",
+            "confirmed_at",
+            "doc_id",
+            "fixture_id",
+            "kind",
+            "promised_at",
+            "qty",
+            "registered_at",
+            "seq",
+            "source",
+            "source_id"
+          ],
+          "properties": {
+            "fixture_id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "commitment_id": {
+              "type": "string"
+            },
+            "qty": {
+              "type": "integer"
+            },
+            "promised_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "condition": {
+              "type": "string"
+            },
+            "doc_id": {
+              "type": "string"
+            },
+            "seq": {
+              "type": "integer"
+            },
+            "source_id": {
+              "type": "string"
+            },
+            "registered_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "confirmed_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        },
+        "regular": {
+          "type": "object",
+          "required": [
+            "arrival",
+            "cutoff",
+            "departure",
+            "promised_at",
+            "qty",
+            "ready_at",
+            "shortfall_min",
+            "truck_id"
+          ],
+          "properties": {
+            "truck_id": {
+              "type": "string"
+            },
+            "cutoff": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "departure": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "arrival": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "ready_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "promised_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "shortfall_min": {
+              "type": "integer"
+            },
+            "qty": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alternative_id",
+          "arrival",
+          "basis",
+          "capacity",
+          "departure",
+          "excess",
+          "extra_cost",
+          "margin_min",
+          "name",
+          "need_qty",
+          "promised_at",
+          "trucks",
+          "verdict",
+          "verdict_label"
+        ],
+        "properties": {
+          "alternative_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "need_qty": {
+            "type": "integer"
+          },
+          "trucks": {
+            "type": "integer"
+          },
+          "capacity": {
+            "type": "integer"
+          },
+          "extra_cost": {
+            "type": "integer"
+          },
+          "departure": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrival": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "margin_min": {
+            "type": "integer"
+          },
+          "excess": {
+            "type": "integer"
+          },
+          "truck_id": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "verdict_label": {
+            "type": "string"
+          },
+          "available_vehicles": {
+            "type": "integer"
+          },
+          "sets_per_vehicle": {
+            "type": "integer"
+          },
+          "cost_per_vehicle": {
+            "type": "integer"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "conditions": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "excluded": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "alternative",
+          "reason"
+        ],
+        "properties": {
+          "alternative": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "applied_limit",
+        "condition",
+        "effective_at",
+        "holder",
+        "limit",
+        "rule_id",
+        "source"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "holder": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "condition": {
+          "type": "string"
+        },
+        "applied_limit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "faster_min": {
+      "type": "integer"
+    },
+    "missing": {
+      "type": "array"
+    },
+    "judged_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "compared_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "compared_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "basis",
+          "compared_at",
+          "label",
+          "state",
+          "version"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "basis": {
+            "type": "object",
+            "required": [
+              "authority_id",
+              "customer_id",
+              "handoff_id",
+              "production_plan_version",
+              "reply_id"
+            ],
+            "properties": {
+              "reply_id": {
+                "type": "string"
+              },
+              "customer_id": {
+                "type": "string"
+              },
+              "authority_id": {
+                "type": "string"
+              },
+              "production_plan_version": {
+                "type": "string"
+              },
+              "handoff_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "compared_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

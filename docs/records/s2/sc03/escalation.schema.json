@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/escalation.schema.json",
+  "title": "s2/sc03 escalation",
+  "description": "팀장 권고·재보고(M12) — 권고안·사유·전결 한도·초과액·U07 활성·갱신 요청",
+  "type": "object",
+  "required": [
+    "alternative",
+    "alternative_name",
+    "authority",
+    "case_id",
+    "choice",
+    "comparison",
+    "escalation_id",
+    "evidence",
+    "excess",
+    "extra_cost",
+    "history",
+    "limit",
+    "margin_min",
+    "reason",
+    "recommended_at",
+    "recommended_by",
+    "recommended_role",
+    "result",
+    "state",
+    "to_name",
+    "to_role",
+    "unit",
+    "version",
+    "via"
+  ],
+  "properties": {
+    "escalation_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "comparison": {
+      "type": "string"
+    },
+    "choice": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "recommended_by": {
+      "type": "string"
+    },
+    "recommended_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "recommended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "effective_at",
+        "holder",
+        "limit",
+        "rule_id"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string"
+        },
+        "holder": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "effective_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "alternative": {
+      "type": "string"
+    },
+    "alternative_name": {
+      "type": "string"
+    },
+    "extra_cost": {
+      "type": "integer"
+    },
+    "margin_min": {
+      "type": "integer"
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "excess": {
+      "type": "integer"
+    },
+    "to_role": {
+      "type": "string"
+    },
+    "to_name": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "choice",
+          "comparison",
+          "result",
+          "state",
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "comparison": {
+            "type": "string"
+          },
+          "choice": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -171,7 +171,14 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   **공통 BPM `platform.case-plan` 호출**(A03 수행계획 제안 → Y01 위임·필수 확인 검사 → 적용, 구성 승인 없음) → A02 변경안 →
   **생산관리 책임자(H03) 확인 결재 한 번** → 기간계 생산계획 저장소에 주문 행마다 실행키로 반영 → 저장소 재조회 대조(미반영 확인분만
   다시) → 주문별 재평가(S +60분 관찰 · R −30분 운송 확인) → HAND-02(장면 3 N09)(`docs/s2/sc02.md`, 2026-11-05). 업무 번호 **22**,
-  데이터는 장면 1과 같은 `SYN-S2-SC02-v0.2`(앞 7개 시트는 v0.1과 값이 같다).
+  데이터는 장면 1~3이 같은 `SYN-S2-SC03-v0.3`(앞 15개 시트는 v0.2와, 앞 7개 시트는 v0.1과 셀 단위로 같다).
+  **시나리오 2 장면 3(잔여 납기 위험의 경영검토와 대응 합의)** — 장면 2 인계(HAND-02, COM-R만)에서 「장면 열기」로 `company1.s2.sc03`:
+  **같은 공통 BPM `platform.case-plan`을 다시 호출**(수행계획 v2 — v1 완료 항목 보존 + U06 기존 운송 문의 참조 · 조건부 U07) → 출하팀의
+  **기존 운송 문의(기간계 원업무 W-TRAN-R)를 참조로 연결**(새 문의 0건) → 회신·고객 확인이 없으면 메시지 「사건근거」 대기(세계 따라가기가
+  기간계의 새 근거를 보면 보낸다, `no_receiver`면 폴러가 다시) → A01 전량 대안 비교(정기차 −30분·0원 / 긴급 3대 +15분·120만원) →
+  **담당 팀장(H03) 권고·재보고** 결재(한도 100만원 초과 20만원 → ESC-03·U07, 같으면 전결 범위로 끝) → **생산총괄 임원(H05) 결정** 결재
+  (근거가 바뀌었으면 다시 비교) → **출하 담당자(H04) 과제 인수** 결재 → HAND-03(`docs/s2/sc03.md`, 2026-11-05). 업무 번호 **23**.
+  사람 결재 셋은 공통 BPM에 두지 않았다 — BPM 서버 실행기가 호출 활동 안의 결재를 Center에 올리지 않는다.
   **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
@@ -275,7 +282,7 @@ NowView/
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
 ├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~7)
-├── docs/                         # platform.md(공통 플랫폼 — 세 영역 ↔ 세 서버·M01~M29 원본·공통 기록·업무 번호) · s2/sc01.md·sc02.md(시나리오 2 장면 1·2) · role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
+├── docs/                         # platform.md(공통 플랫폼 — 세 영역 ↔ 세 서버·M01~M29 원본·공통 기록·업무 번호) · s2/sc01.md~sc03.md(시나리오 2 장면 1~3) · role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트(지금 차트는 없다 — 4.4)
@@ -312,7 +319,8 @@ NowView/
     ├── processes/case-intake.bpmn # 공통 BPM platform.case-intake — 업무 그림이 호출 활동으로 부른다(사본, 원본 Company1 bpm/platform/)
     ├── processes/s2-sc02.bpmn    # 시나리오 2 장면 2 — 수행계획 호출 → 변경안 → H03 확인 → 반영·재조회 → 재평가 → 인계(docs/s2/sc02.md)
     ├── processes/case-plan.bpmn  # 공통 BPM platform.case-plan — A03 제안 → Y01 검사 → 적용(사본)
-    ├── seed/SYN-S2-SC02-v0.2.xlsx # 시나리오 2 장면 1·2 통합가상데이터 v0.2(앞 7개 시트 = v0.1) — 원천은 기간계(`s2.py`), 파생 칸은 시험이 대조
+    ├── processes/s2-sc03.bpmn    # 시나리오 2 장면 3 — 수행계획 v2 호출 → 원업무 연결·근거 메시지 대기 → 비교 → 팀장 권고 → H05 결정 → H04 인수(docs/s2/sc03.md)
+    ├── seed/SYN-S2-SC03-v0.3.xlsx # 시나리오 2 장면 1~3 통합가상데이터 v0.3(앞 15개 시트 = v0.2) — 원천은 기간계(`s2.py`), 파생 칸은 시험이 대조
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
     ├── seed/SYN-SC03-v0.3.xlsx   # SC01_SC02_SC03 v0.3 — 숫자 시트는 v0.2와 같다, SC03 시트는 종료 시점 완성 레코드(기대값)
@@ -347,6 +355,8 @@ NowView/
     │   ├── s2/sc01/              # 시나리오 2 장면 1 — calc(Y01 판정·배정·A01 분석·OTD) · process(수신→Center 기동·일감 넷) · records(공통 기록)
     │   ├── s2/sc02/              # 시나리오 2 장면 2 — calc(A03 제안·Y01 검사·A02 변경안·반영본 대조·재평가) · process(열기→Center 기동·일감 아홉·
     │   │                         #   기간계 생산계획 반영) · records(case_plan·production_change·confirmation·production_plan·assessment·handoff)
+    │   ├── s2/sc03/              # 시나리오 2 장면 3 — calc(수행계획 v2·원업무 회신 상태·전량 대안 비교·재보고 기준·결정 뒤 재보고) · process(열기→Center
+    │   │                         #   기동·일감 여덟·근거 메시지) · records(case_plan·work_link·comparison·escalation·decision·action·handoff)
     │   └── sc07/                 # seed · calc(대행 확인·소요시간·원인 후보·Agent 입력 투영·검증 TS71-v1·적용 상태 ST703~707) · domain(적재 검사·조회)
     │                             #   · confirm(확인·적용 절차) · process(내장·Studio·Center) · demo(D701~D705) · view · api (`sc07_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _records,
@@ -901,6 +911,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_dashboard.py` | 회사 대시보드 — 장면 1→7 기본 시연 끝의 업무별 지표 = 통합가상데이터 숫자(경영 기록에서 고른다), 결재 진행(지나온 ≤ 그림), 시작 전 업무, 일감 기록은 그 장면 것만·새것이 앞, 따라가는 세계만·사이트 세계가 앞, 따라가지 않는 세계를 고르면 사유, 회사 시스템이 없으면 200 + 사유 |
 | `engine/tests/test_s2_sc02.py` | 시나리오 2 장면 2 — **통합가상데이터 v0.2 파생 칸과 대조**(SC02생산안 제안 착수·종료, SC02반영본 대조, SC02납기판정 준비·정기차·도착·여유·경로, SC02수행계획·SC02확인·SC02인계·SC02요약), 구현명세 T01~T09(U03 없는 조합 차단·원계획 불변·H03만·중복 확인·확인 후 원계획 변경 → 새 판 재확인·보완 요청·라인 충돌·응답 유실 재처리·저장 수량 불일치 보류·마감 경계·차량 누락·같은 판정 재인계 없음), 진짜 엔진 + 공통 BPM 호출, 일감의 실행 신원, 세계 따라가기의 「장면 열기」, 대시보드 업무 22, 공통 기록 스키마(`docs/records/s2/sc02/`) |
 | `engine/tests/test_s2_sc01.py` | 시나리오 2 장면 1 — **통합가상데이터 v0.1 파생 칸과 대조**(입고개정 판정·주문영향 배정·상황판·모델별), 구현명세 T01~T09(15분 경계·1개 부족·3영업일 창·재수신·배경·차량 마감 누락·A01 실패 재시도·인계), 진짜 엔진 + C15 수행기로 그림 끝까지, 실행·실행 위치 409, Center 설정 없음 사유, 세계 따라가기(만들기·수신·초기화·거두기), 대시보드 상황판, 공통 기록 스키마(`docs/records/s2/sc01/`) |
+| `engine/tests/test_s2_sc03.py` | 시나리오 2 장면 3 — **통합가상데이터 v0.3과 대조**(SC03대안비교 두 안 전부, SC03결정인계·SC03인계·SC03요약, SC03업무연결의 사람 시각), 구현명세 T01~T09(재진입·같은 문의 링크 하나·중복 문의 차단·대기 → 회신 유효·2대 조건 재확인·갱신 요청·유효시각 도달·100만원 정확히 전결 범위·재보고 뒤 운임 변경 STALE → v2·비권한 결정·재전송 같은 DEC-03·인수 재전송 같은 HAND-03·인수 뒤 2대·운임·도착 변경 재보고), 진짜 엔진 + 공통 BPM 재호출 + 메시지 대기, 결재 담당 = 역할 배정, Center 메시지 `no_receiver` → 폴러 재전송, 세계 따라가기(열기·근거 넘기기·장면 3부터 다시), 대시보드 업무 23, 공통 기록 스키마(`docs/records/s2/sc03/`) |
 | `tests/dashboard.test.ts` | 대시보드 표기 — 억·만·원과 부호(−), 없는 값은 0이 아니라 「미산출」, 가상시각은 KST 그대로, 회사 사이트 업무 화면 주소(사이트·세계가 없으면 링크 없음) |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
@@ -1571,6 +1582,10 @@ CI(5.1), Chaeksas 엔진(5.2), SC01 화면(5.3 — 2026-11-03 걷었다, 4.6), A
 Company1 BPM·사이트 시험을 거쳐 로컬 Center에서 끝까지 갔다(2026-11-05 — 공유 BPM `platform.case-plan` 0.1.0 · `company1.s2.sc02`
 0.10.1 · 확장 `external` 0.10.0, 사이트 자동 모드로 H03 확인 → PROD-V2 반영·대조 일치 → S +60분 관찰 · R −30분 → HAND-02). 첫 배포는
 Studio가 엉뚱한 공통 BPM(`case-intake`)을 설치해 `call_target_missing`으로 실패했다. 운영계 반영은 남았다.
+**시나리오 2 장면 3**(`docs/s2/sc03.md`)은 엔진 시험(진짜 엔진 + 공통 BPM 재호출 + 메시지 대기 + 기간계 쌍둥이 원업무·근거)과 Company1
+BPM·기간계·사이트 시험을 거쳐 로컬 Center에서 끝까지 갔다(2026-11-05 — `company1.s2.sc03` 0.12.0 · 확장 `external` 0.11.0, 사이트 자동
+모드로 장면 1~3: 근거 메시지 「사건근거」가 `no_receiver` 세 번 뒤 들어가 09:23 비교 → 팀장 재보고 → H05 결정 → H04 인수 → HAND-03,
+일감 9/9 성공, 숫자 = SC03요약). 운영계 반영은 남았다.
 
 ### 5.1 CI — 완료
 

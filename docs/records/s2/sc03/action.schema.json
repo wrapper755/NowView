@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/action.schema.json",
+  "title": "s2/sc03 action",
+  "description": "실행과제(M24) — 담당·기한·한도·인수·결정 이후 재보고",
+  "type": "object",
+  "required": [
+    "accepted_at",
+    "accepted_by",
+    "action_id",
+    "assigned_at",
+    "case_id",
+    "comment",
+    "commitment_id",
+    "conditions",
+    "decision_id",
+    "due",
+    "limit",
+    "note",
+    "owner_name",
+    "owner_role",
+    "re_report_required",
+    "re_reports",
+    "state",
+    "title",
+    "work_id"
+  ],
+  "properties": {
+    "action_id": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "commitment_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "accepted_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "accepted_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "comment": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "re_report_required": {
+      "type": "boolean"
+    },
+    "re_reports": {
+      "type": "array"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

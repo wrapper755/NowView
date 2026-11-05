@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/handoff.schema.json",
+  "title": "s2/sc03 handoff",
+  "description": "장면 인계(HAND-03) — 결정·과제·근거 버전·후속 확인·실제값 미확정",
+  "type": "object",
+  "required": [
+    "action_id",
+    "actual",
+    "case_id",
+    "commitment_id",
+    "comparison",
+    "decision_id",
+    "demo_run_id",
+    "due",
+    "evidence",
+    "expected_arrival",
+    "follow_up",
+    "handed_at",
+    "handoff_id",
+    "limit",
+    "next_label",
+    "observed",
+    "owner_name",
+    "owner_role",
+    "re_report_conditions",
+    "selected",
+    "selected_label",
+    "state",
+    "state_label"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "commitment_id": {
+      "type": "string"
+    },
+    "demo_run_id": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "action_id": {
+      "type": "string"
+    },
+    "selected": {
+      "type": "string"
+    },
+    "selected_label": {
+      "type": "string"
+    },
+    "comparison": {
+      "type": "string"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "limit": {
+      "type": "integer"
+    },
+    "expected_arrival": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "re_report_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "follow_up": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "string"
+    },
+    "state_label": {
+      "type": "string"
+    },
+    "actual": {
+      "type": "object",
+      "required": [
+        "accepted_at",
+        "actual_cost",
+        "reserved_at"
+      ],
+      "properties": {
+        "reserved_at": {
+          "type": "null"
+        },
+        "accepted_at": {
+          "type": "null"
+        },
+        "actual_cost": {
+          "type": "null"
+        }
+      },
+      "additionalProperties": true
+    },
+    "observed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_label": {
+      "type": "string"
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

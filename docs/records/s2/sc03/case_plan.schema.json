@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc03/case_plan.schema.json",
+  "title": "s2/sc03 case_plan",
+  "description": "사건 수행계획 v2(M06·M07) — v1 완료 항목 보존·U06 원업무 참조·조건부 U07·Y01 검사·흐름 단계",
+  "type": "object",
+  "required": [
+    "applied_at",
+    "base_plan",
+    "case_id",
+    "case_state",
+    "check",
+    "execution_mode",
+    "flow",
+    "items",
+    "kept",
+    "plan_id",
+    "production_plan_version",
+    "proposed_at",
+    "proposed_by",
+    "roles",
+    "source",
+    "state",
+    "u07_active",
+    "version"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "base_plan": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "carried_from",
+          "carried_state",
+          "delegation",
+          "link_mode",
+          "name",
+          "owner",
+          "predecessor",
+          "reason",
+          "selection",
+          "seq",
+          "state",
+          "steps",
+          "target",
+          "unit"
+        ],
+        "properties": {
+          "seq": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "selection": {
+            "type": "string"
+          },
+          "delegation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "owner": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "predecessor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "link_mode": {
+            "type": "string"
+          },
+          "carried_from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "carried_state": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "state": {
+            "type": "string"
+          },
+          "ref_work_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ref_owner_role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "activation": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "proposed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "proposed_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "check": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "checked_at",
+        "issues",
+        "needs_approval",
+        "result",
+        "rules"
+      ],
+      "properties": {
+        "result": {
+          "type": "string"
+        },
+        "issues": {
+          "type": "array"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "needs_approval": {
+          "type": "boolean"
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string"
+    },
+    "applied_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "production_plan_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "u07_active": {
+      "type": "boolean"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "kind",
+          "label",
+          "role_id",
+          "steps",
+          "title"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duty": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "node",
+          "role",
+          "state"
+        ],
+        "properties": {
+          "node": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "approval_id",
+        "case_id",
+        "commitments",
+        "handoff_id",
+        "observed",
+        "production_plan_version",
+        "regular"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "handoff_id": {
+          "type": "string"
+        },
+        "commitments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "production_plan_version": {
+          "type": "string"
+        },
+        "approval_id": {
+          "type": "string"
+        },
+        "regular": {
+          "type": "object",
+          "required": [
+            "arrival",
+            "cutoff",
+            "departure",
+            "promised_at",
+            "qty",
+            "ready_at",
+            "shortfall_min",
+            "truck_id"
+          ],
+          "properties": {
+            "truck_id": {
+              "type": "string"
+            },
+            "cutoff": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "departure": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "arrival": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "ready_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "promised_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "shortfall_min": {
+              "type": "integer"
+            },
+            "qty": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "kept": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "case_state": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

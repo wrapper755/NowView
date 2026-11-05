@@ -129,6 +129,27 @@ def _s2sc02(found: list[Record]) -> list[Metric]:
     ]
 
 
+def _s2sc03(found: list[Record]) -> list[Metric]:
+    """
+    SC03요약의 칸 — 두 안의 납기 여유(분)·긴급 추가비(견적)·팀장 한도 초과·H05 결정·H04 과제.
+    추가비는 견적이고 실제 집행액이 아니다.
+    """
+    s = (_latest(found, "dashboard") or {}).get("summary") or {}
+
+    def mins(key: str) -> str | None:
+        v = s.get(key)
+        return None if v is None else f"{v:+d}분"
+
+    return [
+        _text("정기차 납기 여유", mins("regular_margin_min")),
+        _text("긴급차 납기 여유", mins("express_margin_min")),
+        _krw("긴급차 추가비(견적)", s.get("express_extra_cost")),
+        _krw("팀장 한도 초과", s.get("express_excess")),
+        _text("H05 결정", s.get("decision")),
+        _text("H04 과제", s.get("action")),
+    ]
+
+
 LABELS_22 = {
     "initial_impact": "최초 영향 약정",
     "matched": "반영 대조 일치",
@@ -165,6 +186,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     7: _sc07,
     21: _s2sc01,
     22: _s2sc02,
+    23: _s2sc03,
 }
 
 
@@ -187,6 +209,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s2.sc02 import records as s22
 
         return s22.records_of(doc, proc.master())
+    if scene == 23:
+        from app.s2.sc03 import records as s23
+
+        return s23.records_of(doc, proc.master())
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 
