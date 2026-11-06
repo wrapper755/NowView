@@ -1,0 +1,1197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/close_result.schema.json",
+  "title": "s3/sc02 close_result",
+  "description": "계산 결과(결과 버전) — 두 항목의 계산·대사·승인 요약 행·Agent 문안(수치마다 결과 칸 참조)",
+  "type": "object",
+  "required": [
+    "calc",
+    "created_at",
+    "draft",
+    "draft_edits",
+    "findings",
+    "fingerprints",
+    "input_version",
+    "result_version",
+    "run_id",
+    "state"
+  ],
+  "properties": {
+    "result_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "fingerprints": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "DEP": {
+          "type": "string"
+        },
+        "ALW": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array"
+    },
+    "calc": {
+      "type": "object",
+      "required": [
+        "allowance",
+        "comparative_end",
+        "depreciation",
+        "diffs_missing",
+        "findings",
+        "input_version",
+        "max_diff_won",
+        "period_end",
+        "rule_version",
+        "state",
+        "summary",
+        "unit"
+      ],
+      "properties": {
+        "rule_version": {
+          "type": "string"
+        },
+        "input_version": {
+          "type": "string"
+        },
+        "period_end": {
+          "type": "string"
+        },
+        "comparative_end": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "depreciation": {
+          "type": "object",
+          "required": [
+            "assets",
+            "by_allocation",
+            "by_kind",
+            "changes",
+            "diffs",
+            "findings",
+            "note",
+            "reconciliation",
+            "state",
+            "summary",
+            "unit"
+          ],
+          "properties": {
+            "unit": {
+              "type": "string"
+            },
+            "assets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "acquired",
+                  "allocation",
+                  "annual",
+                  "asset_id",
+                  "change",
+                  "closing_net",
+                  "cost",
+                  "current",
+                  "disposed_net",
+                  "disposed_on",
+                  "impairment",
+                  "in_service",
+                  "kind",
+                  "life_years",
+                  "limit",
+                  "months",
+                  "opening_net",
+                  "prior",
+                  "residual"
+                ],
+                "properties": {
+                  "asset_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "allocation": {
+                    "type": "string"
+                  },
+                  "opening_net": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "acquired": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "disposed_net": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "impairment": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "cost": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "residual": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "life_years": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "in_service": {
+                    "type": "string"
+                  },
+                  "disposed_on": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "months": {
+                    "type": "integer"
+                  },
+                  "annual": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "limit": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "prior": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "closing_net": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "by_kind": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "change",
+                  "current",
+                  "group",
+                  "prior",
+                  "rate"
+                ],
+                "properties": {
+                  "group": {
+                    "type": "string"
+                  },
+                  "prior": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "rate": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "by_allocation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "change",
+                  "current",
+                  "group",
+                  "prior",
+                  "rate"
+                ],
+                "properties": {
+                  "group": {
+                    "type": "string"
+                  },
+                  "prior": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "rate": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "note": {
+              "type": "object",
+              "required": [
+                "rows",
+                "total"
+              ],
+              "properties": {
+                "rows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "acquired",
+                      "closing",
+                      "depreciation",
+                      "disposed",
+                      "impairment",
+                      "kind",
+                      "opening"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string"
+                      },
+                      "opening": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "acquired": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "disposed": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "impairment": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "depreciation": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "closing": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "total": {
+                  "type": "object",
+                  "required": [
+                    "acquired",
+                    "closing",
+                    "depreciation",
+                    "disposed",
+                    "impairment",
+                    "kind",
+                    "opening"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string"
+                    },
+                    "opening": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "acquired": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "disposed": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "impairment": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "depreciation": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "closing": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "asset_id",
+                  "change",
+                  "kind",
+                  "months"
+                ],
+                "properties": {
+                  "asset_id": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "months": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "summary": {
+              "type": "object",
+              "required": [
+                "book",
+                "change",
+                "current",
+                "prior",
+                "request",
+                "request_label"
+              ],
+              "properties": {
+                "prior": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "current": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "change": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "book": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "request": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "request_label": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "reconciliation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "book",
+                  "calculated",
+                  "diff_won",
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "book": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "calculated": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "diff_won": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "diffs": {
+              "type": "object",
+              "required": [
+                "allocation_won",
+                "closing_won",
+                "note_won"
+              ],
+              "properties": {
+                "allocation_won": {
+                  "type": "integer"
+                },
+                "note_won": {
+                  "type": "integer"
+                },
+                "closing_won": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "findings": {
+              "type": "array"
+            },
+            "state": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "allowance": {
+          "type": "object",
+          "required": [
+            "counts",
+            "customers",
+            "diffs",
+            "findings",
+            "individual",
+            "methods",
+            "model",
+            "note",
+            "reconciliation",
+            "rows",
+            "state",
+            "summary",
+            "top3",
+            "unit"
+          ],
+          "properties": {
+            "unit": {
+              "type": "string"
+            },
+            "model": {
+              "type": "object",
+              "required": [
+                "model_quarter",
+                "quarterly",
+                "reproduced_won",
+                "segments",
+                "window"
+              ],
+              "properties": {
+                "model_quarter": {
+                  "type": "string"
+                },
+                "window": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "quarterly": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": [
+                        "null",
+                        "string"
+                      ],
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    }
+                  }
+                },
+                "segments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "aging",
+                      "lgd",
+                      "model_balance_won",
+                      "pd",
+                      "rate",
+                      "simple_rate",
+                      "weighted_rate"
+                    ],
+                    "properties": {
+                      "aging": {
+                        "type": "string"
+                      },
+                      "simple_rate": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "weighted_rate": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "pd": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "lgd": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "rate": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "model_balance_won": {
+                        "type": "integer"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "reproduced_won": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "rows": {
+              "type": "object",
+              "required": [
+                "current",
+                "prior"
+              ],
+              "properties": {
+                "prior": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "aging",
+                      "allowance",
+                      "balance",
+                      "customer",
+                      "pool",
+                      "rate"
+                    ],
+                    "properties": {
+                      "customer": {
+                        "type": "string"
+                      },
+                      "pool": {
+                        "type": "string"
+                      },
+                      "aging": {
+                        "type": "string"
+                      },
+                      "balance": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "rate": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "allowance": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "current": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "aging",
+                      "allowance",
+                      "balance",
+                      "customer",
+                      "pool",
+                      "rate"
+                    ],
+                    "properties": {
+                      "customer": {
+                        "type": "string"
+                      },
+                      "pool": {
+                        "type": "string"
+                      },
+                      "aging": {
+                        "type": "string"
+                      },
+                      "balance": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "rate": {
+                        "type": [
+                          "null",
+                          "string"
+                        ],
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      },
+                      "allowance": {
+                        "type": "string",
+                        "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "individual": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "accounting_confirmation",
+                  "allowance",
+                  "as_of",
+                  "balance",
+                  "basis",
+                  "confirmed_by",
+                  "customer",
+                  "plan_ref",
+                  "plan_rounds",
+                  "plan_total",
+                  "recovery",
+                  "sales_confirmation"
+                ],
+                "properties": {
+                  "customer": {
+                    "type": "string"
+                  },
+                  "as_of": {
+                    "type": "string"
+                  },
+                  "balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "plan_ref": {
+                    "type": "string"
+                  },
+                  "plan_rounds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "amount",
+                        "due",
+                        "round"
+                      ],
+                      "properties": {
+                        "round": {
+                          "type": "integer"
+                        },
+                        "due": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "string",
+                          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "plan_total": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "sales_confirmation": {
+                    "type": [
+                      "null",
+                      "string"
+                    ]
+                  },
+                  "accounting_confirmation": {
+                    "type": "string"
+                  },
+                  "confirmed_by": {
+                    "type": "string"
+                  },
+                  "recovery": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "allowance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "basis": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "methods": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "change",
+                  "current",
+                  "current_balance",
+                  "method",
+                  "prior"
+                ],
+                "properties": {
+                  "method": {
+                    "type": "string"
+                  },
+                  "prior": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "customers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "aging",
+                  "change",
+                  "current",
+                  "current_balance",
+                  "customer",
+                  "pool",
+                  "prior",
+                  "prior_balance",
+                  "rank",
+                  "rate"
+                ],
+                "properties": {
+                  "customer": {
+                    "type": "string"
+                  },
+                  "pool": {
+                    "type": "string"
+                  },
+                  "aging": {
+                    "type": "string"
+                  },
+                  "prior_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current_balance": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "rate": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "prior": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "current": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "change": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "rank": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "top3": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "counts": {
+              "type": "object",
+              "required": [
+                "current",
+                "prior"
+              ],
+              "properties": {
+                "current": {
+                  "type": "object",
+                  "required": [
+                    "collective",
+                    "individual"
+                  ],
+                  "properties": {
+                    "collective": {
+                      "type": "integer"
+                    },
+                    "individual": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "prior": {
+                  "type": "object",
+                  "required": [
+                    "collective",
+                    "individual"
+                  ],
+                  "properties": {
+                    "collective": {
+                      "type": "integer"
+                    },
+                    "individual": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "note": {
+              "type": "object",
+              "required": [
+                "diff_won",
+                "ending",
+                "opening",
+                "provision",
+                "reversal",
+                "written_off"
+              ],
+              "properties": {
+                "opening": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "provision": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "reversal": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "written_off": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "ending": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "diff_won": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "summary": {
+              "type": "object",
+              "required": [
+                "book",
+                "change",
+                "current",
+                "prior",
+                "request",
+                "request_label"
+              ],
+              "properties": {
+                "prior": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "current": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "change": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "book": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "request": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "request_label": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "reconciliation": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "book",
+                  "calculated",
+                  "diff_won",
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "book": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "calculated": {
+                    "type": "string",
+                    "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                  },
+                  "diff_won": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "diffs": {
+              "type": "object",
+              "required": [
+                "note_won",
+                "opening_won",
+                "receivable_won"
+              ],
+              "properties": {
+                "receivable_won": {
+                  "type": "integer"
+                },
+                "opening_won": {
+                  "type": "integer"
+                },
+                "note_won": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "findings": {
+              "type": "array"
+            },
+            "state": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "book",
+              "change",
+              "change_rate",
+              "current",
+              "item",
+              "name",
+              "prior",
+              "request",
+              "request_label"
+            ],
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "prior": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "current": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "change": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "book": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "request": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "request_label": {
+                "type": "string"
+              },
+              "change_rate": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "findings": {
+          "type": "array"
+        },
+        "max_diff_won": {
+          "type": "integer"
+        },
+        "diffs_missing": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "draft": {
+      "type": "object",
+      "required": [
+        "mode",
+        "note",
+        "sections"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "item",
+              "refs",
+              "text",
+              "title"
+            ],
+            "properties": {
+              "item": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "field",
+                    "value"
+                  ],
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    },
+                    "field": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "draft_edits": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

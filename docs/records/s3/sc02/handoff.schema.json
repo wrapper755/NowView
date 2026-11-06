@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/handoff.schema.json",
+  "title": "s3/sc02 handoff",
+  "description": "장면 3 인계(HAND-S3-02) — 보고 ID·버전·두 항목 요청액·요약·첨부 참조·팀장 수신 업무",
+  "type": "object",
+  "required": [
+    "attachment_ref",
+    "close_id",
+    "executed_by",
+    "follow_up",
+    "handed_at",
+    "handoff_id",
+    "items",
+    "next_step",
+    "recipient_task",
+    "report_id",
+    "report_version",
+    "result_version",
+    "reviewed_by",
+    "run_id",
+    "submitted_at",
+    "summary_ref"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "integer"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approval",
+          "item_id",
+          "name",
+          "request",
+          "request_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          },
+          "approval": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "summary_ref": {
+      "type": "string"
+    },
+    "attachment_ref": {
+      "type": "string"
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "executed_by": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipient_task": {
+      "type": "string"
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "follow_up": {
+      "type": "string"
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

@@ -17,6 +17,15 @@ NowView `docs/s3/common.md`(시나리오 3 공통 설계)·`docs/s3/sc01.md`. �
   완료). 지금 버전과 내용이 같으면 새 버전을 만들지 않는다(재등록 없음). 변형은 `VARIANTS`.
 * `GET /worlds/{w}/close-inputs` · `…/inbox?after=` · `…/close-inputs/{version}`(시트 전부·단위·추출
   참조·변형·바뀐 시트).
+* 장면 2 「결산조정 계산 및 담당자 검토」(NowView `docs/s3/sc02.md`) — **결산 건의 첨부**: `POST
+  /worlds/{w}/close-attachments`(계산근거 .xlsx — 파일 id·버전·실행·결과 버전·지문·내용 base64, 같은
+  파일 id·같은 지문은 그대로, 다른 지문은 409 — 장면을 다시 열면(`epoch`가 다르면) 바꾼다) · `GET
+  …/close-attachments`(목록 — 내용 없이, 열람 이력 포함) · `GET …/close-attachments/{id}`(내용 포함)
+  · `POST …/close-attachments/{id}/opens`(사이트의 「첨부 Excel 열기」 — 열람 이력, 검토 완료와 따로
+  남는다).
+* (시연·시험) 연계 PC 장애 스위치 — `POST /worlds/{w}/sim/close-faults {kind, count}`(`pc_delay`
+  계산 중 미응답 · `transfer_fail` 계산 뒤 파일 전송 실패)와 NowView 일꾼이 한 번씩 꺼내 쓰는 `POST
+  …/close-faults/{kind}/take`. 지어낸 지연이 아니라 시연자가 켠 장애만 생긴다.
 
 금액은 백만원이다(전이율원천만 원). 엑셀의 부동소수 잡음(33.799690999999996)은 **백만원 소수
 6자리(= 원 단위)**로 반올림해 싣는다 — 결산기준 「원 단위(백만원 소수 6자리) 반올림」.
@@ -28,6 +37,7 @@ NowView `docs/s3/common.md`(시나리오 3 공통 설계)·`docs/s3/sc01.md`. �
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import json
@@ -285,6 +295,11 @@ def _asset_replaced(s: dict, refs: dict, units: dict) -> None:
     refs["자산대장"] = "ERP-FA-20261231-R2"
 
 
+def _e2_start_aug(s: dict, refs: dict, units: dict) -> None:
+    """E2 가동이 8월로 정정됐다 — 장면 1 점검은 통과하고 장면 2 금액만 바뀐다(인수시험 08)."""
+    _asset(s, "E2")["in_service"] = "2026-08-01"
+
+
 VARIANTS: dict[str, dict[str, Any]] = {
     "E2-START-MISSING": {"label": "자산대장 E2 사용개시일 누락", "apply": _e2_start_missing},
     "CONF-F-MISSING": {"label": "회계 평가 기록 CONF-26-F 없음", "apply": _conf_f_missing},
@@ -306,7 +321,14 @@ VARIANTS: dict[str, dict[str, Any]] = {
         "label": "자산대장 재추출(값 동일·추출 참조 변경)",
         "apply": _asset_replaced,
     },
+    "E2-START-AUG": {
+        "label": "자산대장 E2 사용개시일 8월로 정정(금액 근거 변경)",
+        "apply": _e2_start_aug,
+    },
 }
+
+#: 장면 2 연계 PC 장애 스위치(시연·시험)
+FAULTS = ("pc_delay", "transfer_fail")
 
 #: 시트별 처음 추출 참조(가상 ERP 추출 id)
 FIRST_REFS = {s: f"ERP-{i + 1:02d}-20261231-R1" for i, s in enumerate(SHEETS)}
@@ -355,7 +377,12 @@ def build_version(
 def new_world() -> dict[str, Any]:
     """시나리오 3 세계의 변하는 기록 — 결산 건에 연결된 입력 버전(처음은 IN-26-01 하나)."""
     first = build_version(FIRST_VERSION, 1, [], S0_CLOCK, None)
-    return {"close_input_seq": 1, "close_inputs": {FIRST_VERSION: first}}
+    return {"close_input_seq": 1, "close_inputs": {FIRST_VERSION: first}, **_new_scene2()}
+
+
+def _new_scene2() -> dict[str, Any]:
+    """장면 2의 세계 기록 — 결산 건 첨부와 연계 PC 장애 스위치."""
+    return {"close_attachments": {}, "close_faults": dict.fromkeys(FAULTS, 0)}
 
 
 def rewind(w: dict[str, Any], scene: int) -> None:
@@ -364,6 +391,8 @@ def rewind(w: dict[str, Any], scene: int) -> None:
         return
     if scene <= 1:
         w.update(new_world())
+    elif scene <= 2:
+        w.update(_new_scene2())
 
 
 def summary(w: dict[str, Any]) -> dict[str, Any]:
@@ -375,6 +404,44 @@ def summary(w: dict[str, Any]) -> dict[str, Any]:
 
 class InputsBody(BaseModel):
     variants: list[str] = []
+
+
+class AttachmentBody(BaseModel):
+    file_id: str
+    file_version: int
+    close_id: str
+    run_id: str
+    result_version: str
+    filename: str
+    content_type: str
+    sha256: str
+    size: int
+    registered_by: str
+    execution_mode: str
+    content_b64: str
+    #: 장면을 연 회차(NowView 문서마다 다르다) — 다르면 같은 파일 id를 새로 쓴다
+    epoch: str = ""
+
+
+class OpenBody(BaseModel):
+    by: str
+    via: str = "site"
+
+
+class FaultBody(BaseModel):
+    kind: str
+    count: int = 1
+
+
+def _attachments(w: dict[str, Any]) -> dict[str, Any]:
+    """이 칸이 생기기 전에 만든 세계는 읽을 때 채운다."""
+    w.setdefault("close_attachments", {})
+    w.setdefault("close_faults", dict.fromkeys(FAULTS, 0))
+    return w["close_attachments"]
+
+
+def _meta(a: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in a.items() if k != "content_b64"}
 
 
 def _summary(v: dict[str, Any]) -> dict[str, Any]:
@@ -429,6 +496,79 @@ def mount(
     def close_input_inbox(world_id: str, after: int = 0) -> list[dict[str, Any]]:
         docs = sorted(_s3(world_id)["close_inputs"].values(), key=lambda v: v["seq"])
         return [_summary(v) for v in docs if v["seq"] > after]
+
+    @app.post("/worlds/{world_id}/close-attachments", status_code=201, dependencies=[Depends(auth)])
+    def put_attachment(world_id: str, body: AttachmentBody) -> dict[str, Any]:
+        """결산 건에 첨부 — 지문을 다시 재서 받는다. 같은 파일·같은 지문의 재전송은 그대로다."""
+        raw = base64.b64decode(body.content_b64)
+        if hashlib.sha256(raw).hexdigest() != body.sha256 or len(raw) != body.size:
+            raise HTTPException(422, f"{body.file_id} 내용과 지문·크기가 다르다")
+        with store.lock():
+            w = _s3(world_id)
+            found = _attachments(w).get(body.file_id)
+            if found is not None and found.get("epoch") == body.epoch:
+                if found["sha256"] != body.sha256:
+                    raise HTTPException(409, f"{body.file_id}는 다른 내용으로 이미 첨부됐다")
+                return {**_meta(found), "created": False}
+            rec = {**body.model_dump(), "registered_at": w["clock"], "opens": []}
+            w["close_attachments"][body.file_id] = rec
+            store.put(w)
+        return {**_meta(rec), "created": True}
+
+    @app.get("/worlds/{world_id}/close-attachments", dependencies=[Depends(auth)])
+    def list_attachments(world_id: str) -> list[dict[str, Any]]:
+        found = _attachments(_s3(world_id)).values()
+        return [_meta(a) for a in sorted(found, key=lambda a: a["file_version"])]
+
+    @app.get("/worlds/{world_id}/close-attachments/{file_id}", dependencies=[Depends(auth)])
+    def get_attachment(world_id: str, file_id: str) -> dict[str, Any]:
+        found = _attachments(_s3(world_id)).get(file_id)
+        if found is None:
+            raise HTTPException(404, f"없는 첨부: {file_id}")
+        return found
+
+    @app.post(
+        "/worlds/{world_id}/close-attachments/{file_id}/opens",
+        status_code=201,
+        dependencies=[Depends(auth)],
+    )
+    def open_attachment(world_id: str, file_id: str, body: OpenBody) -> dict[str, Any]:
+        """첨부 열람 이력 — 담당자의 검토 완료와 따로 남는다(구현명세 §3)."""
+        with store.lock():
+            w = _s3(world_id)
+            found = _attachments(w).get(file_id)
+            if found is None:
+                raise HTTPException(404, f"없는 첨부: {file_id}")
+            found["opens"].append({"at": w["clock"], "by": body.by, "via": body.via})
+            store.put(w)
+        return _meta(found)
+
+    @app.post("/worlds/{world_id}/sim/close-faults", dependencies=[Depends(auth)])
+    def set_fault(world_id: str, body: FaultBody) -> dict[str, Any]:
+        """(시연·시험) 연계 PC 장애 — 다음 작업 `count`번에 그 장애가 난다."""
+        if body.kind not in FAULTS:
+            raise HTTPException(404, f"모르는 장애: {body.kind} (가능: {', '.join(FAULTS)})")
+        with store.lock():
+            w = _s3(world_id)
+            _attachments(w)
+            w["close_faults"][body.kind] = max(0, body.count)
+            store.put(w)
+        return dict(w["close_faults"])
+
+    @app.post("/worlds/{world_id}/close-faults/{kind}/take", dependencies=[Depends(auth)])
+    def take_fault(world_id: str, kind: str) -> dict[str, Any]:
+        """NowView 일꾼이 작업마다 묻는다 — 켜져 있으면 하나 쓰고 그 장애를 낸다."""
+        if kind not in FAULTS:
+            raise HTTPException(404, f"모르는 장애: {kind}")
+        with store.lock():
+            w = _s3(world_id)
+            _attachments(w)
+            left = w["close_faults"].get(kind, 0)
+            if left <= 0:
+                return {"fault": False, "left": 0}
+            w["close_faults"][kind] = left - 1
+            store.put(w)
+        return {"fault": True, "left": left - 1}
 
     @app.get("/worlds/{world_id}/close-inputs/{version}", dependencies=[Depends(auth)])
     def close_input(world_id: str, version: str) -> dict[str, Any]:

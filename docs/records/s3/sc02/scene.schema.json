@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/scene.schema.json",
+  "title": "s3/sc02 scene",
+  "description": "장면 머리 — 시연 시각·실행 위치·BPM 실행(지나온 노드·대기)·분석 지시(지시문·버전·연결 자료)·장면 1 인계·낡은 결과·흐름 01~07·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "bpm",
+    "caseId",
+    "clock",
+    "close",
+    "companyLog",
+    "demoRunId",
+    "entry",
+    "executor",
+    "flow",
+    "handoff",
+    "instruction",
+    "report",
+    "runs",
+    "scenario",
+    "scene",
+    "stale",
+    "title"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "scenario": {
+      "type": "string"
+    },
+    "scene": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "bpm": {
+      "type": "object",
+      "required": [
+        "external_run_id",
+        "job_id",
+        "problem",
+        "state",
+        "visited",
+        "waiting"
+      ],
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "null"
+        },
+        "external_run_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "node_id",
+              "title"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "problem": {
+          "type": "null"
+        }
+      },
+      "additionalProperties": true
+    },
+    "close": {
+      "type": "object",
+      "required": [
+        "allowed_sheets",
+        "close_id",
+        "comparative_end",
+        "dataset_version",
+        "excluded_sheets",
+        "period_end",
+        "reviewer",
+        "schedule",
+        "title",
+        "unit"
+      ],
+      "properties": {
+        "close_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "period_end": {
+          "type": "string"
+        },
+        "comparative_end": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "reviewer": {
+          "type": "object",
+          "required": [
+            "name",
+            "role",
+            "user_id"
+          ],
+          "properties": {
+            "role": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "user_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "schedule": {
+          "type": "object",
+          "required": [
+            "approve_due",
+            "posting_due",
+            "started",
+            "submit_due"
+          ],
+          "properties": {
+            "started": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "submit_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "approve_due": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "posting_due": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        },
+        "dataset_version": {
+          "type": "string"
+        },
+        "allowed_sheets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_sheets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "digest",
+        "fingerprints",
+        "handoff_id",
+        "input_version",
+        "opened_at"
+      ],
+      "properties": {
+        "handoff_id": {
+          "type": "string"
+        },
+        "input_version": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "fingerprints": {
+          "type": "object",
+          "required": [
+            "ALW",
+            "DEP"
+          ],
+          "properties": {
+            "DEP": {
+              "type": "string"
+            },
+            "ALW": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "opened_at": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "instruction": {
+      "type": "object",
+      "required": [
+        "entry_item",
+        "excluded_sheets",
+        "linked_sheets",
+        "periods",
+        "scope",
+        "text",
+        "versions"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "object",
+          "required": [
+            "agent",
+            "calc",
+            "environment",
+            "format",
+            "prompt"
+          ],
+          "properties": {
+            "prompt": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            },
+            "calc": {
+              "type": "string"
+            },
+            "agent": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "linked_sheets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_sheets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entry_item": {
+          "type": "string"
+        },
+        "periods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stale": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "reason",
+        "result_version"
+      ],
+      "properties": {
+        "result_version": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "role",
+          "state",
+          "step"
+        ],
+        "properties": {
+          "step": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "direction",
+          "what"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "report": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "handoff": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

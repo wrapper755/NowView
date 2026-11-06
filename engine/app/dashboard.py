@@ -222,6 +222,40 @@ def _s3sc01(found: list[Record]) -> list[Metric]:
     ]
 
 
+def _s3sc02(found: list[Record]) -> list[Metric]:
+    """
+    결산 체크리스트(장면 2) — 검토 완료·승인 대기·상신 보고·승인 완료와 두 승인 요청액. 요청액은
+    조정 전 장부 대비이고 전기 대비 증감과 다르다.
+    """
+    board = _latest(found, "dashboard") or {}
+    rows = {r["item_id"]: r for r in board.get("rows", [])}
+
+    def ratio(key: str) -> str | None:
+        v = board.get(key)
+        return None if not v else f"{v['done']}/{v['of']}항목"
+
+    def request(item: str) -> str | None:
+        r = rows.get(item) or {}
+        if r.get("request") is None:
+            return None
+        return f"{r['request_label']} {_comma(r['request'])}백만원"
+
+    return [
+        _text("검토 완료", ratio("reviewed")),
+        _text("승인 대기", None if not board else f"{board.get('waiting_approval', 0)}항목"),
+        _text("상신 보고", None if not board else f"{board.get('reports', 0)}건"),
+        _text("승인 완료", ratio("approved")),
+        _text("감가상각비", request("DEP")),
+        _text("대손충당금", request("ALW")),
+    ]
+
+
+def _comma(value: str) -> str:
+    whole, _, frac = value.partition(".")
+    sign = "−" if whole.startswith("-") else ""
+    return sign + f"{int(whole.lstrip('-')):,}" + (f".{frac}" if frac else "")
+
+
 METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     1: _sc01,
     2: _sc02,
@@ -235,6 +269,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     23: _s2sc03,
     24: _s2sc04,
     31: _s3sc01,
+    32: _s3sc02,
 }
 
 
@@ -269,6 +304,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s3.sc01 import records as s31
 
         return s31.records_of(doc)
+    if scene == 32:
+        from app.s3.sc02 import records as s32
+
+        return s32.records_of(doc)
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 

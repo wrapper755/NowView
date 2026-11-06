@@ -1,0 +1,1740 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S3:SC02",
+  "version": 11,
+  "scene": 2,
+  "state": "SUBMITTED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산조정 계산 및 담당자 검토",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s3",
+   "scene": 2,
+   "title": "결산조정 계산 및 담당자 검토",
+   "caseId": "BASE",
+   "clock": "2027-01-04T09:00:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "state": "done",
+    "job_id": null,
+    "external_run_id": "test_20261106_062242_79956d",
+    "visited": [
+     "Task_Open",
+     "Request_Analysis",
+     "Record_Request",
+     "Task_Process",
+     "Gw_Run",
+     "Task_Attach",
+     "Gw_Attach",
+     "Task_Route",
+     "Gw_Next",
+     "Review_Allowance",
+     "Record_Review_Allowance",
+     "Review_Depreciation",
+     "Record_Review_Depreciation",
+     "Submit_Report",
+     "Record_Submit",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null
+   },
+   "close": {
+    "close_id": "S3-CLOSE-01",
+    "title": "2026년 연말결산",
+    "period_end": "2026-12-31",
+    "comparative_end": "2025-12-31",
+    "unit": "백만원",
+    "reviewer": {
+     "role": "회계팀장",
+     "name": "회계팀장",
+     "user_id": "u-acct-lead"
+    },
+    "schedule": {
+     "started": "2027-01-04T09:00:00+09:00",
+     "submit_due": "2027-01-08T18:00:00+09:00",
+     "approve_due": "2027-01-11T18:00:00+09:00",
+     "posting_due": "2027-01-13T18:00:00+09:00"
+    },
+    "dataset_version": "S3-INPUT-v0.1",
+    "allowed_sheets": [
+     "결산기준",
+     "자산대장",
+     "채권명세",
+     "전이율원천",
+     "원장",
+     "회수계획",
+     "확인기록"
+    ],
+    "excluded_sheets": [
+     "설계안내",
+     "입력명세",
+     "대표사건",
+     "검수기준"
+    ]
+   },
+   "entry": {
+    "handoff_id": "HAND-S3-01",
+    "input_version": "IN-26-01",
+    "digest": "5dfe0ace3d826429",
+    "fingerprints": {
+     "DEP": "ee3a1fd5d41fe77f",
+     "ALW": "2661157339af55b7"
+    },
+    "opened_at": "2027-01-04T09:00:00+09:00"
+   },
+   "instruction": {
+    "text": "이번 결산의 외상매출금 명세와 원장을 대사하고 집합·개별평가를 구분해 주세요. 개별채권은 회계담당자가 확인한 회수예상액을 사용하고, 주요 거래처의 충당금 변동과 근거를 설명해 주세요. 감가상각비는 자산별로 계산해 비용 귀속별 합계 및 주석과 대조해 주세요. 두 항목의 계산식과 상세 주석은 Excel 한 파일로, 전기 대비 변동과 이번 조정 요청액은 화면 요약으로 작성해 주세요. 근거가 부족하면 대상과 보완 사유를 표시해 주세요.",
+    "versions": {
+     "prompt": "PRM-S3-SC02-v0.1",
+     "format": "FMT-S3-WP-v0.1",
+     "calc": "S3-SC02-CALC-v0.1",
+     "agent": "AGT-S3-CLOSE-v0.1(규칙 문안)",
+     "environment": "ENV-S3-PC-SIM-v0.1"
+    },
+    "linked_sheets": [
+     "결산기준",
+     "자산대장",
+     "채권명세",
+     "전이율원천",
+     "원장",
+     "회수계획",
+     "확인기록"
+    ],
+    "excluded_sheets": [
+     "설계안내",
+     "입력명세",
+     "대표사건",
+     "검수기준"
+    ],
+    "scope": [
+     "DEP",
+     "ALW"
+    ],
+    "entry_item": "ALW",
+    "periods": [
+     "2026-12-31",
+     "2025-12-31"
+    ]
+   },
+   "stale": null,
+   "flow": [
+    {
+     "step": "01",
+     "name": "분석 지시 열기",
+     "role": "회계담당",
+     "state": "view"
+    },
+    {
+     "step": "02",
+     "name": "실행 요청",
+     "role": "회계담당",
+     "state": "done"
+    },
+    {
+     "step": "03",
+     "name": "대손충당금 산출",
+     "role": "계산 기능",
+     "state": "done"
+    },
+    {
+     "step": "04",
+     "name": "감가상각비 산출",
+     "role": "계산 기능",
+     "state": "done"
+    },
+    {
+     "step": "05",
+     "name": "변동 설명과 첨부 생성",
+     "role": "Agent · 연계 PC(모의)",
+     "state": "done"
+    },
+    {
+     "step": "06",
+     "name": "계산 근거 검토",
+     "role": "회계담당",
+     "state": "done"
+    },
+    {
+     "step": "07",
+     "name": "한 건 상신",
+     "role": "회계담당",
+     "state": "done"
+    }
+   ],
+   "runs": [
+    "RUN-S3-01"
+   ],
+   "companyLog": [
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "장면 1 인계 HAND-S3-01 — 입력 IN-26-01 준비 2/2"
+    },
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "out",
+     "what": "첨부 S3-CLOSE-01_결산조정_계산근거_v1.xlsx 등록·열기 확인"
+    }
+   ],
+   "report": "REP-S3-01",
+   "handoff": "HAND-S3-02"
+  },
+  "ref": "demo-example:scene/S3:SC02:v11",
+  "seq": 9,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "S3-CLOSE-01:SC02",
+  "version": 7,
+  "scene": 2,
+  "state": "SUBMITTED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산 체크리스트 — 장면 2",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "title": "2026년 연말결산",
+   "period_end": "2026-12-31",
+   "comparative_end": "2025-12-31",
+   "as_of": "2027-01-04T09:00:00+09:00",
+   "scope": {
+    "label": "시연 대상 2항목",
+    "items": 2
+   },
+   "input_version": "IN-26-01",
+   "run": {
+    "run_id": "RUN-S3-01",
+    "state": "REVIEW_READY",
+    "last_success": "REVIEW_READY",
+    "last_response_at": "2027-01-04T09:00:00+09:00",
+    "execution_mode": "simulated"
+   },
+   "result_version": "RES-S3-v1",
+   "file": {
+    "file_id": "WP-S3-v1",
+    "file_version": 1,
+    "filename": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+    "state": "REGISTERED"
+   },
+   "max_diff_won": 0,
+   "reviewed": {
+    "done": 2,
+    "of": 2
+   },
+   "waiting_approval": 2,
+   "reports": 1,
+   "approved": {
+    "done": 0,
+    "of": 2
+   },
+   "posting": {
+    "done": 0,
+    "of": 2
+   },
+   "notes": {
+    "done": 0,
+    "of": 2
+   },
+   "stale": null,
+   "rows": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "state": "SUBMITTED",
+     "state_label": "승인 대기",
+     "next_action": "팀장 승인 대기",
+     "prior": "1120",
+     "current": "1200",
+     "change": "80",
+     "book": "1150",
+     "request": "50",
+     "request_label": "추가 계상",
+     "result_version": "RES-S3-v1",
+     "review_id": "REV-DEP-1",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "report_id": "REP-S3-01",
+     "approval": "WAITING",
+     "follow_up": [
+      {
+       "task": "전표 반영",
+       "state": "WAITING_APPROVAL"
+      },
+      {
+       "task": "유형자산 주석 취합",
+       "state": "WAITING_APPROVAL"
+      }
+     ]
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "외상매출금 대손충당금",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "state": "SUBMITTED",
+     "state_label": "승인 대기",
+     "next_action": "팀장 승인 대기",
+     "prior": "100",
+     "current": "110",
+     "change": "10",
+     "book": "80",
+     "request": "30",
+     "request_label": "추가 설정",
+     "result_version": "RES-S3-v1",
+     "review_id": "REV-ALW-1",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "report_id": "REP-S3-01",
+     "approval": "WAITING",
+     "follow_up": [
+      {
+       "task": "전표 반영",
+       "state": "WAITING_APPROVAL"
+      },
+      {
+       "task": "충당금 주석 취합",
+       "state": "WAITING_APPROVAL"
+      }
+     ]
+    }
+   ],
+   "note": "승인 요청액(조정 전 장부 대비)과 전기 대비 증감은 다른 숫자다 — 승인·전표 반영·주석 취합은 장면 3 뒤"
+  },
+  "ref": "demo-example:dashboard/S3-CLOSE-01:SC02:v7",
+  "seq": 10,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "analysis_run",
+  "record_id": "RUN-S3-01",
+  "version": 3,
+  "scene": 2,
+  "state": "REVIEW_READY",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "분석 실행 RUN-S3-01",
+  "body": {
+   "run_id": "RUN-S3-01",
+   "close_id": "S3-CLOSE-01",
+   "works": [
+    "W-S3-DEP",
+    "W-S3-ALW"
+   ],
+   "requested_by": "회계담당",
+   "requested_via": null,
+   "requested_at": "2027-01-04T09:00:00+09:00",
+   "input_version": "IN-26-01",
+   "input_digest": "5dfe0ace3d826429",
+   "fingerprints": {
+    "DEP": "ee3a1fd5d41fe77f",
+    "ALW": "2661157339af55b7"
+   },
+   "versions": {
+    "prompt": "PRM-S3-SC02-v0.1",
+    "format": "FMT-S3-WP-v0.1",
+    "calc": "S3-SC02-CALC-v0.1",
+    "agent": "AGT-S3-CLOSE-v0.1(규칙 문안)",
+    "environment": "ENV-S3-PC-SIM-v0.1"
+   },
+   "policy": "결산기준 IN-26-01",
+   "execution_mode": "simulated",
+   "execution_note": "연계 데스크톱 PC·Excel 연동이 없다. NowView 일꾼이 같은 계산과 같은 시트·수식 구성의 .xlsx를 만들어 결산 건에 첨부했다. 파트너의 구현 가능 확인과 실제 연동 시험 결과는 아직 없다",
+   "state": "REVIEW_READY",
+   "steps": [
+    {
+     "step": "ACCEPTED",
+     "label": "실행 접수",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "PC_RECEIVED",
+     "label": "PC 수신",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "CALCULATING",
+     "label": "계산 중",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "CALCULATED",
+     "label": "계산·대사 완료",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "FILE_CREATED",
+     "label": "파일 생성",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "ATTACHED",
+     "label": "BPM 첨부 등록",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "OPEN_VERIFIED",
+     "label": "열기 확인",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    },
+    {
+     "step": "REVIEW_READY",
+     "label": "검토 대기",
+     "state": "done",
+     "at": "2027-01-04T09:00:00+09:00",
+     "responded_at": "2026-11-03T00:00:00+00:00"
+    }
+   ],
+   "last_response_at": "2027-01-04T09:00:00+09:00",
+   "last_success": "REVIEW_READY",
+   "pc_queries": 1,
+   "result_version": "RES-S3-v1",
+   "file_id": "WP-S3-v1",
+   "reconciliation": {
+    "receivable_diff_won": 0,
+    "max_diff_won": 0,
+    "collective": 6,
+    "individual": 1,
+    "prior_collective": 6,
+    "prior_individual": 1,
+    "a_plan_match": true
+   },
+   "findings": [],
+   "superseded_at": null
+  },
+  "ref": "demo-example:analysis_run/RUN-S3-01:v3",
+  "seq": 11,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "close_result",
+  "record_id": "RES-S3-v1",
+  "version": 1,
+  "scene": 2,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "계산 결과 RES-S3-v1 — 입력 IN-26-01",
+  "body": {
+   "result_version": "RES-S3-v1",
+   "run_id": "RUN-S3-01",
+   "input_version": "IN-26-01",
+   "fingerprints": {
+    "DEP": "ee3a1fd5d41fe77f",
+    "ALW": "2661157339af55b7"
+   },
+   "created_at": "2027-01-04T09:00:00+09:00",
+   "state": "DONE",
+   "findings": [],
+   "calc": {
+    "rule_version": "S3-SC02-CALC-v0.1",
+    "input_version": "IN-26-01",
+    "period_end": "2026-12-31",
+    "comparative_end": "2025-12-31",
+    "unit": "백만원",
+    "depreciation": {
+     "unit": "백만원",
+     "assets": [
+      {
+       "asset_id": "B1",
+       "kind": "건물",
+       "allocation": "제조원가",
+       "opening_net": "3000",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "4540",
+       "residual": "140",
+       "life_years": "20",
+       "in_service": "2019-01-01",
+       "disposed_on": null,
+       "months": 12,
+       "annual": "220",
+       "limit": "2860",
+       "current": "220",
+       "prior": "220",
+       "change": "0",
+       "closing_net": "2780"
+      },
+      {
+       "asset_id": "B2",
+       "kind": "건물",
+       "allocation": "판매관리비",
+       "opening_net": "1000",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "1640",
+       "residual": "40",
+       "life_years": "20",
+       "in_service": "2018-01-01",
+       "disposed_on": null,
+       "months": 12,
+       "annual": "80",
+       "limit": "960",
+       "current": "80",
+       "prior": "80",
+       "change": "0",
+       "closing_net": "920"
+      },
+      {
+       "asset_id": "M1",
+       "kind": "기계장치",
+       "allocation": "제조원가",
+       "opening_net": "2500",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "5000",
+       "residual": "0",
+       "life_years": "10",
+       "in_service": "2021-01-01",
+       "disposed_on": null,
+       "months": 12,
+       "annual": "500",
+       "limit": "2500",
+       "current": "500",
+       "prior": "500",
+       "change": "0",
+       "closing_net": "2000"
+      },
+      {
+       "asset_id": "E1",
+       "kind": "설비",
+       "allocation": "제조원가",
+       "opening_net": "1200",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "2000",
+       "residual": "0",
+       "life_years": "10",
+       "in_service": "2022-01-01",
+       "disposed_on": null,
+       "months": 12,
+       "annual": "200",
+       "limit": "1200",
+       "current": "200",
+       "prior": "200",
+       "change": "0",
+       "closing_net": "1000"
+      },
+      {
+       "asset_id": "F1",
+       "kind": "비품",
+       "allocation": "판매관리비",
+       "opening_net": "200",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "1000",
+       "residual": "0",
+       "life_years": "10",
+       "in_service": "2018-01-01",
+       "disposed_on": null,
+       "months": 12,
+       "annual": "100",
+       "limit": "200",
+       "current": "100",
+       "prior": "100",
+       "change": "0",
+       "closing_net": "100"
+      },
+      {
+       "asset_id": "M2",
+       "kind": "기계장치",
+       "allocation": "제조원가",
+       "opening_net": "100",
+       "acquired": "0",
+       "disposed_net": "100",
+       "impairment": "0",
+       "cost": "1100",
+       "residual": "100",
+       "life_years": "10",
+       "in_service": "2015-01-01",
+       "disposed_on": "2026-01-01",
+       "months": 0,
+       "annual": "100",
+       "limit": "0",
+       "current": "0",
+       "prior": "0",
+       "change": "0",
+       "closing_net": "0"
+      },
+      {
+       "asset_id": "E2",
+       "kind": "설비",
+       "allocation": "제조원가",
+       "opening_net": "0",
+       "acquired": "2000",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "2000",
+       "residual": "0",
+       "life_years": "10",
+       "in_service": "2026-07-01",
+       "disposed_on": null,
+       "months": 6,
+       "annual": "200",
+       "limit": "2000",
+       "current": "100",
+       "prior": "0",
+       "change": "100",
+       "closing_net": "1900"
+      },
+      {
+       "asset_id": "E3",
+       "kind": "설비",
+       "allocation": "제조원가",
+       "opening_net": "0",
+       "acquired": "0",
+       "disposed_net": "0",
+       "impairment": "0",
+       "cost": "200",
+       "residual": "0",
+       "life_years": "10",
+       "in_service": "2016-01-01",
+       "disposed_on": null,
+       "months": 0,
+       "annual": "20",
+       "limit": "0",
+       "current": "0",
+       "prior": "20",
+       "change": "-20",
+       "closing_net": "0"
+      }
+     ],
+     "by_kind": [
+      {
+       "group": "건물",
+       "prior": "300",
+       "current": "300",
+       "change": "0",
+       "rate": "0"
+      },
+      {
+       "group": "기계장치",
+       "prior": "500",
+       "current": "500",
+       "change": "0",
+       "rate": "0"
+      },
+      {
+       "group": "설비",
+       "prior": "220",
+       "current": "300",
+       "change": "80",
+       "rate": "0.3636363636363636"
+      },
+      {
+       "group": "비품",
+       "prior": "100",
+       "current": "100",
+       "change": "0",
+       "rate": "0"
+      },
+      {
+       "group": "자산 합계",
+       "prior": "1120",
+       "current": "1200",
+       "change": "80",
+       "rate": "0.0714285714285714"
+      }
+     ],
+     "by_allocation": [
+      {
+       "group": "제조원가",
+       "prior": "940",
+       "current": "1020",
+       "change": "80",
+       "rate": "0.0851063829787234"
+      },
+      {
+       "group": "판매관리비",
+       "prior": "180",
+       "current": "180",
+       "change": "0",
+       "rate": "0"
+      },
+      {
+       "group": "귀속 합계",
+       "prior": "1120",
+       "current": "1200",
+       "change": "80",
+       "rate": "0.0714285714285714"
+      }
+     ],
+     "note": {
+      "rows": [
+       {
+        "kind": "건물",
+        "opening": "4000",
+        "acquired": "0",
+        "disposed": "0",
+        "impairment": "0",
+        "depreciation": "300",
+        "closing": "3700"
+       },
+       {
+        "kind": "기계장치",
+        "opening": "2600",
+        "acquired": "0",
+        "disposed": "100",
+        "impairment": "0",
+        "depreciation": "500",
+        "closing": "2000"
+       },
+       {
+        "kind": "설비",
+        "opening": "1200",
+        "acquired": "2000",
+        "disposed": "0",
+        "impairment": "0",
+        "depreciation": "300",
+        "closing": "2900"
+       },
+       {
+        "kind": "비품",
+        "opening": "200",
+        "acquired": "0",
+        "disposed": "0",
+        "impairment": "0",
+        "depreciation": "100",
+        "closing": "100"
+       }
+      ],
+      "total": {
+       "kind": "합계",
+       "opening": "8000",
+       "acquired": "2000",
+       "disposed": "100",
+       "impairment": "0",
+       "depreciation": "1200",
+       "closing": "8700"
+      }
+     },
+     "changes": [
+      {
+       "asset_id": "E2",
+       "kind": "설비",
+       "change": "100",
+       "months": 6
+      },
+      {
+       "asset_id": "E3",
+       "kind": "설비",
+       "change": "-20",
+       "months": 0
+      }
+     ],
+     "summary": {
+      "prior": "1120",
+      "current": "1200",
+      "change": "80",
+      "book": "1150",
+      "request": "50",
+      "request_label": "추가 계상"
+     },
+     "reconciliation": [
+      {
+       "label": "상각비 분류 대사(자산 종류 = 비용 귀속)",
+       "book": "1200",
+       "calculated": "1200",
+       "diff_won": 0
+      },
+      {
+       "label": "주석 상각 대사",
+       "book": "1200",
+       "calculated": "1200",
+       "diff_won": 0
+      },
+      {
+       "label": "기말 순액 = 기초 + 취득 − 처분 − 손상 − 상각",
+       "book": "8700",
+       "calculated": "8700",
+       "diff_won": 0
+      }
+     ],
+     "diffs": {
+      "allocation_won": 0,
+      "note_won": 0,
+      "closing_won": 0
+     },
+     "findings": [],
+     "state": "DONE"
+    },
+    "allowance": {
+     "unit": "백만원",
+     "model": {
+      "model_quarter": "2024.4Q",
+      "window": [
+       "2021.4Q",
+       "2024.3Q"
+      ],
+      "quarterly": {
+       "미연체": {
+        "2021.1Q": "0.3753331810799732",
+        "2021.2Q": "0.4749230455956983",
+        "2021.3Q": "0.2012895158733492",
+        "2021.4Q": "0.5440109415405353",
+        "2022.1Q": "0.544634803171178",
+        "2022.2Q": "0.3854248404842703",
+        "2022.3Q": "0.264090172294515",
+        "2022.4Q": "0.1044914744155007",
+        "2023.1Q": "0.0812558880249677",
+        "2023.2Q": "0.3736966940797297",
+        "2023.3Q": "0.2616654603886567",
+        "2023.4Q": "0.1108328369027279",
+        "2024.1Q": "0.0593036050596383",
+        "2024.2Q": "0.1000857296772652",
+        "2024.3Q": "0.3439222217567823"
+       },
+       "3개월 이내": {
+        "2021.1Q": "0.0009490566081636",
+        "2021.2Q": "0",
+        "2021.3Q": "0.0004700020490383",
+        "2021.4Q": "0.020032018740182",
+        "2022.1Q": "0.0007733927687076",
+        "2022.2Q": "0.0588284651399396",
+        "2022.3Q": "0.0088797251205849",
+        "2022.4Q": "0.0469485300731552",
+        "2023.1Q": "0.2833013542286779",
+        "2023.2Q": "0.0463327825848956",
+        "2023.3Q": "0.2006249792303051",
+        "2023.4Q": "0.1442389509913902",
+        "2024.1Q": "0.0034839419406266",
+        "2024.2Q": "0.0660542881207125",
+        "2024.3Q": "0.0534571335771776"
+       },
+       "3~6개월": {
+        "2021.1Q": "0.0063441857241495",
+        "2021.2Q": "0",
+        "2021.3Q": null,
+        "2021.4Q": "0",
+        "2022.1Q": "0.0411894993719785",
+        "2022.2Q": "0.9591194968553459",
+        "2022.3Q": "0.2467425915851301",
+        "2022.4Q": "0",
+        "2023.1Q": "0.8407711101932405",
+        "2023.2Q": "0.1199612439391017",
+        "2023.3Q": "0.030112925044925",
+        "2023.4Q": "0.8769046022764848",
+        "2024.1Q": "0.2195024157812393",
+        "2024.2Q": "0.0044768787526927",
+        "2024.3Q": "0.017403894793948"
+       },
+       "6~9개월": {
+        "2021.1Q": "0.0241198124645517",
+        "2021.2Q": "1",
+        "2021.3Q": null,
+        "2021.4Q": null,
+        "2022.1Q": null,
+        "2022.2Q": "0",
+        "2022.3Q": "0",
+        "2022.4Q": "0.9955831669585197",
+        "2023.1Q": null,
+        "2023.2Q": "1",
+        "2023.3Q": "0.0774801698269689",
+        "2023.4Q": "0",
+        "2024.1Q": "0.2034349971394073",
+        "2024.2Q": "0.2736726723481642",
+        "2024.3Q": "1"
+       },
+       "9~12개월": {
+        "2021.1Q": "0",
+        "2021.2Q": "1",
+        "2021.3Q": "1",
+        "2021.4Q": null,
+        "2022.1Q": null,
+        "2022.2Q": null,
+        "2022.3Q": null,
+        "2022.4Q": null,
+        "2023.1Q": "0",
+        "2023.2Q": "1",
+        "2023.3Q": "0",
+        "2023.4Q": "0",
+        "2024.1Q": null,
+        "2024.2Q": "0.4282876954625627",
+        "2024.3Q": "1"
+       }
+      },
+      "segments": [
+       {
+        "aging": "미연체",
+        "simple_rate": "0.2644512223163139",
+        "weighted_rate": "0.2468493669983009",
+        "pd": "0.0009642319380611",
+        "lgd": "1",
+        "rate": "0.0009642319380611",
+        "model_balance_won": 26947890585
+       },
+       {
+        "aging": "3개월 이내",
+        "simple_rate": "0.0777462968763629",
+        "weighted_rate": "0.0826716080309988",
+        "pd": "0.0039061551981525",
+        "lgd": "1",
+        "rate": "0.0039061551981525",
+        "model_balance_won": 11382909255
+       },
+       {
+        "aging": "3~6개월",
+        "simple_rate": "0.2796820548828405",
+        "weighted_rate": "0.5203298612286091",
+        "pd": "0.0472490531052431",
+        "lgd": "1",
+        "rate": "0.0472490531052431",
+        "model_balance_won": 189776826
+       },
+       {
+        "aging": "6~9개월",
+        "simple_rate": "0.3944634451414511",
+        "weighted_rate": "0.2881136254100399",
+        "pd": "0.0908059610372507",
+        "lgd": "1",
+        "rate": "0.0908059610372507",
+        "model_balance_won": 666730
+       },
+       {
+        "aging": "9~12개월",
+        "simple_rate": "0.4047146159104271",
+        "weighted_rate": "0.315174129331845",
+        "pd": "0.315174129331845",
+        "lgd": "1",
+        "rate": "0.315174129331845",
+        "model_balance_won": 55000
+       },
+       {
+        "aging": "12개월 초과",
+        "simple_rate": null,
+        "weighted_rate": null,
+        "pd": "1",
+        "lgd": "1",
+        "rate": "1",
+        "model_balance_won": 223035800
+       }
+      ],
+      "reproduced_won": 302527880
+     },
+     "rows": {
+      "prior": [
+       {
+        "customer": "B사",
+        "pool": "집합",
+        "aging": "미연체",
+        "balance": "5000",
+        "rate": "0.0009642319380611",
+        "allowance": "4.82116"
+       },
+       {
+        "customer": "C사",
+        "pool": "집합",
+        "aging": "3개월 이내",
+        "balance": "1000",
+        "rate": "0.0039061551981525",
+        "allowance": "3.906155"
+       },
+       {
+        "customer": "D사",
+        "pool": "집합",
+        "aging": "3~6개월",
+        "balance": "200",
+        "rate": "0.0472490531052431",
+        "allowance": "9.449811"
+       },
+       {
+        "customer": "E사",
+        "pool": "집합",
+        "aging": "6~9개월",
+        "balance": "80",
+        "rate": "0.0908059610372507",
+        "allowance": "7.264477"
+       },
+       {
+        "customer": "F사",
+        "pool": "집합",
+        "aging": "9~12개월",
+        "balance": "50",
+        "rate": "0.315174129331845",
+        "allowance": "15.758706"
+       },
+       {
+        "customer": "G사",
+        "pool": "집합",
+        "aging": "12개월 초과",
+        "balance": "33.799691",
+        "rate": "1",
+        "allowance": "33.799691"
+       },
+       {
+        "customer": "A사",
+        "pool": "개별",
+        "aging": "개별",
+        "balance": "100",
+        "rate": null,
+        "allowance": "25"
+       }
+      ],
+      "current": [
+       {
+        "customer": "B사",
+        "pool": "집합",
+        "aging": "미연체",
+        "balance": "5000",
+        "rate": "0.0009642319380611",
+        "allowance": "4.82116"
+       },
+       {
+        "customer": "C사",
+        "pool": "집합",
+        "aging": "3개월 이내",
+        "balance": "1000",
+        "rate": "0.0039061551981525",
+        "allowance": "3.906155"
+       },
+       {
+        "customer": "D사",
+        "pool": "집합",
+        "aging": "3~6개월",
+        "balance": "200",
+        "rate": "0.0472490531052431",
+        "allowance": "9.449811"
+       },
+       {
+        "customer": "E사",
+        "pool": "집합",
+        "aging": "6~9개월",
+        "balance": "80",
+        "rate": "0.0908059610372507",
+        "allowance": "7.264477"
+       },
+       {
+        "customer": "F사",
+        "pool": "집합",
+        "aging": "9~12개월",
+        "balance": "50",
+        "rate": "0.315174129331845",
+        "allowance": "15.758706"
+       },
+       {
+        "customer": "G사",
+        "pool": "집합",
+        "aging": "12개월 초과",
+        "balance": "28.799691",
+        "rate": "1",
+        "allowance": "28.799691"
+       },
+       {
+        "customer": "A사",
+        "pool": "개별",
+        "aging": "개별",
+        "balance": "100",
+        "rate": null,
+        "allowance": "40"
+       }
+      ]
+     },
+     "individual": [
+      {
+       "customer": "A사",
+       "as_of": "2025-12-31",
+       "balance": "100",
+       "plan_ref": "PLAN-A-25",
+       "plan_rounds": [
+        {
+         "round": 1,
+         "due": "2026-03-31",
+         "amount": "25"
+        },
+        {
+         "round": 2,
+         "due": "2026-06-30",
+         "amount": "25"
+        },
+        {
+         "round": 3,
+         "due": "2026-09-30",
+         "amount": "25"
+        }
+       ],
+       "plan_total": "75",
+       "sales_confirmation": null,
+       "accounting_confirmation": "CONF-25",
+       "confirmed_by": "회계담당",
+       "recovery": "75",
+       "allowance": "25",
+       "basis": "전기 평가 확정"
+      },
+      {
+       "customer": "A사",
+       "as_of": "2026-12-31",
+       "balance": "100",
+       "plan_ref": "PLAN-A-26",
+       "plan_rounds": [
+        {
+         "round": 1,
+         "due": "2027-03-31",
+         "amount": "20"
+        },
+        {
+         "round": 2,
+         "due": "2027-06-30",
+         "amount": "20"
+        },
+        {
+         "round": 3,
+         "due": "2027-09-30",
+         "amount": "20"
+        }
+       ],
+       "plan_total": "60",
+       "sales_confirmation": "CONF-26-S",
+       "accounting_confirmation": "CONF-26-F",
+       "confirmed_by": "회계담당",
+       "recovery": "60",
+       "allowance": "40",
+       "basis": "영업 확인 기록과 회신을 대조하고 당기 평가용 회수예상액 확인."
+      }
+     ],
+     "methods": [
+      {
+       "method": "집합",
+       "prior": "75",
+       "current": "70",
+       "change": "-5",
+       "current_balance": "6358.799691"
+      },
+      {
+       "method": "개별",
+       "prior": "25",
+       "current": "40",
+       "change": "15",
+       "current_balance": "100"
+      },
+      {
+       "method": "합계",
+       "prior": "100",
+       "current": "110",
+       "change": "10",
+       "current_balance": "6458.799691"
+      }
+     ],
+     "customers": [
+      {
+       "customer": "A사",
+       "pool": "개별",
+       "aging": "개별",
+       "prior_balance": "100",
+       "current_balance": "100",
+       "rate": null,
+       "prior": "25",
+       "current": "40",
+       "change": "15",
+       "rank": 1
+      },
+      {
+       "customer": "G사",
+       "pool": "집합",
+       "aging": "12개월 초과",
+       "prior_balance": "33.799691",
+       "current_balance": "28.799691",
+       "rate": "1",
+       "prior": "33.799691",
+       "current": "28.799691",
+       "change": "-5",
+       "rank": 2
+      },
+      {
+       "customer": "F사",
+       "pool": "집합",
+       "aging": "9~12개월",
+       "prior_balance": "50",
+       "current_balance": "50",
+       "rate": "0.315174129331845",
+       "prior": "15.758706",
+       "current": "15.758706",
+       "change": "0",
+       "rank": 3
+      },
+      {
+       "customer": "D사",
+       "pool": "집합",
+       "aging": "3~6개월",
+       "prior_balance": "200",
+       "current_balance": "200",
+       "rate": "0.0472490531052431",
+       "prior": "9.449811",
+       "current": "9.449811",
+       "change": "0",
+       "rank": 4
+      },
+      {
+       "customer": "E사",
+       "pool": "집합",
+       "aging": "6~9개월",
+       "prior_balance": "80",
+       "current_balance": "80",
+       "rate": "0.0908059610372507",
+       "prior": "7.264477",
+       "current": "7.264477",
+       "change": "0",
+       "rank": 5
+      },
+      {
+       "customer": "B사",
+       "pool": "집합",
+       "aging": "미연체",
+       "prior_balance": "5000",
+       "current_balance": "5000",
+       "rate": "0.0009642319380611",
+       "prior": "4.82116",
+       "current": "4.82116",
+       "change": "0",
+       "rank": 6
+      },
+      {
+       "customer": "C사",
+       "pool": "집합",
+       "aging": "3개월 이내",
+       "prior_balance": "1000",
+       "current_balance": "1000",
+       "rate": "0.0039061551981525",
+       "prior": "3.906155",
+       "current": "3.906155",
+       "change": "0",
+       "rank": 7
+      }
+     ],
+     "top3": [
+      "A사",
+      "G사",
+      "F사"
+     ],
+     "counts": {
+      "current": {
+       "collective": 6,
+       "individual": 1
+      },
+      "prior": {
+       "collective": 6,
+       "individual": 1
+      }
+     },
+     "note": {
+      "opening": "100",
+      "provision": "30",
+      "reversal": "0",
+      "written_off": "20",
+      "ending": "110",
+      "diff_won": 0
+     },
+     "summary": {
+      "prior": "100",
+      "current": "110",
+      "change": "10",
+      "book": "80",
+      "request": "30",
+      "request_label": "추가 설정"
+     },
+     "reconciliation": [
+      {
+       "label": "기초 충당금",
+       "book": "100",
+       "calculated": "100",
+       "diff_won": 0
+      },
+      {
+       "label": "조정 전 충당금 = 기초 − 당기 제각",
+       "book": "80",
+       "calculated": "80",
+       "diff_won": 0
+      },
+      {
+       "label": "외상매출금 잔액",
+       "book": "6458.799691",
+       "calculated": "6458.799691",
+       "diff_won": 0
+      },
+      {
+       "label": "주석 충당금 = 평가표 기말",
+       "book": "110",
+       "calculated": "110",
+       "diff_won": 0
+      }
+     ],
+     "diffs": {
+      "receivable_won": 0,
+      "opening_won": 0,
+      "note_won": 0
+     },
+     "findings": [],
+     "state": "DONE"
+    },
+    "summary": [
+     {
+      "item": "DEP",
+      "name": "감가상각비",
+      "prior": "1120",
+      "current": "1200",
+      "change": "80",
+      "book": "1150",
+      "request": "50",
+      "request_label": "추가 계상",
+      "change_rate": "0.071429"
+     },
+     {
+      "item": "ALW",
+      "name": "대손충당금",
+      "prior": "100",
+      "current": "110",
+      "change": "10",
+      "book": "80",
+      "request": "30",
+      "request_label": "추가 설정",
+      "change_rate": "0.1"
+     }
+    ],
+    "findings": [],
+    "max_diff_won": 0,
+    "diffs_missing": 0,
+    "state": "DONE"
+   },
+   "draft": {
+    "mode": "rule-template",
+    "note": "규칙 문안 — 계산 결과의 칸을 정해진 문장에 이어 붙였다(LLM 호출 없음). 숫자는 계산 기능의 것이다",
+    "sections": [
+     {
+      "item": "DEP",
+      "title": "감가상각비 및 유형자산 주석",
+      "text": "전기 1,120 → 당기 1,200(+80): E2(설비) 6개월 상각으로 100 증가, E3(설비) 상각 종료로 20 감소. 제조원가 1,020 + 판매관리비 180 = 주석 상각액 1,200. 기계상 1,150 대비 추가 계상 50.",
+      "refs": [
+       {
+        "value": "100",
+        "field": "depreciation.assets[E2].change"
+       },
+       {
+        "value": "-20",
+        "field": "depreciation.assets[E3].change"
+       },
+       {
+        "value": "1120",
+        "field": "depreciation.summary.prior"
+       },
+       {
+        "value": "1200",
+        "field": "depreciation.summary.current"
+       },
+       {
+        "value": "1020",
+        "field": "depreciation.by_allocation[제조원가].current"
+       },
+       {
+        "value": "180",
+        "field": "depreciation.by_allocation[판매관리비].current"
+       },
+       {
+        "value": "1150",
+        "field": "depreciation.summary.book"
+       },
+       {
+        "value": "50",
+        "field": "depreciation.summary.request"
+       }
+      ]
+     },
+     {
+      "item": "ALW",
+      "title": "외상매출금 대손충당금 및 관련 주석",
+      "text": "기말 필요액 110 = 집합 70 + 개별 40. A사 채권 100의 회수예상액 75 → 60(CONF-26-F 확인)에 따라 개별 충당금 25 → 40. 집합평가는 75 → 70(G사(12개월 초과) −5). 전기 대비 +10. 기초 100 − 당기 제각 20 = 조정 전 80, 추가 설정 30 → 기말 110.",
+      "refs": [
+       {
+        "value": "60",
+        "field": "allowance.individual[A사 2026-12-31].recovery"
+       },
+       {
+        "value": "40",
+        "field": "allowance.individual[A사 2026-12-31].allowance"
+       },
+       {
+        "value": "110",
+        "field": "allowance.summary.current"
+       },
+       {
+        "value": "70",
+        "field": "allowance.methods[집합].current"
+       },
+       {
+        "value": "40",
+        "field": "allowance.methods[개별].current"
+       },
+       {
+        "value": "10",
+        "field": "allowance.summary.change"
+       },
+       {
+        "value": "100",
+        "field": "allowance.note.opening"
+       },
+       {
+        "value": "20",
+        "field": "allowance.note.written_off"
+       },
+       {
+        "value": "80",
+        "field": "allowance.summary.book"
+       },
+       {
+        "value": "30",
+        "field": "allowance.summary.request"
+       }
+      ]
+     }
+    ]
+   },
+   "draft_edits": []
+  },
+  "ref": "demo-example:close_result/RES-S3-v1:v1",
+  "seq": 12,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "attachment",
+  "record_id": "WP-S3-v1",
+  "version": 1,
+  "scene": 2,
+  "state": "REGISTERED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+  "body": {
+   "file_id": "WP-S3-v1",
+   "file_version": 1,
+   "close_id": "S3-CLOSE-01",
+   "run_id": "RUN-S3-01",
+   "result_version": "RES-S3-v1",
+   "filename": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+   "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+   "sha256": "47c2e1c38945f9c942fcf2c98b056c0e39c1399a0852b2f9c483ab9d93c0a8f6",
+   "size": 22202,
+   "sheets": [
+    "승인요약",
+    "상각비비교",
+    "유형자산주석",
+    "충당금비교",
+    "충당금주석",
+    "자산별계산",
+    "채권별계산",
+    "개별평가",
+    "손실률",
+    "분기전이율",
+    "참고원천",
+    "원장대사",
+    "실행정보"
+   ],
+   "format_version": "FMT-S3-WP-v0.1",
+   "summary_cells": {
+    "DEP": {
+     "prior": "승인요약!B5",
+     "current": "승인요약!C5",
+     "request": "승인요약!F5"
+    },
+    "ALW": {
+     "prior": "승인요약!B6",
+     "current": "승인요약!C6",
+     "request": "승인요약!F6"
+    }
+   },
+   "trace": {
+    "ALW": [
+     "개별평가",
+     "채권별계산",
+     "충당금비교",
+     "충당금주석",
+     "승인요약"
+    ],
+    "DEP": [
+     "자산별계산",
+     "상각비비교",
+     "유형자산주석",
+     "원장대사",
+     "승인요약"
+    ]
+   },
+   "created_at": "2027-01-04T09:00:00+09:00",
+   "state": "REGISTERED",
+   "attempts": [
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "ok": true,
+     "reason": null
+    }
+   ],
+   "registered_at": "2027-01-04T09:00:00+09:00",
+   "open_check": {
+    "at": "2027-01-04T09:00:00+09:00",
+    "ok": true,
+    "sheets": 13
+   }
+  },
+  "ref": "demo-example:attachment/WP-S3-v1:v1",
+  "seq": 13,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "item_review",
+  "record_id": "REV-ALW-1",
+  "version": 1,
+  "scene": 2,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "외상매출금 대손충당금 검토 RES-S3-v1",
+  "body": {
+   "review_id": "REV-ALW-1",
+   "item": "ALW",
+   "work_id": "W-S3-ALW",
+   "result_version": "RES-S3-v1",
+   "file_id": "WP-S3-v1",
+   "reviewed_by": "회계담당",
+   "reviewed_via": null,
+   "reviewed_at": "2027-01-04T09:00:00+09:00",
+   "paths": [
+    "개별평가 A사 두 행 ↔ PLAN-A-26·CONF-26-S·CONF-26-F",
+    "충당금비교 → 채권별계산 G사 행",
+    "충당금주석 → 승인요약 충당금 행"
+   ],
+   "request": "30",
+   "diff_won": 0,
+   "carried_from": null,
+   "state": "DONE",
+   "valid": true
+  },
+  "ref": "demo-example:item_review/REV-ALW-1:v1",
+  "seq": 14,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "item_review",
+  "record_id": "REV-DEP-1",
+  "version": 1,
+  "scene": 2,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "감가상각비 검토 RES-S3-v1",
+  "body": {
+   "review_id": "REV-DEP-1",
+   "item": "DEP",
+   "work_id": "W-S3-DEP",
+   "result_version": "RES-S3-v1",
+   "file_id": "WP-S3-v1",
+   "reviewed_by": "회계담당",
+   "reviewed_via": null,
+   "reviewed_at": "2027-01-04T09:00:00+09:00",
+   "paths": [
+    "상각비비교 자산 합계·귀속 합계",
+    "유형자산주석 합계 행",
+    "원장대사 기계상"
+   ],
+   "request": "50",
+   "diff_won": 0,
+   "carried_from": null,
+   "state": "DONE",
+   "valid": true
+  },
+  "ref": "demo-example:item_review/REV-DEP-1:v1",
+  "seq": 15,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "close_report",
+  "record_id": "REP-S3-01",
+  "version": 1,
+  "scene": 2,
+  "state": "SUBMITTED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산조정항목 및 관련 주석(안) 보고·승인",
+  "body": {
+   "report_id": "REP-S3-01",
+   "version": 1,
+   "title": "결산조정항목 및 관련 주석(안) 보고·승인",
+   "close_id": "S3-CLOSE-01",
+   "period": {
+    "period_end": "2026-12-31",
+    "comparative_end": "2025-12-31",
+    "unit": "백만원"
+   },
+   "result_version": "RES-S3-v1",
+   "execution": {
+    "run_id": "RUN-S3-01",
+    "input_version": "IN-26-01",
+    "executed_by": "회계담당",
+    "executed_at": "2027-01-04T09:00:00+09:00",
+    "execution_mode": "simulated",
+    "draft_mode": "rule-template"
+   },
+   "attachment": {
+    "file_id": "WP-S3-v1",
+    "file_version": 1,
+    "filename": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+    "sha256": "47c2e1c38945f9c942fcf2c98b056c0e39c1399a0852b2f9c483ab9d93c0a8f6",
+    "size": 22202
+   },
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "prior": "1120",
+     "current": "1200",
+     "change": "80",
+     "change_rate": "0.071429",
+     "book": "1150",
+     "request": "50",
+     "request_label": "추가 계상",
+     "reason": "전기 1,120 → 당기 1,200(+80): E2(설비) 6개월 상각으로 100 증가, E3(설비) 상각 종료로 20 감소. 제조원가 1,020 + 판매관리비 180 = 주석 상각액 1,200. 기계상 1,150 대비 추가 계상 50.",
+     "summary_cell": "승인요약!F5",
+     "approval": "WAITING"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "대손충당금",
+     "prior": "100",
+     "current": "110",
+     "change": "10",
+     "change_rate": "0.1",
+     "book": "80",
+     "request": "30",
+     "request_label": "추가 설정",
+     "reason": "기말 필요액 110 = 집합 70 + 개별 40. A사 채권 100의 회수예상액 75 → 60(CONF-26-F 확인)에 따라 개별 충당금 25 → 40. 집합평가는 75 → 70(G사(12개월 초과) −5). 전기 대비 +10. 기초 100 − 당기 제각 20 = 조정 전 80, 추가 설정 30 → 기말 110.",
+     "summary_cell": "승인요약!F6",
+     "approval": "WAITING"
+    }
+   ],
+   "notes": {
+    "DEP": {
+     "kind": "합계",
+     "opening": "8000",
+     "acquired": "2000",
+     "disposed": "100",
+     "impairment": "0",
+     "depreciation": "1200",
+     "closing": "8700"
+    },
+    "ALW": {
+     "opening": "100",
+     "provision": "30",
+     "reversal": "0",
+     "written_off": "20",
+     "ending": "110",
+     "diff_won": 0
+    }
+   },
+   "reviews": [
+    {
+     "item": "ALW",
+     "review_id": "REV-ALW-1",
+     "reviewed_by": "회계담당",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "carried_from": null
+    },
+    {
+     "item": "DEP",
+     "review_id": "REV-DEP-1",
+     "reviewed_by": "회계담당",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "carried_from": null
+    }
+   ],
+   "prepared_by": "회계담당",
+   "submitted_by": "회계담당",
+   "submitted_via": null,
+   "submitted_at": "2027-01-04T09:00:00+09:00",
+   "recipient": {
+    "role": "회계팀장",
+    "name": "회계팀장",
+    "user_id": "u-acct-lead"
+   },
+   "state": "SUBMITTED",
+   "approvals": {
+    "done": 0,
+    "of": 2
+   },
+   "note": "승인안에는 팀장의 판단을 지시하는 문구를 넣지 않는다 — 승인·보완 요청은 장면 3"
+  },
+  "ref": "demo-example:close_report/REP-S3-01:v1",
+  "seq": 16,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "HAND-S3-02",
+  "version": 1,
+  "scene": 2,
+  "state": "SUBMITTED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "장면 3 인계",
+  "body": {
+   "handoff_id": "HAND-S3-02",
+   "close_id": "S3-CLOSE-01",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "request": "50",
+     "request_label": "추가 계상",
+     "approval": "WAITING"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "대손충당금",
+     "request": "30",
+     "request_label": "추가 설정",
+     "approval": "WAITING"
+    }
+   ],
+   "summary_ref": "REP-S3-01 v1 승인 요약",
+   "attachment_ref": "WP-S3-v1",
+   "result_version": "RES-S3-v1",
+   "run_id": "RUN-S3-01",
+   "executed_by": "회계담당",
+   "reviewed_by": [
+    "회계담당"
+   ],
+   "submitted_at": "2027-01-04T09:00:00+09:00",
+   "recipient_task": "회계팀장 승인 대기 — REP-S3-01",
+   "next_step": "장면 3 — 회계팀장이 같은 보고 건을 열어 승인 또는 보완 요청",
+   "follow_up": "전표 반영·주석 취합은 승인 후 인계 예정",
+   "handed_at": "2027-01-04T09:00:00+09:00"
+  },
+  "ref": "demo-example:handoff/HAND-S3-02:v1",
+  "seq": 17,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ }
+]
