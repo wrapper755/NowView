@@ -570,7 +570,7 @@ def test_dashboard_shows_the_checklist_metrics_for_a_scenario_3_world(
     )
     body = TestClient(app).get("/companies/company1/dashboard").json()
     assert body["worlds"][0]["scenarioId"] == "s3"
-    [work] = body["works"]
+    work = next(w for w in body["works"] if w["scene"] == 31)  # 장면 2(32)는 열기 전이다
     assert (work["scene"], work["work"], work["state"]) == (31, "결산조정 업무 착수", "done")
     assert work["progress"] == {"approvals": 2, "passed": 2}
     assert [m["value"] for m in work["metrics"]] == [

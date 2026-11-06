@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/dashboard.schema.json",
+  "title": "s3/sc02 dashboard",
+  "description": "결산 체크리스트(장면 2) — 항목별 단계·요청액·검토·승인 대기·상신 보고·승인",
+  "type": "object",
+  "required": [
+    "approved",
+    "as_of",
+    "close_id",
+    "comparative_end",
+    "file",
+    "input_version",
+    "max_diff_won",
+    "note",
+    "notes",
+    "period_end",
+    "posting",
+    "reports",
+    "result_version",
+    "reviewed",
+    "rows",
+    "run",
+    "scope",
+    "stale",
+    "title",
+    "waiting_approval"
+  ],
+  "properties": {
+    "close_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "period_end": {
+      "type": "string"
+    },
+    "comparative_end": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "items",
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "items": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "run": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "execution_mode",
+        "last_response_at",
+        "last_success",
+        "run_id",
+        "state"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "last_success": {
+          "type": "string"
+        },
+        "last_response_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "execution_mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "result_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "file": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "file_id",
+        "file_version",
+        "filename",
+        "state"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "integer"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "max_diff_won": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "reviewed": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "waiting_approval": {
+      "type": "integer"
+    },
+    "reports": {
+      "type": "integer"
+    },
+    "approved": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "posting": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "stale": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "reason",
+        "result_version"
+      ],
+      "properties": {
+        "result_version": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approval",
+          "book",
+          "change",
+          "current",
+          "follow_up",
+          "item_id",
+          "name",
+          "next_action",
+          "owner_id",
+          "owner_name",
+          "prior",
+          "report_id",
+          "request",
+          "request_label",
+          "result_version",
+          "review_id",
+          "reviewed_at",
+          "state",
+          "state_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "prior": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "current": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "book": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "result_version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "review_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "report_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "approval": {
+            "type": "string"
+          },
+          "follow_up": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "state",
+                "task"
+              ],
+              "properties": {
+                "task": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

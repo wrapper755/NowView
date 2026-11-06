@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/close_report.schema.json",
+  "title": "s3/sc02 close_report",
+  "description": "보고 건(REP-S3-01) — 두 항목 요청액·변동 사유·주석 발췌·첨부·실행·검토자·수신 회계팀장",
+  "type": "object",
+  "required": [
+    "approvals",
+    "attachment",
+    "close_id",
+    "execution",
+    "items",
+    "note",
+    "notes",
+    "period",
+    "prepared_by",
+    "recipient",
+    "report_id",
+    "result_version",
+    "reviews",
+    "state",
+    "submitted_at",
+    "submitted_by",
+    "submitted_via",
+    "title",
+    "version"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "period": {
+      "type": "object",
+      "required": [
+        "comparative_end",
+        "period_end",
+        "unit"
+      ],
+      "properties": {
+        "period_end": {
+          "type": "string"
+        },
+        "comparative_end": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "draft_mode",
+        "executed_at",
+        "executed_by",
+        "execution_mode",
+        "input_version",
+        "run_id"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "input_version": {
+          "type": "string"
+        },
+        "executed_by": {
+          "type": "string"
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "execution_mode": {
+          "type": "string"
+        },
+        "draft_mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "attachment": {
+      "type": "object",
+      "required": [
+        "file_id",
+        "file_version",
+        "filename",
+        "sha256",
+        "size"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "integer"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approval",
+          "book",
+          "change",
+          "change_rate",
+          "current",
+          "item_id",
+          "name",
+          "prior",
+          "reason",
+          "request",
+          "request_label",
+          "summary_cell",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prior": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "current": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change_rate": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "book": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "summary_cell": {
+            "type": "string"
+          },
+          "approval": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "notes": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "DEP": {
+          "type": "object",
+          "required": [
+            "acquired",
+            "closing",
+            "depreciation",
+            "disposed",
+            "impairment",
+            "kind",
+            "opening"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "acquired": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "disposed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "impairment": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "depreciation": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "closing": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALW": {
+          "type": "object",
+          "required": [
+            "diff_won",
+            "ending",
+            "opening",
+            "provision",
+            "reversal",
+            "written_off"
+          ],
+          "properties": {
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "provision": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "reversal": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "written_off": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "ending": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "diff_won": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "carried_from",
+          "item",
+          "review_id",
+          "reviewed_at",
+          "reviewed_by"
+        ],
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "review_id": {
+            "type": "string"
+          },
+          "reviewed_by": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "carried_from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "prepared_by": {
+      "type": "string"
+    },
+    "submitted_by": {
+      "type": "string"
+    },
+    "submitted_via": {
+      "type": "null"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipient": {
+      "type": "object",
+      "required": [
+        "name",
+        "role",
+        "user_id"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "type": "string"
+    },
+    "approvals": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

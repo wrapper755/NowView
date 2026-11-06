@@ -85,6 +85,7 @@ class Follower:
         s2: Any | None = None,
         s2_scenes: Mapping[int, Any] | None = None,
         s3: Any | None = None,
+        s3_scenes: Mapping[int, Any] | None = None,
         interval_s: float = INTERVAL_S,
     ) -> None:
         self.company = company
@@ -95,6 +96,8 @@ class Follower:
         self.s2_scenes = dict(s2_scenes or {})
         #: 시나리오 3 장면 1(`app/s3/sc01/process.py`) — 시나리오 3 회차를 따라간다(결산 건)
         self.s3 = s3
+        #: 시나리오 3 장면 2~(`app/s3/sc0N/process.py`) — 사이트의 「장면 열기」 명령으로 연다
+        self.s3_scenes = dict(s3_scenes or {})
         self.interval_s = interval_s
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -154,6 +157,14 @@ class Follower:
         """
         for n in sorted(self.s2_scenes, reverse=True):
             p = self.s2_scenes[n]
+            for row in p.store.list():
+                rid = row["demoRunId"]
+                found = p.store.load(rid)
+                if rid in present or found is None or found[0].get("world_generation") is None:
+                    continue
+                p.discard(rid)
+        for n in sorted(self.s3_scenes, reverse=True):
+            p = self.s3_scenes[n]
             for row in p.store.list():
                 rid = row["demoRunId"]
                 found = p.store.load(rid)
@@ -291,6 +302,9 @@ class Follower:
             seen.update(generation=w["generation"], close_inputs=w.get("close_inputs", 0))
         elif found[0].get("world_generation", 1) != w["generation"]:
             log.info("세계 %s 초기화 회차 %s — 시나리오 3을 처음으로", rid, w["generation"])
+            for n in sorted(self.s3_scenes, reverse=True):  # 장면 2~ 문서는 지운다(다시 연다)
+                if self.s3_scenes[n].store.load(rid) is not None:
+                    self.s3_scenes[n].discard(rid)
             p.reset(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
             seen.update(generation=w["generation"], close_inputs=w.get("close_inputs", 0))
         else:
@@ -299,34 +313,68 @@ class Follower:
         self._clock_s3(rid, w["clock"])
         if w.get("close_inputs", 0) != seen.get("close_inputs", 0):
             p.receive_inputs(rid)
+            for n in sorted(self.s3_scenes):  # 장면 2 — 지금 결과가 낡았는지 다시 본다
+                self.s3_scenes[n].receive_inputs(rid)
             seen["close_inputs"] = w.get("close_inputs", 0)
         if w.get("pending_commands"):
             for command in self.company.commands(rid, "PENDING"):
                 self._run_s3_command(rid, command)
 
     def _clock_s3(self, rid: str, at: str) -> None:
-        found = None if self.s3 is None else self.s3.store.load(rid)
-        if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
-            self.s3.follow_clock(rid, at)
+        for p in [self.s3, *(self.s3_scenes[n] for n in sorted(self.s3_scenes))]:
+            found = None if p is None else p.store.load(rid)
+            if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
+                p.follow_clock(rid, at)
 
     def _run_s3_command(self, rid: str, command: dict[str, Any]) -> None:
         """
-        시나리오 3 회차의 명령 — 지금은 장면 1뿐이다: 「장면 1부터 다시」(`rewind`)·「장면만
-        처음으로」(`reset_scene`)는 결산 건을 처음으로 돌리고 착수를 다시 기동한다(기간계가 입력을
-        IN-26-01 하나로 되돌렸다).
+        시나리오 3 회차의 명령 — 「장면 N부터 다시」(`rewind`): N 이상 장면 2~ 문서를 거두고, N이
+        1이면 결산 건을 처음으로 돌려 착수를 다시 기동한다(기간계가 입력을 IN-26-01 하나로
+        되돌렸다). 장면 2~의 「장면 열기」(`open`)·「장면만 처음으로」(`reset_scene`)와 장면 1의
+        `reset_scene`.
         """
         scene, kind = command["scene"], command["kind"]
         try:
-            if scene != 1 and kind != "rewind":
-                raise DomainError(f"시나리오 3에 없는 장면: {scene}", 404)
-            if kind not in ("rewind", "reset_scene"):
-                raise DomainError(f"시나리오 3 장면 {scene}에 없는 명령: {kind}", 422)
-            n = int((command.get("body") or {}).get("scene") or scene)
-            result: dict[str, Any] = {"discarded": []}
-            if n <= 1 and self.s3 is not None and self.s3.store.load(rid) is not None:
-                doc = self.s3.reset(rid, actor=SYSTEM_ACTOR)
-                self._seen.setdefault(rid, {})["close_inputs"] = len(doc["inputs"])
-                result = {"scene": 1, "clock": doc["clock"]}
+            if kind == "rewind":
+                n = int((command.get("body") or {}).get("scene") or scene)
+                gone = []
+                for m in sorted(self.s3_scenes, reverse=True):
+                    if m >= n and self.s3_scenes[m].store.load(rid) is not None:
+                        self.s3_scenes[m].discard(rid)
+                        gone.append(m)
+                result: dict[str, Any] = {"discarded": sorted(gone)}
+                if n <= 1 and self.s3 is not None and self.s3.store.load(rid) is not None:
+                    doc = self.s3.reset(rid, actor=SYSTEM_ACTOR)
+                    self._seen.setdefault(rid, {})["close_inputs"] = len(doc["inputs"])
+                    result |= {"scene": 1, "clock": doc["clock"]}
+            elif scene == 1:
+                if kind != "reset_scene":
+                    raise DomainError(f"시나리오 3 장면 1에 없는 명령: {kind}", 422)
+                result = {"discarded": []}
+                if self.s3 is not None and self.s3.store.load(rid) is not None:
+                    for m in sorted(self.s3_scenes, reverse=True):
+                        if self.s3_scenes[m].store.load(rid) is not None:
+                            self.s3_scenes[m].discard(rid)
+                    doc = self.s3.reset(rid, actor=SYSTEM_ACTOR)
+                    self._seen.setdefault(rid, {})["close_inputs"] = len(doc["inputs"])
+                    result = {"scene": 1, "clock": doc["clock"]}
+            else:
+                p = self.s3_scenes.get(scene)
+                if p is None:
+                    raise DomainError(f"시나리오 3에 없는 장면: {scene}", 404)
+                body = command.get("body") or {}
+                if kind == "open":
+                    doc = p.create(
+                        rid,
+                        case_id=body.get("case_id") or "BASE",
+                        executor="center",
+                        actor=command["actor"],
+                    )
+                elif kind == "reset_scene":
+                    doc = p.reset(rid, actor=SYSTEM_ACTOR, case_id=body.get("case_id"))
+                else:
+                    raise DomainError(f"시나리오 3 장면 {scene}에 없는 명령: {kind}", 422)
+                result = {"scene": doc.get("scene"), "clock": doc.get("clock")}
             self.company.command_result(rid, command["command_id"], state="DONE", result=result)
         except DomainError as exc:
             self.company.command_result(

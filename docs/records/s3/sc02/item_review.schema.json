@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc02/item_review.schema.json",
+  "title": "s3/sc02 item_review",
+  "description": "항목 검토 — 검토자·검토 시각·결과 버전·첨부·검토 동선·승계 여부",
+  "type": "object",
+  "required": [
+    "carried_from",
+    "diff_won",
+    "file_id",
+    "item",
+    "paths",
+    "request",
+    "result_version",
+    "review_id",
+    "reviewed_at",
+    "reviewed_by",
+    "reviewed_via",
+    "state",
+    "valid",
+    "work_id"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "item": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "file_id": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_via": {
+      "type": "null"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "request": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "diff_won": {
+      "type": "integer"
+    },
+    "carried_from": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "state": {
+      "type": "string"
+    },
+    "valid": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

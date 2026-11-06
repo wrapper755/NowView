@@ -189,7 +189,7 @@ def test_consumer_takes_tasks_with_its_token_and_reports_reasons(proc: Sc01Proce
         _until(lambda: host.describe()["state"] == "running")
         _until(lambda: center.manifests == ["external"])
         # 확장 정의는 manifest보다 먼저, 일꾼 토큰으로 올린다 — 콘솔 등록·들이기가 없다
-        assert center.extensions == [("external", "0.13.0")]
+        assert center.extensions == [("external", "0.14.0")]
         assert center.enroll_calls == 0
 
         rid = proc.create(executor="studio")["demo_run_id"]

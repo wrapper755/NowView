@@ -423,6 +423,31 @@ class CompanyClient:
             "POST", f"/worlds/{world_id}/sim/close-inputs", {"variants": list(variants)}
         )
 
+    def put_close_attachment(self, world_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """시나리오 3 장면 2 — 계산근거 Excel을 결산 건에 첨부한다(같은 파일 재전송은 그대로)."""
+        return self._call("POST", f"/worlds/{world_id}/close-attachments", body)
+
+    def close_attachment(self, world_id: str, file_id: str) -> dict[str, Any]:
+        """첨부 하나(내용 base64 포함) — 등록한 파일이 다시 열리는지 보는 데 쓴다."""
+        return self._call("GET", f"/worlds/{world_id}/close-attachments/{file_id}")
+
+    def close_attachments(self, world_id: str) -> list[dict[str, Any]]:
+        """결산 건의 첨부 목록(내용 없이, 열람 이력 포함)."""
+        return self._call("GET", f"/worlds/{world_id}/close-attachments")
+
+    def take_close_fault(self, world_id: str, kind: str) -> dict[str, Any]:
+        """
+        연계 PC 장애 스위치를 한 번 꺼내 쓴다 — 시연자가 켠 장애만 난다(`pc_delay`·
+        `transfer_fail`).
+        """
+        return self._call("POST", f"/worlds/{world_id}/close-faults/{kind}/take")
+
+    def set_close_fault(self, world_id: str, kind: str, count: int = 1) -> dict[str, Any]:
+        """시연·시험 — 연계 PC 장애를 켠다(엔진 시험만 — 운영은 사이트가 보낸다)."""
+        return self._call(
+            "POST", f"/worlds/{world_id}/sim/close-faults", {"kind": kind, "count": count}
+        )
+
     # ───────────── 구매 (장면 2) ─────────────
 
     def purchase_master(self) -> dict[str, Any]:

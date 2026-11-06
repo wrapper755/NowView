@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  시나리오 3 장면 2 — 결산조정 계산 및 담당자 검토(업무설계표 01~07). 업무 흐름의 유일한 원천이다.
+
+  **장면 1 인계(HAND-S3-01)에서 연다** — 회사 사이트의 「장면 열기」를 NowView 일꾼이 받아 이 프로세스를
+  기동한다(입력 `데모실행ID`·`결산건ID`). 그림이 쥐는 것은 순서와 분기뿐이다 — 금액·대사·보완 대상은
+  일꾼의 규칙 계산(NowView `engine/app/s3/sc02/calc.py`), 첨부 Excel은 같은 결과의 계산근거 파일이다.
+
+  단계 대응: 분석 지시 열기 01 → 회계담당자의 [분석 실행] 02 → 실행 접수 → 계산(연계 PC 작업) 03·04
+  → Excel 생성·첨부 05 → 다음 검토 고르기 → 대손충당금·감가상각비 계산 근거 검토 06 → [상신] 07 →
+  장면 3 인계. PC가 응답하지 않으면 같은 실행 ID로 상태를 조회하고, 계산 뒤 전송만 실패하면 첨부 대기에서
+  같은 파일을 다시 보낸다. 입력이 다시 연결돼 결과가 낡으면 다시 실행으로 돌아간다(영향 항목만 재검토).
+
+  **이번 판의 연계 PC는 모의다** — 실행 기록의 execution_mode가 simulated다. 지시문 열람과 팀장 조회는
+  결재 기록을 만들지 않는다. 담당자의 실행·검토·상신은 원업무의 할 일이다 — 승인은 장면 3 팀장 한 번이다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s3_sc02">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:process id="company1.s3.sc02" name="S3 SC02 결산조정 계산 및 담당자 검토" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.14.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "결산건ID", "type": "string", "required": true}], "outputs": []}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="장면 1 인계 HAND-S3-01 — 분석 준비 2/2"/>
+    <bpmn:serviceTask id="Task_Open" name="분석 지시 열기 (01)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "open_close_analysis", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"입력버전": "input_version", "지시버전": "prompt_version"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Request_Analysis" name="분석 실행 요청 (02 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "분석 실행 — 감가상각비 · 외상매출금 대손충당금", "answered_by_as": "실행자", "answered_via_as": "실행경로", "assignees": ["회계담당"], "description": "충당금 행에서 연 분석 지시다. 이번 실행은 감가상각비와 대손충당금 두 항목(당기 2026 · 전기 2025)을 같은 보고 건의 계산 범위로 한다. 연결 자료는 결산기준·자산대장·채권명세·전이율원천·원장·회수계획·확인기록 7개 시트(검수용 기대값 제외). 지시문: 외상매출금 명세와 원장을 대사하고 집합·개별평가를 구분해 주세요. 개별채권은 회계담당자가 확인한 회수예상액을 사용하고 주요 거래처의 충당금 변동과 근거를 설명해 주세요. 감가상각비는 자산별로 계산해 비용 귀속별 합계 및 주석과 대조해 주세요. 두 항목의 계산식과 상세 주석은 Excel 한 파일로, 전기 대비 변동과 조정 요청액은 화면 요약으로 작성해 주세요. 근거가 부족하면 대상과 보완 사유를 표시해 주세요. [분석 실행]을 누르면 실행 ID를 발급하고 연계 PC 작업을 요청한다(이번 판은 모의 실행). 본 입력 버전이 그 사이 바뀌었거나 장면 1 준비가 무효면 실행하지 않는다.", "show": ["데모실행ID", "결산건ID", "입력버전", "지시버전", "작업상태", "보완사유", "error_message"], "fields": [{"key": "실행입력버전", "label": "본 입력 버전", "type": "text", "required": true}, {"key": "분석실행", "label": "실행", "type": "choice", "required": true, "choices": ["분석 실행"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Request" name="실행 접수 (02)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "request_close_analysis", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "version": "실행입력버전", "decision": "분석실행", "answered_by": "실행자", "answered_via": "실행경로"}, "output": {"실행ID": "run_id", "입력버전": "input_version", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Process" name="계산 — 연계 PC 작업 (03·04)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "process_close_analysis", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "run_id": "실행ID"}, "output": {"작업상태": "state", "결과버전": "result_version", "마지막응답": "last_response_at", "대사차이": "diff_won", "보완사유": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Check_Run" name="처리 상태 조회 (PC 미응답 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "실행 처리 상태 조회 — 연계 PC 응답 없음", "answered_by_as": "조회자", "answered_via_as": "조회경로", "assignees": ["회계담당"], "description": "연계 PC가 계산 중에 응답하지 않았다. 같은 실행 ID로 처리 상태를 다시 조회한다 — 새 실행을 만들지 않는다. 화면은 경과 시간으로 상태를 재생하지 않고 작업의 실제 응답으로만 갱신한다.", "show": ["데모실행ID", "결산건ID", "실행ID", "작업상태", "마지막응답"], "fields": [{"key": "상태조회", "label": "조회", "type": "choice", "required": true, "choices": ["상태 조회"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Attach" name="Excel 생성·첨부 등록 (05)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "attach_close_workpaper", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "run_id": "실행ID"}, "output": {"첨부상태": "state", "파일ID": "file_id", "파일명": "filename", "결과버전": "result_version"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Retry_Attach" name="첨부 재시도 (첨부 대기 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "첨부 재시도 — 계산은 끝났고 파일 전송이 실패했다", "answered_by_as": "재시도자", "answered_via_as": "재시도경로", "assignees": ["회계담당"], "description": "계산 결과와 파일은 그대로다. 같은 실행의 같은 파일을 다시 보낸다(새 파일·중복 첨부를 만들지 않는다). 결산 건·실행 ID·파일 버전이 맞고 다시 열리면 검토 대기로 바뀐다.", "show": ["데모실행ID", "결산건ID", "실행ID", "결과버전", "파일ID", "파일명"], "fields": [{"key": "첨부재시도", "label": "재시도", "type": "choice", "required": true, "choices": ["첨부 재시도"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Task_Route" name="다음 검토 고르기">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "route_close_review", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"다음": "next", "결과버전": "result_version", "검토수": "reviewed", "대기사유": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Review_Allowance" name="대손충당금 계산 근거 검토 (06 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "외상매출금 대손충당금 계산 근거 검토 — 회계담당자", "answered_by_as": "검토자", "answered_via_as": "검토경로", "assignees": ["회계담당"], "description": "첨부 Excel을 열어 개별평가 A사 두 행(채권 100 · 회수예상액 75 → 60 · 충당금 25 → 40)을 PLAN-A-26·CONF-26-S·CONF-26-F와 대조하고, 충당금비교 → 채권별계산 G사 행, 충당금주석(기초 − 제각 + 설정 = 기말) → 승인요약 충당금 행을 확인한다. 금액은 계산 기능의 결과이고 회수예상액은 회계담당자가 확인한 값이다. 파일 열람과 검토 완료는 따로 기록된다. 본 결과 버전이 최신이 아니면 기록하지 않는다.", "show": ["데모실행ID", "결산건ID", "결과버전", "파일ID", "파일명", "대사차이", "error_message"], "fields": [{"key": "충당검토버전", "label": "본 결과 버전", "type": "text", "required": true}, {"key": "충당검토", "label": "검토", "type": "choice", "required": true, "choices": ["검토 완료"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Review_Allowance" name="대손충당금 검토 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "review_close_item", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "'ALW'", "result_version": "충당검토버전", "decision": "충당검토", "answered_by": "검토자", "answered_via": "검토경로"}, "output": {"충당검토ID": "review_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Review_Depreciation" name="감가상각비 계산 근거 검토 (06 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "감가상각비 계산 근거 검토 — 회계담당자", "answered_by_as": "검토자", "answered_via_as": "검토경로", "assignees": ["회계담당"], "description": "첨부 Excel의 상각비비교에서 자산 종류별 합계와 비용 귀속별 합계(제조원가 + 판매관리비)를 대조하고, 유형자산주석 합계(기초 + 취득 − 처분 − 손상 − 상각 = 기말)와 원장대사의 기계상액을 확인한다. 신규 E2 가동·E3 상각 종료가 전기 대비 변동의 원인이다. 본 결과 버전이 최신이 아니면 기록하지 않는다.", "show": ["데모실행ID", "결산건ID", "결과버전", "파일ID", "파일명", "대사차이", "error_message"], "fields": [{"key": "상각검토버전", "label": "본 결과 버전", "type": "text", "required": true}, {"key": "상각검토", "label": "검토", "type": "choice", "required": true, "choices": ["검토 완료"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Review_Depreciation" name="감가상각비 검토 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "review_close_item", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "'DEP'", "result_version": "상각검토버전", "decision": "상각검토", "answered_by": "검토자", "answered_via": "검토경로"}, "output": {"상각검토ID": "review_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Submit_Report" name="보고 상신 (07 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "결산조정항목 및 관련 주석(안) 상신 — 회계담당자", "answered_by_as": "상신자", "answered_via_as": "상신경로", "assignees": ["회계담당"], "description": "같은 결과 버전의 승인 요약 한 장(두 항목의 전기·당기·증감·조정 전 장부·승인 요청액과 변동 사유)과 첨부 Excel을 확인하고 한 번 상신한다. 두 항목·요청액·요약·첨부 버전이 보고 ID 하나로 고정된다. 검토 완료 2/2 · 대사 차이 0 · 첨부 열기 가능 · 최신 입력이어야 한다. 수신은 회계팀장이다 — 승인·보완 요청은 장면 3이다.", "show": ["데모실행ID", "결산건ID", "결과버전", "파일ID", "파일명", "검토수", "error_message"], "fields": [{"key": "상신결과버전", "label": "본 결과 버전", "type": "text", "required": true}, {"key": "상신", "label": "상신", "type": "choice", "required": true, "choices": ["상신"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Submit" name="상신 기록 · 장면 3 인계 (07)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "submit_close_report", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "result_version": "상신결과버전", "decision": "상신", "answered_by": "상신자", "answered_via": "상신경로"}, "output": {"보고ID": "report_id", "보고버전": "report_version", "인계ID": "handoff_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Run" name="계산 응답" default="Flow_run_done"/>
+    <bpmn:exclusiveGateway id="Gw_Attach" name="첨부 등록" default="Flow_attach_ok"/>
+    <bpmn:exclusiveGateway id="Gw_Next" name="무엇이 남았나" default="Flow_submit"/>
+    <bpmn:endEvent id="End" name="상신 1건 · 승인 대기 2행 · 승인 0건 — 장면 3 팀장 승인 대기"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Request" name="기록 거절" attachedToRef="Record_Request">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Review_Allowance" name="기록 거절" attachedToRef="Record_Review_Allowance">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Review_Depreciation" name="기록 거절" attachedToRef="Record_Review_Depreciation">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Submit" name="기록 거절" attachedToRef="Record_Submit">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Open"/>
+    <bpmn:sequenceFlow id="Flow_opened" sourceRef="Task_Open" targetRef="Request_Analysis"/>
+    <bpmn:sequenceFlow id="Flow_Request_Analysis_answered" sourceRef="Request_Analysis" targetRef="Record_Request"/>
+    <bpmn:sequenceFlow id="Flow_accepted" sourceRef="Record_Request" targetRef="Task_Process"/>
+    <bpmn:sequenceFlow id="Flow_Record_Request_rejected" sourceRef="Bnd_Record_Request" targetRef="Request_Analysis"/>
+    <bpmn:sequenceFlow id="Flow_processed" sourceRef="Task_Process" targetRef="Gw_Run"/>
+    <bpmn:sequenceFlow id="Flow_run_done" name="계산 완료" sourceRef="Gw_Run" targetRef="Task_Attach"/>
+    <bpmn:sequenceFlow id="Flow_run_pending" name="PC 미응답" sourceRef="Gw_Run" targetRef="Check_Run">
+      <bpmn:conditionExpression>작업상태 == 'PENDING'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_checked" sourceRef="Check_Run" targetRef="Task_Process"/>
+    <bpmn:sequenceFlow id="Flow_run_fix" name="보완 필요" sourceRef="Gw_Run" targetRef="Request_Analysis">
+      <bpmn:conditionExpression>작업상태 == 'NEEDS_FIX'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_attached" sourceRef="Task_Attach" targetRef="Gw_Attach"/>
+    <bpmn:sequenceFlow id="Flow_attach_ok" name="등록·열기 확인" sourceRef="Gw_Attach" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_attach_wait" name="첨부 대기" sourceRef="Gw_Attach" targetRef="Retry_Attach">
+      <bpmn:conditionExpression>첨부상태 == 'WAITING'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_retried" sourceRef="Retry_Attach" targetRef="Task_Attach"/>
+    <bpmn:sequenceFlow id="Flow_routed" sourceRef="Task_Route" targetRef="Gw_Next"/>
+    <bpmn:sequenceFlow id="Flow_alw" name="충당금 검토" sourceRef="Gw_Next" targetRef="Review_Allowance">
+      <bpmn:conditionExpression>다음 == 'ALW'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_dep" name="상각비 검토" sourceRef="Gw_Next" targetRef="Review_Depreciation">
+      <bpmn:conditionExpression>다음 == 'DEP'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_rerun" name="입력 변경 — 다시 실행" sourceRef="Gw_Next" targetRef="Request_Analysis">
+      <bpmn:conditionExpression>다음 == 'RERUN'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_submit" name="두 항목 검토 완료" sourceRef="Gw_Next" targetRef="Submit_Report"/>
+    <bpmn:sequenceFlow id="Flow_Review_Allowance_answered" sourceRef="Review_Allowance" targetRef="Record_Review_Allowance"/>
+    <bpmn:sequenceFlow id="Flow_alw_recorded" sourceRef="Record_Review_Allowance" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Record_Review_Allowance_rejected" sourceRef="Bnd_Record_Review_Allowance" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Review_Depreciation_answered" sourceRef="Review_Depreciation" targetRef="Record_Review_Depreciation"/>
+    <bpmn:sequenceFlow id="Flow_dep_recorded" sourceRef="Record_Review_Depreciation" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Record_Review_Depreciation_rejected" sourceRef="Bnd_Record_Review_Depreciation" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Submit_Report_answered" sourceRef="Submit_Report" targetRef="Record_Submit"/>
+    <bpmn:sequenceFlow id="Flow_submitted" sourceRef="Record_Submit" targetRef="End"/>
+    <bpmn:sequenceFlow id="Flow_Record_Submit_rejected" sourceRef="Bnd_Record_Submit" targetRef="Task_Route"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_company1.s3.sc02">
+    <bpmndi:BPMNPlane id="BPMNPlane_company1.s3.sc02" bpmnElement="company1.s3.sc02">
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="60" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Open_di" bpmnElement="Task_Open">
+        <dc:Bounds x="140" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Request_Analysis_di" bpmnElement="Request_Analysis">
+        <dc:Bounds x="290" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Request_di" bpmnElement="Record_Request">
+        <dc:Bounds x="440" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Process_di" bpmnElement="Task_Process">
+        <dc:Bounds x="590" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Run_di" bpmnElement="Gw_Run" isMarkerVisible="true">
+        <dc:Bounds x="740" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Check_Run_di" bpmnElement="Check_Run">
+        <dc:Bounds x="590" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Attach_di" bpmnElement="Task_Attach">
+        <dc:Bounds x="840" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Attach_di" bpmnElement="Gw_Attach" isMarkerVisible="true">
+        <dc:Bounds x="990" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Retry_Attach_di" bpmnElement="Retry_Attach">
+        <dc:Bounds x="840" y="360" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Route_di" bpmnElement="Task_Route">
+        <dc:Bounds x="1090" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Next_di" bpmnElement="Gw_Next" isMarkerVisible="true">
+        <dc:Bounds x="1240" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Review_Allowance_di" bpmnElement="Review_Allowance">
+        <dc:Bounds x="1340" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Review_Allowance_di" bpmnElement="Record_Review_Allowance">
+        <dc:Bounds x="1490" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Review_Depreciation_di" bpmnElement="Review_Depreciation">
+        <dc:Bounds x="1340" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Review_Depreciation_di" bpmnElement="Record_Review_Depreciation">
+        <dc:Bounds x="1490" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Submit_Report_di" bpmnElement="Submit_Report">
+        <dc:Bounds x="1340" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Submit_di" bpmnElement="Record_Submit">
+        <dc:Bounds x="1490" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
+        <dc:Bounds x="1652" y="362" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Request_di" bpmnElement="Bnd_Record_Request">
+        <dc:Bounds x="472" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Review_Allowance_di" bpmnElement="Bnd_Record_Review_Allowance">
+        <dc:Bounds x="1522" y="122" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Review_Depreciation_di" bpmnElement="Bnd_Record_Review_Depreciation">
+        <dc:Bounds x="1522" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Submit_di" bpmnElement="Bnd_Record_Submit">
+        <dc:Bounds x="1522" y="402" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start">
+        <di:waypoint x="96" y="240" />
+        <di:waypoint x="140" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_opened_di" bpmnElement="Flow_opened">
+        <di:waypoint x="240" y="240" />
+        <di:waypoint x="290" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Request_Analysis_answered_di" bpmnElement="Flow_Request_Analysis_answered">
+        <di:waypoint x="390" y="240" />
+        <di:waypoint x="440" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_accepted_di" bpmnElement="Flow_accepted">
+        <di:waypoint x="540" y="240" />
+        <di:waypoint x="590" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Request_rejected_di" bpmnElement="Flow_Record_Request_rejected">
+        <di:waypoint x="490" y="298" />
+        <di:waypoint x="490" y="320" />
+        <di:waypoint x="340" y="320" />
+        <di:waypoint x="340" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_processed_di" bpmnElement="Flow_processed">
+        <di:waypoint x="690" y="240" />
+        <di:waypoint x="740" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_run_done_di" bpmnElement="Flow_run_done">
+        <di:waypoint x="790" y="240" />
+        <di:waypoint x="840" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_run_pending_di" bpmnElement="Flow_run_pending">
+        <di:waypoint x="765" y="265" />
+        <di:waypoint x="765" y="400" />
+        <di:waypoint x="690" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_checked_di" bpmnElement="Flow_checked">
+        <di:waypoint x="640" y="360" />
+        <di:waypoint x="640" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_run_fix_di" bpmnElement="Flow_run_fix">
+        <di:waypoint x="765" y="215" />
+        <di:waypoint x="765" y="140" />
+        <di:waypoint x="330" y="140" />
+        <di:waypoint x="330" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_attached_di" bpmnElement="Flow_attached">
+        <di:waypoint x="940" y="240" />
+        <di:waypoint x="990" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_attach_ok_di" bpmnElement="Flow_attach_ok">
+        <di:waypoint x="1040" y="240" />
+        <di:waypoint x="1090" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_attach_wait_di" bpmnElement="Flow_attach_wait">
+        <di:waypoint x="1015" y="265" />
+        <di:waypoint x="1015" y="400" />
+        <di:waypoint x="940" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_retried_di" bpmnElement="Flow_retried">
+        <di:waypoint x="890" y="360" />
+        <di:waypoint x="890" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_routed_di" bpmnElement="Flow_routed">
+        <di:waypoint x="1190" y="240" />
+        <di:waypoint x="1240" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_alw_di" bpmnElement="Flow_alw">
+        <di:waypoint x="1265" y="215" />
+        <di:waypoint x="1265" y="100" />
+        <di:waypoint x="1340" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_dep_di" bpmnElement="Flow_dep">
+        <di:waypoint x="1290" y="240" />
+        <di:waypoint x="1340" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_rerun_di" bpmnElement="Flow_rerun">
+        <di:waypoint x="1265" y="215" />
+        <di:waypoint x="1265" y="30" />
+        <di:waypoint x="310" y="30" />
+        <di:waypoint x="310" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_submit_di" bpmnElement="Flow_submit">
+        <di:waypoint x="1265" y="265" />
+        <di:waypoint x="1265" y="380" />
+        <di:waypoint x="1340" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_Allowance_answered_di" bpmnElement="Flow_Review_Allowance_answered">
+        <di:waypoint x="1440" y="100" />
+        <di:waypoint x="1490" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_alw_recorded_di" bpmnElement="Flow_alw_recorded">
+        <di:waypoint x="1540" y="60" />
+        <di:waypoint x="1540" y="45" />
+        <di:waypoint x="1140" y="45" />
+        <di:waypoint x="1140" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Review_Allowance_rejected_di" bpmnElement="Flow_Record_Review_Allowance_rejected">
+        <di:waypoint x="1540" y="158" />
+        <di:waypoint x="1540" y="175" />
+        <di:waypoint x="1160" y="175" />
+        <di:waypoint x="1160" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_Depreciation_answered_di" bpmnElement="Flow_Review_Depreciation_answered">
+        <di:waypoint x="1440" y="240" />
+        <di:waypoint x="1490" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_dep_recorded_di" bpmnElement="Flow_dep_recorded">
+        <di:waypoint x="1590" y="240" />
+        <di:waypoint x="1620" y="240" />
+        <di:waypoint x="1620" y="310" />
+        <di:waypoint x="1140" y="310" />
+        <di:waypoint x="1140" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Review_Depreciation_rejected_di" bpmnElement="Flow_Record_Review_Depreciation_rejected">
+        <di:waypoint x="1540" y="298" />
+        <di:waypoint x="1540" y="300" />
+        <di:waypoint x="1160" y="300" />
+        <di:waypoint x="1160" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Submit_Report_answered_di" bpmnElement="Flow_Submit_Report_answered">
+        <di:waypoint x="1440" y="380" />
+        <di:waypoint x="1490" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_submitted_di" bpmnElement="Flow_submitted">
+        <di:waypoint x="1590" y="380" />
+        <di:waypoint x="1652" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Submit_rejected_di" bpmnElement="Flow_Record_Submit_rejected">
+        <di:waypoint x="1540" y="438" />
+        <di:waypoint x="1540" y="455" />
+        <di:waypoint x="1120" y="455" />
+        <di:waypoint x="1120" y="280" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
