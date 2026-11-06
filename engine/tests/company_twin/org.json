@@ -144,6 +144,18 @@
       "name": "자료담당",
       "role": "자료담당",
       "department": "회계팀"
+    },
+    {
+      "user_id": "u-posting",
+      "name": "전표반영담당",
+      "role": "전표반영담당",
+      "department": "회계팀"
+    },
+    {
+      "user_id": "u-notes",
+      "name": "주석취합담당",
+      "role": "주석취합담당",
+      "department": "회계팀"
     }
   ]
 }

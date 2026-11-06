@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/report_revision.schema.json",
+  "title": "s3/sc03 report_revision",
+  "description": "보완 요청 — 대상 항목·사유·담당·원 제출본·처리(참조 보강/재계산/재상신)·새 버전",
+  "type": "object",
+  "required": [
+    "action",
+    "base_version",
+    "decision_id",
+    "new_version",
+    "owner",
+    "reason",
+    "report_id",
+    "requested_at",
+    "requested_by",
+    "resubmitted_at",
+    "result_version",
+    "revision_id",
+    "state",
+    "steps",
+    "targets"
+  ],
+  "properties": {
+    "revision_id": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "base_version": {
+      "type": "integer"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "object",
+      "required": [
+        "owner_name",
+        "owner_role"
+      ],
+      "properties": {
+        "owner_role": {
+          "type": "string"
+        },
+        "owner_name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "action": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "at",
+          "by"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "input_version": {
+            "type": "string"
+          },
+          "result_version": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "string"
+          },
+          "carried": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "todo": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "new_version": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "resubmitted_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

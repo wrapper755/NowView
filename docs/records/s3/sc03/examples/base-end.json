@@ -1,0 +1,974 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S3:SC03",
+  "version": 4,
+  "scene": 3,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "팀장 보고 및 승인",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s3",
+   "scene": 3,
+   "title": "팀장 보고 및 승인",
+   "caseId": "BASE",
+   "clock": "2027-01-04T09:00:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "state": "done",
+    "job_id": null,
+    "external_run_id": "test_20261106_114744_d12f40",
+    "visited": [
+     "Task_Open",
+     "Approve_Report",
+     "Record_Decision",
+     "Gw_Decision",
+     "Task_Handoff",
+     "Gw_Handoff",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null
+   },
+   "close": {
+    "close_id": "S3-CLOSE-01",
+    "title": "2026년 연말결산",
+    "period_end": "2026-12-31",
+    "comparative_end": "2025-12-31",
+    "unit": "백만원",
+    "reviewer": {
+     "role": "회계팀장",
+     "name": "회계팀장",
+     "user_id": "u-acct-lead"
+    },
+    "schedule": {
+     "started": "2027-01-04T09:00:00+09:00",
+     "submit_due": "2027-01-08T18:00:00+09:00",
+     "approve_due": "2027-01-11T18:00:00+09:00",
+     "posting_due": "2027-01-13T18:00:00+09:00"
+    },
+    "dataset_version": "S3-INPUT-v0.1",
+    "allowed_sheets": [
+     "결산기준",
+     "자산대장",
+     "채권명세",
+     "전이율원천",
+     "원장",
+     "회수계획",
+     "확인기록"
+    ],
+    "excluded_sheets": [
+     "설계안내",
+     "입력명세",
+     "대표사건",
+     "검수기준"
+    ]
+   },
+   "approver": {
+    "role": "회계팀장",
+    "name": "회계팀장",
+    "user_id": "u-acct-lead"
+   },
+   "entry": {
+    "handoff_id": "HAND-S3-02",
+    "report_id": "REP-S3-01",
+    "report_version": 1,
+    "opened_at": "2027-01-04T09:00:00+09:00"
+   },
+   "report": {
+    "report_id": "REP-S3-01",
+    "version": 1,
+    "record_id": "REP-S3-01:v1",
+    "state": "APPROVED",
+    "result_version": "RES-S3-v1",
+    "file_id": "WP-S3-v1",
+    "approval_scope": "두 결산조정항목 및 유형자산·충당금 주석(안) · 첨부 1파일"
+   },
+   "latest_result": "RES-S3-v1",
+   "hold": null,
+   "holds": [],
+   "input_notice": null,
+   "flow": [
+    {
+     "step": "01",
+     "name": "보고 열람",
+     "role": "회계팀장",
+     "state": "view"
+    },
+    {
+     "step": "02",
+     "name": "승인 요청액 검토",
+     "role": "회계팀장",
+     "state": "view"
+    },
+    {
+     "step": "03",
+     "name": "대표 판단 근거 확인",
+     "role": "회계팀장",
+     "state": "view"
+    },
+    {
+     "step": "04A",
+     "name": "승인",
+     "role": "회계팀장",
+     "state": "done"
+    },
+    {
+     "step": "04B",
+     "name": "보완 요청",
+     "role": "회계팀장",
+     "state": "skipped"
+    },
+    {
+     "step": "05",
+     "name": "수정본 재상신",
+     "role": "회계담당",
+     "state": "skipped"
+    },
+    {
+     "step": "06",
+     "name": "후속 인계 확인",
+     "role": "BPM · 회계팀장",
+     "state": "done"
+    }
+   ],
+   "decisions": [
+    "DEC-S3-01"
+   ],
+   "companyLog": [
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "장면 2 인계 HAND-S3-02 — REP-S3-01 v1 상신본 (결과 RES-S3-v1 · 첨부 WP-S3-v1)"
+    },
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "out",
+     "what": "전표 반영 후속 업무 2건 — 전표반영담당"
+    },
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "out",
+     "what": "주석 취합 후속 업무 2건 — 주석취합담당"
+    }
+   ],
+   "handoff": "HAND-S3-03"
+  },
+  "ref": "demo-example:scene/S3:SC03:v4",
+  "seq": 18,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "report_version",
+  "record_id": "REP-S3-01:v1",
+  "version": 2,
+  "scene": 3,
+  "state": "APPROVED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산조정항목 및 관련 주석(안) 보고·승인 v1",
+  "body": {
+   "report_id": "REP-S3-01",
+   "version": 1,
+   "title": "결산조정항목 및 관련 주석(안) 보고·승인",
+   "close_id": "S3-CLOSE-01",
+   "period": {
+    "period_end": "2026-12-31",
+    "comparative_end": "2025-12-31",
+    "unit": "백만원"
+   },
+   "result_version": "RES-S3-v1",
+   "input_version": "IN-26-01",
+   "execution": {
+    "run_id": "RUN-S3-01",
+    "input_version": "IN-26-01",
+    "executed_by": "회계담당",
+    "executed_at": "2027-01-04T09:00:00+09:00",
+    "execution_mode": "simulated",
+    "draft_mode": "rule-template"
+   },
+   "attachment": {
+    "file_id": "WP-S3-v1",
+    "file_version": 1,
+    "filename": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+    "sha256": "47c2e1c38945f9c942fcf2c98b056c0e39c1399a0852b2f9c483ab9d93c0a8f6",
+    "size": 22202,
+    "result_version": "RES-S3-v1"
+   },
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "prior": "1120",
+     "current": "1200",
+     "change": "80",
+     "change_rate": "0.071429",
+     "book": "1150",
+     "request": "50",
+     "request_label": "추가 계상",
+     "reason": "전기 1,120 → 당기 1,200(+80): E2(설비) 6개월 상각으로 100 증가, E3(설비) 상각 종료로 20 감소. 제조원가 1,020 + 판매관리비 180 = 주석 상각액 1,200. 기계상 1,150 대비 추가 계상 50.",
+     "refs": [
+      {
+       "value": "100",
+       "field": "depreciation.assets[E2].change"
+      },
+      {
+       "value": "-20",
+       "field": "depreciation.assets[E3].change"
+      },
+      {
+       "value": "1120",
+       "field": "depreciation.summary.prior"
+      },
+      {
+       "value": "1200",
+       "field": "depreciation.summary.current"
+      },
+      {
+       "value": "1020",
+       "field": "depreciation.by_allocation[제조원가].current"
+      },
+      {
+       "value": "180",
+       "field": "depreciation.by_allocation[판매관리비].current"
+      },
+      {
+       "value": "1150",
+       "field": "depreciation.summary.book"
+      },
+      {
+       "value": "50",
+       "field": "depreciation.summary.request"
+      }
+     ],
+     "summary_cell": "승인요약!F5",
+     "note_sheet": "유형자산주석",
+     "approval": "APPROVED"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "대손충당금",
+     "prior": "100",
+     "current": "110",
+     "change": "10",
+     "change_rate": "0.1",
+     "book": "80",
+     "request": "30",
+     "request_label": "추가 설정",
+     "reason": "기말 필요액 110 = 집합 70 + 개별 40. A사 채권 100의 회수예상액 75 → 60(CONF-26-F 확인)에 따라 개별 충당금 25 → 40. 집합평가는 75 → 70(G사(12개월 초과) −5). 전기 대비 +10. 기초 100 − 당기 제각 20 = 조정 전 80, 추가 설정 30 → 기말 110.",
+     "refs": [
+      {
+       "value": "60",
+       "field": "allowance.individual[A사 2026-12-31].recovery"
+      },
+      {
+       "value": "40",
+       "field": "allowance.individual[A사 2026-12-31].allowance"
+      },
+      {
+       "value": "110",
+       "field": "allowance.summary.current"
+      },
+      {
+       "value": "70",
+       "field": "allowance.methods[집합].current"
+      },
+      {
+       "value": "40",
+       "field": "allowance.methods[개별].current"
+      },
+      {
+       "value": "10",
+       "field": "allowance.summary.change"
+      },
+      {
+       "value": "100",
+       "field": "allowance.note.opening"
+      },
+      {
+       "value": "20",
+       "field": "allowance.note.written_off"
+      },
+      {
+       "value": "80",
+       "field": "allowance.summary.book"
+      },
+      {
+       "value": "30",
+       "field": "allowance.summary.request"
+      }
+     ],
+     "summary_cell": "승인요약!F6",
+     "note_sheet": "충당금주석",
+     "approval": "APPROVED"
+    }
+   ],
+   "notes": {
+    "DEP": {
+     "kind": "합계",
+     "opening": "8000",
+     "acquired": "2000",
+     "disposed": "100",
+     "impairment": "0",
+     "depreciation": "1200",
+     "closing": "8700"
+    },
+    "ALW": {
+     "opening": "100",
+     "provision": "30",
+     "reversal": "0",
+     "written_off": "20",
+     "ending": "110",
+     "diff_won": 0
+    }
+   },
+   "evidence": {
+    "individual": [
+     {
+      "customer": "A사",
+      "as_of": "2025-12-31",
+      "balance": "100",
+      "plan_ref": "PLAN-A-25",
+      "plan_rounds": [
+       {
+        "round": 1,
+        "due": "2026-03-31",
+        "amount": "25"
+       },
+       {
+        "round": 2,
+        "due": "2026-06-30",
+        "amount": "25"
+       },
+       {
+        "round": 3,
+        "due": "2026-09-30",
+        "amount": "25"
+       }
+      ],
+      "plan_total": "75",
+      "sales_confirmation": null,
+      "accounting_confirmation": "CONF-25",
+      "confirmed_by": "회계담당",
+      "recovery": "75",
+      "allowance": "25",
+      "basis": "전기 평가 확정"
+     },
+     {
+      "customer": "A사",
+      "as_of": "2026-12-31",
+      "balance": "100",
+      "plan_ref": "PLAN-A-26",
+      "plan_rounds": [
+       {
+        "round": 1,
+        "due": "2027-03-31",
+        "amount": "20"
+       },
+       {
+        "round": 2,
+        "due": "2027-06-30",
+        "amount": "20"
+       },
+       {
+        "round": 3,
+        "due": "2027-09-30",
+        "amount": "20"
+       }
+      ],
+      "plan_total": "60",
+      "sales_confirmation": "CONF-26-S",
+      "accounting_confirmation": "CONF-26-F",
+      "confirmed_by": "회계담당",
+      "recovery": "60",
+      "allowance": "40",
+      "basis": "영업 확인 기록과 회신을 대조하고 당기 평가용 회수예상액 확인."
+     }
+    ],
+    "confirmations": [
+     {
+      "confirmation_id": "CONF-25",
+      "customer": "A사",
+      "confirmed_on": "2025-12-31",
+      "plan_ref": "PLAN-A-25",
+      "confirmed_by": "회계담당",
+      "amount": "75",
+      "note": "전기 평가 확정"
+     },
+     {
+      "confirmation_id": "CONF-26-S",
+      "customer": "A사",
+      "confirmed_on": "2026-12-30",
+      "plan_ref": "PLAN-A-26",
+      "confirmed_by": "영업담당",
+      "amount": "60",
+      "note": "수정 회신과 분할 일정 대조. 계획 외 금액은 회수 근거 미확보."
+     },
+     {
+      "confirmation_id": "CONF-26-F",
+      "customer": "A사",
+      "confirmed_on": "2026-12-31",
+      "plan_ref": "PLAN-A-26",
+      "confirmed_by": "회계담당",
+      "amount": "60",
+      "note": "영업 확인 기록과 회신을 대조하고 당기 평가용 회수예상액 확인."
+     }
+    ],
+    "methods": [
+     {
+      "method": "집합",
+      "prior": "75",
+      "current": "70",
+      "change": "-5",
+      "current_balance": "6358.799691"
+     },
+     {
+      "method": "개별",
+      "prior": "25",
+      "current": "40",
+      "change": "15",
+      "current_balance": "100"
+     },
+     {
+      "method": "합계",
+      "prior": "100",
+      "current": "110",
+      "change": "10",
+      "current_balance": "6458.799691"
+     }
+    ],
+    "allowance_note": {
+     "opening": "100",
+     "provision": "30",
+     "reversal": "0",
+     "written_off": "20",
+     "ending": "110",
+     "diff_won": 0
+    },
+    "allocation": [
+     {
+      "group": "제조원가",
+      "prior": "940",
+      "current": "1020",
+      "change": "80",
+      "rate": "0.0851063829787234"
+     },
+     {
+      "group": "판매관리비",
+      "prior": "180",
+      "current": "180",
+      "change": "0",
+      "rate": "0"
+     },
+     {
+      "group": "귀속 합계",
+      "prior": "1120",
+      "current": "1200",
+      "change": "80",
+      "rate": "0.0714285714285714"
+     }
+    ],
+    "depreciation_note": {
+     "kind": "합계",
+     "opening": "8000",
+     "acquired": "2000",
+     "disposed": "100",
+     "impairment": "0",
+     "depreciation": "1200",
+     "closing": "8700"
+    },
+    "asset_changes": [
+     {
+      "asset_id": "E2",
+      "kind": "설비",
+      "allocation": "제조원가",
+      "months": 6,
+      "prior": "0",
+      "current": "100",
+      "change": "100"
+     },
+     {
+      "asset_id": "E3",
+      "kind": "설비",
+      "allocation": "제조원가",
+      "months": 0,
+      "prior": "20",
+      "current": "0",
+      "change": "-20"
+     }
+    ],
+    "paths": {
+     "ALW": [
+      "개별평가 A사 당기 행 → 관련 근거(PLAN-A-26·CONF-26-S·CONF-26-F)",
+      "충당금비교 → 충당금주석"
+     ],
+     "DEP": [
+      "상각비비교 → 자산별계산(E2·E3)",
+      "유형자산주석 합계 행"
+     ]
+    }
+   },
+   "reviews": [
+    {
+     "item": "ALW",
+     "review_id": "REV-ALW-1",
+     "reviewed_by": "회계담당",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "carried_from": null
+    },
+    {
+     "item": "DEP",
+     "review_id": "REV-DEP-1",
+     "reviewed_by": "회계담당",
+     "reviewed_at": "2027-01-04T09:00:00+09:00",
+     "carried_from": null
+    }
+   ],
+   "submitted_by": "회계담당",
+   "submitted_via": null,
+   "submitted_at": "2027-01-04T09:00:00+09:00",
+   "recipient": {
+    "role": "회계팀장",
+    "name": "회계팀장",
+    "user_id": "u-acct-lead"
+   },
+   "approval_scope": "두 결산조정항목 및 유형자산·충당금 주석(안) · 첨부 1파일",
+   "changes": [],
+   "revision_id": null,
+   "state": "APPROVED",
+   "decision_id": "DEC-S3-01"
+  },
+  "ref": "demo-example:report_version/REP-S3-01:v1:v2",
+  "seq": 19,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "S3-CLOSE-01:SC03",
+  "version": 3,
+  "scene": 3,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산 체크리스트 — 장면 3",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "title": "2026년 연말결산",
+   "period_end": "2026-12-31",
+   "comparative_end": "2025-12-31",
+   "as_of": "2027-01-04T09:00:00+09:00",
+   "scope": {
+    "label": "시연 대상 2항목",
+    "items": 2
+   },
+   "report": {
+    "report_id": "REP-S3-01",
+    "version": 1,
+    "state": "APPROVED",
+    "state_label": "승인 완료",
+    "result_version": "RES-S3-v1",
+    "file_id": "WP-S3-v1",
+    "versions": 1
+   },
+   "waiting_approval": 0,
+   "approved": {
+    "done": 2,
+    "of": 2
+   },
+   "reports": 1,
+   "reports_approved": 1,
+   "revisions": 0,
+   "posting": {
+    "done": 0,
+    "of": 2
+   },
+   "notes": {
+    "done": 0,
+    "of": 2
+   },
+   "handed": {
+    "done": 2,
+    "of": 2
+   },
+   "hold": null,
+   "rows": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "state": "APPROVED",
+     "state_label": "승인 완료",
+     "next_action": "후속 업무 보기",
+     "report_id": "REP-S3-01",
+     "report_version": 1,
+     "prior": "1120",
+     "current": "1200",
+     "change": "80",
+     "book": "1150",
+     "request": "50",
+     "request_label": "추가 계상",
+     "revision": null,
+     "approved_by": "회계팀장",
+     "approved_at": "2027-01-04T09:00:00+09:00",
+     "posting": {
+      "path": "POSTING",
+      "label": "전표 반영",
+      "state": "WAITING",
+      "state_label": "반영 대기",
+      "assignee": {
+       "role": "전표반영담당",
+       "name": "전표반영담당",
+       "user_id": "u-posting"
+      },
+      "task_id": "FUP-S3-POST-DEP",
+      "note_sheet": null,
+      "reason": null,
+      "done": false
+     },
+     "notes": {
+      "path": "NOTES",
+      "label": "주석 취합",
+      "state": "WAITING",
+      "state_label": "취합 대기",
+      "assignee": {
+       "role": "주석취합담당",
+       "name": "주석취합담당",
+       "user_id": "u-notes"
+      },
+      "task_id": "FUP-S3-NOTE-DEP",
+      "note_sheet": "유형자산주석",
+      "reason": null,
+      "done": false
+     }
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "외상매출금 대손충당금",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "state": "APPROVED",
+     "state_label": "승인 완료",
+     "next_action": "후속 업무 보기",
+     "report_id": "REP-S3-01",
+     "report_version": 1,
+     "prior": "100",
+     "current": "110",
+     "change": "10",
+     "book": "80",
+     "request": "30",
+     "request_label": "추가 설정",
+     "revision": null,
+     "approved_by": "회계팀장",
+     "approved_at": "2027-01-04T09:00:00+09:00",
+     "posting": {
+      "path": "POSTING",
+      "label": "전표 반영",
+      "state": "WAITING",
+      "state_label": "반영 대기",
+      "assignee": {
+       "role": "전표반영담당",
+       "name": "전표반영담당",
+       "user_id": "u-posting"
+      },
+      "task_id": "FUP-S3-POST-ALW",
+      "note_sheet": null,
+      "reason": null,
+      "done": false
+     },
+     "notes": {
+      "path": "NOTES",
+      "label": "주석 취합",
+      "state": "WAITING",
+      "state_label": "취합 대기",
+      "assignee": {
+       "role": "주석취합담당",
+       "name": "주석취합담당",
+       "user_id": "u-notes"
+      },
+      "task_id": "FUP-S3-NOTE-ALW",
+      "note_sheet": "충당금주석",
+      "reason": null,
+      "done": false
+     }
+    }
+   ],
+   "note": "승인 항목 수는 원업무, 승인 보고 수는 보고 ID, 전표 반영·주석 취합은 항목별 실제 완료로 센다 — 승인 직후에는 0/2다. 전체 회사 마감 상태는 별도"
+  },
+  "ref": "demo-example:dashboard/S3-CLOSE-01:SC03:v3",
+  "seq": 20,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "approval_decision",
+  "record_id": "DEC-S3-01",
+  "version": 1,
+  "scene": 3,
+  "state": "APPROVED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "승인 — REP-S3-01 v1",
+  "body": {
+   "decision_id": "DEC-S3-01",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "decision": "APPROVED",
+   "label": "승인",
+   "decided_by": "회계팀장",
+   "decided_via": null,
+   "decided_at": "2027-01-04T09:00:00+09:00",
+   "targets": [],
+   "reason": null,
+   "result_version": "RES-S3-v1",
+   "attachment": {
+    "file_id": "WP-S3-v1",
+    "file_version": 1,
+    "filename": "S3-CLOSE-01_결산조정_계산근거_v1.xlsx",
+    "sha256": "47c2e1c38945f9c942fcf2c98b056c0e39c1399a0852b2f9c483ab9d93c0a8f6",
+    "size": 22202,
+    "result_version": "RES-S3-v1"
+   },
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "request": "50",
+     "request_label": "추가 계상"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "대손충당금",
+     "request": "30",
+     "request_label": "추가 설정"
+    }
+   ],
+   "summary_ref": "REP-S3-01 v1 승인 요약",
+   "revision_id": null
+  },
+  "ref": "demo-example:approval_decision/DEC-S3-01:v1",
+  "seq": 21,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "followup",
+  "record_id": "FUP-S3-POST-DEP",
+  "version": 1,
+  "scene": 3,
+  "state": "WAITING",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "전표 반영 — 감가상각비",
+  "body": {
+   "task_id": "FUP-S3-POST-DEP",
+   "item_id": "DEP",
+   "work_id": "W-S3-DEP",
+   "name": "감가상각비",
+   "request": "50",
+   "request_label": "추가 계상",
+   "note_sheet": null,
+   "state": "WAITING",
+   "path": "POSTING",
+   "label": "전표 반영",
+   "assignee": {
+    "role": "전표반영담당",
+    "name": "전표반영담당",
+    "user_id": "u-posting"
+   },
+   "waiting": "반영 대기",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "registered_at": "2027-01-04T09:00:00+09:00",
+   "recovered": false
+  },
+  "ref": "demo-example:followup/FUP-S3-POST-DEP:v1",
+  "seq": 22,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "followup",
+  "record_id": "FUP-S3-POST-ALW",
+  "version": 1,
+  "scene": 3,
+  "state": "WAITING",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "전표 반영 — 대손충당금",
+  "body": {
+   "task_id": "FUP-S3-POST-ALW",
+   "item_id": "ALW",
+   "work_id": "W-S3-ALW",
+   "name": "대손충당금",
+   "request": "30",
+   "request_label": "추가 설정",
+   "note_sheet": null,
+   "state": "WAITING",
+   "path": "POSTING",
+   "label": "전표 반영",
+   "assignee": {
+    "role": "전표반영담당",
+    "name": "전표반영담당",
+    "user_id": "u-posting"
+   },
+   "waiting": "반영 대기",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "registered_at": "2027-01-04T09:00:00+09:00",
+   "recovered": false
+  },
+  "ref": "demo-example:followup/FUP-S3-POST-ALW:v1",
+  "seq": 23,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "followup",
+  "record_id": "FUP-S3-NOTE-DEP",
+  "version": 1,
+  "scene": 3,
+  "state": "WAITING",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "주석 취합 — 감가상각비",
+  "body": {
+   "task_id": "FUP-S3-NOTE-DEP",
+   "item_id": "DEP",
+   "work_id": "W-S3-DEP",
+   "name": "감가상각비",
+   "request": "50",
+   "request_label": "추가 계상",
+   "note_sheet": "유형자산주석",
+   "state": "WAITING",
+   "path": "NOTES",
+   "label": "주석 취합",
+   "assignee": {
+    "role": "주석취합담당",
+    "name": "주석취합담당",
+    "user_id": "u-notes"
+   },
+   "waiting": "취합 대기",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "registered_at": "2027-01-04T09:00:00+09:00",
+   "recovered": false
+  },
+  "ref": "demo-example:followup/FUP-S3-NOTE-DEP:v1",
+  "seq": 24,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "followup",
+  "record_id": "FUP-S3-NOTE-ALW",
+  "version": 1,
+  "scene": 3,
+  "state": "WAITING",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "주석 취합 — 대손충당금",
+  "body": {
+   "task_id": "FUP-S3-NOTE-ALW",
+   "item_id": "ALW",
+   "work_id": "W-S3-ALW",
+   "name": "대손충당금",
+   "request": "30",
+   "request_label": "추가 설정",
+   "note_sheet": "충당금주석",
+   "state": "WAITING",
+   "path": "NOTES",
+   "label": "주석 취합",
+   "assignee": {
+    "role": "주석취합담당",
+    "name": "주석취합담당",
+    "user_id": "u-notes"
+   },
+   "waiting": "취합 대기",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "registered_at": "2027-01-04T09:00:00+09:00",
+   "recovered": false
+  },
+  "ref": "demo-example:followup/FUP-S3-NOTE-ALW:v1",
+  "seq": 25,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "HAND-S3-03",
+  "version": 1,
+  "scene": 3,
+  "state": "DONE",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "후속 업무 인계",
+  "body": {
+   "handoff_id": "HAND-S3-03",
+   "close_id": "S3-CLOSE-01",
+   "report_id": "REP-S3-01",
+   "report_version": 1,
+   "decision_id": "DEC-S3-01",
+   "approved_by": "회계팀장",
+   "approved_at": "2027-01-04T09:00:00+09:00",
+   "attachment_ref": "WP-S3-v1",
+   "result_version": "RES-S3-v1",
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "request": "50",
+     "request_label": "추가 계상"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "대손충당금",
+     "request": "30",
+     "request_label": "추가 설정"
+    }
+   ],
+   "paths": [
+    {
+     "path": "POSTING",
+     "label": "전표 반영",
+     "assignee": {
+      "role": "전표반영담당",
+      "name": "전표반영담당",
+      "user_id": "u-posting"
+     },
+     "waiting": "반영 대기",
+     "tasks": [
+      "FUP-S3-POST-DEP",
+      "FUP-S3-POST-ALW"
+     ],
+     "recovered": false
+    },
+    {
+     "path": "NOTES",
+     "label": "주석 취합",
+     "assignee": {
+      "role": "주석취합담당",
+      "name": "주석취합담당",
+      "user_id": "u-notes"
+     },
+     "waiting": "취합 대기",
+     "tasks": [
+      "FUP-S3-NOTE-DEP",
+      "FUP-S3-NOTE-ALW"
+     ],
+     "recovered": false
+    }
+   ],
+   "next_step": "전표 반영 담당·주석 취합 담당이 같은 승인본으로 후속 처리(완료는 실제 처리 결과)",
+   "handed_at": "2027-01-04T09:00:00+09:00"
+  },
+  "ref": "demo-example:handoff/HAND-S3-03:v1",
+  "seq": 26,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ }
+]

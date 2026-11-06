@@ -26,6 +26,13 @@ NowView `docs/s3/common.md`(시나리오 3 공통 설계)·`docs/s3/sc01.md`. �
 * (시연·시험) 연계 PC 장애 스위치 — `POST /worlds/{w}/sim/close-faults {kind, count}`(`pc_delay`
   계산 중 미응답 · `transfer_fail` 계산 뒤 파일 전송 실패)와 NowView 일꾼이 한 번씩 꺼내 쓰는 `POST
   …/close-faults/{kind}/take`. 지어낸 지연이 아니라 시연자가 켠 장애만 생긴다.
+* 장면 3 「팀장 보고 및 승인」(NowView `docs/s3/sc03.md`) — **승인본의 후속 업무 등록**:
+  `POST /worlds/{w}/close-followups`(경로 하나 = 전표 반영 또는 주석 취합 담당에게 두 항목의
+  후속 업무 — 같은 `key`의 재요청은 이미 등록한 업무를 돌려준다) · `GET …/close-followups`(등록
+  응답이 유실됐을 때 먼저 조회한다). 후속 담당은 master `close.follow_up_roles`다. 장애 스위치에
+  장면 3 몫(첨부 접근 실패 `attachment_unavailable` · 경로 등록 실패 `posting_handoff_fail`·
+  `notes_handoff_fail` · 주석 경로 등록 응답 유실 `notes_handoff_lost`)이 있다. 실제 전표 반영·
+  주석 취합 완료는 후속 업무의 몫이다(이 판에 완료 처리는 없다).
 
 금액은 백만원이다(전이율원천만 원). 엑셀의 부동소수 잡음(33.799690999999996)은 **백만원 소수
 6자리(= 원 단위)**로 반올림해 싣는다 — 결산기준 「원 단위(백만원 소수 6자리) 반올림」.
@@ -233,6 +240,25 @@ def master() -> dict[str, Any]:
                 },
             ],
             # 결산 일정(가안 — 자료에 일정이 없다). 기한·잔여일은 이 일정에서 읽는다.
+            # 승인 뒤 후속 업무의 수신 역할(장면 3 — 자료에 인명이 없어 역할명을 이름으로 쓴다)
+            "follow_up_roles": [
+                {
+                    "path": "POSTING",
+                    "label": "전표 반영",
+                    "role": "전표반영담당",
+                    "name": "전표반영담당",
+                    "user_id": "u-posting",
+                    "waiting": "반영 대기",
+                },
+                {
+                    "path": "NOTES",
+                    "label": "주석 취합",
+                    "role": "주석취합담당",
+                    "name": "주석취합담당",
+                    "user_id": "u-notes",
+                    "waiting": "취합 대기",
+                },
+            ],
             "schedule": {
                 "started": S0_CLOCK,
                 "submit_due": datetime(2027, 1, 8, 18, 0, tzinfo=KST).isoformat(),
@@ -300,6 +326,18 @@ def _e2_start_aug(s: dict, refs: dict, units: dict) -> None:
     _asset(s, "E2")["in_service"] = "2026-08-01"
 
 
+def _a_recovery_50(s: dict, refs: dict, units: dict) -> None:
+    """
+    A사 회수예상액 60 → 50 — 거래처가 3회차를 10으로 줄여 회신했고 영업(CONF-26-S)이 변경 회신을,
+    회계(CONF-26-F)가 새 평가액을 확인했다. 장면 1 점검은 통과하고 충당금 금액만 바뀐다(장면 3
+    인수시험 06 「회수예상액 수정」).
+    """
+    next(r for r in s["회수계획"] if r["plan_id"] == "PLAN-A-26" and r["round"] == 3)["amount"] = 10
+    for r in s["확인기록"]:
+        if r["confirmation_id"] in ("CONF-26-S", "CONF-26-F"):
+            r["amount"] = 50
+
+
 VARIANTS: dict[str, dict[str, Any]] = {
     "E2-START-MISSING": {"label": "자산대장 E2 사용개시일 누락", "apply": _e2_start_missing},
     "CONF-F-MISSING": {"label": "회계 평가 기록 CONF-26-F 없음", "apply": _conf_f_missing},
@@ -325,10 +363,22 @@ VARIANTS: dict[str, dict[str, Any]] = {
         "label": "자산대장 E2 사용개시일 8월로 정정(금액 근거 변경)",
         "apply": _e2_start_aug,
     },
+    "A-RECOVERY-50": {
+        "label": "A사 회수예상액 60 → 50(3회차 10 — 영업 변경 회신·회계 재평가)",
+        "apply": _a_recovery_50,
+    },
 }
 
-#: 장면 2 연계 PC 장애 스위치(시연·시험)
-FAULTS = ("pc_delay", "transfer_fail")
+#: 장애 스위치(시연·시험) — 장면 2 연계 PC(`pc_delay`·`transfer_fail`), 장면 3 첨부 접근·후속 업무
+#: 등록(`attachment_unavailable`·`posting_handoff_fail`·`notes_handoff_fail`·`notes_handoff_lost`)
+FAULTS = (
+    "pc_delay",
+    "transfer_fail",
+    "attachment_unavailable",
+    "posting_handoff_fail",
+    "notes_handoff_fail",
+    "notes_handoff_lost",
+)
 
 #: 시트별 처음 추출 참조(가상 ERP 추출 id)
 FIRST_REFS = {s: f"ERP-{i + 1:02d}-20261231-R1" for i, s in enumerate(SHEETS)}
@@ -381,18 +431,32 @@ def new_world() -> dict[str, Any]:
 
 
 def _new_scene2() -> dict[str, Any]:
-    """장면 2의 세계 기록 — 결산 건 첨부와 연계 PC 장애 스위치."""
-    return {"close_attachments": {}, "close_faults": dict.fromkeys(FAULTS, 0)}
+    """장면 2~3의 세계 기록 — 결산 건 첨부, 장애 스위치, 승인본의 후속 업무 등록."""
+    return {
+        "close_attachments": {},
+        "close_faults": dict.fromkeys(FAULTS, 0),
+        "close_followups": {},
+    }
 
 
 def rewind(w: dict[str, Any], scene: int) -> None:
-    """「장면 N부터 다시」 — 장면 1부터면 입력을 IN-26-01 하나로 되돌린다."""
+    """
+    「장면 N부터 다시」 — 장면 1부터면 입력을 IN-26-01 하나로 되돌린다. 장면 3부터면 후속 업무
+    등록과 장면 3이 다시 계산해 붙인 첨부(`scene` 3)만 지운다.
+    """
     if w.get("scenario_id") != SCENARIO:
         return
     if scene <= 1:
         w.update(new_world())
     elif scene <= 2:
         w.update(_new_scene2())
+    elif scene <= 3:
+        _attachments(w)
+        w["close_attachments"] = {
+            k: a for k, a in w["close_attachments"].items() if a.get("scene", 2) < 3
+        }
+        w["close_faults"] = dict.fromkeys(FAULTS, 0)
+        w["close_followups"] = {}
 
 
 def summary(w: dict[str, Any]) -> dict[str, Any]:
@@ -421,6 +485,36 @@ class AttachmentBody(BaseModel):
     content_b64: str
     #: 장면을 연 회차(NowView 문서마다 다르다) — 다르면 같은 파일 id를 새로 쓴다
     epoch: str = ""
+    #: 붙인 장면(2 계산 · 3 보완 재계산) — 「장면 3부터 다시」가 장면 3의 첨부만 지운다
+    scene: int = 2
+
+
+class FollowupItem(BaseModel):
+    item_id: str
+    work_id: str
+    name: str
+    task_id: str
+    request: str
+    request_label: str
+    #: 주석 취합 경로의 주석 시트(유형자산주석·충당금주석) — 전표 반영 경로는 없다
+    note_sheet: str | None = None
+
+
+class FollowupBody(BaseModel):
+    """승인본 한 경로의 후속 업무 등록 — 승인 보고 ID·버전·업무유형·대상 항목으로 식별한다."""
+
+    key: str
+    path: str
+    label: str
+    report_id: str
+    report_version: int
+    decision_id: str
+    approved_by: str
+    approved_at: str
+    assignee: dict[str, str]
+    attachment: dict[str, Any]
+    items: list[FollowupItem]
+    epoch: str = ""
 
 
 class OpenBody(BaseModel):
@@ -436,7 +530,10 @@ class FaultBody(BaseModel):
 def _attachments(w: dict[str, Any]) -> dict[str, Any]:
     """이 칸이 생기기 전에 만든 세계는 읽을 때 채운다."""
     w.setdefault("close_attachments", {})
-    w.setdefault("close_faults", dict.fromkeys(FAULTS, 0))
+    faults = w.setdefault("close_faults", {})
+    for kind in FAULTS:
+        faults.setdefault(kind, 0)
+    w.setdefault("close_followups", {})
     return w["close_attachments"]
 
 
@@ -543,9 +640,51 @@ def mount(
             store.put(w)
         return _meta(found)
 
+    @app.post("/worlds/{world_id}/close-followups", status_code=201, dependencies=[Depends(auth)])
+    def put_followup(world_id: str, body: FollowupBody) -> dict[str, Any]:
+        """
+        승인본의 후속 업무 등록(장면 3) — 경로 하나에 대상 항목마다 후속 업무 하나(반영·취합 대기).
+        같은 `key`의 재요청은 이미 등록한 업무를 그대로 돌려준다(중복 배정 없음). 등록 시각은 세계
+        시각이다.
+        """
+        with store.lock():
+            w = _s3(world_id)
+            _attachments(w)
+            found = w["close_followups"].get(body.key)
+            if found is not None and found.get("epoch") == body.epoch:
+                return {**found, "created": False}
+            at = w["clock"]
+            tasks = [
+                {
+                    **it.model_dump(),
+                    "path": body.path,
+                    "label": body.label,
+                    "assignee": dict(body.assignee),
+                    "state": "WAITING",
+                    "registered_at": at,
+                    "done_at": None,
+                }
+                for it in body.items
+            ]
+            rec = {
+                **body.model_dump(exclude={"items"}),
+                "seq": len(w["close_followups"]) + 1,
+                "tasks": tasks,
+                "registered_at": at,
+            }
+            w["close_followups"][body.key] = rec
+            store.put(w)
+        return {**rec, "created": True}
+
+    @app.get("/worlds/{world_id}/close-followups", dependencies=[Depends(auth)])
+    def list_followups(world_id: str) -> list[dict[str, Any]]:
+        w = _s3(world_id)
+        _attachments(w)
+        return sorted(w["close_followups"].values(), key=lambda r: r["seq"])
+
     @app.post("/worlds/{world_id}/sim/close-faults", dependencies=[Depends(auth)])
     def set_fault(world_id: str, body: FaultBody) -> dict[str, Any]:
-        """(시연·시험) 연계 PC 장애 — 다음 작업 `count`번에 그 장애가 난다."""
+        """(시연·시험) 연계 PC·첨부 접근·후속 등록 장애 — 다음 작업 `count`번에 그 장애가 난다."""
         if body.kind not in FAULTS:
             raise HTTPException(404, f"모르는 장애: {body.kind} (가능: {', '.join(FAULTS)})")
         with store.lock():

@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
  */
 
 /** 업무 번호 — 시나리오 1은 1~7, 시나리오 2 장면 N은 20 + N, 시나리오 3 장면 N은 30 + N(`docs/platform.md` §7). */
-export type SceneNo = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 21 | 22 | 23 | 24 | 31 | 32;
+export type SceneNo = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 21 | 22 | 23 | 24 | 31 | 32 | 33;
 
 export const SCENES: Array<{ no: SceneNo; work: string; detail: string }> = [
   { no: 1, work: "고객 생산계획 변경 대응", detail: "위험 감지 · 현업 통제 · 인계" },
@@ -29,6 +29,7 @@ export const SCENES: Array<{ no: SceneNo; work: string; detail: string }> = [
   { no: 24, work: "실행 결과 확인과 관리기준 개선", detail: "시나리오 2 · 결정·실적 대조 · 당시 자료 재현 · 시험 · 다음 사건 적용" },
   { no: 31, work: "결산조정 업무 착수", detail: "시나리오 3 · 결산 체크리스트 · 입력자료 점검 · 분석 준비" },
   { no: 32, work: "결산조정 계산 및 담당자 검토", detail: "시나리오 3 · 분석 실행 · 계산근거 Excel 첨부 · 항목 검토 · 한 건 상신" },
+  { no: 33, work: "팀장 보고 및 승인", detail: "시나리오 3 · 승인 요약 · 근거 조회 · 승인/보완 요청 · 전표 반영·주석 취합 인계" },
 ];
 
 /** 공개 목록의 회사 하나 — `scenes`는 그 회사의 BPM 프로세스가 매핑된 업무 번호다. */

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/handoff.schema.json",
+  "title": "s3/sc03 handoff",
+  "description": "후속 인계(HAND-S3-03) — 승인 보고 ID·버전·두 경로의 담당·후속 업무 ID",
+  "type": "object",
+  "required": [
+    "approved_at",
+    "approved_by",
+    "attachment_ref",
+    "close_id",
+    "decision_id",
+    "handed_at",
+    "handoff_id",
+    "items",
+    "next_step",
+    "paths",
+    "report_id",
+    "report_version",
+    "result_version"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "integer"
+    },
+    "decision_id": {
+      "type": "string"
+    },
+    "approved_by": {
+      "type": "string"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attachment_ref": {
+      "type": "string"
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "name",
+          "request",
+          "request_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assignee",
+          "label",
+          "path",
+          "recovered",
+          "tasks",
+          "waiting"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "object",
+            "required": [
+              "name",
+              "role",
+              "user_id"
+            ],
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "user_id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "waiting": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recovered": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

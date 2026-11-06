@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/attachment.schema.json",
+  "title": "s3/sc03 attachment",
+  "description": "보완 재계산의 첨부 Excel — 파일 id·버전·지문·열기 확인·승인요약 칸",
+  "type": "object",
+  "required": [
+    "attempts",
+    "close_id",
+    "content_type",
+    "created_at",
+    "file_id",
+    "file_version",
+    "filename",
+    "format_version",
+    "open_check",
+    "registered_at",
+    "result_version",
+    "run_id",
+    "sha256",
+    "sheets",
+    "size",
+    "state",
+    "summary_cells",
+    "trace"
+  ],
+  "properties": {
+    "file_id": {
+      "type": "string"
+    },
+    "file_version": {
+      "type": "integer"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "filename": {
+      "type": "string"
+    },
+    "content_type": {
+      "type": "string"
+    },
+    "sha256": {
+      "type": "string"
+    },
+    "size": {
+      "type": "integer"
+    },
+    "sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "format_version": {
+      "type": "string"
+    },
+    "summary_cells": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "DEP": {
+          "type": "object",
+          "required": [
+            "current",
+            "prior",
+            "request"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string"
+            },
+            "current": {
+              "type": "string"
+            },
+            "request": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALW": {
+          "type": "object",
+          "required": [
+            "current",
+            "prior",
+            "request"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string"
+            },
+            "current": {
+              "type": "string"
+            },
+            "request": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "trace": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "ALW": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "DEP": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "ok",
+          "reason"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "null"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "open_check": {
+      "type": "object",
+      "required": [
+        "at",
+        "ok",
+        "sheets"
+      ],
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "sheets": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

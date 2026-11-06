@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/analysis_run.schema.json",
+  "title": "s3/sc03 analysis_run",
+  "description": "보완 재계산의 실행 — 장면 2 실행과 같은 모양(번호는 장면 2에 이어진다)",
+  "type": "object",
+  "required": [
+    "close_id",
+    "execution_mode",
+    "execution_note",
+    "file_id",
+    "findings",
+    "fingerprints",
+    "input_digest",
+    "input_version",
+    "last_response_at",
+    "last_success",
+    "origin",
+    "pc_queries",
+    "policy",
+    "reconciliation",
+    "requested_at",
+    "requested_by",
+    "requested_via",
+    "result_version",
+    "run_id",
+    "state",
+    "steps",
+    "superseded_at",
+    "versions",
+    "works"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "works": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "requested_via": {
+      "type": "null"
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "input_digest": {
+      "type": "string"
+    },
+    "fingerprints": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "DEP": {
+          "type": "string"
+        },
+        "ALW": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "versions": {
+      "type": "object",
+      "required": [
+        "agent",
+        "calc",
+        "environment",
+        "format",
+        "prompt"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "calc": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "policy": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "execution_note": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "label",
+          "responded_at",
+          "state",
+          "step"
+        ],
+        "properties": {
+          "step": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "responded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "last_response_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_success": {
+      "type": "string"
+    },
+    "pc_queries": {
+      "type": "integer"
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "file_id": {
+      "type": "string"
+    },
+    "reconciliation": {
+      "type": "object",
+      "required": [
+        "a_plan_match",
+        "collective",
+        "individual",
+        "max_diff_won",
+        "prior_collective",
+        "prior_individual",
+        "receivable_diff_won"
+      ],
+      "properties": {
+        "receivable_diff_won": {
+          "type": "integer"
+        },
+        "max_diff_won": {
+          "type": "integer"
+        },
+        "collective": {
+          "type": "integer"
+        },
+        "individual": {
+          "type": "integer"
+        },
+        "prior_collective": {
+          "type": "integer"
+        },
+        "prior_individual": {
+          "type": "integer"
+        },
+        "a_plan_match": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "findings": {
+      "type": "array"
+    },
+    "superseded_at": {
+      "type": "null"
+    },
+    "origin": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/followup.schema.json",
+  "title": "s3/sc03 followup",
+  "description": "후속 업무 — 전표 반영·주석 취합 담당에게 등록한 항목별 업무(반영·취합 대기)",
+  "type": "object",
+  "required": [
+    "assignee",
+    "item_id",
+    "label",
+    "name",
+    "note_sheet",
+    "path",
+    "recovered",
+    "registered_at",
+    "report_id",
+    "report_version",
+    "request",
+    "request_label",
+    "state",
+    "task_id",
+    "waiting",
+    "work_id"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "request": {
+      "type": "string",
+      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+    },
+    "request_label": {
+      "type": "string"
+    },
+    "note_sheet": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "state": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "assignee": {
+      "type": "object",
+      "required": [
+        "name",
+        "role",
+        "user_id"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "waiting": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "integer"
+    },
+    "registered_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recovered": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

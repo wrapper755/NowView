@@ -35,6 +35,7 @@ describe("시나리오 2 — 공통 플랫폼", () => {
     expect(workUrl("https://site", "demo-1", 24)).toBe("https://site/work/demo-1/s2/sc04");
     expect(workUrl("https://site", "demo-1", 31)).toBe("https://site/work/demo-1/s3/sc01");
     expect(workUrl("https://site", "demo-1", 32)).toBe("https://site/work/demo-1/s3/sc02");
+    expect(workUrl("https://site", "demo-1", 33)).toBe("https://site/work/demo-1/s3/sc03");
     expect(workUrl("https://site", "demo-1", 1)).toBe("https://site/work/demo-1/sc01");
   });
   it("사건 열기는 돌아올 곳과 약정을 넘긴다(맥락 유지)", () => {

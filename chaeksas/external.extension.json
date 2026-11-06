@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」·「실행 결과 확인과 관리기준 개선」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 시나리오 3 장면 1 「결산조정 업무 착수」의 작업(link_close_inputs·route_close_items·check_close_item·hand_off_close_items)와 장면 2 「결산조정 계산 및 담당자 검토」의 작업(open_close_analysis·request_close_analysis·process_close_analysis·attach_close_workpaper·route_close_review·review_close_item·submit_close_report)도 있다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」·「실행 결과 확인과 관리기준 개선」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 시나리오 3 장면 1 「결산조정 업무 착수」의 작업(link_close_inputs·route_close_items·check_close_item·hand_off_close_items)와 장면 2 「결산조정 계산 및 담당자 검토」의 작업(open_close_analysis·request_close_analysis·process_close_analysis·attach_close_workpaper·route_close_review·review_close_item·submit_close_report), 장면 3 「팀장 보고 및 승인」의 작업(open_close_approval·decide_close_report·hand_off_close_approval·revise_close_report·review_close_revision)도 있다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -7904,6 +7904,326 @@
                 "type": "integer"
               },
               "handoff_id": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "open_close_approval",
+          "description": "시나리오 3 장면 3 01 보고 열기 — 장면 2 상신본(REP-S3-01)의 현재 버전·결과 버전·첨부. 열람은 결정을 만들지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "close_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "report_id": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": "integer"
+              },
+              "result_version": {
+                "type": "string"
+              },
+              "file_id": {
+                "type": "string"
+              },
+              "filename": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "decide_close_report",
+          "description": "시나리오 3 장면 3 04A·04B 결정 — 지정 회계팀장만, 현재 상신 버전·승인 대기·결과 버전 일치·첨부 접근 재확인. 승인은 두 항목·두 주석을 한 단위로 확정하고 후속 인계를 요청한다. 보완 요청은 대상·사유 필수. 버전마다 유효 결정 하나(재전송은 같은 결정 ID)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "close_id",
+              "decision",
+              "demo_run_id",
+              "report_version"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "close_id": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              },
+              "decision": {
+                "type": "string"
+              },
+              "targets": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "decision_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": "integer"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "hand_off_close_approval",
+          "description": "시나리오 3 장면 3 06 후속 업무 인계 — 승인본을 전표 반영·주석 취합 두 경로에 등록(기존 등록을 먼저 조회, 실패 경로만 재시도). 둘 다 등록되면 HAND-S3-03",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "demo_run_id"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "close_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "handoff_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "revise_close_report",
+          "description": "시나리오 3 장면 3 05 보완 처리 — 회계담당자. 참조 보강 재상신(수치 같음 — 변경 내역) · 재계산(입력 반영 — 새 결과·첨부, 영향 항목 재검토) · 재상신(재계산·재검토 뒤). 같은 보고 ID의 새 버전",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "action",
+              "answered_by",
+              "close_id",
+              "demo_run_id",
+              "report_version"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "close_id": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": [
+                  "string",
+                  "integer"
+                ]
+              },
+              "action": {
+                "type": "string"
+              },
+              "change_note": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "next": {
+                "type": "string"
+              },
+              "report_version": {
+                "type": "integer"
+              },
+              "result_version": {
+                "type": "string"
+              },
+              "file_id": {
+                "type": "string"
+              },
+              "item": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "guide": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "review_close_revision",
+          "description": "시나리오 3 장면 3 05 영향 항목 재검토 — 보완 재계산 뒤 최신 결과·첨부로 배정 담당만",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "close_id",
+              "decision",
+              "demo_run_id",
+              "item",
+              "result_version"
+            ],
+            "properties": {
+              "demo_run_id": {
+                "type": "string"
+              },
+              "close_id": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "result_version": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "next": {
+                "type": "string"
+              },
+              "item": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "review_id": {
                 "type": "string"
               },
               "error_message": {}

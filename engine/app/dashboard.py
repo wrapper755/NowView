@@ -250,6 +250,31 @@ def _s3sc02(found: list[Record]) -> list[Metric]:
     ]
 
 
+def _s3sc03(found: list[Record]) -> list[Metric]:
+    """
+    결산 체크리스트(장면 3) — 승인 완료·승인 보고·전표 반영·주석 취합·현재 보고 버전·후속 인계.
+    후속 처리 수는 항목별 실제 완료로 센다(승인 직후 0/2).
+    """
+    board = _latest(found, "dashboard") or {}
+
+    def ratio(key: str, unit: str = "항목") -> str | None:
+        v = board.get(key)
+        return None if not v else f"{v['done']}/{v['of']}{unit}"
+
+    rep = board.get("report") or {}
+    return [
+        _text("승인 완료", ratio("approved")),
+        _text("승인 보고", None if not board else f"{board.get('reports_approved', 0)}건"),
+        _text("전표 반영", ratio("posting")),
+        _text("주석 취합", ratio("notes")),
+        _text(
+            "보고 버전",
+            None if not rep else f"{rep['report_id']} v{rep['version']} · {rep['state_label']}",
+        ),
+        _text("후속 인계", ratio("handed", "경로")),
+    ]
+
+
 def _comma(value: str) -> str:
     whole, _, frac = value.partition(".")
     sign = "−" if whole.startswith("-") else ""
@@ -270,6 +295,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     24: _s2sc04,
     31: _s3sc01,
     32: _s3sc02,
+    33: _s3sc03,
 }
 
 
@@ -308,6 +334,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s3.sc02 import records as s32
 
         return s32.records_of(doc)
+    if scene == 33:
+        from app.s3.sc03 import records as s33
+
+        return s33.records_of(doc)
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 
