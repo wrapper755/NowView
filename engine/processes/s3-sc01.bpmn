@@ -18,6 +18,9 @@
   이 파일은 손으로 고쳐도 된다.
 -->
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
                   xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s3_sc01">
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:message id="Msg_fix" name="결산자료보완"/>
@@ -96,4 +99,121 @@
     <bpmn:sequenceFlow id="Flow_fixed" sourceRef="Wait_Fix" targetRef="Task_Link"/>
     <bpmn:sequenceFlow id="Flow_handed" sourceRef="Task_Handoff" targetRef="End"/>
   </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_company1.s3.sc01">
+    <bpmndi:BPMNPlane id="BPMNPlane_company1.s3.sc01" bpmnElement="company1.s3.sc01">
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="60" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Link_di" bpmnElement="Task_Link">
+        <dc:Bounds x="150" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Route_di" bpmnElement="Task_Route">
+        <dc:Bounds x="310" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Next_di" bpmnElement="Gw_Next" isMarkerVisible="true">
+        <dc:Bounds x="470" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Check_Depreciation_di" bpmnElement="Check_Depreciation">
+        <dc:Bounds x="580" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Depreciation_di" bpmnElement="Record_Depreciation">
+        <dc:Bounds x="740" y="40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Check_Allowance_di" bpmnElement="Check_Allowance">
+        <dc:Bounds x="580" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Allowance_di" bpmnElement="Record_Allowance">
+        <dc:Bounds x="740" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Wait_Fix_di" bpmnElement="Wait_Fix">
+        <dc:Bounds x="580" y="300" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Handoff_di" bpmnElement="Task_Handoff">
+        <dc:Bounds x="580" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
+        <dc:Bounds x="762" y="452" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Depreciation_di" bpmnElement="Bnd_Record_Depreciation">
+        <dc:Bounds x="772" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Allowance_di" bpmnElement="Bnd_Record_Allowance">
+        <dc:Bounds x="772" y="232" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start">
+        <di:waypoint x="96" y="210" />
+        <di:waypoint x="150" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_linked_di" bpmnElement="Flow_linked">
+        <di:waypoint x="250" y="210" />
+        <di:waypoint x="310" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_routed_di" bpmnElement="Flow_routed">
+        <di:waypoint x="410" y="210" />
+        <di:waypoint x="470" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_dep_di" bpmnElement="Flow_dep">
+        <di:waypoint x="495" y="185" />
+        <di:waypoint x="495" y="80" />
+        <di:waypoint x="580" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_alw_di" bpmnElement="Flow_alw">
+        <di:waypoint x="520" y="210" />
+        <di:waypoint x="580" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_wait_di" bpmnElement="Flow_wait">
+        <di:waypoint x="495" y="235" />
+        <di:waypoint x="495" y="340" />
+        <di:waypoint x="580" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_done_di" bpmnElement="Flow_done">
+        <di:waypoint x="495" y="235" />
+        <di:waypoint x="495" y="470" />
+        <di:waypoint x="580" y="470" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Check_Depreciation_answered_di" bpmnElement="Flow_Check_Depreciation_answered">
+        <di:waypoint x="680" y="80" />
+        <di:waypoint x="740" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_dep_recorded_di" bpmnElement="Flow_dep_recorded">
+        <di:waypoint x="790" y="40" />
+        <di:waypoint x="790" y="20" />
+        <di:waypoint x="360" y="20" />
+        <di:waypoint x="360" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Depreciation_rejected_di" bpmnElement="Flow_Record_Depreciation_rejected">
+        <di:waypoint x="790" y="138" />
+        <di:waypoint x="790" y="150" />
+        <di:waypoint x="630" y="150" />
+        <di:waypoint x="630" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Check_Allowance_answered_di" bpmnElement="Flow_Check_Allowance_answered">
+        <di:waypoint x="680" y="210" />
+        <di:waypoint x="740" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_alw_recorded_di" bpmnElement="Flow_alw_recorded">
+        <di:waypoint x="840" y="210" />
+        <di:waypoint x="880" y="210" />
+        <di:waypoint x="880" y="10" />
+        <di:waypoint x="380" y="10" />
+        <di:waypoint x="380" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Allowance_rejected_di" bpmnElement="Flow_Record_Allowance_rejected">
+        <di:waypoint x="790" y="268" />
+        <di:waypoint x="790" y="280" />
+        <di:waypoint x="630" y="280" />
+        <di:waypoint x="630" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_fixed_di" bpmnElement="Flow_fixed">
+        <di:waypoint x="630" y="380" />
+        <di:waypoint x="630" y="400" />
+        <di:waypoint x="200" y="400" />
+        <di:waypoint x="200" y="250" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_handed_di" bpmnElement="Flow_handed">
+        <di:waypoint x="680" y="470" />
+        <di:waypoint x="762" y="470" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </bpmn:definitions>
