@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/input_check.schema.json",
+  "title": "s3/sc01 input_check",
+  "description": "입력자료 점검 — 항목·입력 버전·점검자·검사별 판정(기대값·확인값·근거)·근거 요약",
+  "type": "object",
+  "required": [
+    "check_id",
+    "checked_at",
+    "checked_by",
+    "checks",
+    "evidence",
+    "execution_mode",
+    "fingerprint",
+    "fix_id",
+    "item",
+    "result",
+    "rule_version",
+    "version",
+    "via",
+    "work_id"
+  ],
+  "properties": {
+    "check_id": {
+      "type": "string"
+    },
+    "item": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "fingerprint": {
+      "type": "string"
+    },
+    "rule_version": {
+      "type": "string"
+    },
+    "checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checked_by": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual",
+          "check_id",
+          "expected",
+          "item",
+          "label",
+          "owner_role",
+          "reason",
+          "ref",
+          "sheet",
+          "verdict"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string"
+          },
+          "item": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": "string"
+          },
+          "ref": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expected": {
+            "type": [
+              "array",
+              "string"
+            ]
+          },
+          "actual": {
+            "type": [
+              "array",
+              "string"
+            ]
+          },
+          "owner_role": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "assets": {
+          "type": "integer"
+        },
+        "new_assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "acquired",
+              "asset_id",
+              "in_service",
+              "kind"
+            ],
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "acquired": {
+                "type": "integer"
+              },
+              "in_service": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "booked_depreciation": {
+          "type": "integer"
+        },
+        "receivables": {
+          "type": "object",
+          "required": [
+            "current_total",
+            "individual",
+            "rows"
+          ],
+          "properties": {
+            "current_total": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "rows": {
+              "type": "integer"
+            },
+            "individual": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "ledger": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "rates": {
+          "type": "object",
+          "required": [
+            "quarters",
+            "segments",
+            "unit"
+          ],
+          "properties": {
+            "segments": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "quarters": {
+              "type": "integer"
+            },
+            "unit": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "plan": {
+          "type": "object",
+          "required": [
+            "all",
+            "current",
+            "rounds"
+          ],
+          "properties": {
+            "current": {
+              "type": "string"
+            },
+            "rounds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "due",
+                  "round"
+                ],
+                "properties": {
+                  "round": {
+                    "type": "integer"
+                  },
+                  "due": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "all": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "amount",
+                    "due",
+                    "round"
+                  ],
+                  "properties": {
+                    "round": {
+                      "type": "integer"
+                    },
+                    "due": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "confirmations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "amount",
+              "confirmation_id",
+              "confirmed_by",
+              "confirmed_on",
+              "plan_ref"
+            ],
+            "properties": {
+              "confirmation_id": {
+                "type": "string"
+              },
+              "confirmed_on": {
+                "type": "string"
+              },
+              "confirmed_by": {
+                "type": "string"
+              },
+              "plan_ref": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "fix_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

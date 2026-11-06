@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/close_case.schema.json",
+  "title": "s3/sc01 close_case",
+  "description": "결산 건 — 기간·비교기간·결산 일정·검토자·입력 허용목록·연결된 입력 버전 이력",
+  "type": "object",
+  "required": [
+    "allowed_sheets",
+    "close_id",
+    "comparative_end",
+    "dataset_version",
+    "excluded_sheets",
+    "input_version",
+    "inputs",
+    "items",
+    "period_end",
+    "reviewer",
+    "schedule",
+    "title",
+    "unit"
+  ],
+  "properties": {
+    "close_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "period_end": {
+      "type": "string"
+    },
+    "comparative_end": {
+      "type": "string"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "name",
+        "role",
+        "user_id"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "schedule": {
+      "type": "object",
+      "required": [
+        "approve_due",
+        "posting_due",
+        "started",
+        "submit_due"
+      ],
+      "properties": {
+        "started": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "submit_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approve_due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "posting_due": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "allowed_sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded_sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "affected",
+          "changed_sheets",
+          "digest",
+          "fingerprints",
+          "linked_at",
+          "registered_at",
+          "seq",
+          "variants",
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "digest": {
+            "type": "string"
+          },
+          "changed_sheets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fingerprints": {
+            "type": "object",
+            "required": [
+              "ALW",
+              "DEP"
+            ],
+            "properties": {
+              "DEP": {
+                "type": "string"
+              },
+              "ALW": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "linked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "affected": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

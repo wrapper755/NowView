@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/scene.schema.json",
+  "title": "s3/sc01 scene",
+  "description": "장면 머리 — 시연 시각·실행 위치·BPM 실행(지나온 노드·대기)·재점검 실행 이력·회사와 오간 것",
+  "type": "object",
+  "required": [
+    "bpm",
+    "bpmHistory",
+    "caseId",
+    "clock",
+    "companyLog",
+    "demoRunId",
+    "executor",
+    "flow",
+    "handoff",
+    "scenario",
+    "scene",
+    "title"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "scenario": {
+      "type": "string"
+    },
+    "scene": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "bpm": {
+      "type": "object",
+      "required": [
+        "external_run_id",
+        "job_id",
+        "problem",
+        "reason",
+        "state",
+        "visited",
+        "waiting"
+      ],
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "job_id": {
+          "type": "null"
+        },
+        "external_run_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "node_id",
+              "title"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "problem": {
+          "type": "null"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "bpmHistory": {
+      "type": "array"
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "role",
+          "state",
+          "step"
+        ],
+        "properties": {
+          "step": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "direction",
+          "what"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "handoff": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

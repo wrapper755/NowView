@@ -202,6 +202,26 @@ def _s2sc01(found: list[Record]) -> list[Metric]:
     ]
 
 
+def _s3sc01(found: list[Record]) -> list[Metric]:
+    """
+    결산 체크리스트 집계 — 분석 준비·보완 필요·승인·상신. 분모는 조회 범위(시연 두 항목)이고 준비
+    완료는 결산마감 완료가 아니다.
+    """
+    board = _latest(found, "dashboard") or {}
+
+    def ratio(key: str) -> str | None:
+        v = board.get(key)
+        return None if not v else f"{v['done']}/{v['of']}항목"
+
+    return [
+        _text("분석 준비", ratio("ready")),
+        _text("보완 필요", None if not board else f"{board.get('needs_fix', 0)}항목"),
+        _text("승인 완료", ratio("approved")),
+        _text("상신 보고", None if not board else f"{board.get('reports', 0)}건"),
+        _text("입력 버전", board.get("input_version")),
+    ]
+
+
 METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     1: _sc01,
     2: _sc02,
@@ -214,6 +234,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     22: _s2sc02,
     23: _s2sc03,
     24: _s2sc04,
+    31: _s3sc01,
 }
 
 
@@ -244,6 +265,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s2.sc04 import records as s24
 
         return s24.records_of(doc, proc.master())
+    if scene == 31:
+        from app.s3.sc01 import records as s31
+
+        return s31.records_of(doc)
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 

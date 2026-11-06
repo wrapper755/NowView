@@ -68,6 +68,7 @@ PREFIXES = (
     "s2sc02",
     "s2sc03",
     "s2sc04",
+    "s3sc01",
 )
 
 

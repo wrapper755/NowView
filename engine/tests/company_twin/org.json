@@ -114,6 +114,36 @@
       "name": "출하담당",
       "role": "출하담당",
       "department": "미지정"
+    },
+    {
+      "user_id": "u-acct-lead",
+      "name": "회계팀장",
+      "role": "회계팀장",
+      "department": "회계팀"
+    },
+    {
+      "user_id": "u-acct",
+      "name": "회계담당",
+      "role": "회계담당",
+      "department": "회계팀"
+    },
+    {
+      "user_id": "u-asset",
+      "name": "자산담당",
+      "role": "자산담당",
+      "department": "회계팀"
+    },
+    {
+      "user_id": "u-ar",
+      "name": "채권담당",
+      "role": "채권담당",
+      "department": "회계팀"
+    },
+    {
+      "user_id": "u-data",
+      "name": "자료담당",
+      "role": "자료담당",
+      "department": "회계팀"
     }
   ]
 }

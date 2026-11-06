@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/close_item.schema.json",
+  "title": "s3/sc01 close_item",
+  "description": "조정항목(체크리스트 한 행) — 원업무·담당·기한·잔여일·단계·보완·재점검 사유·다음 조치·승인·상신·후속 업무 상태",
+  "type": "object",
+  "required": [
+    "approval",
+    "checked_version",
+    "checks",
+    "close_id",
+    "due",
+    "fix",
+    "follow_up",
+    "item_id",
+    "last_check",
+    "name",
+    "next_action",
+    "overdue",
+    "owner_id",
+    "owner_name",
+    "owner_role",
+    "recheck_reason",
+    "remaining_days",
+    "report_id",
+    "sheets",
+    "started_at",
+    "state",
+    "state_label",
+    "work_id"
+  ],
+  "properties": {
+    "close_id": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "owner_role": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "owner_id": {
+      "type": "string"
+    },
+    "sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "remaining_days": {
+      "type": "integer"
+    },
+    "overdue": {
+      "type": "boolean"
+    },
+    "state": {
+      "type": "string"
+    },
+    "state_label": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "checked_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "last_check": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "fix": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "due",
+        "fix_id",
+        "owners",
+        "reasons",
+        "state"
+      ],
+      "properties": {
+        "fix_id": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "due": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "recheck_reason": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "next_action": {
+      "type": "string"
+    },
+    "approval": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "null"
+    },
+    "follow_up": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "state",
+          "task"
+        ],
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

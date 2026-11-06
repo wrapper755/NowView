@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/fix_request.schema.json",
+  "title": "s3/sc01 fix_request",
+  "description": "보완 요청 — 대상 시트·행·기대값·확인값·보완 담당·기한·해소 버전",
+  "type": "object",
+  "required": [
+    "check_id",
+    "closed_at",
+    "closed_by_check",
+    "closed_by_version",
+    "due",
+    "findings",
+    "fix_id",
+    "item",
+    "note",
+    "owners",
+    "raised_at",
+    "raised_by",
+    "state",
+    "version",
+    "work_id"
+  ],
+  "properties": {
+    "fix_id": {
+      "type": "string"
+    },
+    "item": {
+      "type": "string"
+    },
+    "work_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "check_id": {
+      "type": "string"
+    },
+    "raised_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "raised_by": {
+      "type": "string"
+    },
+    "owners": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "due": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual",
+          "check_id",
+          "expected",
+          "label",
+          "owner_role",
+          "reason",
+          "ref",
+          "sheet"
+        ],
+        "properties": {
+          "check_id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "null"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "actual": {
+            "type": "string"
+          },
+          "owner_role": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "state": {
+      "type": "string"
+    },
+    "closed_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "closed_by_version": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "closed_by_check": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,1461 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S3:SC01",
+  "version": 12,
+  "scene": 1,
+  "state": "HANDED_OFF",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산조정 업무 착수",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s3",
+   "scene": 1,
+   "title": "결산조정 업무 착수",
+   "caseId": "BASE",
+   "clock": "2027-01-04T09:00:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "state": "done",
+    "job_id": null,
+    "external_run_id": "test_20261106_022206_177639",
+    "visited": [
+     "Task_Link",
+     "Task_Route",
+     "Gw_Next",
+     "Check_Depreciation",
+     "Record_Depreciation",
+     "Check_Allowance",
+     "Record_Allowance",
+     "Wait_Fix",
+     "Task_Handoff",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null,
+    "reason": "착수"
+   },
+   "bpmHistory": [],
+   "flow": [
+    {
+     "step": "01",
+     "name": "진행상황 조회",
+     "role": "회계팀장",
+     "state": "view"
+    },
+    {
+     "step": "02",
+     "name": "내 업무 열기",
+     "role": "회계담당",
+     "state": "view"
+    },
+    {
+     "step": "03",
+     "name": "자료 연결 확인",
+     "role": "BPM",
+     "state": "done"
+    },
+    {
+     "step": "04",
+     "name": "감가상각비 준비 점검",
+     "role": "회계담당",
+     "state": "done"
+    },
+    {
+     "step": "05",
+     "name": "대손충당금 준비 점검",
+     "role": "회계담당",
+     "state": "done"
+    },
+    {
+     "step": "06",
+     "name": "장면 2 인계",
+     "role": "BPM",
+     "state": "done"
+    }
+   ],
+   "companyLog": [
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "입력 IN-26-01 연결 읽기 — 시트 결산기준, 자산대장, 채권명세, 전이율원천, 원장, 회수계획, 확인기록"
+    },
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "입력 IN-26-02 연결 읽기 — 시트 확인기록"
+    },
+    {
+     "at": "2027-01-04T09:00:00+09:00",
+     "direction": "in",
+     "what": "입력 IN-26-03 연결 읽기 — 시트 확인기록"
+    }
+   ],
+   "handoff": "HAND-S3-01"
+  },
+  "ref": "demo-example:scene/S3:SC01:v12",
+  "seq": 1,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "close_case",
+  "record_id": "S3-CLOSE-01",
+  "version": 4,
+  "scene": 1,
+  "state": "HANDED_OFF",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "2026년 연말결산",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "title": "2026년 연말결산",
+   "period_end": "2026-12-31",
+   "comparative_end": "2025-12-31",
+   "unit": "백만원",
+   "reviewer": {
+    "role": "회계팀장",
+    "name": "회계팀장",
+    "user_id": "u-acct-lead"
+   },
+   "schedule": {
+    "started": "2027-01-04T09:00:00+09:00",
+    "submit_due": "2027-01-08T18:00:00+09:00",
+    "approve_due": "2027-01-11T18:00:00+09:00",
+    "posting_due": "2027-01-13T18:00:00+09:00"
+   },
+   "dataset_version": "S3-INPUT-v0.1",
+   "allowed_sheets": [
+    "결산기준",
+    "자산대장",
+    "채권명세",
+    "전이율원천",
+    "원장",
+    "회수계획",
+    "확인기록"
+   ],
+   "excluded_sheets": [
+    "설계안내",
+    "입력명세",
+    "대표사건",
+    "검수기준"
+   ],
+   "input_version": "IN-26-03",
+   "inputs": [
+    {
+     "version": "IN-26-01",
+     "seq": 1,
+     "registered_at": "2027-01-04T09:00:00+09:00",
+     "variants": [],
+     "digest": "5dfe0ace3d826429",
+     "changed_sheets": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "전이율원천",
+      "원장",
+      "회수계획",
+      "확인기록"
+     ],
+     "fingerprints": {
+      "DEP": "ee3a1fd5d41fe77f",
+      "ALW": "2661157339af55b7"
+     },
+     "linked_at": "2027-01-04T09:00:00+09:00",
+     "affected": []
+    },
+    {
+     "version": "IN-26-02",
+     "seq": 2,
+     "registered_at": "2027-01-04T09:00:00+09:00",
+     "variants": [
+      "CONF-F-MISSING"
+     ],
+     "digest": "ed339dde447e458f",
+     "changed_sheets": [
+      "확인기록"
+     ],
+     "fingerprints": {
+      "DEP": "ee3a1fd5d41fe77f",
+      "ALW": "5217aa23cbefe4e4"
+     },
+     "linked_at": "2027-01-04T09:00:00+09:00",
+     "affected": []
+    },
+    {
+     "version": "IN-26-03",
+     "seq": 3,
+     "registered_at": "2027-01-04T09:00:00+09:00",
+     "variants": [],
+     "digest": "5dfe0ace3d826429",
+     "changed_sheets": [
+      "확인기록"
+     ],
+     "fingerprints": {
+      "DEP": "ee3a1fd5d41fe77f",
+      "ALW": "2661157339af55b7"
+     },
+     "linked_at": "2027-01-04T09:00:00+09:00",
+     "affected": [
+      "ALW"
+     ]
+    }
+   ],
+   "items": [
+    "DEP",
+    "ALW"
+   ]
+  },
+  "ref": "demo-example:close_case/S3-CLOSE-01:v4",
+  "seq": 2,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "close_item",
+  "record_id": "W-S3-DEP",
+  "version": 2,
+  "scene": 1,
+  "state": "READY",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "감가상각비 — 분석 준비 완료",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "item_id": "DEP",
+   "work_id": "W-S3-DEP",
+   "name": "감가상각비",
+   "owner_role": "회계담당",
+   "owner_name": "회계담당",
+   "owner_id": "u-acct",
+   "sheets": [
+    "결산기준",
+    "자산대장",
+    "원장"
+   ],
+   "due": "2027-01-08T18:00:00+09:00",
+   "remaining_days": 4,
+   "overdue": false,
+   "state": "READY",
+   "state_label": "분석 준비 완료",
+   "started_at": "2027-01-04T09:00:00+09:00",
+   "checked_version": "IN-26-02",
+   "last_check": "CHK-DEP-1",
+   "fix": null,
+   "recheck_reason": null,
+   "next_action": "자산대장 점검 결과 보기",
+   "approval": "NOT_SUBMITTED",
+   "report_id": null,
+   "follow_up": [
+    {
+     "task": "전표 반영",
+     "state": "WAITING_APPROVAL"
+    },
+    {
+     "task": "유형자산 주석 취합",
+     "state": "WAITING_APPROVAL"
+    }
+   ],
+   "checks": [
+    "CHK-DEP-1"
+   ]
+  },
+  "ref": "demo-example:close_item/W-S3-DEP:v2",
+  "seq": 3,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "close_item",
+  "record_id": "W-S3-ALW",
+  "version": 4,
+  "scene": 1,
+  "state": "READY",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "외상매출금 대손충당금 — 분석 준비 완료",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "item_id": "ALW",
+   "work_id": "W-S3-ALW",
+   "name": "외상매출금 대손충당금",
+   "owner_role": "회계담당",
+   "owner_name": "회계담당",
+   "owner_id": "u-acct",
+   "sheets": [
+    "결산기준",
+    "채권명세",
+    "전이율원천",
+    "원장",
+    "회수계획",
+    "확인기록"
+   ],
+   "due": "2027-01-08T18:00:00+09:00",
+   "remaining_days": 4,
+   "overdue": false,
+   "state": "READY",
+   "state_label": "분석 준비 완료",
+   "started_at": "2027-01-04T09:00:00+09:00",
+   "checked_version": "IN-26-03",
+   "last_check": "CHK-ALW-2",
+   "fix": null,
+   "recheck_reason": null,
+   "next_action": "분석 지시 보기",
+   "approval": "NOT_SUBMITTED",
+   "report_id": null,
+   "follow_up": [
+    {
+     "task": "전표 반영",
+     "state": "WAITING_APPROVAL"
+    },
+    {
+     "task": "충당금 주석 취합",
+     "state": "WAITING_APPROVAL"
+    }
+   ],
+   "checks": [
+    "CHK-ALW-1",
+    "CHK-ALW-2"
+   ]
+  },
+  "ref": "demo-example:close_item/W-S3-ALW:v4",
+  "seq": 4,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "S3-CLOSE-01",
+  "version": 6,
+  "scene": 1,
+  "state": null,
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "결산 체크리스트",
+  "body": {
+   "close_id": "S3-CLOSE-01",
+   "title": "2026년 연말결산",
+   "period_end": "2026-12-31",
+   "comparative_end": "2025-12-31",
+   "as_of": "2027-01-04T09:00:00+09:00",
+   "scope": {
+    "label": "시연 대상 2항목",
+    "items": 2
+   },
+   "input_version": "IN-26-03",
+   "ready": {
+    "done": 2,
+    "of": 2
+   },
+   "needs_fix": 0,
+   "recheck": 0,
+   "overdue": 0,
+   "approved": {
+    "done": 0,
+    "of": 2
+   },
+   "reports": 0,
+   "posting": {
+    "done": 0,
+    "of": 2
+   },
+   "notes": {
+    "done": 0,
+    "of": 2
+   },
+   "rows": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "due": "2027-01-08T18:00:00+09:00",
+     "remaining_days": 4,
+     "overdue": false,
+     "state": "READY",
+     "state_label": "분석 준비 완료",
+     "next_action": "자산대장 점검 결과 보기",
+     "fix_reason": null
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "외상매출금 대손충당금",
+     "owner_name": "회계담당",
+     "owner_id": "u-acct",
+     "due": "2027-01-08T18:00:00+09:00",
+     "remaining_days": 4,
+     "overdue": false,
+     "state": "READY",
+     "state_label": "분석 준비 완료",
+     "next_action": "분석 지시 보기",
+     "fix_reason": null
+    }
+   ],
+   "note": "준비 완료는 결산마감 완료가 아니다 — 전표 반영·주석 취합은 승인 후 인계 예정"
+  },
+  "ref": "demo-example:dashboard/S3-CLOSE-01:v6",
+  "seq": 5,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "input_check",
+  "record_id": "CHK-DEP-1",
+  "version": 1,
+  "scene": 1,
+  "state": "READY",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "감가상각비 점검 IN-26-02",
+  "body": {
+   "check_id": "CHK-DEP-1",
+   "item": "DEP",
+   "work_id": "W-S3-DEP",
+   "version": "IN-26-02",
+   "fingerprint": "ee3a1fd5d41fe77f",
+   "rule_version": "S3-SC01-CHECK-v0.1",
+   "checked_at": "2027-01-04T09:00:00+09:00",
+   "checked_by": "회계담당",
+   "via": null,
+   "execution_mode": "rule",
+   "result": "READY",
+   "checks": [
+    {
+     "check_id": "C-01",
+     "item": "DEP",
+     "label": "입력 시트 허용목록",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "전이율원천",
+      "원장",
+      "회수계획",
+      "확인기록"
+     ],
+     "actual": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "원장",
+      "회수계획",
+      "확인기록",
+      "전이율원천"
+     ],
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-02",
+     "item": "DEP",
+     "label": "결산 기준일·비교기간",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "2026-12-31 / 전기 2025-12-31",
+     "actual": "2026-12-31 / 전기 2025-12-31",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-03",
+     "item": "DEP",
+     "label": "금액 단위",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "전이율원천 원 · 그 외 백만원",
+     "actual": "일치",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-01",
+     "item": "DEP",
+     "label": "자산 ID 유일",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": null,
+     "expected": "자산 ID당 1행",
+     "actual": "8행",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:B1",
+     "item": "DEP",
+     "label": "B1 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "B1",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:B2",
+     "item": "DEP",
+     "label": "B2 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "B2",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:M1",
+     "item": "DEP",
+     "label": "M1 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "M1",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:E1",
+     "item": "DEP",
+     "label": "E1 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "E1",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:F1",
+     "item": "DEP",
+     "label": "F1 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "F1",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:M2",
+     "item": "DEP",
+     "label": "M2 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "M2",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-03:M2",
+     "item": "DEP",
+     "label": "M2 처분일·처분 순액",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "M2",
+     "expected": "당기 처분일 · 0 < 처분 순액 ≤ 기초+취득(100)",
+     "actual": "처분일 2026-01-01 · 처분 순액 100",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:E2",
+     "item": "DEP",
+     "label": "E2 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "E2",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-02:E3",
+     "item": "DEP",
+     "label": "E3 필수값",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "E3",
+     "expected": "종류·귀속·원가·잔존가·양의 내용연수·개시일·전기 상각",
+     "actual": "모두 있음",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-04:E2",
+     "item": "DEP",
+     "label": "신규 E2 사용개시일",
+     "verdict": "PASS",
+     "sheet": "자산대장",
+     "ref": "E2",
+     "expected": "당기 안(2026-01-01 ~ 2026-12-31)",
+     "actual": "2026-07-01",
+     "owner_role": "자산담당",
+     "reason": null
+    },
+    {
+     "check_id": "DEP-05",
+     "item": "DEP",
+     "label": "원장 당기 감가상각비 기계상액",
+     "verdict": "PASS",
+     "sheet": "원장",
+     "ref": "2026-12-31 감가상각비",
+     "expected": "조정 전 당기 기계상액 1행",
+     "actual": "1150백만원",
+     "owner_role": "회계담당",
+     "reason": null
+    }
+   ],
+   "evidence": {
+    "assets": 8,
+    "new_assets": [
+     {
+      "asset_id": "E2",
+      "kind": "설비",
+      "acquired": 2000,
+      "in_service": "2026-07-01"
+     }
+    ],
+    "booked_depreciation": 1150
+   },
+   "fix_id": null
+  },
+  "ref": "demo-example:input_check/CHK-DEP-1:v1",
+  "seq": 6,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "input_check",
+  "record_id": "CHK-ALW-1",
+  "version": 1,
+  "scene": 1,
+  "state": "NEEDS_FIX",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "외상매출금 대손충당금 점검 IN-26-02",
+  "body": {
+   "check_id": "CHK-ALW-1",
+   "item": "ALW",
+   "work_id": "W-S3-ALW",
+   "version": "IN-26-02",
+   "fingerprint": "5217aa23cbefe4e4",
+   "rule_version": "S3-SC01-CHECK-v0.1",
+   "checked_at": "2027-01-04T09:00:00+09:00",
+   "checked_by": "회계담당",
+   "via": null,
+   "execution_mode": "rule",
+   "result": "NEEDS_FIX",
+   "checks": [
+    {
+     "check_id": "C-01",
+     "item": "ALW",
+     "label": "입력 시트 허용목록",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "전이율원천",
+      "원장",
+      "회수계획",
+      "확인기록"
+     ],
+     "actual": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "원장",
+      "회수계획",
+      "확인기록",
+      "전이율원천"
+     ],
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-02",
+     "item": "ALW",
+     "label": "결산 기준일·비교기간",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "2026-12-31 / 전기 2025-12-31",
+     "actual": "2026-12-31 / 전기 2025-12-31",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-03",
+     "item": "ALW",
+     "label": "금액 단위",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "전이율원천 원 · 그 외 백만원",
+     "actual": "일치",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-01",
+     "item": "ALW",
+     "label": "당기·전기 채권명세",
+     "verdict": "PASS",
+     "sheet": "채권명세",
+     "ref": null,
+     "expected": "2026-12-31 · 2025-12-31 명세",
+     "actual": "당기 7행 · 전기 7행",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-02",
+     "item": "ALW",
+     "label": "집합·개별 평가군 배타",
+     "verdict": "PASS",
+     "sheet": "채권명세",
+     "ref": null,
+     "expected": "같은 채권이 집합·개별에 함께 없음 · 개별은 계획 참조",
+     "actual": "중복 없음",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-03",
+     "item": "ALW",
+     "label": "채권명세·원장 대사",
+     "verdict": "PASS",
+     "sheet": "원장",
+     "ref": "2026-12-31 외상매출금",
+     "expected": "차이 0원 (원장 6458.799691백만원)",
+     "actual": "명세 6458.799691백만원 · 차이 0원",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-04",
+     "item": "ALW",
+     "label": "조정 전 충당금 = 전기말 − 당기 제각",
+     "verdict": "PASS",
+     "sheet": "원장",
+     "ref": "2025-12-31 대손충당금",
+     "expected": "전기말 충당금 − 당기 제각 사용 = 조정 전 잔액",
+     "actual": "100 − 20 → 조정 전 80",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-05",
+     "item": "ALW",
+     "label": "전이율원천 16분기·원 단위",
+     "verdict": "PASS",
+     "sheet": "전이율원천",
+     "ref": null,
+     "expected": "일반거래처 2021.1Q~2024.4Q 16분기 · 원 단위 정수",
+     "actual": "7개 구간 × 16분기 · 원",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-06",
+     "item": "ALW",
+     "label": "A사 당기 회수계획 회차",
+     "verdict": "PASS",
+     "sheet": "회수계획",
+     "ref": "PLAN-A-26",
+     "expected": "기준일 현재 계획 1개 · 서로 다른 회차 합산",
+     "actual": "PLAN-A-26 3회차 합계 60백만원",
+     "owner_role": "영업담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-07",
+     "item": "ALW",
+     "label": "영업 회신 확인",
+     "verdict": "PASS",
+     "sheet": "확인기록",
+     "ref": "CONF-26-S",
+     "expected": "당기 영업 확인 1건 · 근거 PLAN-A-26",
+     "actual": "CONF-26-S(PLAN-A-26)",
+     "owner_role": "영업담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-08",
+     "item": "ALW",
+     "label": "회계 평가 기록 = 계획 합계",
+     "verdict": "FAIL",
+     "sheet": "확인기록",
+     "ref": null,
+     "expected": "근거 PLAN-A-26 · 확인액 = 회차 합계 60백만원",
+     "actual": "회계 평가 기록 없음",
+     "owner_role": "회계담당",
+     "reason": "회계의 기준일 평가 기록이 없거나 계획 버전·금액이 맞지 않는다 — 추정액으로 채우지 않는다"
+    }
+   ],
+   "evidence": {
+    "receivables": {
+     "current_total": "6458.799691",
+     "rows": 7,
+     "individual": [
+      "A사"
+     ]
+    },
+    "ledger": {
+     "2025-12-31 대손충당금": 100,
+     "2026-12-31 당기 제각 사용": 20,
+     "2026-12-31 대손충당금": 80,
+     "2026-12-31 외상매출금": 6458.799691
+    },
+    "rates": {
+     "segments": [
+      "미연체",
+      "3개월 이내",
+      "3~6개월",
+      "6~9개월",
+      "9~12개월",
+      "12~15개월",
+      "15개월 초과"
+     ],
+     "quarters": 16,
+     "unit": "원"
+    },
+    "plan": {
+     "current": "PLAN-A-26",
+     "rounds": [
+      {
+       "round": 1,
+       "due": "2027-03-31",
+       "amount": 20
+      },
+      {
+       "round": 2,
+       "due": "2027-06-30",
+       "amount": 20
+      },
+      {
+       "round": 3,
+       "due": "2027-09-30",
+       "amount": 20
+      }
+     ],
+     "all": {
+      "PLAN-A-25": [
+       {
+        "round": 1,
+        "due": "2026-03-31",
+        "amount": 25
+       },
+       {
+        "round": 2,
+        "due": "2026-06-30",
+        "amount": 25
+       },
+       {
+        "round": 3,
+        "due": "2026-09-30",
+        "amount": 25
+       }
+      ],
+      "PLAN-A-26": [
+       {
+        "round": 1,
+        "due": "2027-03-31",
+        "amount": 20
+       },
+       {
+        "round": 2,
+        "due": "2027-06-30",
+        "amount": 20
+       },
+       {
+        "round": 3,
+        "due": "2027-09-30",
+        "amount": 20
+       }
+      ]
+     }
+    },
+    "confirmations": [
+     {
+      "confirmation_id": "CONF-25",
+      "confirmed_on": "2025-12-31",
+      "confirmed_by": "회계담당",
+      "plan_ref": "PLAN-A-25",
+      "amount": 75
+     },
+     {
+      "confirmation_id": "CONF-26-S",
+      "confirmed_on": "2026-12-30",
+      "confirmed_by": "영업담당",
+      "plan_ref": "PLAN-A-26",
+      "amount": 60
+     }
+    ]
+   },
+   "fix_id": "FIX-S3-01"
+  },
+  "ref": "demo-example:input_check/CHK-ALW-1:v1",
+  "seq": 7,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "fix_request",
+  "record_id": "FIX-S3-01",
+  "version": 2,
+  "scene": 1,
+  "state": "RESOLVED",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "외상매출금 대손충당금 보완 요청",
+  "body": {
+   "fix_id": "FIX-S3-01",
+   "item": "ALW",
+   "work_id": "W-S3-ALW",
+   "version": "IN-26-02",
+   "check_id": "CHK-ALW-1",
+   "raised_at": "2027-01-04T09:00:00+09:00",
+   "raised_by": "회계담당",
+   "owners": [
+    "회계담당"
+   ],
+   "due": "2027-01-05T18:00:00+09:00",
+   "findings": [
+    {
+     "check_id": "ALW-08",
+     "label": "회계 평가 기록 = 계획 합계",
+     "sheet": "확인기록",
+     "ref": null,
+     "expected": "근거 PLAN-A-26 · 확인액 = 회차 합계 60백만원",
+     "actual": "회계 평가 기록 없음",
+     "owner_role": "회계담당",
+     "reason": "회계의 기준일 평가 기록이 없거나 계획 버전·금액이 맞지 않는다 — 추정액으로 채우지 않는다"
+    }
+   ],
+   "state": "RESOLVED",
+   "closed_at": "2027-01-04T09:00:00+09:00",
+   "closed_by_version": "IN-26-03",
+   "closed_by_check": "CHK-ALW-2",
+   "note": "누락·불일치는 0이나 추정액으로 채우지 않는다 — 보완 후 재점검"
+  },
+  "ref": "demo-example:fix_request/FIX-S3-01:v2",
+  "seq": 8,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "input_check",
+  "record_id": "CHK-ALW-2",
+  "version": 1,
+  "scene": 1,
+  "state": "READY",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "외상매출금 대손충당금 점검 IN-26-03",
+  "body": {
+   "check_id": "CHK-ALW-2",
+   "item": "ALW",
+   "work_id": "W-S3-ALW",
+   "version": "IN-26-03",
+   "fingerprint": "2661157339af55b7",
+   "rule_version": "S3-SC01-CHECK-v0.1",
+   "checked_at": "2027-01-04T09:00:00+09:00",
+   "checked_by": "회계담당",
+   "via": null,
+   "execution_mode": "rule",
+   "result": "READY",
+   "checks": [
+    {
+     "check_id": "C-01",
+     "item": "ALW",
+     "label": "입력 시트 허용목록",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "전이율원천",
+      "원장",
+      "회수계획",
+      "확인기록"
+     ],
+     "actual": [
+      "결산기준",
+      "자산대장",
+      "채권명세",
+      "원장",
+      "회수계획",
+      "확인기록",
+      "전이율원천"
+     ],
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-02",
+     "item": "ALW",
+     "label": "결산 기준일·비교기간",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "2026-12-31 / 전기 2025-12-31",
+     "actual": "2026-12-31 / 전기 2025-12-31",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "C-03",
+     "item": "ALW",
+     "label": "금액 단위",
+     "verdict": "PASS",
+     "sheet": "결산기준",
+     "ref": null,
+     "expected": "전이율원천 원 · 그 외 백만원",
+     "actual": "일치",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-01",
+     "item": "ALW",
+     "label": "당기·전기 채권명세",
+     "verdict": "PASS",
+     "sheet": "채권명세",
+     "ref": null,
+     "expected": "2026-12-31 · 2025-12-31 명세",
+     "actual": "당기 7행 · 전기 7행",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-02",
+     "item": "ALW",
+     "label": "집합·개별 평가군 배타",
+     "verdict": "PASS",
+     "sheet": "채권명세",
+     "ref": null,
+     "expected": "같은 채권이 집합·개별에 함께 없음 · 개별은 계획 참조",
+     "actual": "중복 없음",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-03",
+     "item": "ALW",
+     "label": "채권명세·원장 대사",
+     "verdict": "PASS",
+     "sheet": "원장",
+     "ref": "2026-12-31 외상매출금",
+     "expected": "차이 0원 (원장 6458.799691백만원)",
+     "actual": "명세 6458.799691백만원 · 차이 0원",
+     "owner_role": "채권담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-04",
+     "item": "ALW",
+     "label": "조정 전 충당금 = 전기말 − 당기 제각",
+     "verdict": "PASS",
+     "sheet": "원장",
+     "ref": "2025-12-31 대손충당금",
+     "expected": "전기말 충당금 − 당기 제각 사용 = 조정 전 잔액",
+     "actual": "100 − 20 → 조정 전 80",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-05",
+     "item": "ALW",
+     "label": "전이율원천 16분기·원 단위",
+     "verdict": "PASS",
+     "sheet": "전이율원천",
+     "ref": null,
+     "expected": "일반거래처 2021.1Q~2024.4Q 16분기 · 원 단위 정수",
+     "actual": "7개 구간 × 16분기 · 원",
+     "owner_role": "회계담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-06",
+     "item": "ALW",
+     "label": "A사 당기 회수계획 회차",
+     "verdict": "PASS",
+     "sheet": "회수계획",
+     "ref": "PLAN-A-26",
+     "expected": "기준일 현재 계획 1개 · 서로 다른 회차 합산",
+     "actual": "PLAN-A-26 3회차 합계 60백만원",
+     "owner_role": "영업담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-07",
+     "item": "ALW",
+     "label": "영업 회신 확인",
+     "verdict": "PASS",
+     "sheet": "확인기록",
+     "ref": "CONF-26-S",
+     "expected": "당기 영업 확인 1건 · 근거 PLAN-A-26",
+     "actual": "CONF-26-S(PLAN-A-26)",
+     "owner_role": "영업담당",
+     "reason": null
+    },
+    {
+     "check_id": "ALW-08",
+     "item": "ALW",
+     "label": "회계 평가 기록 = 계획 합계",
+     "verdict": "PASS",
+     "sheet": "확인기록",
+     "ref": "CONF-26-F",
+     "expected": "근거 PLAN-A-26 · 확인액 = 회차 합계 60백만원",
+     "actual": "CONF-26-F 근거 PLAN-A-26 · 확인액 60백만원",
+     "owner_role": "회계담당",
+     "reason": null
+    }
+   ],
+   "evidence": {
+    "receivables": {
+     "current_total": "6458.799691",
+     "rows": 7,
+     "individual": [
+      "A사"
+     ]
+    },
+    "ledger": {
+     "2025-12-31 대손충당금": 100,
+     "2026-12-31 당기 제각 사용": 20,
+     "2026-12-31 대손충당금": 80,
+     "2026-12-31 외상매출금": 6458.799691
+    },
+    "rates": {
+     "segments": [
+      "미연체",
+      "3개월 이내",
+      "3~6개월",
+      "6~9개월",
+      "9~12개월",
+      "12~15개월",
+      "15개월 초과"
+     ],
+     "quarters": 16,
+     "unit": "원"
+    },
+    "plan": {
+     "current": "PLAN-A-26",
+     "rounds": [
+      {
+       "round": 1,
+       "due": "2027-03-31",
+       "amount": 20
+      },
+      {
+       "round": 2,
+       "due": "2027-06-30",
+       "amount": 20
+      },
+      {
+       "round": 3,
+       "due": "2027-09-30",
+       "amount": 20
+      }
+     ],
+     "all": {
+      "PLAN-A-25": [
+       {
+        "round": 1,
+        "due": "2026-03-31",
+        "amount": 25
+       },
+       {
+        "round": 2,
+        "due": "2026-06-30",
+        "amount": 25
+       },
+       {
+        "round": 3,
+        "due": "2026-09-30",
+        "amount": 25
+       }
+      ],
+      "PLAN-A-26": [
+       {
+        "round": 1,
+        "due": "2027-03-31",
+        "amount": 20
+       },
+       {
+        "round": 2,
+        "due": "2027-06-30",
+        "amount": 20
+       },
+       {
+        "round": 3,
+        "due": "2027-09-30",
+        "amount": 20
+       }
+      ]
+     }
+    },
+    "confirmations": [
+     {
+      "confirmation_id": "CONF-25",
+      "confirmed_on": "2025-12-31",
+      "confirmed_by": "회계담당",
+      "plan_ref": "PLAN-A-25",
+      "amount": 75
+     },
+     {
+      "confirmation_id": "CONF-26-S",
+      "confirmed_on": "2026-12-30",
+      "confirmed_by": "영업담당",
+      "plan_ref": "PLAN-A-26",
+      "amount": 60
+     },
+     {
+      "confirmation_id": "CONF-26-F",
+      "confirmed_on": "2026-12-31",
+      "confirmed_by": "회계담당",
+      "plan_ref": "PLAN-A-26",
+      "amount": 60
+     }
+    ]
+   },
+   "fix_id": null
+  },
+  "ref": "demo-example:input_check/CHK-ALW-2:v1",
+  "seq": 9,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ },
+ {
+  "kind": "handoff",
+  "record_id": "HAND-S3-01",
+  "version": 1,
+  "scene": 1,
+  "state": "VALID",
+  "at": "2027-01-04T09:00:00+09:00",
+  "by": null,
+  "title": "장면 2 인계",
+  "body": {
+   "handoff_id": "HAND-S3-01",
+   "close_id": "S3-CLOSE-01",
+   "period_end": "2026-12-31",
+   "comparative_end": "2025-12-31",
+   "input_version": "IN-26-03",
+   "allowed_sheets": [
+    "결산기준",
+    "자산대장",
+    "채권명세",
+    "전이율원천",
+    "원장",
+    "회수계획",
+    "확인기록"
+   ],
+   "excluded_sheets": [
+    "설계안내",
+    "입력명세",
+    "대표사건",
+    "검수기준"
+   ],
+   "items": [
+    {
+     "item_id": "DEP",
+     "work_id": "W-S3-DEP",
+     "name": "감가상각비",
+     "owner_role": "회계담당",
+     "owner_name": "회계담당",
+     "state": "READY",
+     "check_id": "CHK-DEP-1",
+     "checked_at": "2027-01-04T09:00:00+09:00",
+     "checked_by": "회계담당",
+     "verdicts": [
+      {
+       "check_id": "C-01",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "C-02",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "C-03",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "DEP-01",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "DEP-02:B1",
+       "verdict": "PASS",
+       "ref": "B1"
+      },
+      {
+       "check_id": "DEP-02:B2",
+       "verdict": "PASS",
+       "ref": "B2"
+      },
+      {
+       "check_id": "DEP-02:M1",
+       "verdict": "PASS",
+       "ref": "M1"
+      },
+      {
+       "check_id": "DEP-02:E1",
+       "verdict": "PASS",
+       "ref": "E1"
+      },
+      {
+       "check_id": "DEP-02:F1",
+       "verdict": "PASS",
+       "ref": "F1"
+      },
+      {
+       "check_id": "DEP-02:M2",
+       "verdict": "PASS",
+       "ref": "M2"
+      },
+      {
+       "check_id": "DEP-03:M2",
+       "verdict": "PASS",
+       "ref": "M2"
+      },
+      {
+       "check_id": "DEP-02:E2",
+       "verdict": "PASS",
+       "ref": "E2"
+      },
+      {
+       "check_id": "DEP-02:E3",
+       "verdict": "PASS",
+       "ref": "E3"
+      },
+      {
+       "check_id": "DEP-04:E2",
+       "verdict": "PASS",
+       "ref": "E2"
+      },
+      {
+       "check_id": "DEP-05",
+       "verdict": "PASS",
+       "ref": "2026-12-31 감가상각비"
+      }
+     ],
+     "evidence_refs": [
+      "2026-12-31 감가상각비",
+      "B1",
+      "B2",
+      "E1",
+      "E2",
+      "E3",
+      "F1",
+      "M1",
+      "M2"
+     ],
+     "next_action": "자산대장 점검 결과 보기"
+    },
+    {
+     "item_id": "ALW",
+     "work_id": "W-S3-ALW",
+     "name": "외상매출금 대손충당금",
+     "owner_role": "회계담당",
+     "owner_name": "회계담당",
+     "state": "READY",
+     "check_id": "CHK-ALW-2",
+     "checked_at": "2027-01-04T09:00:00+09:00",
+     "checked_by": "회계담당",
+     "verdicts": [
+      {
+       "check_id": "C-01",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "C-02",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "C-03",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "ALW-01",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "ALW-02",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "ALW-03",
+       "verdict": "PASS",
+       "ref": "2026-12-31 외상매출금"
+      },
+      {
+       "check_id": "ALW-04",
+       "verdict": "PASS",
+       "ref": "2025-12-31 대손충당금"
+      },
+      {
+       "check_id": "ALW-05",
+       "verdict": "PASS",
+       "ref": null
+      },
+      {
+       "check_id": "ALW-06",
+       "verdict": "PASS",
+       "ref": "PLAN-A-26"
+      },
+      {
+       "check_id": "ALW-07",
+       "verdict": "PASS",
+       "ref": "CONF-26-S"
+      },
+      {
+       "check_id": "ALW-08",
+       "verdict": "PASS",
+       "ref": "CONF-26-F"
+      }
+     ],
+     "evidence_refs": [
+      "2025-12-31 대손충당금",
+      "2026-12-31 외상매출금",
+      "CONF-26-F",
+      "CONF-26-S",
+      "PLAN-A-26"
+     ],
+     "next_action": "분석 지시 보기"
+    }
+   ],
+   "ready": 2,
+   "approvals": 0,
+   "reports": 0,
+   "next_step": "장면 2 — 대손충당금 [분석 지시 보기]",
+   "scene2_entry": "준비·배정 권한·최신 입력 버전을 서버가 다시 확인한 뒤 분석 지시를 연다",
+   "follow_up": "전표 반영·주석 취합은 승인 후 인계 예정",
+   "handed_at": "2027-01-04T09:00:00+09:00",
+   "valid": true
+  },
+  "ref": "demo-example:handoff/HAND-S3-01:v1",
+  "seq": 10,
+  "recorded_at": "2027-01-04T09:00:00+09:00"
+ }
+]

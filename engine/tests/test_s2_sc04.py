@@ -599,12 +599,13 @@ def test_other_run_and_other_place_are_refused(proc, company, handed) -> None:
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """
-    확장 `external` 0.12.1 — 그림의 서비스 호출이 정의의 입력·출력과 맞고, 결재 담당자가 역할
+    확장 `external`(0.12.1 이상) — 그림의 서비스 호출이 정의의 입력·출력과 맞고, 결재 담당자가 역할
     배정(H06·H04·H07)과 같고, 기록 작업마다 오류 경계가 있다. 호출 활동(공통 BPM)은 없다.
     """
     import json
 
     from chaeksas.contracts import extension as ext
+    from chaeksas.contracts._semver import satisfies
     from chaeksas.contracts.bpmn_ext import read_process
 
     from app.s2.sc04.process import OPERATIONS, PROCESS_PATH
@@ -614,7 +615,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     ).read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
-    assert manifest.version == "0.12.1"
+    assert satisfies(manifest.version, ">=0.12.1,<1")
     operations = {o["name"]: o for o in json.loads(raw)["service"]["adapter"]["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
     used = []

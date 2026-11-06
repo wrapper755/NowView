@@ -57,7 +57,7 @@ export type SupplyBoard = {
 
 export type World = {
   worldId: string;
-  /** 회차의 시나리오 — `s1` 손익, `s2` 납기 */
+  /** 회차의 시나리오 — `s1` 손익, `s2` 납기, `s3` 결산조정 */
   scenarioId?: string;
   /** `site` — 회사 사이트가 만든 세계. 그 밖은 예전(엔진이 만든) 세계다. */
   origin: string | null;
@@ -117,14 +117,14 @@ export function formatClock(at: string | null): string {
 }
 
 /**
- * 회사 사이트의 그 업무 화면 — 시나리오 1은 `{site}/work/{회차}/sc0N`, 시나리오 2 장면 N(업무 번호 20 + N)은
- * `{site}/work/{회차}/s2/sc0N`. 회차 = 세계 = 데모 실행 id.
+ * 회사 사이트의 그 업무 화면 — 시나리오 1은 `{site}/work/{회차}/sc0N`, 시나리오 K(≥2) 장면 N(업무 번호 10·K + N)은
+ * `{site}/work/{회차}/sK/sc0N`. 회차 = 세계 = 데모 실행 id.
  */
 export function workUrl(siteUrl: string | null, world: string | null, scene: number): string | null {
   if (!siteUrl || !world) return null;
-  const s2 = scene > 20;
-  const n = String(s2 ? scene - 20 : scene).padStart(2, "0");
-  return `${siteUrl}/work/${encodeURIComponent(world)}${s2 ? "/s2" : ""}/sc${n}`;
+  const scenario = scene > 20 ? Math.floor(scene / 10) : 1;
+  const n = String(scenario > 1 ? scene - scenario * 10 : scene).padStart(2, "0");
+  return `${siteUrl}/work/${encodeURIComponent(world)}${scenario > 1 ? `/s${scenario}` : ""}/sc${n}`;
 }
 
 /**

@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from company_twin import s2, seed
+from company_twin import s2, s3, seed
 from company_twin.store import WorldStore
 
 KST = ZoneInfo("Asia/Seoul")
@@ -231,7 +231,7 @@ def _new_world(
         "scenario_id": scenario_id,
         "reset_at": datetime.now(KST).isoformat(),
         # 시나리오 2 회차는 그 시나리오의 처음 시각에서 시작한다(기간계와 같다 — `s2.py`)
-        "clock": s2.S0_CLOCK if scenario_id == s2.SCENARIO else S0_CLOCK,
+        "clock": _s0_clock(scenario_id),
         "seq": 0,
         "commands": {},
         "commands_seq": 0,
@@ -242,7 +242,17 @@ def _new_world(
         **_new_execution(),
         **_new_records(),
         **(s2.new_world() if scenario_id == s2.SCENARIO else {}),
+        **(s3.new_world() if scenario_id == s3.SCENARIO else {}),
     }
+
+
+def _s0_clock(scenario_id: str) -> str:
+    """회차의 처음 시각 — 기간계와 같다(`s2.py`·`s3.py`)."""
+    if scenario_id == s2.SCENARIO:
+        return s2.S0_CLOCK
+    if scenario_id == s3.SCENARIO:
+        return s3.S0_CLOCK
+    return S0_CLOCK
 
 
 def _new_purchase() -> dict[str, Any]:
@@ -371,6 +381,8 @@ def build_app(store: WorldStore) -> FastAPI:
 
     # 시나리오 2 회사 자료·구매 개정 수신함(기간계 `s2.py`의 사본)
     s2.mount(app, store=store, world=world, auth=auth)
+    # 시나리오 3 결산 건·입력 버전(기간계 `s3.py`의 사본)
+    s3.mount(app, store=store, world=world, auth=auth)
 
     # ───────────── 세계 ─────────────
 
@@ -390,6 +402,7 @@ def build_app(store: WorldStore) -> FastAPI:
             "cost_versions": len(w.get("cost_versions", {})),
             "pending_commands": sum(1 for c in w["commands"].values() if c["state"] == "PENDING"),
             **s2.summary(w),
+            **s3.summary(w),
         }
 
     @app.post("/worlds", status_code=201, dependencies=[Depends(auth)])

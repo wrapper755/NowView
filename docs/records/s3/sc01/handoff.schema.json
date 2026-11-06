@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/handoff.schema.json",
+  "title": "s3/sc01 handoff",
+  "description": "장면 2 인계(HAND-S3-01) — 입력 버전·허용 시트·항목별 준비·점검 근거·다음 조치",
+  "type": "object",
+  "required": [
+    "allowed_sheets",
+    "approvals",
+    "close_id",
+    "comparative_end",
+    "excluded_sheets",
+    "follow_up",
+    "handed_at",
+    "handoff_id",
+    "input_version",
+    "items",
+    "next_step",
+    "period_end",
+    "ready",
+    "reports",
+    "scene2_entry",
+    "valid"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "period_end": {
+      "type": "string"
+    },
+    "comparative_end": {
+      "type": "string"
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "allowed_sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excluded_sheets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "check_id",
+          "checked_at",
+          "checked_by",
+          "evidence_refs",
+          "item_id",
+          "name",
+          "next_action",
+          "owner_name",
+          "owner_role",
+          "state",
+          "verdicts",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_role": {
+            "type": "string"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "check_id": {
+            "type": "string"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checked_by": {
+            "type": "string"
+          },
+          "verdicts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "check_id",
+                "ref",
+                "verdict"
+              ],
+              "properties": {
+                "check_id": {
+                  "type": "string"
+                },
+                "verdict": {
+                  "type": "string"
+                },
+                "ref": {
+                  "type": [
+                    "null",
+                    "string"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_action": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "ready": {
+      "type": "integer"
+    },
+    "approvals": {
+      "type": "integer"
+    },
+    "reports": {
+      "type": "integer"
+    },
+    "next_step": {
+      "type": "string"
+    },
+    "scene2_entry": {
+      "type": "string"
+    },
+    "follow_up": {
+      "type": "string"
+    },
+    "handed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

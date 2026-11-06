@@ -84,6 +84,7 @@ class Follower:
         *,
         s2: Any | None = None,
         s2_scenes: Mapping[int, Any] | None = None,
+        s3: Any | None = None,
         interval_s: float = INTERVAL_S,
     ) -> None:
         self.company = company
@@ -92,6 +93,8 @@ class Follower:
         self.s2 = s2
         #: 시나리오 2 장면 2~(`app/s2/sc0N/process.py`) — 사이트의 「장면 열기」 명령으로 연다
         self.s2_scenes = dict(s2_scenes or {})
+        #: 시나리오 3 장면 1(`app/s3/sc01/process.py`) — 시나리오 3 회차를 따라간다(결산 건)
+        self.s3 = s3
         self.interval_s = interval_s
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -157,6 +160,15 @@ class Follower:
                 if rid in present or found is None or found[0].get("world_generation") is None:
                     continue
                 p.discard(rid)
+        if self.s3 is not None:
+            for row in self.s3.store.list():
+                rid = row["demoRunId"]
+                found = self.s3.store.load(rid)
+                if rid in present or found is None or found[0].get("world_generation") is None:
+                    continue
+                log.info("세계 %s가 지워졌다 — 시나리오 3 데모 실행을 거둔다", rid)
+                self.s3.discard(rid)
+                self._seen.pop(rid, None)
         if self.s2 is not None:
             for row in self.s2.store.list():
                 rid = row["demoRunId"]
@@ -188,6 +200,9 @@ class Follower:
     def _follow(self, w: dict[str, Any]) -> None:
         if w.get("scenario_id") == "s2":
             self._follow_s2(w)
+            return
+        if w.get("scenario_id") == "s3":
+            self._follow_s3(w)
             return
         rid = w["world_id"]
         sc01 = self.scenes[1]
@@ -256,6 +271,71 @@ class Follower:
         if w.get("pending_commands"):
             for command in self.company.commands(rid, "PENDING"):
                 self._run_s2_command(rid, command)
+
+    def _follow_s3(self, w: dict[str, Any]) -> None:
+        """
+        시나리오 3 회차 — 결산 건(장면 1) 문서를 만들고·초기화하고·시각을 따라가고, 자료 담당자가
+        입력을 다시 연결하면(기간계 입력 버전 번호가 오르면) 넘긴다(`S3Sc01Process.receive_inputs`).
+        사이트가 만든 회차만 들인다.
+        """
+        p = self.s3
+        if p is None:
+            return
+        rid = w["world_id"]
+        seen = self._seen.setdefault(rid, {})
+        found = p.store.load(rid)
+        if found is None and w.get("origin") != "site":
+            return
+        if found is None:
+            p.create(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
+            seen.update(generation=w["generation"], close_inputs=w.get("close_inputs", 0))
+        elif found[0].get("world_generation", 1) != w["generation"]:
+            log.info("세계 %s 초기화 회차 %s — 시나리오 3을 처음으로", rid, w["generation"])
+            p.reset(rid, case_id=w.get("case_id") or "BASE", world_generation=w["generation"])
+            seen.update(generation=w["generation"], close_inputs=w.get("close_inputs", 0))
+        else:
+            seen.setdefault("generation", w["generation"])
+            seen.setdefault("close_inputs", len(found[0].get("inputs", [])))
+        self._clock_s3(rid, w["clock"])
+        if w.get("close_inputs", 0) != seen.get("close_inputs", 0):
+            p.receive_inputs(rid)
+            seen["close_inputs"] = w.get("close_inputs", 0)
+        if w.get("pending_commands"):
+            for command in self.company.commands(rid, "PENDING"):
+                self._run_s3_command(rid, command)
+
+    def _clock_s3(self, rid: str, at: str) -> None:
+        found = None if self.s3 is None else self.s3.store.load(rid)
+        if found is not None and parse_at(at) > parse_at(found[0]["clock"]):
+            self.s3.follow_clock(rid, at)
+
+    def _run_s3_command(self, rid: str, command: dict[str, Any]) -> None:
+        """
+        시나리오 3 회차의 명령 — 지금은 장면 1뿐이다: 「장면 1부터 다시」(`rewind`)·「장면만
+        처음으로」(`reset_scene`)는 결산 건을 처음으로 돌리고 착수를 다시 기동한다(기간계가 입력을
+        IN-26-01 하나로 되돌렸다).
+        """
+        scene, kind = command["scene"], command["kind"]
+        try:
+            if scene != 1 and kind != "rewind":
+                raise DomainError(f"시나리오 3에 없는 장면: {scene}", 404)
+            if kind not in ("rewind", "reset_scene"):
+                raise DomainError(f"시나리오 3 장면 {scene}에 없는 명령: {kind}", 422)
+            n = int((command.get("body") or {}).get("scene") or scene)
+            result: dict[str, Any] = {"discarded": []}
+            if n <= 1 and self.s3 is not None and self.s3.store.load(rid) is not None:
+                doc = self.s3.reset(rid, actor=SYSTEM_ACTOR)
+                self._seen.setdefault(rid, {})["close_inputs"] = len(doc["inputs"])
+                result = {"scene": 1, "clock": doc["clock"]}
+            self.company.command_result(rid, command["command_id"], state="DONE", result=result)
+        except DomainError as exc:
+            self.company.command_result(
+                rid,
+                command["command_id"],
+                state="REJECTED",
+                status=getattr(exc, "status", 409),
+                reason=str(exc),
+            )
 
     def _case_sources(self, rid: str, seen: dict[str, Any]) -> None:
         """
@@ -369,6 +449,7 @@ class Follower:
         with self._guard:
             self._clock(demo_run_id, at)
             self._clock_s2(demo_run_id, at)
+            self._clock_s3(demo_run_id, at)
         if node_id:
             PROGRESS_AT.setdefault(demo_run_id, {})[node_id] = at
 

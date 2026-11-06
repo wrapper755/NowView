@@ -32,6 +32,8 @@ describe("대시보드 표기", () => {
 describe("시나리오 2 — 공통 플랫폼", () => {
   it("업무 번호 21은 회사 사이트의 시나리오 2 장면 1 화면이다", () => {
     expect(workUrl("https://site", "demo-1", 21)).toBe("https://site/work/demo-1/s2/sc01");
+    expect(workUrl("https://site", "demo-1", 24)).toBe("https://site/work/demo-1/s2/sc04");
+    expect(workUrl("https://site", "demo-1", 31)).toBe("https://site/work/demo-1/s3/sc01");
     expect(workUrl("https://site", "demo-1", 1)).toBe("https://site/work/demo-1/sc01");
   });
   it("사건 열기는 돌아올 곳과 약정을 넘긴다(맥락 유지)", () => {

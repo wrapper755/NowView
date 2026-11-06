@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  시나리오 3 장면 1 — 결산조정 업무 착수(업무설계표 01~06). 업무 흐름의 유일한 원천이다.
+
+  **결산 건 하나 = 실행 하나다.** 회차를 만들면 선행 업무(자료 담당자의 입력 IN-26-01 연결·두 조정항목
+  배정)가 끝난 상태이고, NowView 일꾼이 이 프로세스를 기동한다(입력 `데모실행ID`·`결산건ID`). 그림이
+  쥐는 것은 순서와 분기뿐이다 — 어느 항목을 점검할 차례인지·준비 판정·보완 대상은 일꾼의 규칙
+  계산이다(NowView `engine/app/s3/sc01/calc.py`).
+
+  단계 대응: 자료 연결 확인 03(입력 버전·허용 시트) → 다음 점검 항목 고르기 → 감가상각비 점검 04 ·
+  대손충당금 점검 05(회계담당자가 「점검 실행」 → 규칙 점검) → 둘 다 준비 완료면 장면 2 인계 06.
+  보완 필요 항목만 남으면 자료 보완을 기다린다(메시지 「결산자료보완」 — 자료 담당자가 입력을 다시
+  연결하면 NowView가 보낸다) → 다시 연결 확인 → 재점검.
+
+  **팀장 조회와 담당자의 업무 열람은 그림에 없다** — 결재 기록을 만들지 않는다(구현명세 「팀장 조회와
+  담당자 점검으로 결재 기록을 생성하지 않는다」). 담당자의 두 점검은 원업무(W-S3-DEP·W-S3-ALW)의 할
+  일이지 승인이 아니다 — 승인 0/2·상신 0건은 그대로다. 같은 결산 건을 다시 열어도 새 업무가 없다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s3_sc01">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:message id="Msg_fix" name="결산자료보완"/>
+  <bpmn:process id="company1.s3.sc01" name="S3 SC01 결산조정 업무 착수" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.13.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "결산건ID", "type": "string", "required": true}], "outputs": []}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="결산 건 착수 — 입력 연결·업무 배정 완료"/>
+    <bpmn:serviceTask id="Task_Link" name="자료 연결 확인 (03)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "link_close_inputs", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"입력버전": "input_version", "항목수": "items"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Route" name="다음 점검 항목 고르기">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "route_close_items", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"다음": "next", "입력버전": "input_version", "준비": "ready", "보완필요": "needs_fix", "대기사유": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Next" name="무엇이 남았나" default="Flow_done"/>
+    <bpmn:userTask id="Check_Depreciation" name="감가상각비 입력자료 점검 (04 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "감가상각비 입력자료 점검 — 회계담당자", "answered_by_as": "점검자", "answered_via_as": "점검경로", "assignees": ["회계담당"], "description": "배정된 원업무 W-S3-DEP. 연결된 입력 버전의 자산대장·원장으로 자산 ID, 귀속, 사용개시일, 원가, 잔존가액, 내용연수, 전기 상각과 당기 기계상액을 점검한다(신규 E2의 사용개시일 7월 1일). 모든 필수 점검이 통과하면 분석 준비 완료, 누락이 있으면 대상 자산·필드·자산담당과 보완 기한을 남긴다. 본 입력 버전이 그 사이 바뀌었으면 점검하지 않고 다시 연다. 이 점검은 승인이 아니다.", "show": ["데모실행ID", "결산건ID", "입력버전", "준비", "보완필요", "error_message"], "fields": [{"key": "상각점검버전", "label": "본 입력 버전", "type": "text", "required": true}, {"key": "상각점검", "label": "입력 점검", "type": "choice", "required": true, "choices": ["점검 실행"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Depreciation" name="감가상각비 점검 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "check_close_item", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "'DEP'", "version": "상각점검버전", "decision": "상각점검", "answered_by": "점검자", "answered_via": "점검경로"}, "output": {"상각결과": "result", "상각점검ID": "check_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Check_Allowance" name="대손충당금 입력자료 점검 (05 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "외상매출금 대손충당금 입력자료 점검 — 회계담당자", "answered_by_as": "점검자", "answered_via_as": "점검경로", "assignees": ["회계담당"], "description": "배정된 원업무 W-S3-ALW. 채권명세 합계와 원장을 원 단위로 대사하고 평가군 중복, 기초 100 − 제각 20 = 조정 전 80, 전이율원천 16분기·원 단위를 확인한다. A사는 당기 회수계획 PLAN-A-26의 회차 합계와 영업 회신 확인(CONF-26-S)·회계 평가 기록(CONF-26-F)이 같은 계획 버전·금액인지 본다. 기록이 없거나 맞지 않으면 충당금만 보완 필요다 — 추정액으로 채우지 않는다. 이 점검은 승인이 아니다.", "show": ["데모실행ID", "결산건ID", "입력버전", "준비", "보완필요", "error_message"], "fields": [{"key": "충당점검버전", "label": "본 입력 버전", "type": "text", "required": true}, {"key": "충당점검", "label": "입력 점검", "type": "choice", "required": true, "choices": ["점검 실행"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Allowance" name="대손충당금 점검 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "check_close_item", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "'ALW'", "version": "충당점검버전", "decision": "충당점검", "answered_by": "점검자", "answered_via": "점검경로"}, "output": {"충당결과": "result", "충당점검ID": "check_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:receiveTask id="Wait_Fix" name="자료 보완 대기 (보완 담당이 입력을 다시 연결)" messageRef="Msg_fix">
+      <bpmn:extensionElements>
+        <chk:receive>{"message": "결산자료보완", "correlation": "데모실행ID", "payload": ["입력버전"]}</chk:receive>
+      </bpmn:extensionElements>
+    </bpmn:receiveTask>
+    <bpmn:serviceTask id="Task_Handoff" name="장면 2 인계 (06)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "hand_off_close_items", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"인계ID": "handoff_id", "다음단계": "next_step"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End" name="분석 준비 2/2 — 장면 2 분석 지시 대기 (승인 0/2 · 상신 0건)"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Depreciation" name="기록 거절" attachedToRef="Record_Depreciation">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Allowance" name="기록 거절" attachedToRef="Record_Allowance">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Link"/>
+    <bpmn:sequenceFlow id="Flow_linked" sourceRef="Task_Link" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_routed" sourceRef="Task_Route" targetRef="Gw_Next"/>
+    <bpmn:sequenceFlow id="Flow_dep" name="감가상각비 점검" sourceRef="Gw_Next" targetRef="Check_Depreciation">
+      <bpmn:conditionExpression>다음 == 'DEP'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_alw" name="대손충당금 점검" sourceRef="Gw_Next" targetRef="Check_Allowance">
+      <bpmn:conditionExpression>다음 == 'ALW'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_wait" name="보완 대기" sourceRef="Gw_Next" targetRef="Wait_Fix">
+      <bpmn:conditionExpression>다음 == 'WAIT'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_done" name="둘 다 준비 완료" sourceRef="Gw_Next" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_Check_Depreciation_answered" sourceRef="Check_Depreciation" targetRef="Record_Depreciation"/>
+    <bpmn:sequenceFlow id="Flow_dep_recorded" sourceRef="Record_Depreciation" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Record_Depreciation_rejected" sourceRef="Bnd_Record_Depreciation" targetRef="Check_Depreciation"/>
+    <bpmn:sequenceFlow id="Flow_Check_Allowance_answered" sourceRef="Check_Allowance" targetRef="Record_Allowance"/>
+    <bpmn:sequenceFlow id="Flow_alw_recorded" sourceRef="Record_Allowance" targetRef="Task_Route"/>
+    <bpmn:sequenceFlow id="Flow_Record_Allowance_rejected" sourceRef="Bnd_Record_Allowance" targetRef="Check_Allowance"/>
+    <bpmn:sequenceFlow id="Flow_fixed" sourceRef="Wait_Fix" targetRef="Task_Link"/>
+    <bpmn:sequenceFlow id="Flow_handed" sourceRef="Task_Handoff" targetRef="End"/>
+  </bpmn:process>
+</bpmn:definitions>

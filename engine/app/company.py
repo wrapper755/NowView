@@ -101,6 +101,9 @@ class CompanyClient:
         self.timeout_s = timeout_s
         self._seed: Seed | None = None
         self._s2_master: dict[str, Any] | None = None
+        self._s3_master: dict[str, Any] | None = None
+        #: 시나리오 3 입력 버전 — 등록된 버전은 바뀌지 않는다(회차·버전 → 내용)
+        self._close_inputs: dict[tuple[str, str, str], dict[str, Any]] = {}
         self._roster = False
         self._worlds: set[str] = set()
         self._guard = threading.Lock()
@@ -120,6 +123,8 @@ class CompanyClient:
             self._client = None
             self._seed = None
             self._s2_master = None
+            self._s3_master = None
+            self._close_inputs = {}
             self._roster = False
             self._worlds = set()
 
@@ -375,6 +380,48 @@ class CompanyClient:
     def shipping_inquiry(self, world_id: str, work_id: str) -> dict[str, Any]:
         """시나리오 2 장면 3 — 출하팀의 기존 운송 문의(원업무)와 받은 회신. 읽기만 한다."""
         return self._call("GET", f"/worlds/{world_id}/shipping-inquiries/{work_id}")
+
+    # ───────────── 시나리오 3 — 결산 건·입력 버전 ─────────────
+
+    def s3_master(self) -> dict[str, Any]:
+        """
+        시나리오 3 회사 자료 — 결산 건 S3-CLOSE-01(조정항목 둘·담당·일정)·시트 소유·원천 7개 시트
+        (불변, 한 번 읽어 둔다).
+        """
+        with self._guard:
+            if self._s3_master is not None:
+                return self._s3_master
+        found = self._call("GET", "/company/s3/master")
+        with self._guard:
+            self._s3_master = found
+        return found
+
+    def close_inputs(self, world_id: str) -> list[dict[str, Any]]:
+        """결산 건에 연결된 입력 버전 요약(등록 순)."""
+        return self._call("GET", f"/worlds/{world_id}/close-inputs")
+
+    def close_input_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/close-inputs/inbox?after={after}")
+
+    def close_input(self, world_id: str, version: str, digest: str | None = None) -> dict[str, Any]:
+        """
+        입력 버전 하나(시트 전부) — 등록된 버전은 바뀌지 않아 내용 지문(`digest`)으로 한 번 읽어
+        둔다. 「장면 1부터 다시」 뒤에는 같은 버전 id가 다른 내용일 수 있어 id만으로 담지 않는다.
+        """
+        key = (world_id, version, digest or "")
+        with self._guard:
+            if digest and key in self._close_inputs:
+                return self._close_inputs[key]
+        found = self._call("GET", f"/worlds/{world_id}/close-inputs/{version}")
+        with self._guard:
+            self._close_inputs[(world_id, version, found["digest"])] = found
+        return found
+
+    def link_close_inputs(self, world_id: str, variants: list[str]) -> dict[str, Any]:
+        """시연·시험 — 자료 담당자가 입력을 다시 연결했다(엔진 시험만 — 운영은 사이트가 보낸다)."""
+        return self._call(
+            "POST", f"/worlds/{world_id}/sim/close-inputs", {"variants": list(variants)}
+        )
 
     # ───────────── 구매 (장면 2) ─────────────
 

@@ -187,6 +187,12 @@ docker compose up --build   # 앱 :3000 · 엔진 :8077 · Postgres :55432
   채택(+15분·0원·조건부 회피 120만원) → 시험 01~09·8개 회신 분기(표본 1·1·7) → **Agent 운영 담당자(H07) 시험 판정** → **H06 적용 확인**
   (APP-04, 효력 11/9 00:00) → **H07 위임 설정**(CFG-04 — CASE-NEXT-01은 KRI-CTL-v2, CASE-S2-01은 기존 버전)(`docs/s2/sc04.md`, 2026-11-06).
   업무 번호 **24**.
+  **시나리오 3 장면 1(결산조정 업무 착수)** — 시나리오 3(2026 연말결산, 공통 설계 `docs/s3/common.md` — 결산 건·조정항목·입력 버전·
+  체크리스트)의 첫 업무. 결산 건 S3-CLOSE-01 하나 = BPM 실행 하나(`company1.s3.sc01`): 자료 연결 확인 → 다음 점검 항목(규칙) →
+  **회계담당자의 「점검 실행」 결재 둘**(감가상각비·대손충당금 — 승인이 아니다) → 규칙 점검(공통 C-01~03 · DEP-01~05 · ALW-01~08,
+  원 단위 대사) → 보완 필요만 남으면 메시지 「결산자료보완」 대기 → 둘 다 준비면 장면 2 인계(HAND-S3-01). 입력은 기간계의 입력 버전
+  (IN-26-01 …, 허용 7개 시트)이고 그 항목이 쓰는 칸이 바뀐 항목만 재점검이다(`docs/s3/sc01.md`, 2026-11-06). 업무 번호 **31**
+  (시나리오 3 장면 N = 30 + N). 끝은 준비 2/2 · 승인 0/2 · 상신 0건이다.
   **화면은 내장 BPM을 고르지 않는다**(2026-10-27 결정) — 새 데모 실행의 기본은 Center다. 내장 실행기는 엔진 시험용으로 남았다.
 * **Core Philosophy**:
   * **Target vs. Forecast vs. Plan**: 목표(Target)는 임의로 변경하지 않으며, 실행 결과와 최신 가정을 반영한 전망(Forecast)과 실행계획(Plan)을 Rolling 방식으로 갱신하고 잔여 Gap을 명시적으로 관리한다.
@@ -290,7 +296,7 @@ NowView/
 │   └── validate_palette.js       # 차트 팔레트 검증기 (dataviz 스킬에서 들여옴)
 ├── deploy/                       # 운영계 자산 (5.4) — bootstrap.sh · systemd 유닛 2개
 ├── chaeksas/                     # Center에 올릴 외부 확장 정의 — NowView 기본 확장 external.extension.json(장면 1~7)
-├── docs/                         # platform.md(공통 플랫폼 — 세 영역 ↔ 세 서버·M01~M29 원본·공통 기록·업무 번호) · s2/sc01.md~sc03.md(시나리오 2 장면 1~3) · role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
+├── docs/                         # platform.md(공통 플랫폼 — 세 영역 ↔ 세 서버·M01~M29 원본·공통 기록·업무 번호) · s2/sc01.md~sc04.md(시나리오 2 장면 1~4) · s3/common.md(시나리오 3 공통 — 결산 건·조정항목·입력 버전)·s3/sc01.md · role-split.md(세 서버 역할 분담·전환 단계) · records/(경영 기록 봉투·종류별 JSON 스키마·예시) · chaeksas-integration.md(Chaeksas 연계 — 현재 구조·등록 순서) · worker-interfaces.md(일꾼·회사 시스템 인터페이스) · handoff/(Chaeksas 요청서)
 ├── app/
 │   ├── layout.tsx                # 뼈대(html·body·테마)만 — 공통 줄은 화면마다(`components/shared/top-bar.tsx`)
 │   ├── globals.css               # 테마 토큰 + --viz-* 시각화 팔레트(지금 차트는 없다 — 4.4)
@@ -329,6 +335,9 @@ NowView/
     ├── processes/case-plan.bpmn  # 공통 BPM platform.case-plan — A03 제안 → Y01 검사 → 적용(사본)
     ├── processes/s2-sc03.bpmn    # 시나리오 2 장면 3 — 수행계획 v2 호출 → 원업무 연결·근거 메시지 대기 → 비교 → 팀장 권고 → H05 결정 → H04 인수(docs/s2/sc03.md)
     ├── processes/s2-sc04.bpmn    # 시나리오 2 장면 4 — 결과 대조·증빙 메시지 대기 → H06 착수 → 재현 → H04 송신·영향 → 시험 → H07 판정 → H06 적용 → H07 설정(docs/s2/sc04.md)
+    ├── processes/s3-sc01.bpmn    # 시나리오 3 장면 1 — 연결 확인 → 다음 항목 → 회계담당 점검 둘 → 보완 대기(메시지) → 인계(docs/s3/sc01.md)
+    ├── seed/S3-INPUT-v0.1.xlsx   # 시나리오 3 입력자료 명세·대표 사건 v0.1 — 입력 7개 시트가 원천(기간계 `s3.py`), 앞 4개 시트는 설계·기대값
+    ├── seed/S3-WORKPAPERS-v0.1.xlsx # 시나리오 3 결산조정 계산근거 견본 v0.1 — 장면 2의 기대값(아직 쓰지 않는다)
     ├── seed/SYN-S2-SC04-v0.4.xlsx # 시나리오 2 장면 1~4 통합가상데이터 v0.4(앞 22개 시트 = v0.3) — 원천은 기간계(`s2.py`), 파생 칸은 시험이 대조
     ├── seed/SYN-SC01-v0.2.xlsx   # 통합 가상 데이터 설계 — 원천 시트=시드, 파생 시트=기대값
     ├── seed/SYN-SC02-v0.2.xlsx   # SC01_SC02 통합가상데이터 v0.2 — 같은 원칙(2027 행은 SC01 시드와 같다)
@@ -368,6 +377,8 @@ NowView/
     │   │                         #   기동·일감 여덟·근거 메시지) · records(case_plan·work_link·comparison·escalation·decision·action·handoff)
     │   ├── s2/sc04/              # 시나리오 2 장면 4 — calc(결과 대조·SNAP-0900 선별·접수 마감·회신 분기 채택·시험 01~09·적용 버전) · process(열기→
     │   │                         #   Center 기동·일감 열·증빙 메시지) · records(outcome·improvement·replay·verification·confirmation·config)
+    │   ├── s3/sc01/              # 시나리오 3 장면 1 — calc(공통·감가상각비·충당금 점검, 항목별 입력 지문, 기한) · process(결산 건 → Center
+    │   │                         #   기동·다음 항목·점검·보완 메시지·재점검 실행) · records(close_case·close_item·input_check·fix_request·handoff·dashboard)
     │   └── sc07/                 # seed · calc(대행 확인·소요시간·원인 후보·Agent 입력 투영·검증 TS71-v1·적용 상태 ST703~707) · domain(적재 검사·조회)
     │                             #   · confirm(확인·적용 절차) · process(내장·Studio·Center) · demo(D701~D705) · view · api (`sc07_*`)
     └── tests/                    # pytest — test_sc01_calc · _process · _api · _agent · _exceptions · _center · _records,
@@ -924,6 +935,7 @@ CI의 SQLite 테스트로는 안 보였고, Postgres 테스트는 순서를 보�
 | `engine/tests/test_s2_sc01.py` | 시나리오 2 장면 1 — **통합가상데이터 v0.1 파생 칸과 대조**(입고개정 판정·주문영향 배정·상황판·모델별), 구현명세 T01~T09(15분 경계·1개 부족·3영업일 창·재수신·배경·차량 마감 누락·A01 실패 재시도·인계), 진짜 엔진 + C15 수행기로 그림 끝까지, 실행·실행 위치 409, Center 설정 없음 사유, 세계 따라가기(만들기·수신·초기화·거두기), 대시보드 상황판, 공통 기록 스키마(`docs/records/s2/sc01/`) |
 | `engine/tests/test_s2_sc03.py` | 시나리오 2 장면 3 — **통합가상데이터 v0.3과 대조**(SC03대안비교 두 안 전부, SC03결정인계·SC03인계·SC03요약, SC03업무연결의 사람 시각), 구현명세 T01~T09(재진입·같은 문의 링크 하나·중복 문의 차단·대기 → 회신 유효·2대 조건 재확인·갱신 요청·유효시각 도달·100만원 정확히 전결 범위·재보고 뒤 운임 변경 STALE → v2·비권한 결정·재전송 같은 DEC-03·인수 재전송 같은 HAND-03·인수 뒤 2대·운임·도착 변경 재보고), 진짜 엔진 + 공통 BPM 재호출 + 메시지 대기, 결재 담당 = 역할 배정, Center 메시지 `no_receiver` → 폴러 재전송, 세계 따라가기(열기·근거 넘기기·장면 3부터 다시), 대시보드 업무 23, 공통 기록 스키마(`docs/records/s2/sc03/`) |
 | `engine/tests/test_s2_sc04.py` | 시나리오 2 장면 4 — **통합가상데이터 v0.4와 대조**(SC04실적 약정별 결과·여유·정산, SC04초기선별 8건 전부, SC04회신재현 8개 분기의 처리 경로·ETA·여유·비용·회피액, SC04요청이력 시각, SC04기준적용 표본·APP-04·CFG-04·사건별 버전, SC04요약), 구현명세 시험 01~09(재수신 한 번·정산 누락 비용 미확인·정정 새 판·타 고객 영향 1/미확인 채택 보류·09:10/09:11 경계·반영 불일치·준비 지연·미통과를 통과로 기록 거절·소급 효력 거절·다른 설정 버전 거절·보류), H06 개선 불필요 끝, 담당만 답함(같은 결재로), 진짜 엔진 + 메시지 「실행증빙」 대기, Center 메시지 `no_receiver` → 폴러 재전송, 세계 따라가기(열기·증빙 넘기기·장면 4부터 다시), 대시보드 업무 24, 공통 기록 스키마(`docs/records/s2/sc04/`) |
+| `engine/tests/test_s3_sc01.py` | 시나리오 3 장면 1 — 입력 7개 시트만(설계 시트 제외), 정상 표본 수치를 점검·근거가 다시 냄(E2 2026-07-01·1,150·6,458.799691 = 원장·100 − 20 = 80·16분기·PLAN-A-26 60 = CONF-26-F), 구현명세 인수시험 01~08(재진입 같은 두 원업무·결재 0·준비 0/2 → 1/2 → 2/2·E2 개시일 누락은 감가상각비만·CONF-26-F 누락은 충당금만 → 보완 메시지 → 재점검·전기 계획 연결·회차 중복 합산 안 함·1원 차이·단위 오류·자산자료 교체 → 감가상각비만 재점검·옛 버전 응답 409·인계 뒤 교체 → 인계 무효·재점검 실행·미배정 사용자 → 같은 점검), 진짜 엔진 + C15 수행기, Center 기동·보완 메시지 `no_receiver` → 폴러 재전송, 세계 따라가기(만들기·입력 다시 연결·초기화·거두기), 대시보드 업무 31, 기록 스키마(`docs/records/s3/sc01/`), 확장 0.13.0 ↔ 그림 |
 | `tests/dashboard.test.ts` | 대시보드 표기 — 억·만·원과 부호(−), 없는 값은 0이 아니라 「미산출」, 가상시각은 KST 그대로, 회사 사이트 업무 화면 주소(사이트·세계가 없으면 링크 없음) |
 | `engine/tests/test_events.py` · `test_notify.py` | SSE 허브 구독 해제, 다른 워커로의 전파(Postgres) |
 | `engine/tests/test_preparation.py` | 장면 시작 배경 진행 — 오래 걸리면 202 → 준비 상태 → 문서, 빨리 끝나면 201, 겹친 시작은 같은 진행, 앞 장면 진행 표시, 배경 실패의 사유·상태 코드, 모르는 사례 422(아무것도 만들지 않음), 모르는 준비 404 |
@@ -1603,6 +1615,9 @@ BPM·기간계·사이트 시험을 거쳐 로컬 Center에서 끝까지 갔다(
 했다(2026-11-06 — `company1.s2.sc04` 0.13.0 · 확장 `external` 0.12.1, 0.12.0은 Center에서 철회됐다). 같은 날 로컬 Center에서 사이트 자동 모드로
 장면 1~4를 끝까지 돌렸다(증빙 메시지 다섯 → H06 착수 → 재현·H04 송신·영향 → 시험 표본 1·1·7 → H07 판정 → H06 적용 → H07 설정 → `End`, 일감
 14/14 성공, 대시보드 업무 24 = SC04요약). 운영계 반영은 남았다.
+**시나리오 3 장면 1**(`docs/s3/sc01.md`, 공통 `docs/s3/common.md`)은 엔진 시험(진짜 엔진 + C15 수행기 + 기간계 쌍둥이 입력 버전,
+인수시험 01~08)과 Company1 BPM 그림 시험까지 했다(2026-11-06 — `company1.s3.sc01` 0.13.0 · 확장 `external` 0.13.0). 로컬 Center 실측·
+운영계 반영은 남았다.
 
 ### 5.1 CI — 완료
 

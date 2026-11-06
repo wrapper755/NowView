@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc01/dashboard.schema.json",
+  "title": "s3/sc01 dashboard",
+  "description": "결산 체크리스트 집계 — 조회 범위·준비·보완·승인·상신·전표 반영·주석 취합",
+  "type": "object",
+  "required": [
+    "approved",
+    "as_of",
+    "close_id",
+    "comparative_end",
+    "input_version",
+    "needs_fix",
+    "note",
+    "notes",
+    "overdue",
+    "period_end",
+    "posting",
+    "ready",
+    "recheck",
+    "reports",
+    "rows",
+    "scope",
+    "title"
+  ],
+  "properties": {
+    "close_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "period_end": {
+      "type": "string"
+    },
+    "comparative_end": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "items",
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "items": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "ready": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "needs_fix": {
+      "type": "integer"
+    },
+    "recheck": {
+      "type": "integer"
+    },
+    "overdue": {
+      "type": "integer"
+    },
+    "approved": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "reports": {
+      "type": "integer"
+    },
+    "posting": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "due",
+          "fix_reason",
+          "item_id",
+          "name",
+          "next_action",
+          "overdue",
+          "owner_id",
+          "owner_name",
+          "remaining_days",
+          "state",
+          "state_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "due": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remaining_days": {
+            "type": "integer"
+          },
+          "overdue": {
+            "type": "boolean"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "fix_reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

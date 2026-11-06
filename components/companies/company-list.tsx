@@ -240,7 +240,7 @@ export function CompanyDashboard({ companyId, initialWorld = null }: { companyId
           >
             {worlds.map((w) => (
               <option key={w.worldId} value={w.worldId}>
-                {w.scenarioId === "s2" ? "시나리오 2" : "시나리오 1"} · {w.worldId} · {w.caseId ?? "BASE"} · {w.generation ?? 1}회차 ·{" "}
+                {`시나리오 ${(w.scenarioId ?? "s1").slice(1)}`} · {w.worldId} · {w.caseId ?? "BASE"} · {w.generation ?? 1}회차 ·{" "}
                 {formatClock(w.clock)}
               </option>
             ))}
