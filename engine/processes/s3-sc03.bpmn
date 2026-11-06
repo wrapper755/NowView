@@ -23,7 +23,7 @@
   <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
   <bpmn:process id="company1.s3.sc03" name="S3 SC03 팀장 보고 및 승인" isExecutable="true">
     <bpmn:extensionElements>
-      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.15.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "결산건ID", "type": "string", "required": true}], "outputs": []}</chk:process>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.15.1,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "결산건ID", "type": "string", "required": true}], "outputs": []}</chk:process>
     </bpmn:extensionElements>
     <bpmn:startEvent id="Start" name="장면 2 인계 HAND-S3-02 — 승인 대기 2항목 · 상신 1건"/>
     <bpmn:serviceTask id="Task_Open" name="보고 열기 (01)">
@@ -58,7 +58,7 @@
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Revision" name="보완 처리 기록 (05)">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "external", "operation": "revise_close_report", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "report_version": "보완보고버전", "action": "보완처리", "change_note": "변경내역", "answered_by": "보완자", "answered_via": "보완경로"}, "output": {"다음": "next", "보고버전": "report_version", "결과버전": "result_version", "첨부ID": "file_id", "검토대상": "item", "처리안내": "guide", "error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "revise_close_report", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "report_version": "보완보고버전", "action": "보완처리", "change_note": "변경내역", "answered_by": "보완자", "answered_via": "보완경로"}, "output": {"다음": "next", "보고버전": "report_version", "결과버전": "result_version", "첨부ID": "file_id", "파일명": "filename", "검토대상": "item", "처리안내": "guide", "error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:userTask id="Review_Revision" name="영향 항목 재검토 (05 · 회계담당자)">
@@ -68,7 +68,7 @@
     </bpmn:userTask>
     <bpmn:serviceTask id="Record_Revision_Review" name="재검토 기록">
       <bpmn:extensionElements>
-        <chk:serviceCall>{"app_id": "external", "operation": "review_close_revision", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "검토대상", "result_version": "재검토결과버전", "decision": "재검토", "answered_by": "재검토자", "answered_via": "재검토경로"}, "output": {"다음": "next", "검토대상": "item", "재검토ID": "review_id", "error_message": "error_message"}}</chk:serviceCall>
+        <chk:serviceCall>{"app_id": "external", "operation": "review_close_revision", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "검토대상", "result_version": "재검토결과버전", "decision": "재검토", "answered_by": "재검토자", "answered_via": "재검토경로"}, "output": {"다음": "next", "검토대상": "item", "재검토ID": "review_id", "처리안내": "guide", "error_message": "error_message"}}</chk:serviceCall>
       </bpmn:extensionElements>
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gw_Decision" name="결정" default="Flow_approved"/>

@@ -360,8 +360,15 @@ def test_t06_amount_change_holds_resubmission_until_recalculated_and_rereviewed(
     assert run.variables["검토대상"] == "ALW"
     _answer(engine, run, "Review_Revision", {"재검토결과버전": "RES-S3-v2", "재검토": "검토 완료"})
     assert _pending(run) == ["Revise_Report"]
+    # 보완 처리 결재가 재검토 뒤의 안내를 보인다 — 재계산 때 안내가 남지 않는다(Center 실측)
+    assert run.variables["처리안내"] == "재검토 끝 — 재상신"
     _revise(engine, run, s3, rid, "재상신")
     assert _pending(run) == ["Approve_Report"]
+    # 팀장 결재의 첨부 이름이 새 첨부의 것이다 — 열 때 받은 v1 이름이 남지 않는다(Center 실측)
+    assert (run.variables["첨부ID"], run.variables["파일명"]) == (
+        "WP-S3-v2",
+        "S3-CLOSE-01_결산조정_계산근거_v2.xlsx",
+    )
     doc = s3.get(rid)
     v2 = current(doc)
     assert (v2["version"], v2["result_version"], v2["attachment"]["file_id"]) == (
@@ -631,7 +638,7 @@ def test_dashboard_shows_scene3_metrics(procs, company, opened, tmp_path) -> Non
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """
-    확장 `external`(0.15.0 이상)이 계약 검사를 통과하고, 그림의 서비스 호출 다섯이 정의의
+    확장 `external`(0.15.1 이상)이 계약 검사를 통과하고, 그림의 서비스 호출 다섯이 정의의
     입력·출력과 맞는다. 결정·인계 재시도는 회계팀장, 보완 처리·재검토는 회계담당자이고 기록
     작업마다 오류 경계가 있다. 그림에는 모든 노드·흐름의 좌표(DI)가 있다 — 없으면 Studio의 자동
     배치가 깨진다.
@@ -649,7 +656,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     ).read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
-    assert satisfies(manifest.version, ">=0.15.0,<1")
+    assert satisfies(manifest.version, ">=0.15.1,<1")
     operations = {o["name"]: o for o in json.loads(raw)["service"]["adapter"]["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
     used = []

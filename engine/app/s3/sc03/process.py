@@ -584,7 +584,7 @@ def decide(
             return _decision_out(prior)
         state = VERSION_LABEL[version_of(doc, seen)["state"]]
         raise DomainError(
-            f"보고 {REPORT_ID} v{seen}은 이미 {prior['label']}({prior['decision_id']})로 "
+            f"보고 {REPORT_ID} v{seen}은 이미 {prior['label']}({prior['decision_id']})으로 "
             f"처리됐다 — 지금 상태 {state} · 현재 버전 v{ver['version']}",
             409,
         )
@@ -1227,6 +1227,7 @@ def _revision_out(doc: dict, nxt: str, todo: list[str], guide: str) -> dict[str,
         "report_version": ver["version"],
         "result_version": res["result_version"],
         "file_id": att["file_id"],
+        "filename": att["filename"],
         "item": todo[0] if todo else None,
         "guide": guide,
         "error_message": None,
@@ -1278,7 +1279,9 @@ def review_revision(doc: dict, args: dict[str, Any], sc01_doc: dict) -> dict[str
         doc["reviews"].append(rec)
         audit(doc, actor=by, action="revision_reviewed", item=item, review_id=rec["review_id"])
     todo = _todo(doc, res)
-    out = _revision_out(doc, "REVIEW" if todo else "REVISE", todo, "재검토 기록")
+    # 처리안내는 다음 보완 처리 결재가 보인다 — 재계산 때의 「영향 항목 재검토」가 남지 않게(실측)
+    guide = "다음 영향 항목 재검토" if todo else "재검토 끝 — 재상신"
+    out = _revision_out(doc, "REVIEW" if todo else "REVISE", todo, guide)
     return out | {"review_id": review_of(doc, item, res["result_version"])["review_id"]}
 
 

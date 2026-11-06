@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "name": "NowView 일꾼",
   "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」·「실행 결과 확인과 관리기준 개선」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 시나리오 3 장면 1 「결산조정 업무 착수」의 작업(link_close_inputs·route_close_items·check_close_item·hand_off_close_items)와 장면 2 「결산조정 계산 및 담당자 검토」의 작업(open_close_analysis·request_close_analysis·process_close_analysis·attach_close_workpaper·route_close_review·review_close_item·submit_close_report), 장면 3 「팀장 보고 및 승인」의 작업(open_close_approval·decide_close_report·hand_off_close_approval·revise_close_report·review_close_revision)도 있다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
@@ -8149,16 +8149,19 @@
               "file_id": {
                 "type": "string"
               },
+              "guide": {
+                "type": "string"
+              },
+              "error_message": {},
+              "filename": {
+                "type": "string"
+              },
               "item": {
                 "type": [
                   "string",
                   "null"
                 ]
-              },
-              "guide": {
-                "type": "string"
-              },
-              "error_message": {}
+              }
             }
           },
           "request": {
@@ -8226,7 +8229,10 @@
               "review_id": {
                 "type": "string"
               },
-              "error_message": {}
+              "error_message": {},
+              "guide": {
+                "type": "string"
+              }
             }
           },
           "request": {
