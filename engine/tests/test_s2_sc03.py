@@ -37,7 +37,7 @@ from app.sc01.domain import DomainError, parse_at
 from app.sc01.store import build_sc01_store
 from app.store import build_sqlite_backend
 
-SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC03-v0.3.xlsx"
+SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC04-v0.4.xlsx"
 KST = calc.at("2026-11-05T00:00:00+09:00").tzinfo
 
 
@@ -227,10 +227,10 @@ def _base(proc, company, rid) -> State:
 
 
 def test_v03_keeps_scenes_1_and_2_and_adds_scene_3(master: dict) -> None:
-    """v0.3의 앞 15개 시트는 v0.2와 값이 같다(셀 대조, `docs/s2/sc03.md`) — 장면 1·2가 같은 파일."""
+    """v0.4의 앞 15개 시트는 v0.2와 값이 같다(셀 대조, `docs/s2/sc03.md`·`sc04.md`) — 같은 파일."""
     wb = openpyxl.load_workbook(SEED, data_only=True)
     assert wb.sheetnames[14] == "SC02인계" and wb.sheetnames[15] == "SC03요약"
-    assert master["dataset_version"] == "SYN-S2-SC03-v0.3"
+    assert master["dataset_version"] == "SYN-S2-SC04-v0.4"
     [reply] = [s for s in master["case_sources"] if s["kind"] == "transport_reply"]
     assert (reply["fixture_id"], reply["work_id"], reply["owner_role"]) == (
         "Q-R-v1",
@@ -603,12 +603,13 @@ def test_other_run_and_other_place_are_refused(proc, company, handed) -> None:
 
 def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     """
-    확장 `external` 0.11.0 — 업무 그림과 공통 BPM `platform.case-plan`의 서비스 호출이 정의의
+    확장 `external`(0.11.0 이상) — 업무 그림과 공통 BPM `platform.case-plan`의 서비스 호출이 정의의
     입력·출력과 맞고, 결재 담당자가 역할 배정(H03·H05·H04)과 같고, 기록 작업마다 오류 경계가 있다.
     """
     import json
 
     from chaeksas.contracts import extension as ext
+    from chaeksas.contracts._semver import satisfies
     from chaeksas.contracts.bpmn_ext import read_process
 
     from app.s2.sc03.process import CALLED_PATHS, OPERATIONS, PROCESS_PATH
@@ -618,7 +619,7 @@ def test_extension_definition_matches_the_bpmn_service_calls() -> None:
     ).read_bytes()
     manifest = ext.ExtensionManifest.model_validate(json.loads(raw))
     assert ext.validate(manifest, from_center=True) == []
-    assert manifest.version == "0.11.0"
+    assert satisfies(manifest.version, ">=0.11.0,<1")
     operations = {o["name"]: o for o in json.loads(raw)["service"]["adapter"]["operations"]}
     process = read_process(PROCESS_PATH.read_bytes())
     called = {p.id: p for p in (read_process(path.read_bytes()) for path in CALLED_PATHS)}

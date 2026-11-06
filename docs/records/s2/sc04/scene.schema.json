@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/scene.schema.json",
+  "title": "s2/sc04 scene",
+  "description": "장면 머리 — 시연 시각·실행 위치·BPM 실행·장면 3 인계 사본·회사와 오간 것·흐름",
+  "type": "object",
+  "required": [
+    "bpm",
+    "caseId",
+    "clock",
+    "companyLog",
+    "demoRunId",
+    "evidenceSeen",
+    "executor",
+    "flow",
+    "roles",
+    "scenario",
+    "scene",
+    "source",
+    "title"
+  ],
+  "properties": {
+    "demoRunId": {
+      "type": "string"
+    },
+    "scenario": {
+      "type": "string"
+    },
+    "scene": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "caseId": {
+      "type": "string"
+    },
+    "clock": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor": {
+      "type": "string"
+    },
+    "bpm": {
+      "type": "object",
+      "required": [
+        "external_run_id",
+        "job_id",
+        "problem",
+        "state",
+        "visited",
+        "waiting"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "null"
+        },
+        "external_run_id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "state": {
+          "type": "string"
+        },
+        "visited": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "waiting": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "node_id",
+              "title"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "problem": {
+          "type": "null"
+        }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "action_id",
+        "case_id",
+        "decision_id",
+        "existing",
+        "handoff_id",
+        "observed"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string"
+        },
+        "handoff_id": {
+          "type": "string"
+        },
+        "decision_id": {
+          "type": "string"
+        },
+        "action_id": {
+          "type": "string"
+        },
+        "observed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "existing": {
+          "type": "object",
+          "required": [
+            "approval_id",
+            "approved_at",
+            "handoff_id",
+            "judged_at",
+            "margin_min",
+            "readback_at",
+            "readback_version"
+          ],
+          "properties": {
+            "handoff_id": {
+              "type": "string"
+            },
+            "judged_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "margin_min": {
+              "type": "integer"
+            },
+            "approval_id": {
+              "type": "null"
+            },
+            "approved_at": {
+              "type": "null"
+            },
+            "readback_version": {
+              "type": "string"
+            },
+            "readback_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "duty",
+          "kind",
+          "label",
+          "role_id",
+          "steps",
+          "title"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duty": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "node",
+          "role",
+          "state"
+        ],
+        "properties": {
+          "node": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "companyLog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "direction",
+          "what"
+        ],
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string"
+          },
+          "what": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "evidenceSeen": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": true
+}

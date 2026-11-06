@@ -150,6 +150,32 @@ def _s2sc03(found: list[Record]) -> list[Metric]:
     ]
 
 
+def _s2sc04(found: list[Record]) -> list[Metric]:
+    """
+    SC04요약의 칸 — 실적(정시 전량·R 실제 추가비)과 재현 전망(미조정 여유·앞당김·접수 마감 여유·
+    조정 후 여유·추가 운임 전망·조건부 회피)·10월 OTD·적용 상태. 재현 전망은 실적이 아니다.
+    """
+    s = (_latest(found, "dashboard") or {}).get("summary") or {}
+
+    def mins(key: str, signed: bool = True, unit: str = "분") -> str | None:
+        v = s.get(key)
+        return None if v is None else (f"{v:+d}{unit}" if signed else f"{v}{unit}")
+
+    otd = s.get("october_otd")
+    return [
+        _text("정시 전량 인수", mins("on_time_full", signed=False, unit="건")),
+        _krw("R 실제 추가 운송비", s.get("r_actual_extra_cost")),
+        _text("R 미조정 납기 여유(재현)", mins("r_unadjusted_margin_min")),
+        _text("위험 식별 앞당김", mins("detection_earlier_min", signed=False)),
+        _text("접수 시점 마감 여유", mins("receipt_margin_min", signed=False)),
+        _text("조정 후 납기 여유(전망)", mins("adjusted_margin_min")),
+        _krw("추가 운임 전망", s.get("fare_forecast")),
+        _krw("조건부 비용 회피 가능액", s.get("conditional_avoidance")),
+        _text("10월 OTD", None if otd is None else f"{float(otd) * 100:.0f}%"),
+        _text("적용 상태", s.get("application")),
+    ]
+
+
 LABELS_22 = {
     "initial_impact": "최초 영향 약정",
     "matched": "반영 대조 일치",
@@ -187,6 +213,7 @@ METRICS: dict[int, Callable[[list[Record]], list[Metric]]] = {
     21: _s2sc01,
     22: _s2sc02,
     23: _s2sc03,
+    24: _s2sc04,
 }
 
 
@@ -213,6 +240,10 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
         from app.s2.sc03 import records as s23
 
         return s23.records_of(doc, proc.master())
+    if scene == 24:
+        from app.s2.sc04 import records as s24
+
+        return s24.records_of(doc, proc.master())
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 

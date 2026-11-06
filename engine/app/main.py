@@ -31,6 +31,7 @@ from .notify import build_notifier
 from .s2.sc01.process import S2Sc01Process
 from .s2.sc02.process import S2Sc02Process
 from .s2.sc03.process import S2Sc03Process
+from .s2.sc04.process import S2Sc04Process
 from .sc01.api import build_router as build_sc01_router
 from .sc01.center import CenterClient, CenterConfig
 from .sc01.poller import CenterPoller
@@ -137,18 +138,29 @@ s2sc03 = S2Sc03Process(
     center=center,
     publish=notifier.publish,
 )
-_SCENES = {**_S1, 21: s2sc01, 22: s2sc02, 23: s2sc03}
+# 시나리오 2 장면 4 — 장면 3 인계(HAND-03)에서 연다. 결정·실적 대조(증빙이 오면 메시지로 깨운다) →
+# H06 개선 착수 → 당시 자료 재현·H04 요청·영향 확인 → H07 시험 판정 → H06 적용 확인 → H07 설정. 업무
+# 번호 24.
+s2sc04 = S2Sc04Process(
+    build_sc01_store(backend, "s2sc04"),
+    company=company,
+    sc03=s2sc03,
+    center=center,
+    publish=notifier.publish,
+)
+_SCENES = {**_S1, 21: s2sc01, 22: s2sc02, 23: s2sc03, 24: s2sc04}
 # 도는 center 데모 실행의 진행을 2초마다 읽는다 — Center에는 push가 없다(요청서 R3 거절). 시나리오 1
 # 일곱 장면과 시나리오 2 장면 1.
-poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07, s2sc01, s2sc02, s2sc03)
+poller = CenterPoller(sc01, sc02, sc03, sc04, sc05, sc06, sc07, s2sc01, s2sc02, s2sc03, s2sc04)
 # 세계 따라가기 — 회사 사이트가 기간계에 만든 세계·시계·원천·명령을 읽어 따라간다(role-split §5.3).
 # 일감은 처리 전에 그 세계의 시각을 먼저 따라간다(`Synced`). 회차의 시나리오로 갈라 따라간다.
-follower = Follower(company, _S1, s2=s2sc01, s2_scenes={2: s2sc02, 3: s2sc03})
+follower = Follower(company, _S1, s2=s2sc01, s2_scenes={2: s2sc02, 3: s2sc03, 4: s2sc04})
 # 일감 기록의 장면은 그 회차 시나리오의 장면 번호다(시나리오 2 장면 1 → 1)
 _WORKERS = {n: Synced(p, follower, n) for n, p in _S1.items()} | {
     21: Synced(s2sc01, follower, 1),
     22: Synced(s2sc02, follower, 2),
     23: Synced(s2sc03, follower, 3),
+    24: Synced(s2sc04, follower, 4),
 }
 consumer = ConsumerHost.from_env(settings.config.topics, routed_by(settings.scene_of, _WORKERS))
 app.include_router(
@@ -217,6 +229,7 @@ def health() -> dict[str, Any]:
                 s2sc01.process.id,
                 s2sc02.process.id,
                 s2sc03.process.id,
+                s2sc04.process.id,
             ],
         },
         "demoRuns": len(sc01.store.list()),

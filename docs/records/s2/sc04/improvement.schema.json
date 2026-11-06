@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/improvement.schema.json",
+  "title": "s2/sc04 improvement",
+  "description": "관리기준 개선 건(M25, N12·N13) — 개선 사유·KRI·Control 개정 초안·유지 기준·H06 착수 판단",
+  "type": "object",
+  "required": [
+    "case_refs",
+    "control",
+    "decided_at",
+    "decided_by",
+    "decided_role",
+    "decision",
+    "decision_reason",
+    "execution_mode",
+    "improvement_id",
+    "kept",
+    "kri",
+    "note",
+    "outcome",
+    "previous",
+    "previous_rules",
+    "proposed_by",
+    "reason",
+    "state",
+    "unit",
+    "unit_name",
+    "version",
+    "via"
+  ],
+  "properties": {
+    "improvement_id": {
+      "type": "string"
+    },
+    "case_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outcome": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "kri": {
+      "type": "object",
+      "required": [
+        "formula",
+        "name",
+        "recheck",
+        "trigger"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "formula": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "recheck": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "control": {
+      "type": "object",
+      "required": [
+        "cutoff_rule",
+        "duplicate_rule",
+        "name",
+        "steps"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "cutoff_rule": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "duplicate_rule": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "kept": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unit": {
+      "type": "string"
+    },
+    "unit_name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "previous": {
+      "type": "string"
+    },
+    "previous_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "proposed_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "decision_reason": {
+      "type": "string"
+    },
+    "decided_by": {
+      "type": "string"
+    },
+    "decided_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,12 +1,13 @@
 """
 시나리오 2(OTD — 납기) 회사 자료와 세계 기록 — 장면 1 「납기 위험 조기 감지」·장면 2 「정형통제
-실행과 주문별 분기」·장면 3 「잔여 납기 위험의 경영검토와 대응 합의」.
+실행과 주문별 분기」·장면 3 「잔여 납기 위험의 경영검토와 대응 합의」·장면 4 「실행 결과 확인과
+관리기준 개선」.
 
-NowView `docs/platform.md`(공통 플랫폼)·`docs/s2/sc01.md`~`sc03.md`. 자료는
-`seed/SYN-S2-SC03-v0.3.xlsx`(SC01~SC03 통합가상데이터 v0.3 — 앞 15개 시트는 v0.2와 값이 같다)의
+NowView `docs/platform.md`(공통 플랫폼)·`docs/s2/sc01.md`~`sc04.md`. 자료는
+`seed/SYN-S2-SC04-v0.4.xlsx`(SC01~SC04 통합가상데이터 v0.4 — 앞 22개 시트는 v0.3과 셀 단위로 같다)의
 **원천 칸만** 읽는다 — 파생 칸(마감판정·사용 가능 예정·착수차질·판정, 장면 2의 제안 착수·종료·
-출하 준비·이용 정기차·여유, 장면 3의 대안비교·요약·결정인계)은 NowView 규칙 계산이 내고 시험이
-대조한다.
+출하 준비·이용 정기차·여유, 장면 3의 대안비교·요약·결정인계, 장면 4의 실적 판정·초기선별·회신재현의
+처리 경로·기준적용)은 NowView 규칙 계산이 내고 시험이 대조한다.
 
 * `GET /company/s2/master` — 불변 회사 자료: 납기약정(M04·M05 — 10월 마감 100건 +
   11월 시연 8건, 미래 인수는 `null`), 생산 소요(주문영향의 원천 칸 — 약정 × 부품·
@@ -30,6 +31,13 @@ NowView `docs/platform.md`(공통 플랫폼)·`docs/s2/sc01.md`~`sc03.md`. 자�
   시각은 그때다. 같은 근거 id를 다시 보내면 기존 접수다. 시험은 `source_id`·`overrides`로 회신의
   새 판·변형(미회신 뒤 늦은 회신, 2대, 운임 변경)을 낸다. 팀장 전결 한도(AUTH-T1)는 불변 자료다.
   예약은 이 기간계에 없다 — 회신의 「가능」은 예약 확정이 아니다.
+* 장면 4 — 납품 뒤의 **실행 증빙**(예약확정서 BOOK-R · 고객 전량 인수기록 POD-S·POD-R · 운송비 정산
+  SET-S·SET-R, SC04실적의 원천 칸). (시연) `POST /worlds/{w}/sim/execution-evidence {fixture_id}`로
+  세계 시각에 들어온다(등록 시각) — 예약·인수 시각은 증빙 안의 칸이다. 같은 증빙 id는 기존 접수다
+  (재수신 — 중복 반영 0건). 시험은 `source_id`(정정 판 `POD-R-v2`)·`overrides`(인수수량·시각
+  누락 등)를 준다. 정규 순회노선 계약(RUN-REG 기점 출발 · 변경 접수 24시간 전)과 재현 시험
+  분기(SC04회신재현의 회신·접수·수용량·타 고객 영향·추가운임·울산 출발·운행 — 가상 계약·시험 가정)는
+  불변 자료다.
 
 이 파일은 NowView 엔진 시험의 기간계 쌍둥이(`engine/tests/company_twin/s2.py`)에
 **그대로** 복사한다 — 자료 위치를 두 자리에서 찾는다(`_workbook`).
@@ -48,8 +56,8 @@ from pydantic import BaseModel
 
 KST = timezone(timedelta(hours=9))
 SCENARIO = "s2"
-NAME = "SYN-S2-SC03-v0.3.xlsx"
-DATASET = "SYN-S2-SC03-v0.3"
+NAME = "SYN-S2-SC04-v0.4.xlsx"
+DATASET = "SYN-S2-SC04-v0.4"
 #: 시나리오 2 회차의 처음 시각 — 최초 입고예정(P-v0) 등록 전. 시연은 11/2 → 11/3 →
 #: 11/4 09:00 개정을 차례로 보낸다.
 S0_CLOCK = datetime(2026, 11, 2, 8, 0, tzinfo=KST).isoformat()
@@ -162,6 +170,7 @@ def master() -> dict[str, Any]:
         "revisions": revisions,
         **_scene2(wb, commitments, demand),
         **_scene3(wb),
+        **_scene4(wb),
     }
 
 
@@ -314,9 +323,94 @@ def _scene3(wb: Any) -> dict[str, Any]:
     }
 
 
+#: 실행 증빙의 종류 — 증빙 id 앞머리(SC04실적 「증빙 ID」)로 가른다
+BOOKING, DELIVERY, SETTLEMENT = "booking", "delivery_receipt", "settlement"
+EVIDENCE_KIND = {"BOOK": BOOKING, "POD": DELIVERY, "SET": SETTLEMENT}
+#: 시험이 증빙 변형에 바꿀 수 있는 칸 — 수량·시각·금액만(증빙 id·약정은 못 바꾼다)
+EVIDENCE_OVERRIDABLE = {"reserved_at", "accepted_qty", "accepted_at", "extra_cost"}
+#: 정규 순회노선의 변경 접수 기한 — 기점 출발 몇 시간 전까지(SC04요청이력 CUT-REG 「순회차 기점
+#: 출발 − 24시간」, 경영이야기 「검증용 가정」 — 가상 계약 조건)
+ROUTE_LEAD_HOURS = 24
+
+
+def _scene4(wb: Any) -> dict[str, Any]:
+    """
+    장면 4 원천 — SC04실적의 증빙 칸(운송·예약 확정·인수수량·인수시각·정산 추가비, 증빙 ID로
+    나눈다), SC04요청이력의 계약 행(정규 순회차 RUN-REG 기점 출발)과 재현 행(SNAP·요청·접수증·회신의
+    시각·담당 — 09:03·09:08은 시연 가정), SC04회신재현의 시험 분기 입력(회신·접수시각·수용량·타 고객
+    영향·추가운임·울산 출발·운행 분). 접수시각 칸은 「접수증 시각 + 지연 분」 식이라 그 값을 분기
+    입력으로 읽는다. 실적의 여유·결과, 회신재현의 마감여유·도착 후보·처리 경로·채택 ETA·비용 전망·
+    회피액, 초기선별·요약·기준적용은 NowView가 다시 낸다(시험이 대조).
+    """
+    evidence = []
+    for r in _rows(wb["SC04실적"]):
+        for eid in (x.strip() for x in str(r["증빙 ID"]).split("/")):
+            kind = EVIDENCE_KIND[eid.split("-")[0]]
+            body: dict[str, Any] = {
+                "fixture_id": eid,
+                "kind": kind,
+                "commitment_id": r["약정"],
+                "transport": r["운송"],
+            }
+            if kind == BOOKING:
+                body["reserved_at"] = _at(r["예약 확정"])
+            elif kind == DELIVERY:
+                body.update(accepted_qty=_int(r["인수수량"]), accepted_at=_at(r["인수시각"]))
+            else:
+                body["extra_cost"] = _int(r["정산 추가비(원)"])
+            evidence.append(body)
+    contract, replay = None, []
+    for r in _rows(wb["SC04요청이력"]):
+        if r["모드"] == "계약" and r["기록 ID"] == "RUN-REG":
+            contract = {
+                "route_id": r["기록 ID"],
+                "name": r["원업무·계보"],
+                "origin_departure": _at(r["일시"]),
+                "lead_hours": ROUTE_LEAD_HOURS,
+                "carrier": r["담당"],
+            }
+        elif r["모드"] == "재현":
+            replay.append(
+                {
+                    "record_id": r["기록 ID"],
+                    "lineage": r["원업무·계보"],
+                    "at": _at(r["일시"]),
+                    "actor": r["담당"],
+                    "note": r["상태·근거"],
+                }
+            )
+    branches = [
+        {
+            "branch": r["분기"],
+            "reply": r["회신"],
+            "received_at": _at(r["접수시각"]),
+            "capacity": _int(r["수용량"]),
+            "other_customer_impact": _int(r["타 고객 영향(1/0)"]),
+            "extra_fare": _int(r["추가운임(원)"]),
+            "departure": _at(r["울산 출발"]),
+            "run_min": _int(r["운행(분)"]),
+        }
+        for r in _rows(wb["SC04회신재현"])
+    ]
+    return {
+        "execution_evidence": evidence,
+        "route_contract": contract,
+        "replay_events": replay,
+        "replay_branches": branches,
+    }
+
+
 def new_world() -> dict[str, Any]:
-    """시나리오 2 세계의 변하는 기록 — 구매 개정 수신함·생산계획 저장소·장면 3 근거 원천."""
-    return {"receipt_seq": 0, "receipts": {}, **new_plan(), **new_sources()}
+    """
+    시나리오 2 세계의 변하는 기록 — 구매 개정 수신함·생산계획 저장소·장면 3 근거 원천·장면 4 실행
+    증빙.
+    """
+    return {"receipt_seq": 0, "receipts": {}, **new_plan(), **new_sources(), **new_evidence()}
+
+
+def new_evidence() -> dict[str, Any]:
+    """장면 4 실행 증빙(예약·인수·정산)의 처음 — 아무것도 받지 않았다."""
+    return {"evidence_seq": 0, "execution_evidence": {}}
 
 
 def new_sources() -> dict[str, Any]:
@@ -338,7 +432,7 @@ def new_plan() -> dict[str, Any]:
 def rewind(w: dict[str, Any], scene: int) -> None:
     """
     「장면 N부터 다시」(N ≥ 2) — 장면 2부터면 생산계획을 원계획으로(수신함은 장면 1 몫이라
-    둔다), 장면 3부터면 장면 3 근거 원천을 비운다.
+    둔다), 장면 3부터면 장면 3 근거 원천을, 장면 4부터면 실행 증빙을 비운다.
     """
     if w.get("scenario_id") != SCENARIO:
         return
@@ -346,6 +440,8 @@ def rewind(w: dict[str, Any], scene: int) -> None:
         w.update(new_plan())
     if scene <= 3:
         w.update(new_sources())
+    if scene <= 4:
+        w.update(new_evidence())
 
 
 def _plan(w: dict[str, Any]) -> dict[str, Any]:
@@ -354,6 +450,8 @@ def _plan(w: dict[str, Any]) -> dict[str, Any]:
         w.update(new_plan())
     if "case_sources" not in w:
         w.update(new_sources())
+    if "execution_evidence" not in w:
+        w.update(new_evidence())
     return w
 
 
@@ -362,6 +460,7 @@ def summary(w: dict[str, Any]) -> dict[str, Any]:
     return {
         "receipt_revisions": len(w.get("receipts", {})),
         "case_sources": len(w.get("case_sources", {})),
+        "execution_evidence": len(w.get("execution_evidence", {})),
     }
 
 
@@ -400,6 +499,17 @@ class SourceBody(BaseModel):
     """
     장면 3 근거 원천 하나 — `fixture_id`는 자료의 근거(Q-R-v1·CUST-R-v1). (시험) `source_id`로 새 판
     (Q-R-v2 등)을, `overrides`로 회신 칸을 바꾼 변형을 낸다.
+    """
+
+    fixture_id: str
+    source_id: str | None = None
+    overrides: dict[str, Any] = {}
+
+
+class EvidenceBody(BaseModel):
+    """
+    장면 4 실행 증빙 하나 — `fixture_id`는 자료의 증빙(BOOK-R·POD-S·POD-R·SET-S·SET-R). (시험)
+    `source_id`로 정정 판(POD-R-v2 등)을, `overrides`로 칸을 바꾼 변형(인수시각 누락 등)을 낸다.
     """
 
     fixture_id: str
@@ -629,6 +739,52 @@ def mount(
         if d is None:
             raise HTTPException(404, f"없는 근거 원천 수신: {doc_id}")
         return d
+
+    @app.post(
+        "/worlds/{world_id}/sim/execution-evidence", status_code=201, dependencies=[Depends(auth)]
+    )
+    def evidence_arrives(world_id: str, body: EvidenceBody) -> dict[str, Any]:
+        """
+        (시연) 장면 4 실행 증빙이 회사 시스템에 들어왔다 — 등록 시각은 세계 시각이다(예약·인수
+        시각은 증빙의 칸). 같은 증빙 id는 기존 접수를 돌려준다(재수신은 중복 반영하지 않는다).
+        """
+        found = next(
+            (x for x in master()["execution_evidence"] if x["fixture_id"] == body.fixture_id), None
+        )
+        if found is None:
+            known = ", ".join(x["fixture_id"] for x in master()["execution_evidence"])
+            raise HTTPException(404, f"모르는 실행 증빙: {body.fixture_id} (가능: {known})")
+        bad = sorted(set(body.overrides) - EVIDENCE_OVERRIDABLE)
+        if bad:
+            raise HTTPException(422, f"바꿀 수 없는 칸: {', '.join(bad)}")
+        source_id = body.source_id or body.fixture_id
+        with store.lock():
+            w = _plan(world(world_id))
+            for d in w["execution_evidence"].values():
+                if d["source_id"] == source_id:
+                    return {**_source_summary(d), "created": False}
+            w["evidence_seq"] = w.get("evidence_seq", 0) + 1
+            doc_id = f"XE-{w['evidence_seq']:04d}"
+            w["execution_evidence"][doc_id] = {
+                **found,
+                **body.overrides,
+                "doc_id": doc_id,
+                "seq": w["evidence_seq"],
+                "source_id": source_id,
+                "registered_at": w["clock"],
+            }
+            store.put(w)
+        return {**_source_summary(w["execution_evidence"][doc_id]), "created": True}
+
+    @app.get("/worlds/{world_id}/execution-evidence/inbox", dependencies=[Depends(auth)])
+    def evidence_inbox(world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        docs = sorted(_plan(world(world_id))["execution_evidence"].values(), key=lambda d: d["seq"])
+        return [_source_summary(d) for d in docs if d["seq"] > after]
+
+    @app.get("/worlds/{world_id}/execution-evidence", dependencies=[Depends(auth)])
+    def execution_evidence(world_id: str) -> list[dict[str, Any]]:
+        """받은 실행 증빙 전부(등록 순) — NowView가 결과 대조 때 다시 읽는다."""
+        return sorted(_plan(world(world_id))["execution_evidence"].values(), key=lambda d: d["seq"])
 
     @app.get("/worlds/{world_id}/shipping-inquiries/{work_id}", dependencies=[Depends(auth)])
     def shipping_inquiry(world_id: str, work_id: str) -> dict[str, Any]:

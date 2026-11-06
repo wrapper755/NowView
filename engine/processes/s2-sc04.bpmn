@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  시나리오 2 장면 4 — 실행 결과 확인과 관리기준 개선(D09~D11). 업무 흐름의 유일한 원천이다.
+
+  **장면 3 인계(HAND-03)에서 이어진다** — 같은 사건(CASE-S2-01). 사이트의 「장면 열기」로 NowView 일꾼이 이
+  프로세스를 기동한다(입력 `데모실행ID`·`사건ID`). 그림이 쥐는 것은 순서·사람 대기·분기뿐이다 — 결정·실적
+  대조, SNAP-0900 초기선별, 변경 접수 마감(기점 출발 − 24시간), 회신 분기별 채택 판정, 인수시험은 일꾼의
+  규칙 계산이다(NowView `engine/app/s2/sc04/calc.py`).
+
+  단계 대응(업무설계표 D09~D11): 결정과 실적 대조 N11(회사 시스템의 예약·인수·정산 증빙 — 모자라면 **메시지
+  「실행증빙」을 기다린다**, 상관 키 데모실행ID) → **관리 기준 책임자(H06) 개선 착수 결재** N12·N13(A01 개정
+  초안 — 개선 불필요면 끝) → 당시 자료 재현 N14(SNAP-0900 선별·요청 초안 — 후보가 없으면 끝) → **출하
+  담당자(H04) 조정 요청 확인·송신 결재**(모의 송신) → 모의 운송사 접수증·회신 → **출하 담당자(H04) 타 고객
+  영향 확인 결재** → 인수시험 N14 → **Agent 운영 담당자(H07) 시험 판정 결재**(보완·재시험이면 적용 차단으로
+  끝) → **관리 기준 책임자(H06) 적용 확인 결재** N15(APP-04, 보류면 끝) → **Agent 운영 담당자(H07) 위임 설정
+  결재** N16(CFG-04 — 다음 신규 사건부터).
+
+  공통 BPM을 부르지 않는다 — 기준 개선은 별도 개선 건이 사건을 참조하는 것이라(전체업무연결 U09) 사건
+  수행계획(`platform.case-plan`)을 바꾸지 않는다. 사람 결재 여섯이 모두 이 그림에 있다(서버 실행기가 호출
+  활동 안의 결재를 Center에 올리지 않는다). 결재에 답한 사람은 `answered_by_as`·`answered_via_as`로 받아
+  기록 작업에 싣고, 기록이 거절되면 오류 경계로 **같은 결재로 되돌아간다**. 결재 담당자 이름은 NowView
+  `app/platform/catalog.py`의 HOLDERS — H04 = 출하담당 · H06 = 경영관리팀장 · H07 = 운영담당은 가안이다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s2_sc04">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:message id="Msg_evidence" name="실행증빙"/>
+  <bpmn:process id="company1.s2.sc04" name="S2 SC04 실행 결과 확인과 관리기준 개선" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.12.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "사건ID", "type": "string", "required": true}]}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="결정 실행 이후 — HAND-03 (DEC-03·ACT-03)"/>
+    <bpmn:serviceTask id="Task_Results" name="결정과 실적 대조 (N11 — 예약·인수·정산 증빙)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "link_execution_results", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"결과ID": "outcome_id", "결과준비": "ready", "정시전량": "on_time_full", "결과사유": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Results" name="증빙이 다 왔나" default="Flow_wait"/>
+    <bpmn:receiveTask id="Wait_Evidence" name="예약·인수·정산 증빙 대기" messageRef="Msg_evidence">
+      <bpmn:extensionElements>
+        <chk:receive>{"message": "실행증빙", "correlation": "데모실행ID", "payload": ["증빙ID"]}</chk:receive>
+      </bpmn:extensionElements>
+    </bpmn:receiveTask>
+    <bpmn:userTask id="Approve_Start" name="관리기준 개선 착수 (관리 기준 책임자 H06 — N12)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-B05 → A04 관리기준 개선 착수 — 관리 기준 책임자(H06)", "answered_by_as": "착수판단자", "answered_via_as": "착수판단경로", "assignees": ["오세린"], "description": "두 주문 모두 약정 안에 전량 인수됐지만 R에는 긴급차 세 대와 추가비 120만원이 들었다. A01이 결과와 기존 판정 시각으로 낸 개정 초안(주문별 운송납기 여유 KRI + 마감 전 구체 배차 조정 요청 Control)을 보고 개선을 착수할지 판단한다. 모든 사건을 개선으로 잇지 않는다 — 「개선 불필요」면 결과 기록만 남긴다. 고객 약정·OTD KPI·전결 기준은 바꾸지 않는다.", "show": ["데모실행ID", "사건ID", "결과ID", "정시전량", "결과사유", "error_message"], "fields": [{"key": "개선착수", "label": "개선 착수 (착수 · 개선 불필요)", "type": "choice", "required": true, "choices": ["착수", "개선 불필요"]}, {"key": "착수사유", "label": "판단 사유", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Start" name="개선 착수 기록 — IMP-04">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "start_standard_improvement", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "decision": "개선착수", "reason": "착수사유", "answered_by": "착수판단자", "answered_via": "착수판단경로"}, "output": {"착수결과": "result", "개선ID": "improvement_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Start" name="개선을 착수하나" default="Flow_no_improvement"/>
+    <bpmn:serviceTask id="Task_Replay" name="당시 자료 재현 (SNAP-0900 선별·요청 초안 — A01)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "replay_route_screening", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"재현ID": "replay_id", "후보수": "candidates", "요청있음": "requested", "요청ID": "request_id", "남은분": "minutes_left"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Candidate" name="조정 요청 후보가 있나" default="Flow_no_candidate"/>
+    <bpmn:userTask id="Approve_Request" name="조정 요청 확인·송신 (출하 담당자 H04 — 재현)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-A03 재현 — 정규노선 조정 요청 확인·송신 (H04)", "answered_by_as": "요청확인자", "answered_via_as": "요청확인경로", "assignees": ["출하담당"], "description": "재현 모드다 — 11/4 09:00까지 가용한 자료로 R(240세트)의 정기차 납기 여유를 잠정 −30분으로 식별했고, 정규 순회노선 변경 접수 마감(기점 출발 11/5 09:10 − 24시간 = 11/4 09:10)까지 10분이 남았다. A01이 쓴 「울산 경유·240세트 전량 적재」 조정 요청 초안을 확인하고 송신한다. 실제 운송사에는 보내지 않는다(모의 송신). 초안·송신·접수증·수락은 서로 다른 상태다 — 접수만으로 배차를 확정하지 않는다.", "show": ["데모실행ID", "사건ID", "재현ID", "요청ID", "남은분", "error_message"], "fields": [{"key": "요청확인", "label": "요청 확인", "type": "choice", "required": true, "choices": ["송신"]}, {"key": "요청의견", "label": "요청 의견", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Request" name="조정 요청 송신 기록 (모의)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "send_route_request", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "decision": "요청확인", "comment": "요청의견", "answered_by": "요청확인자", "answered_via": "요청확인경로"}, "output": {"요청상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Reply" name="운송사 접수증·회신 (모의 연계)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "receive_route_reply", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"접수증ID": "ack_id", "회신ID": "reply_id", "회신": "reply", "접수여유": "deadline_margin_min"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Approve_Impact" name="타 고객 기존 약정 영향 확인 (출하 담당자 H04)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-A03 재현 — 당사 타 고객 기존 납품약정 차질 여부 (H04)", "answered_by_as": "영향확인자", "answered_via_as": "영향확인경로", "assignees": ["출하담당"], "description": "운송사가 조정 정규편(11/5 16:15 울산 출발 → 18:15 도착 전망, 240세트 전량, 계약 운임 내)을 수락했다. 경유·적재 순서 변경으로 영향을 받을 수 있는 당사 타 고객의 기존 약정을 변경 노선의 도착 전망·수용량과 대조해 남긴다 — 차질 없음(다른 채택 조건을 계속 본다) · 차질 예상(회신은 수락으로 두고 기존 운송 검토로) · 미확인(근거 보완 — 채택·회피액 산출 보류). 근거에 영향 약정·수량·시각·전후 전망·사유를 적는다.", "show": ["데모실행ID", "사건ID", "재현ID", "회신ID", "회신", "접수여유", "error_message"], "fields": [{"key": "타고객영향", "label": "타 고객 기존 약정 차질 (차질 없음 · 차질 예상 · 미확인)", "type": "choice", "required": true, "choices": ["차질 없음", "차질 예상", "미확인"]}, {"key": "영향근거", "label": "영향 근거", "type": "text", "required": true}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Impact" name="영향 확인·채택 판정 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_route_impact", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "impact": "타고객영향", "evidence": "영향근거", "answered_by": "영향확인자", "answered_via": "영향확인경로"}, "output": {"채택판정": "result", "처리경로": "path", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Verify" name="인수시험 (N14 — 8개 회신 분기·시험 01~09)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "run_standard_verification", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID"}, "output": {"시험ID": "test_id", "시험통과": "passed", "표본대조": "sample"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Approve_Test" name="시험 판정 기록 (Agent 운영 담당자 H07 — N14)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-A04 시험 판정 — Agent 운영 담당자(H07)", "answered_by_as": "시험판정자", "answered_via_as": "시험판정경로", "assignees": ["운영담당"], "description": "같은 당시 자료로 돌린 시험 결과(S·R·정상 배경 6건 선별, 8개 회신 분기, 시험 01~09의 기대·실제·차이)를 보고 판정을 남긴다. 미통과 항목이 있으면 「통과」로 기록할 수 없다 — 「보완·재시험」이면 적용을 막고 끝난다. 미실시 시험을 통과로 미리 표시하지 않는다.", "show": ["데모실행ID", "사건ID", "시험ID", "시험통과", "표본대조", "채택판정", "처리경로", "error_message"], "fields": [{"key": "시험판정", "label": "시험 판정 (통과 · 보완·재시험)", "type": "choice", "required": true, "choices": ["통과", "보완·재시험"]}, {"key": "검증의견", "label": "검증 의견", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Test" name="시험 판정 기록 — TEST-04">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "record_verification_verdict", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "verdict": "시험판정", "comment": "검증의견", "answered_by": "시험판정자", "answered_via": "시험판정경로"}, "output": {"시험결과": "result", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Test" name="시험을 통과했나" default="Flow_test_failed"/>
+    <bpmn:userTask id="Approve_Apply" name="기준 적용 확인 (관리 기준 책임자 H06 — N15)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-A02 적용안 확인 — 관리 기준 책임자(H06)", "answered_by_as": "적용확인자", "answered_via_as": "적용확인경로", "assignees": ["오세린"], "description": "시험을 통과한 KRI-CTL-v2(주문별 운송납기 여유 KRI + 마감 전 구체 배차 조정 요청 Control)의 적용 범위와 효력시점을 정한다. 효력시점 이후 생기는 신규 사건에만 적용된다 — 진행 중이거나 지난 사건(CASE-S2-01)의 기준·승인·실적은 소급 변경하지 않는다. 확인하면 Agent 운영 담당자(H07)가 위임 범위 안에서 설정한다(반복 승인 없음).", "show": ["데모실행ID", "사건ID", "시험ID", "시험통과", "표본대조", "error_message"], "fields": [{"key": "적용확인", "label": "적용 확인 (확인 · 보류)", "type": "choice", "required": true, "choices": ["확인", "보류"]}, {"key": "적용범위", "label": "적용 범위", "type": "text", "required": false}, {"key": "효력시점", "label": "효력시점 (예: 2026-11-09T00:00:00+09:00)", "type": "text", "required": false}, {"key": "확인의견", "label": "확인 의견", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Apply" name="적용 확인 기록 — APP-04">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "confirm_standard_application", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "decision": "적용확인", "scope": "적용범위", "effective_at": "효력시점", "comment": "확인의견", "answered_by": "적용확인자", "answered_via": "적용확인경로"}, "output": {"적용결과": "result", "확인ID": "approval_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Apply" name="적용을 확인했나" default="Flow_apply_held"/>
+    <bpmn:userTask id="Approve_Config" name="위임 설정 반영 (Agent 운영 담당자 H07 — N16)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "UI-A02 → D01 위임 설정 반영 — Agent 운영 담당자(H07)", "answered_by_as": "설정자", "answered_via_as": "설정경로", "assignees": ["운영담당"], "description": "관리 기준 책임자가 확인한 범위·효력시점 그대로 운영 설정을 반영한다. 설정 버전은 확인한 버전(KRI-CTL-v2)이어야 한다. 다음 신규 사건부터 적용되고, 이후 요청 적시성·운송사 수락·실제 운임을 관찰한다 — 한 사건으로 전사 절감률을 추정하지 않는다.", "show": ["데모실행ID", "사건ID", "확인ID", "시험ID", "error_message"], "fields": [{"key": "설정반영", "label": "설정 반영", "type": "choice", "required": true, "choices": ["반영"]}, {"key": "설정버전", "label": "설정 버전", "type": "text", "required": true}, {"key": "설정의견", "label": "설정 의견", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Config" name="위임 설정 기록 — CFG-04">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "apply_standard_config", "input": {"demo_run_id": "데모실행ID", "case_id": "사건ID", "decision": "설정반영", "version": "설정버전", "comment": "설정의견", "answered_by": "설정자", "answered_via": "설정경로"}, "output": {"설정ID": "config_id", "적용상태": "state", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End" name="개선 기준 적용 — 다음 신규 사건부터(CFG-04)"/>
+    <bpmn:endEvent id="End_NoImprovement" name="개선 불필요 — 결과 기록 보존"/>
+    <bpmn:endEvent id="End_NoCandidate" name="조정 요청 후보 없음 — 재현 종료"/>
+    <bpmn:endEvent id="End_TestFailed" name="시험 미통과 — 적용 차단"/>
+    <bpmn:endEvent id="End_ApplyHeld" name="적용 보류 — 기존 기준 유지"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Start" name="기록 거절" attachedToRef="Record_Start">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Request" name="기록 거절" attachedToRef="Record_Request">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Impact" name="기록 거절" attachedToRef="Record_Impact">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Test" name="기록 거절" attachedToRef="Record_Test">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Apply" name="기록 거절" attachedToRef="Record_Apply">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Config" name="기록 거절" attachedToRef="Record_Config">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Results"/>
+    <bpmn:sequenceFlow id="Flow_results" sourceRef="Task_Results" targetRef="Gw_Results"/>
+    <bpmn:sequenceFlow id="Flow_ready" name="증빙 연결 완료" sourceRef="Gw_Results" targetRef="Approve_Start">
+      <bpmn:conditionExpression>결과준비</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_wait" name="대기" sourceRef="Gw_Results" targetRef="Wait_Evidence"/>
+    <bpmn:sequenceFlow id="Flow_arrived" name="증빙 수신 — 다시 대조" sourceRef="Wait_Evidence" targetRef="Task_Results"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Start_answered" sourceRef="Approve_Start" targetRef="Record_Start"/>
+    <bpmn:sequenceFlow id="Flow_start_recorded" sourceRef="Record_Start" targetRef="Gw_Start"/>
+    <bpmn:sequenceFlow id="Flow_started" name="착수" sourceRef="Gw_Start" targetRef="Task_Replay">
+      <bpmn:conditionExpression>착수결과 == 'STARTED'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_no_improvement" name="개선 불필요" sourceRef="Gw_Start" targetRef="End_NoImprovement"/>
+    <bpmn:sequenceFlow id="Flow_replayed" sourceRef="Task_Replay" targetRef="Gw_Candidate"/>
+    <bpmn:sequenceFlow id="Flow_candidate" name="R 조정 후보" sourceRef="Gw_Candidate" targetRef="Approve_Request">
+      <bpmn:conditionExpression>요청있음</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_no_candidate" name="후보 없음" sourceRef="Gw_Candidate" targetRef="End_NoCandidate"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Request_answered" sourceRef="Approve_Request" targetRef="Record_Request"/>
+    <bpmn:sequenceFlow id="Flow_request_recorded" sourceRef="Record_Request" targetRef="Task_Reply"/>
+    <bpmn:sequenceFlow id="Flow_replied" sourceRef="Task_Reply" targetRef="Approve_Impact"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Impact_answered" sourceRef="Approve_Impact" targetRef="Record_Impact"/>
+    <bpmn:sequenceFlow id="Flow_impact_recorded" sourceRef="Record_Impact" targetRef="Task_Verify"/>
+    <bpmn:sequenceFlow id="Flow_verified" sourceRef="Task_Verify" targetRef="Approve_Test"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Test_answered" sourceRef="Approve_Test" targetRef="Record_Test"/>
+    <bpmn:sequenceFlow id="Flow_test_recorded" sourceRef="Record_Test" targetRef="Gw_Test"/>
+    <bpmn:sequenceFlow id="Flow_test_passed" name="통과" sourceRef="Gw_Test" targetRef="Approve_Apply">
+      <bpmn:conditionExpression>시험결과 == 'PASSED'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_test_failed" name="보완·재시험" sourceRef="Gw_Test" targetRef="End_TestFailed"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Apply_answered" sourceRef="Approve_Apply" targetRef="Record_Apply"/>
+    <bpmn:sequenceFlow id="Flow_apply_recorded" sourceRef="Record_Apply" targetRef="Gw_Apply"/>
+    <bpmn:sequenceFlow id="Flow_apply_confirmed" name="확인" sourceRef="Gw_Apply" targetRef="Approve_Config">
+      <bpmn:conditionExpression>적용결과 == 'CONFIRMED'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_apply_held" name="보류" sourceRef="Gw_Apply" targetRef="End_ApplyHeld"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Config_answered" sourceRef="Approve_Config" targetRef="Record_Config"/>
+    <bpmn:sequenceFlow id="Flow_configured" sourceRef="Record_Config" targetRef="End"/>
+    <bpmn:sequenceFlow id="Flow_Record_Start_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Start" targetRef="Approve_Start"/>
+    <bpmn:sequenceFlow id="Flow_Record_Request_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Request" targetRef="Approve_Request"/>
+    <bpmn:sequenceFlow id="Flow_Record_Impact_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Impact" targetRef="Approve_Impact"/>
+    <bpmn:sequenceFlow id="Flow_Record_Test_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Test" targetRef="Approve_Test"/>
+    <bpmn:sequenceFlow id="Flow_Record_Apply_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Apply" targetRef="Approve_Apply"/>
+    <bpmn:sequenceFlow id="Flow_Record_Config_rejected" name="기록 거절 — 다시 답한다" sourceRef="Bnd_Record_Config" targetRef="Approve_Config"/>
+  </bpmn:process>
+</bpmn:definitions>

@@ -1,0 +1,1167 @@
+[
+ {
+  "kind": "scene",
+  "record_id": "S2:SC04",
+  "version": 28,
+  "scene": 4,
+  "state": "APPLIED",
+  "at": "2026-11-06T11:00:00+09:00",
+  "by": null,
+  "title": "실행 결과 확인과 관리기준 개선",
+  "body": {
+   "demoRunId": "demo-example",
+   "scenario": "s2",
+   "scene": 4,
+   "title": "실행 결과 확인과 관리기준 개선",
+   "caseId": "BASE",
+   "clock": "2026-11-06T11:00:00+09:00",
+   "executor": "studio",
+   "bpm": {
+    "job_id": null,
+    "external_run_id": "test_20261105_154223_37655d",
+    "state": "done",
+    "visited": [
+     "Task_Results",
+     "Wait_Evidence",
+     "Approve_Start",
+     "Record_Start",
+     "Task_Replay",
+     "Approve_Request",
+     "Record_Request",
+     "Task_Reply",
+     "Approve_Impact",
+     "Record_Impact",
+     "Task_Verify",
+     "Approve_Test",
+     "Record_Test",
+     "Approve_Apply",
+     "Record_Apply",
+     "Approve_Config",
+     "Record_Config",
+     "End"
+    ],
+    "waiting": [],
+    "problem": null
+   },
+   "source": {
+    "case_id": "CASE-S2-01",
+    "handoff_id": "HAND-03",
+    "decision_id": "DEC-03",
+    "action_id": "ACT-03",
+    "observed": [
+     "COM-S"
+    ],
+    "existing": {
+     "handoff_id": "HAND-02",
+     "judged_at": "2026-11-04T09:12:00+09:00",
+     "margin_min": -30,
+     "approval_id": null,
+     "approved_at": null,
+     "readback_version": "PROD-V2",
+     "readback_at": "2026-11-04T09:12:00+09:00"
+    }
+   },
+   "roles": [
+    {
+     "role_id": "Y01",
+     "kind": "system",
+     "label": "시스템 자동처리 (규칙 엔진)",
+     "title": null,
+     "duty": "증빙 연결·결과 대조 · 마감 계산 · 시험 대조",
+     "steps": [
+      "N11",
+      "N14"
+     ]
+    },
+    {
+     "role_id": "A01",
+     "kind": "agent",
+     "label": "납기위험 분석 Agent",
+     "title": null,
+     "duty": "결과 요약 · 개정 초안 · 위험 선별 · 요청 초안 · 영향 후보",
+     "steps": [
+      "N11",
+      "N13",
+      "N14"
+     ]
+    },
+    {
+     "role_id": "H04",
+     "kind": "human",
+     "label": "출하·물류 담당자",
+     "title": "담당",
+     "duty": "조정 요청 확인·송신 · 타 고객 영향 확인",
+     "steps": [
+      "N14"
+     ]
+    },
+    {
+     "role_id": "H06",
+     "kind": "human",
+     "label": "관리 기준 책임자",
+     "title": "기준 책임",
+     "duty": "개선 착수 · 적용 범위·효력시점 확인",
+     "steps": [
+      "N12",
+      "N15"
+     ]
+    },
+    {
+     "role_id": "H07",
+     "kind": "human",
+     "label": "Agent 운영 담당자",
+     "title": "운영",
+     "duty": "시험 판정 기록 · 위임 설정 반영",
+     "steps": [
+      "N14",
+      "N16"
+     ]
+    }
+   ],
+   "flow": [
+    {
+     "node": "N11",
+     "name": "결정과 실적 대조",
+     "role": "Y01",
+     "state": "done"
+    },
+    {
+     "node": "N12",
+     "name": "개선 착수",
+     "role": "H06",
+     "state": "done"
+    },
+    {
+     "node": "N14R",
+     "name": "당시 자료 재현·요청",
+     "role": "H04",
+     "state": "done"
+    },
+    {
+     "node": "N14T",
+     "name": "인수시험",
+     "role": "H07",
+     "state": "done"
+    },
+    {
+     "node": "N15",
+     "name": "기준 적용 확인",
+     "role": "H06",
+     "state": "done"
+    },
+    {
+     "node": "N16",
+     "name": "위임 설정·다음 사건",
+     "role": "H07",
+     "state": "done"
+    }
+   ],
+   "companyLog": [
+    {
+     "at": "2026-11-06T09:00:00+09:00",
+     "direction": "in",
+     "what": "실행 증빙 읽기 — 0건"
+    },
+    {
+     "at": "2026-11-06T09:01:00+09:00",
+     "direction": "in",
+     "what": "증빙 받기 BOOK-R (booking) — 등록 09:01"
+    },
+    {
+     "at": "2026-11-06T09:02:00+09:00",
+     "direction": "in",
+     "what": "증빙 받기 POD-S (delivery_receipt) — 등록 09:02"
+    },
+    {
+     "at": "2026-11-06T09:03:00+09:00",
+     "direction": "in",
+     "what": "증빙 받기 POD-R (delivery_receipt) — 등록 09:03"
+    },
+    {
+     "at": "2026-11-06T09:04:00+09:00",
+     "direction": "in",
+     "what": "증빙 받기 SET-S (settlement) — 등록 09:04"
+    },
+    {
+     "at": "2026-11-06T09:05:00+09:00",
+     "direction": "in",
+     "what": "증빙 받기 SET-R (settlement) — 등록 09:05"
+    }
+   ],
+   "evidenceSeen": 5
+  },
+  "ref": "demo-example:scene/S2:SC04:v28",
+  "seq": 27,
+  "recorded_at": "2026-11-06T11:00:00+09:00"
+ },
+ {
+  "kind": "dashboard",
+  "record_id": "company1:ULS:A:SC04",
+  "version": 20,
+  "scene": 4,
+  "state": null,
+  "at": "2026-11-06T11:00:00+09:00",
+  "by": null,
+  "title": "납기 상황판 — 장면 4",
+  "body": {
+   "as_of": "2026-11-06T11:00:00+09:00",
+   "scope": {
+    "company": "company1",
+    "plant": "울산",
+    "product": "A"
+   },
+   "dataset_version": "SYN-S2-SC04-v0.4",
+   "kpi": {
+    "period": {
+     "start": "2026-10-01",
+     "end": "2026-11-01",
+     "label": "2026년 10월"
+    },
+    "numerator": 99,
+    "denominator": 100,
+    "otd": "0.9900",
+    "target": "0.98",
+    "meets_target": true,
+    "late": [
+     "H199"
+    ],
+    "by_model": [
+     {
+      "model": "a",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "b",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "c",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     },
+     {
+      "model": "d",
+      "due": 20,
+      "on_time": 19,
+      "otd": "0.9500"
+     },
+     {
+      "model": "e",
+      "due": 20,
+      "on_time": 20,
+      "otd": "1.0000"
+     }
+    ]
+   },
+   "summary": {
+    "on_time_full": 2,
+    "r_actual_extra_cost": 1200000,
+    "r_unadjusted_margin_min": -30,
+    "detection_earlier_min": 12,
+    "receipt_margin_min": 5,
+    "adjusted_margin_min": 15,
+    "fare_forecast": 0,
+    "conditional_avoidance": 1200000,
+    "october_otd": "0.9900",
+    "application": "신규 사건 적용"
+   },
+   "case_id": "CASE-S2-01",
+   "notice": "실적(증빙)과 재현 전망을 합산하지 않는다 — 조건부 회피 가능액은 절감 실적이 아니다. 11월 대표 주문 2건으로 월 OTD를 산출하지 않는다"
+  },
+  "ref": "demo-example:dashboard/company1:ULS:A:SC04:v20",
+  "seq": 28,
+  "recorded_at": "2026-11-06T11:00:00+09:00"
+ },
+ {
+  "kind": "outcome",
+  "record_id": "OUT-04",
+  "version": 6,
+  "scene": 4,
+  "state": "LINKED",
+  "at": "2026-11-06T09:05:00+09:00",
+  "by": null,
+  "title": "결정과 실적 대조",
+  "body": {
+   "outcome_id": "OUT-04",
+   "version": 6,
+   "case_id": "CASE-S2-01",
+   "rows": [
+    {
+     "commitment_id": "COM-S",
+     "order_id": "O-S",
+     "model": "a",
+     "decision": "인수 관찰",
+     "decision_ids": [],
+     "transport": "정기차",
+     "reserved_at": null,
+     "qty": 80,
+     "accepted_qty": 80,
+     "promised_at": "2026-11-05T15:00:00+09:00",
+     "accepted_at": "2026-11-05T14:00:00+09:00",
+     "margin_min": 60,
+     "result": "정시 전량",
+     "extra_cost": 0,
+     "cost_state": "정산 확인",
+     "evidence_ids": [
+      "POD-S",
+      "SET-S"
+     ],
+     "missing": [],
+     "checks": []
+    },
+    {
+     "commitment_id": "COM-R",
+     "order_id": "O-R",
+     "model": "b",
+     "decision": "DEC-03 / ACT-03 / HAND-03",
+     "decision_ids": [
+      "DEC-03",
+      "ACT-03",
+      "HAND-03"
+     ],
+     "transport": "긴급차 3대",
+     "reserved_at": "2026-11-04T10:10:00+09:00",
+     "qty": 240,
+     "accepted_qty": 240,
+     "promised_at": "2026-11-05T18:30:00+09:00",
+     "accepted_at": "2026-11-05T18:15:00+09:00",
+     "margin_min": 15,
+     "result": "정시 전량",
+     "extra_cost": 1200000,
+     "cost_state": "정산 확인",
+     "evidence_ids": [
+      "BOOK-R",
+      "POD-R",
+      "SET-R"
+     ],
+     "missing": [],
+     "checks": [
+      {
+       "check": "reservation",
+       "label": "예약 기한 12:00 전 확보",
+       "planned": "2026-11-04T12:00:00+09:00",
+       "actual": "2026-11-04T10:10:00+09:00",
+       "ok": true
+      },
+      {
+       "check": "cost",
+       "label": "결정 한도 이내 집행",
+       "planned": 1200000,
+       "actual": 1200000,
+       "ok": true
+      },
+      {
+       "check": "arrival",
+       "label": "결정 당시 도착 전망 대비 인수",
+       "planned": "2026-11-05T18:15:00+09:00",
+       "actual": "2026-11-05T18:15:00+09:00",
+       "ok": true
+      }
+     ]
+    }
+   ],
+   "on_time_full": 2,
+   "unconfirmed": [],
+   "actual_extra_cost": {
+    "COM-S": 0,
+    "COM-R": 1200000
+   },
+   "duplicates": 0,
+   "ready": true,
+   "evidence": [
+    "BOOK-R",
+    "POD-R",
+    "POD-S",
+    "SET-R",
+    "SET-S"
+   ],
+   "reconciled_at": "2026-11-06T09:05:00+09:00",
+   "reconciled_by": "Y01",
+   "summary_by": "A01",
+   "execution_mode": "rule",
+   "october_kept": true,
+   "note": "증빙 기준 실적이다 — 장면 3 결정 당시의 공란은 그 기록에 그대로 둔다. 11월 대표 주문 2건은 사건 실적이고 월 OTD를 산출하지 않는다",
+   "history": [
+    {
+     "version": 1,
+     "reconciled_at": "2026-11-06T09:00:00+09:00",
+     "on_time_full": 0,
+     "evidence": []
+    },
+    {
+     "version": 2,
+     "reconciled_at": "2026-11-06T09:01:00+09:00",
+     "on_time_full": 0,
+     "evidence": [
+      "BOOK-R"
+     ]
+    },
+    {
+     "version": 3,
+     "reconciled_at": "2026-11-06T09:02:00+09:00",
+     "on_time_full": 1,
+     "evidence": [
+      "BOOK-R",
+      "POD-S"
+     ]
+    },
+    {
+     "version": 4,
+     "reconciled_at": "2026-11-06T09:03:00+09:00",
+     "on_time_full": 2,
+     "evidence": [
+      "BOOK-R",
+      "POD-R",
+      "POD-S"
+     ]
+    },
+    {
+     "version": 5,
+     "reconciled_at": "2026-11-06T09:04:00+09:00",
+     "on_time_full": 2,
+     "evidence": [
+      "BOOK-R",
+      "POD-R",
+      "POD-S",
+      "SET-S"
+     ]
+    }
+   ]
+  },
+  "ref": "demo-example:outcome/OUT-04:v6",
+  "seq": 29,
+  "recorded_at": "2026-11-06T09:05:00+09:00"
+ },
+ {
+  "kind": "improvement",
+  "record_id": "IMP-04",
+  "version": 1,
+  "scene": 4,
+  "state": "STARTED",
+  "at": "2026-11-06T09:20:00+09:00",
+  "by": null,
+  "title": "관리기준 개선 건",
+  "body": {
+   "improvement_id": "IMP-04",
+   "case_refs": [
+    "CASE-S2-01"
+   ],
+   "outcome": "OUT-04 v6",
+   "reason": "COM-R 정시 전량 인수(18:15)였지만 긴급차 3대·추가비 1,200,000원이 들었다. 기존 판정 09:12(여유 −30분)에는 정규노선 변경 접수 마감이 지났다 — 생산계획 승인을 기다리지 않고 조정을 요청할 수 있었는가",
+   "kri": {
+    "name": "주문별 운송납기 여유",
+    "formula": "고객 약정 − 지금 확정된 정기차의 예상 도착(분)",
+    "trigger": "음수이고 조정 접수 가능 시간이 남아 있으면 조정 요청 후보",
+    "recheck": "생산계획 반영 뒤 반드시 다시 평가"
+   },
+   "control": {
+    "name": "마감 전 구체 배차 조정 요청",
+    "cutoff_rule": "정규 순회노선 기점 출발 24시간 전까지 변경 접수(울산 상차·고객 약정 기준 아님)",
+    "steps": [
+     "A01 요청 초안",
+     "H04 확인·요청",
+     "운송사 접수증",
+     "별도 수락 회신",
+     "승인본 반영 뒤 재평가"
+    ],
+    "duplicate_rule": "같은 주문의 문의가 열려 있으면 갱신, 없으면 한 건만 시작"
+   },
+   "kept": [
+    "고객 약정",
+    "성과 KPI(OTD)",
+    "전결 기준(AUTH-T1)"
+   ],
+   "unit": "U09",
+   "unit_name": "기준 개선과 검증 적용",
+   "version": "KRI-CTL-v2",
+   "previous": "기존 버전",
+   "previous_rules": [
+    "KRI-S2-SUPPLY-v1"
+   ],
+   "proposed_by": "A01",
+   "execution_mode": "rule",
+   "decision": "착수",
+   "decision_reason": "정시였지만 R에 긴급차 120만원 — 조정 요청 시점 검토",
+   "decided_by": "오세린",
+   "decided_role": "H06",
+   "via": null,
+   "decided_at": "2026-11-06T09:20:00+09:00",
+   "state": "STARTED",
+   "note": "개선은 별도 개선 건이다 — 사건 수행계획을 바꾸지 않는다(U09)"
+  },
+  "ref": "demo-example:improvement/IMP-04:v1",
+  "seq": 30,
+  "recorded_at": "2026-11-06T09:20:00+09:00"
+ },
+ {
+  "kind": "replay",
+  "record_id": "RPL-04",
+  "version": 4,
+  "scene": 4,
+  "state": "ADOPTED",
+  "at": "2026-11-06T09:40:00+09:00",
+  "by": null,
+  "title": "당시 자료 재현",
+  "body": {
+   "replay_id": "RPL-04",
+   "case_id": "CASE-S2-01",
+   "mode": "replay",
+   "banner": "재현 모드 — 자료 기준 11/04 09:00 · 실제 운송사에 보내지 않는다",
+   "data_as_of": "2026-11-04T09:00:00+09:00",
+   "snapshot": {
+    "snapshot_id": "SNAP-0900",
+    "data_as_of": "2026-11-04T09:00:00+09:00",
+    "revision_id": "P-v2",
+    "production_plan_version": "PROD-V1",
+    "excluded_inputs": [
+     "생산 승인(09:12)",
+     "반영본 재조회(09:14)",
+     "운송사 회신",
+     "실제 인수"
+    ],
+    "uses_after_snapshot": false,
+    "rows": [
+     {
+      "commitment_id": "COM-S",
+      "role": "representative",
+      "promised_at": "2026-11-05T15:00:00+09:00",
+      "available_at": "2026-11-05T08:30:00+09:00",
+      "line_start": "2026-11-05T08:30:00+09:00",
+      "assembly_min": 120,
+      "prep_min": 30,
+      "ready_at": "2026-11-05T11:00:00+09:00",
+      "truck_id": "S-1",
+      "arrival": "2026-11-05T14:00:00+09:00",
+      "margin_min": 60,
+      "verdict": "관찰"
+     },
+     {
+      "commitment_id": "COM-R",
+      "role": "representative",
+      "promised_at": "2026-11-05T18:30:00+09:00",
+      "available_at": "2026-11-05T11:30:00+09:00",
+      "line_start": "2026-11-05T11:30:00+09:00",
+      "assembly_min": 240,
+      "prep_min": 30,
+      "ready_at": "2026-11-05T16:00:00+09:00",
+      "truck_id": "R-2",
+      "arrival": "2026-11-05T19:00:00+09:00",
+      "margin_min": -30,
+      "verdict": "조정 후보"
+     },
+     {
+      "commitment_id": "COM-C1",
+      "role": "background",
+      "promised_at": "2026-11-05T14:00:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     },
+     {
+      "commitment_id": "COM-C2",
+      "role": "background",
+      "promised_at": "2026-11-05T17:00:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     },
+     {
+      "commitment_id": "COM-D1",
+      "role": "background",
+      "promised_at": "2026-11-05T16:00:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     },
+     {
+      "commitment_id": "COM-D2",
+      "role": "background",
+      "promised_at": "2026-11-05T18:00:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     },
+     {
+      "commitment_id": "COM-E1",
+      "role": "background",
+      "promised_at": "2026-11-05T15:30:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     },
+     {
+      "commitment_id": "COM-E2",
+      "role": "background",
+      "promised_at": "2026-11-05T17:30:00+09:00",
+      "available_at": "2026-11-05T06:30:00+09:00",
+      "line_start": null,
+      "assembly_min": null,
+      "prep_min": null,
+      "ready_at": null,
+      "truck_id": null,
+      "arrival": null,
+      "margin_min": null,
+      "verdict": "사건 범위 밖"
+     }
+    ],
+    "candidates": [
+     "COM-R"
+    ]
+   },
+   "cutoff": {
+    "route": {
+     "route_id": "RUN-REG",
+     "name": "정규 순회차",
+     "origin_departure": "2026-11-05T09:10:00+09:00",
+     "lead_hours": 24,
+     "carrier": "운송사"
+    },
+    "cutoff_at": "2026-11-04T09:10:00+09:00",
+    "minutes_left": 10,
+    "note": "기점 출발 기준 — 울산 상차(16:15)·고객 약정(18:30) 기준이 아니다"
+   },
+   "existing": {
+    "inquiry_id": "W-TRAN-R",
+    "inquiry_started_at": "2026-11-04T09:10:00+09:00",
+    "inquiry_note": "일반 운송 문의 — 노선 변경 요청 접수가 아니다",
+    "judged_by": "HAND-02",
+    "judged_at": "2026-11-04T09:12:00+09:00",
+    "margin_min": -30,
+    "past_cutoff": true
+   },
+   "early_min": 12,
+   "request": {
+    "request_id": "REQ-R-04",
+    "commitment_id": "COM-R",
+    "qty": 240,
+    "content": "정규 순회노선 울산 경유 · 240세트 전량 적재 조정 요청",
+    "route_id": "RUN-REG",
+    "cutoff_at": "2026-11-04T09:10:00+09:00",
+    "drafted_at": "2026-11-04T09:00:00+09:00",
+    "drafted_by": "A01",
+    "draft_mode": "rule",
+    "work_mode": "replay_work",
+    "work_id": "REQ-R-04 (재현 업무)",
+    "lineage": "W-TRAN-R",
+    "state": "SENT",
+    "sent_at": "2026-11-04T09:03:00+09:00",
+    "sent_by": "출하담당",
+    "mode": "mock",
+    "sent_role": "H04",
+    "via": null,
+    "comment": "전량 적재·울산 경유 확인",
+    "recorded_at": "2026-11-06T09:30:00+09:00"
+   },
+   "receipt": {
+    "ack_id": "ACK-R-04",
+    "request_id": "REQ-R-04",
+    "received_at": "2026-11-04T09:05:00+09:00",
+    "deadline_margin_min": 5,
+    "mode": "mock"
+   },
+   "reply": {
+    "reply_id": "REP-R-04",
+    "ack_id": "ACK-R-04",
+    "version": 1,
+    "replied_at": "2026-11-04T09:08:00+09:00",
+    "branch": "기본 수락",
+    "reply": "수락",
+    "capacity": 240,
+    "extra_fare": 0,
+    "departure": "2026-11-05T16:15:00+09:00",
+    "run_min": 120,
+    "mode": "mock",
+    "note": "수락 분기 예시 회신시각(가정). 미회신 시험에서는 회신 없음."
+   },
+   "impact": {
+    "value": 0,
+    "label": "차질 없음",
+    "evidence": "조정 노선 경유 고객의 11/5 약정 수량·시각 대조",
+    "candidates_by": "A01",
+    "confirmed_by": "출하담당",
+    "confirmed_role": "H04",
+    "via": null,
+    "confirmed_at": "2026-11-06T09:40:00+09:00",
+    "sample_note": "자료의 영향 1 행은 특정 고객이 없는 예외 시험값이다"
+   },
+   "adoption_at_reply": {
+    "branch": "기본 수락",
+    "reply": "수락",
+    "received_at": "2026-11-04T09:05:00+09:00",
+    "deadline_margin_min": 5,
+    "capacity": 240,
+    "other_customer_impact": 0,
+    "impact_label": "차질 없음",
+    "extra_fare": 0,
+    "departure": "2026-11-05T16:15:00+09:00",
+    "run_min": 120,
+    "arrival_candidate": "2026-11-05T18:15:00+09:00",
+    "path": "기존 운송 검토",
+    "state": "AWAITING_PRODUCTION",
+    "state_label": "생산 반영 확인 대기",
+    "eta": null,
+    "margin_min": null,
+    "cost_forecast": null,
+    "conditional_avoidance": null,
+    "reasons": []
+   },
+   "adoption": {
+    "branch": "기본 수락",
+    "reply": "수락",
+    "received_at": "2026-11-04T09:05:00+09:00",
+    "deadline_margin_min": 5,
+    "capacity": 240,
+    "other_customer_impact": 0,
+    "impact_label": "차질 없음",
+    "extra_fare": 0,
+    "departure": "2026-11-05T16:15:00+09:00",
+    "run_min": 120,
+    "arrival_candidate": "2026-11-05T18:15:00+09:00",
+    "path": "조정 정규편",
+    "state": "ADOPTED",
+    "state_label": "조정 정규편 채택",
+    "eta": "2026-11-05T18:15:00+09:00",
+    "margin_min": 15,
+    "cost_forecast": 0,
+    "conditional_avoidance": 1200000,
+    "reasons": [],
+    "reflect": {
+     "match": "MATCHED",
+     "ready_at": "2026-11-05T16:00:00+09:00",
+     "arrival": "2026-11-05T19:00:00+09:00"
+    },
+    "readback_at": "2026-11-04T09:12:00+09:00",
+    "decided_at": "2026-11-06T09:40:00+09:00",
+    "note": "조건부 회피 가능액은 재현 효과다 — 실제 절감으로 집계하지 않는다"
+   },
+   "external_sends": 0,
+   "recorded_at": "2026-11-06T09:20:00+09:00"
+  },
+  "ref": "demo-example:replay/RPL-04:v4",
+  "seq": 31,
+  "recorded_at": "2026-11-06T09:40:00+09:00"
+ },
+ {
+  "kind": "verification",
+  "record_id": "TEST-04",
+  "version": 2,
+  "scene": 4,
+  "state": "PASSED",
+  "at": "2026-11-06T10:00:00+09:00",
+  "by": null,
+  "title": "인수시험",
+  "body": {
+   "test_id": "TEST-04",
+   "version": "KRI-CTL-v2",
+   "data_as_of": "2026-11-04T09:00:00+09:00",
+   "dataset_version": "SYN-S2-SC04-v0.4",
+   "rows": [
+    {
+     "test_id": "01",
+     "name": "인수·정산 증빙 및 재수신",
+     "expected": "S·R 정시 2건 · R 집행 1,200,000원 · 중복 반영 0건 · 누락 항목은 미확인",
+     "actual": "정시 2건 · R 1,200,000원 · 중복 0건 · 인수 증빙 없으면 R 미확인",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "02",
+     "name": "09:00 자료로 8건 선별",
+     "expected": "S +60분 · R −30분 · R만 후보 · 이후 승인·회신 제외",
+     "actual": "S +60분 · R −30분 · 후보 COM-R · 8건 중 8",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "03",
+     "name": "정상 접수·수락",
+     "expected": "09:05 접수 · 마감까지 5분 · 반영본 확인 뒤 18:15 채택 · +15분 · 조건부 1,200,000원",
+     "actual": "09:05 접수 · 5분 · 18:15 조정 정규편 · +15분 · 조건부 1,200,000원",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "04",
+     "name": "거절 / 미회신 / 접수증 없음",
+     "expected": "각각 기존 운송 검토 · 비용 전망 공란",
+     "actual": "거절 기존 운송 검토 · 미회신 기존 운송 검토 · 접수증 없음 기존 운송 검토",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "05",
+     "name": "160세트만 수용 / 추가비 10만원",
+     "expected": "각각 기존 운송 검토 · 전량·계약 운임 미충족 사유",
+     "actual": "기존 운송 검토(수용 160세트 < 전량 240세트) · 기존 운송 검토(추가운임 100,000원 — 계약 운임 초과)",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "06",
+     "name": "수락·전량·추가비 0원·타 고객 영향 1 / 미확인",
+     "expected": "수락 유지 · 채택 보류 · R 도착 후보만 · 미확인값도 채택 보류",
+     "actual": "회신 수락 · 기존 운송 검토 · 후보 18:15 · ETA 미확인 / 미확인 채택 보류 — 근거 보완",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "07",
+     "name": "마감 및 생산 경계",
+     "expected": "09:10 접수 기한 내 · 09:11 경과 · 반영 불일치·준비 지연이면 채택 보류",
+     "actual": "09:10 조정 정규편 · 09:11 기존 운송 검토 · 반영 불일치 기존 운송 검토 · 준비 지연 기존 운송 검토",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "08",
+     "name": "시험 분기 집계",
+     "expected": "8개 회신 표본 중 조정 정규편 1건 · 기존 운송 검토 7건 · 외부 송신 0건",
+     "actual": "8개 중 조정 1 · 기존 7 · 외부 송신 0",
+     "diff": null,
+     "verdict": "PASS"
+    },
+    {
+     "test_id": "09",
+     "name": "권한·효력·회귀",
+     "expected": "미통과·H06 확인 누락은 적용 보류 · 신규 사건만 승인 버전 · 기존 사건은 당시 버전",
+     "actual": "적용 보류 · 적용 보류 · 신규 KRI-CTL-v2 · 기존 기존 버전",
+     "diff": null,
+     "verdict": "PASS"
+    }
+   ],
+   "sample": {
+    "T-04-01": 1,
+    "T-04-02": 1,
+    "T-04-03": 7
+   },
+   "sample_expected": {
+    "T-04-01": 1,
+    "T-04-02": 1,
+    "T-04-03": 7
+   },
+   "sample_verdict": "표본 일치",
+   "passed": true,
+   "external_sends": 0,
+   "branches": [
+    {
+     "branch": "기본 수락",
+     "reply": "수락",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": 240,
+     "other_customer_impact": 0,
+     "impact_label": "차질 없음",
+     "extra_fare": 0,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "run_min": 120,
+     "arrival_candidate": "2026-11-05T18:15:00+09:00",
+     "path": "조정 정규편",
+     "state": "ADOPTED",
+     "state_label": "조정 정규편 채택",
+     "eta": "2026-11-05T18:15:00+09:00",
+     "margin_min": 15,
+     "cost_forecast": 0,
+     "conditional_avoidance": 1200000,
+     "reasons": []
+    },
+    {
+     "branch": "거절",
+     "reply": "거절",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": 0,
+     "other_customer_impact": 0,
+     "impact_label": "차질 없음",
+     "extra_fare": null,
+     "departure": null,
+     "run_min": null,
+     "arrival_candidate": null,
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "운송사 거절"
+     ]
+    },
+    {
+     "branch": "미회신",
+     "reply": "대기",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": null,
+     "other_customer_impact": null,
+     "impact_label": "미확인",
+     "extra_fare": null,
+     "departure": null,
+     "run_min": null,
+     "arrival_candidate": null,
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "운송사 회신 대기 — 미회신"
+     ]
+    },
+    {
+     "branch": "적재 부족",
+     "reply": "수락",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": 160,
+     "other_customer_impact": 0,
+     "impact_label": "차질 없음",
+     "extra_fare": 0,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "run_min": 120,
+     "arrival_candidate": "2026-11-05T18:15:00+09:00",
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "수용 160세트 < 전량 240세트"
+     ]
+    },
+    {
+     "branch": "타 고객 영향",
+     "reply": "수락",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": 240,
+     "other_customer_impact": 1,
+     "impact_label": "차질 예상",
+     "extra_fare": 0,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "run_min": 120,
+     "arrival_candidate": "2026-11-05T18:15:00+09:00",
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "타 고객 기존 약정 차질 예상"
+     ]
+    },
+    {
+     "branch": "추가운임",
+     "reply": "수락",
+     "received_at": "2026-11-04T09:05:00+09:00",
+     "deadline_margin_min": 5,
+     "capacity": 240,
+     "other_customer_impact": 0,
+     "impact_label": "차질 없음",
+     "extra_fare": 100000,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "run_min": 120,
+     "arrival_candidate": "2026-11-05T18:15:00+09:00",
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "추가운임 100,000원 — 계약 운임 초과"
+     ]
+    },
+    {
+     "branch": "마감 경과",
+     "reply": "수락",
+     "received_at": "2026-11-04T09:11:00+09:00",
+     "deadline_margin_min": -1,
+     "capacity": 240,
+     "other_customer_impact": 0,
+     "impact_label": "차질 없음",
+     "extra_fare": 0,
+     "departure": "2026-11-05T16:15:00+09:00",
+     "run_min": 120,
+     "arrival_candidate": "2026-11-05T18:15:00+09:00",
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "접수 09:11 > 마감 09:10 — 기한 경과"
+     ]
+    },
+    {
+     "branch": "접수증 없음",
+     "reply": "대기",
+     "received_at": null,
+     "deadline_margin_min": null,
+     "capacity": null,
+     "other_customer_impact": null,
+     "impact_label": "미확인",
+     "extra_fare": null,
+     "departure": null,
+     "run_min": null,
+     "arrival_candidate": null,
+     "path": "기존 운송 검토",
+     "state": "NOT_ADOPTED",
+     "state_label": "기존 운송 검토로 복귀",
+     "eta": null,
+     "margin_min": null,
+     "cost_forecast": null,
+     "conditional_avoidance": null,
+     "reasons": [
+      "접수증 없음 — 접수 미확인",
+      "운송사 회신 대기 — 미회신"
+     ]
+    }
+   ],
+   "run_at": "2026-11-06T09:40:00+09:00",
+   "run_by": "Y01",
+   "operator_role": "H07",
+   "execution_mode": "rule",
+   "verdict": "통과",
+   "verdict_by": "운영담당",
+   "verdict_at": "2026-11-06T10:00:00+09:00",
+   "state": "PASSED",
+   "verdict_role": "H07",
+   "via": null,
+   "comment": "표본 1·1·7 일치, 시험 01~09 통과"
+  },
+  "ref": "demo-example:verification/TEST-04:v2",
+  "seq": 32,
+  "recorded_at": "2026-11-06T10:00:00+09:00"
+ },
+ {
+  "kind": "confirmation",
+  "record_id": "APP-04",
+  "version": 1,
+  "scene": 4,
+  "state": "CONFIRMED",
+  "at": "2026-11-06T10:30:00+09:00",
+  "by": null,
+  "title": "기준 적용 확인",
+  "body": {
+   "approval_id": "APP-04",
+   "kind": "standard_apply",
+   "version": "KRI-CTL-v2",
+   "test_id": "TEST-04",
+   "decision": "확인",
+   "state": "CONFIRMED",
+   "scope": "신규 사건 — 울산 A제품 주문별 운송납기 여유·조정 요청",
+   "effective_at": "2026-11-09T00:00:00+09:00",
+   "delegate_role": "H07",
+   "delegate_name": "운영담당",
+   "actor": "오세린",
+   "actor_role": "H06",
+   "via": null,
+   "comment": "기존 사건은 당시 버전 유지",
+   "confirmed_at": "2026-11-06T10:30:00+09:00",
+   "note": "기준 확인과 Agent 설정 권한을 나눈다 — 설정은 H07이 위임 범위 안에서 한다"
+  },
+  "ref": "demo-example:confirmation/APP-04:v1",
+  "seq": 33,
+  "recorded_at": "2026-11-06T10:30:00+09:00"
+ },
+ {
+  "kind": "config",
+  "record_id": "CFG-04",
+  "version": 1,
+  "scene": 4,
+  "state": "신규 사건 적용",
+  "at": "2026-11-06T11:00:00+09:00",
+  "by": null,
+  "title": "위임 설정",
+  "body": {
+   "config_id": "CFG-04",
+   "version": "KRI-CTL-v2",
+   "approval_id": "APP-04",
+   "test_id": "TEST-04",
+   "scope": "신규 사건 — 울산 A제품 주문별 운송납기 여유·조정 요청",
+   "effective_at": "2026-11-09T00:00:00+09:00",
+   "set_by": "운영담당",
+   "set_role": "H07",
+   "via": null,
+   "comment": "위임 범위 안",
+   "set_at": "2026-11-06T11:00:00+09:00",
+   "state": "신규 사건 적용",
+   "cases": [
+    {
+     "case_id": "CASE-NEXT-01",
+     "at": "2026-11-09T09:00:00+09:00",
+     "version": "KRI-CTL-v2",
+     "flow": "주문 여유 산출 → H04 조정 요청",
+     "roles": [
+      "A01",
+      "H04"
+     ],
+     "example": true,
+     "watch": [
+      "요청 적시성",
+      "운송사 수락",
+      "실제 운임"
+     ]
+    },
+    {
+     "case_id": "CASE-S2-01",
+     "at": "2026-11-04T09:00:00+09:00",
+     "version": "기존 버전",
+     "flow": "조회 기준 · 원결정 및 실적 이력",
+     "roles": [],
+     "example": false,
+     "watch": []
+    }
+   ],
+   "note": "한 사건으로 전사 절감률을 추정하지 않는다 — 다음 사건부터 관찰한다"
+  },
+  "ref": "demo-example:config/CFG-04:v1",
+  "seq": 34,
+  "recorded_at": "2026-11-06T11:00:00+09:00"
+ }
+]

@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/outcome.schema.json",
+  "title": "s2/sc04 outcome",
+  "description": "결정과 실적 대조(M05·M10, N11) — 약정별 원결정·예약·인수·정산 증빙·여유·정시 전량·실제 추가비·결정 조건 대비",
+  "type": "object",
+  "required": [
+    "actual_extra_cost",
+    "case_id",
+    "duplicates",
+    "evidence",
+    "execution_mode",
+    "history",
+    "note",
+    "october_kept",
+    "on_time_full",
+    "outcome_id",
+    "ready",
+    "reconciled_at",
+    "reconciled_by",
+    "rows",
+    "summary_by",
+    "unconfirmed",
+    "version"
+  ],
+  "properties": {
+    "outcome_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "accepted_at",
+          "accepted_qty",
+          "checks",
+          "commitment_id",
+          "cost_state",
+          "decision",
+          "decision_ids",
+          "evidence_ids",
+          "extra_cost",
+          "margin_min",
+          "missing",
+          "model",
+          "order_id",
+          "promised_at",
+          "qty",
+          "reserved_at",
+          "result",
+          "transport"
+        ],
+        "properties": {
+          "commitment_id": {
+            "type": "string"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "decision_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transport": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reserved_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "accepted_qty": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "promised_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accepted_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "margin_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "result": {
+            "type": "string"
+          },
+          "extra_cost": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cost_state": {
+            "type": "string"
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "actual",
+                "check",
+                "label",
+                "ok",
+                "planned"
+              ],
+              "properties": {
+                "check": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "planned": {
+                  "type": [
+                    "integer",
+                    "string"
+                  ]
+                },
+                "actual": {
+                  "type": [
+                    "integer",
+                    "null",
+                    "string"
+                  ]
+                },
+                "ok": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "on_time_full": {
+      "type": "integer"
+    },
+    "unconfirmed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "actual_extra_cost": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      }
+    },
+    "duplicates": {
+      "type": "integer"
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reconciled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reconciled_by": {
+      "type": "string"
+    },
+    "summary_by": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "october_kept": {
+      "type": "boolean"
+    },
+    "note": {
+      "type": "string"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidence",
+          "on_time_full",
+          "reconciled_at",
+          "version"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "reconciled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "on_time_full": {
+            "type": "integer"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

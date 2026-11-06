@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/config.schema.json",
+  "title": "s2/sc04 config",
+  "description": "위임 설정(M18·M19, N16) — CFG-04 운영 버전·효력시점·H07 반영·사건별 적용 버전",
+  "type": "object",
+  "required": [
+    "approval_id",
+    "cases",
+    "comment",
+    "config_id",
+    "effective_at",
+    "note",
+    "scope",
+    "set_at",
+    "set_by",
+    "set_role",
+    "state",
+    "test_id",
+    "version",
+    "via"
+  ],
+  "properties": {
+    "config_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "approval_id": {
+      "type": "string"
+    },
+    "test_id": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "set_by": {
+      "type": "string"
+    },
+    "set_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "set_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "case_id",
+          "example",
+          "flow",
+          "roles",
+          "version",
+          "watch"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "flow": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "example": {
+            "type": "boolean"
+          },
+          "watch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

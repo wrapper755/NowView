@@ -18,7 +18,7 @@
    "executor": "studio",
    "bpm": {
     "job_id": null,
-    "external_run_id": "test_20261105_140507_8ee0b4",
+    "external_run_id": "test_20261105_152715_144ac0",
     "state": "done",
     "visited": [
      "Task_Propose",
@@ -128,7 +128,7 @@
     "plant": "울산",
     "product": "A"
    },
-   "dataset_version": "SYN-S2-SC03-v0.3",
+   "dataset_version": "SYN-S2-SC04-v0.4",
    "kpi": {
     "period": {
      "start": "2026-10-01",

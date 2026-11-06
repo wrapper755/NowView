@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/dashboard.schema.json",
+  "title": "s2/sc04 dashboard",
+  "description": "납기 상황판(UI-D01) 장면 4 몫 — 정시 전량·실제 추가비·재현 여유·앞당김·접수 여유·조건부 회피·10월 OTD·적용 상태",
+  "type": "object",
+  "required": [
+    "as_of",
+    "case_id",
+    "dataset_version",
+    "kpi",
+    "notice",
+    "scope",
+    "summary"
+  ],
+  "properties": {
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "company",
+        "plant",
+        "product"
+      ],
+      "properties": {
+        "company": {
+          "type": "string"
+        },
+        "plant": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "kpi": {
+      "type": "object",
+      "required": [
+        "by_model",
+        "denominator",
+        "late",
+        "meets_target",
+        "numerator",
+        "otd",
+        "period",
+        "target"
+      ],
+      "properties": {
+        "period": {
+          "type": "object",
+          "required": [
+            "end",
+            "label",
+            "start"
+          ],
+          "properties": {
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "numerator": {
+          "type": "integer"
+        },
+        "denominator": {
+          "type": "integer"
+        },
+        "otd": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "target": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "meets_target": {
+          "type": "boolean"
+        },
+        "late": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "by_model": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "due",
+              "model",
+              "on_time",
+              "otd"
+            ],
+            "properties": {
+              "model": {
+                "type": "string"
+              },
+              "due": {
+                "type": "integer"
+              },
+              "on_time": {
+                "type": "integer"
+              },
+              "otd": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "adjusted_margin_min",
+        "application",
+        "conditional_avoidance",
+        "detection_earlier_min",
+        "fare_forecast",
+        "october_otd",
+        "on_time_full",
+        "r_actual_extra_cost",
+        "r_unadjusted_margin_min",
+        "receipt_margin_min"
+      ],
+      "properties": {
+        "on_time_full": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "r_actual_extra_cost": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "r_unadjusted_margin_min": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "detection_earlier_min": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "receipt_margin_min": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "adjusted_margin_min": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "fare_forecast": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "conditional_avoidance": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "october_otd": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "application": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "case_id": {
+      "type": "string"
+    },
+    "notice": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

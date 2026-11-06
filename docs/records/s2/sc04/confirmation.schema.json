@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/confirmation.schema.json",
+  "title": "s2/sc04 confirmation",
+  "description": "기준 적용 확인(M12, N15) — APP-04 적용 범위·효력시점·H06 확인",
+  "type": "object",
+  "required": [
+    "actor",
+    "actor_role",
+    "approval_id",
+    "comment",
+    "confirmed_at",
+    "decision",
+    "delegate_name",
+    "delegate_role",
+    "effective_at",
+    "kind",
+    "note",
+    "scope",
+    "state",
+    "test_id",
+    "version",
+    "via"
+  ],
+  "properties": {
+    "approval_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "test_id": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "delegate_role": {
+      "type": "string"
+    },
+    "delegate_name": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "actor_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "comment": {
+      "type": "string"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

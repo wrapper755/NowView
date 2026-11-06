@@ -1,9 +1,9 @@
 {
   "schema": 2,
   "id": "external",
-  "version": "0.11.0",
+  "version": "0.12.1",
   "name": "NowView 일꾼",
-  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
+  "description": "NowView 일꾼이 제공하는 서비스 태스크 작업 — NowView 판마다 하나인 고정 확장이다(회사·업무마다 만들지 않는다). 회사는 자기 BPM 프로세스에서 이 작업을 부르고, 일꾼은 일감을 보낸 BPM 프로세스 id로 NowView 설정(관리자 모드)의 회사·업무를 찾는다. 실행 위치는 일감의 origin(test = Studio, run = Center 서버 실행), 데모 실행은 입력 demo_run_id, 바깥 실행은 멱등 칸의 run_id로 묶는다. 기록 작업과 계산은 결재에 답한 사람(answered_by)을 받는다. 지금 작업은 업무 「고객 생산계획 변경 대응」(장면 1)·「외주 단가 인상 검토」(장면 2)·「수익성 통합 분석과 수시 경영검토」(장면 3)·「수익성 개선 대응안 검토와 실행 승인」(장면 4)·「결정 실행과 계획 갱신」(장면 5)·「과제 완료와 성과 실현 검토」(장면 6)·「실제 경험을 관리모델 개선으로 연결」(장면 7)·시나리오 2 「납기 위험 조기 감지」·「정형통제 실행과 주문별 분기」·「잔여 납기 위험의 경영검토와 대응 합의」·「실행 결과 확인과 관리기준 개선」의 것이고, 공통 BPM `platform.case-intake`(사건 접수·영향 분석)가 부르는 공통 작업 셋(link_case·analyze_case_impact·hand_off_case_analysis)과 공통 BPM `platform.case-plan`(사건 수행계획 구성)이 부르는 공통 작업 셋(propose_case_plan·check_case_plan·apply_case_plan)이 있다 — 공통 작업은 일감을 보낸 바깥 BPM 프로세스의 업무가 제 규칙으로 수행한다 — 업무를 옮길 때마다 더한다. 외부 확장의 계약(C13)이 HTTP 어댑터 모양이라 주소·요청(request)은 자리만 채운다(운영계 주소, path \"/\") — 범용 어댑터 일꾼으로 부를 수 없다.",
   "publisher": "NowView",
   "tier": "external",
   "service": {
@@ -6780,6 +6780,564 @@
                 "type": "string"
               },
               "handoff_id": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "link_execution_results",
+          "description": "시나리오 2 장면 4 N11 — 장면 3 결정(DEC-03·ACT-03·HAND-03)과 회사 시스템의 실행 증빙(예약확정 BOOK-R · 고객 전량 인수 POD-S·POD-R · 운송비 정산 SET-S·SET-R)을 약정별로 다시 읽어 잇는다. 인수수량 = 약정수량이고 약정시각 이내면 정시 전량, 수량·시각이 없으면 인수 미확인, 정산이 없으면 비용 미확인. 증빙이 다 오지 않았으면 ready 거짓 — 그림이 메시지 「실행증빙」을 기다린다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "outcome_id": {
+                "type": "string"
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "on_time_full": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "start_standard_improvement",
+          "description": "시나리오 2 장면 4 N12 — 관리 기준 책임자(H06)만 개선 착수를 판단한다(착수 · 개선 불필요). 결과 대조가 끝나야 한다. 착수면 IMP-04(A01의 KRI·Control 개정 초안)를 연다 — 사건 수행계획은 바꾸지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id",
+              "reason"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "improvement_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "replay_route_screening",
+          "description": "시나리오 2 장면 4 D10 재현 — SNAP-0900(11/4 09:00까지 가용한 자료)으로 8건 운송납기 여유를 잠정 계산하고(R −30분만 조정 후보), 변경 접수 마감(기점 출발 − 24시간)과 남은 시간을 내고, R에 요청 초안 REQ-R-04를 만든다(A01). 승인·반영본·회신은 쓰지 않는다. 실제 운송사에 보내지 않는다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "replay_id": {
+                "type": "string"
+              },
+              "candidates": {
+                "type": "integer"
+              },
+              "requested": {
+                "type": "boolean"
+              },
+              "request_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "minutes_left": {
+                "type": "integer"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "send_route_request",
+          "description": "시나리오 2 장면 4 재현 — 출하 담당자(H04)만 요청 초안을 확인해 (모의) 송신한다. 송신 시각은 재현 자료의 시각(09:03)이다. 외부 송신 0건",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "receive_route_reply",
+          "description": "시나리오 2 장면 4 재현 — 모의 운송사의 접수증(ACK-R-04 09:05, 마감 여유)과 회신(REP-R-04 09:08 기본 수락)을 별도 사건으로 남긴다. 수락 시점에는 생산 반영 확인 대기다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "ack_id": {
+                "type": "string"
+              },
+              "reply_id": {
+                "type": "string"
+              },
+              "reply": {
+                "type": "string"
+              },
+              "deadline_margin_min": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "confirm_route_impact",
+          "description": "시나리오 2 장면 4 구현명세 §3 — 출하 담당자(H04)만 당사 타 고객 기존 약정 차질 여부(차질 없음 · 차질 예상 · 미확인)와 근거를 남긴다. 회신 이후 최종 채택 판정(접수 ≤ 마감 · 수락 · 전량 · 차질 없음 · 추가운임 0 · 도착 ≤ 약정 · 반영본 일치 · 준비 ≤ 출발)을 낸다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "demo_run_id",
+              "evidence",
+              "impact"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "impact": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "run_standard_verification",
+          "description": "시나리오 2 장면 4 N14 — 같은 당시 자료로 8개 회신 분기와 인수시험 01~09를 돌리고 SC04기준적용 표본(1·1·7)과 대조한다. 외부 송신 0건",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": true,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "demo_run_id"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "test_id": {
+                "type": "string"
+              },
+              "passed": {
+                "type": "boolean"
+              },
+              "sample": {
+                "type": "string"
+              }
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "record_verification_verdict",
+          "description": "시나리오 2 장면 4 N14 — Agent 운영 담당자(H07)만 시험 판정(통과 · 보완·재시험)을 기록한다. 미통과 항목이 있으면 통과로 기록할 수 없다",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "demo_run_id",
+              "verdict"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "verdict": {
+                "type": "string"
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "confirm_standard_application",
+          "description": "시나리오 2 장면 4 N15 — 관리 기준 책임자(H06)만 검증된 기준(KRI-CTL-v2)의 적용 범위·효력시점을 확인한다(APP-04, 확인 · 보류). 시험 통과가 있어야 하고, 효력시점은 지금보다 뒤다(소급 금지)",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effective_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "result": {
+                "type": "string"
+              },
+              "approval_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "error_message": {}
+            }
+          },
+          "request": {
+            "method": "POST",
+            "path": "/"
+          }
+        },
+        {
+          "name": "apply_standard_config",
+          "description": "시나리오 2 장면 4 N16 — Agent 운영 담당자(H07)만 H06이 확인한 버전·범위·효력시점 그대로 위임 설정을 반영한다(CFG-04). 신규 사건(CASE-NEXT-01 예시)은 개선 버전, 기존 사건(CASE-S2-01)은 당시 버전",
+          "modes": [
+            "autonomous",
+            "deterministic"
+          ],
+          "idempotent": false,
+          "input_schema": {
+            "type": "object",
+            "required": [
+              "answered_by",
+              "case_id",
+              "decision",
+              "demo_run_id",
+              "version"
+            ],
+            "properties": {
+              "answered_by": {
+                "type": "string"
+              },
+              "answered_via": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "case_id": {
+                "type": "string"
+              },
+              "demo_run_id": {
+                "type": "string"
+              },
+              "decision": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "comment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "output_schema": {
+            "type": "object",
+            "properties": {
+              "config_id": {
+                "type": "string"
+              },
+              "state": {
                 "type": "string"
               },
               "error_message": {}

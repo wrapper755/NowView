@@ -37,7 +37,7 @@ from app.sc01.domain import DomainError, parse_at
 from app.sc01.store import build_sc01_store
 from app.store import build_sqlite_backend
 
-SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC03-v0.3.xlsx"
+SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC04-v0.4.xlsx"
 KST = calc.at("2026-11-05T00:00:00+09:00").tzinfo
 CONFIRM_AT = None  # SC02확인의 확인시각 — 시트에서 읽는다(`_sheet`)
 
@@ -153,7 +153,7 @@ def _base(proc, company, rid, case_id: str = "BASE") -> State:
 
 
 def test_v02_keeps_the_scene_1_sheets_and_adds_scene_2(master: dict) -> None:
-    """v0.3의 앞 7개 시트는 장면 1(v0.1)과 값이 같다 — 장면 1·2 시험이 같은 파일로 돈다."""
+    """v0.4의 앞 7개 시트는 장면 1(v0.1)과 값이 같다 — 장면 1~4 시험이 같은 파일로 돈다."""
     wb = openpyxl.load_workbook(SEED, data_only=True)
     assert wb.sheetnames[:7] == [
         "상황판",
@@ -164,7 +164,7 @@ def test_v02_keeps_the_scene_1_sheets_and_adds_scene_2(master: dict) -> None:
         "모델별 집계",
         "사건근거",
     ]
-    assert master["dataset_version"] == "SYN-S2-SC03-v0.3"
+    assert master["dataset_version"] == "SYN-S2-SC04-v0.4"
     assert [p["commitment_id"] for p in master["production"]] == ["COM-S", "COM-R"]
 
 
@@ -690,7 +690,7 @@ def test_dashboard_shows_scene_2_metrics_for_a_scenario_2_world(
     )
     body = TestClient(app).get("/companies/company1/dashboard").json()
     works = {w["scene"]: w for w in body["works"]}
-    assert set(works) == {21, 22, 23}  # 장면 3 카드는 문서가 없어 시작 전이다
+    assert set(works) == {21, 22, 23, 24}  # 장면 3·4 카드는 문서가 없어 시작 전이다
     w = works[22]
     assert (w["work"], w["state"]) == ("정형통제 실행과 주문별 분기", "done")
     assert w["progress"] == {"approvals": 1, "passed": 1}

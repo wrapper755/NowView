@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s2/sc04/verification.schema.json",
+  "title": "s2/sc04 verification",
+  "description": "인수시험(M26, N14) — 8개 회신 분기·시험 01~09의 기대·실제·판정·표본 대조·H07 판정",
+  "type": "object",
+  "required": [
+    "branches",
+    "data_as_of",
+    "dataset_version",
+    "execution_mode",
+    "external_sends",
+    "operator_role",
+    "passed",
+    "rows",
+    "run_at",
+    "run_by",
+    "sample",
+    "sample_expected",
+    "sample_verdict",
+    "state",
+    "test_id",
+    "verdict",
+    "verdict_at",
+    "verdict_by",
+    "version"
+  ],
+  "properties": {
+    "test_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "data_as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "actual",
+          "diff",
+          "expected",
+          "name",
+          "test_id",
+          "verdict"
+        ],
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "actual": {
+            "type": "string"
+          },
+          "diff": {
+            "type": "null"
+          },
+          "verdict": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "sample_expected": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "sample_verdict": {
+      "type": "string"
+    },
+    "passed": {
+      "type": "boolean"
+    },
+    "external_sends": {
+      "type": "integer"
+    },
+    "branches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "arrival_candidate",
+          "branch",
+          "capacity",
+          "conditional_avoidance",
+          "cost_forecast",
+          "deadline_margin_min",
+          "departure",
+          "eta",
+          "extra_fare",
+          "impact_label",
+          "margin_min",
+          "other_customer_impact",
+          "path",
+          "reasons",
+          "received_at",
+          "reply",
+          "run_min",
+          "state",
+          "state_label"
+        ],
+        "properties": {
+          "branch": {
+            "type": "string"
+          },
+          "reply": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "deadline_margin_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "capacity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "other_customer_impact": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "impact_label": {
+            "type": "string"
+          },
+          "extra_fare": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "departure": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "run_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "arrival_candidate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "path": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "eta": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "margin_min": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cost_forecast": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "conditional_avoidance": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_by": {
+      "type": "string"
+    },
+    "operator_role": {
+      "type": "string"
+    },
+    "execution_mode": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "verdict_by": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "verdict_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "state": {
+      "type": "string"
+    },
+    "verdict_role": {
+      "type": "string"
+    },
+    "via": {
+      "type": "null"
+    },
+    "comment": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

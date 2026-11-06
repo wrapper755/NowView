@@ -31,7 +31,7 @@ from app.sc01.domain import DomainError, parse_at
 from app.sc01.store import build_sc01_store
 from app.store import build_sqlite_backend
 
-SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC03-v0.3.xlsx"
+SEED = Path(__file__).resolve().parents[1] / "seed" / "SYN-S2-SC04-v0.4.xlsx"
 KST = calc.KST
 AT = {
     "P-v0": "2026-11-02T09:00:00+09:00",

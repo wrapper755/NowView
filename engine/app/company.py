@@ -365,6 +365,13 @@ class CompanyClient:
     def case_source_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
         return self._call("GET", f"/worlds/{world_id}/case-sources/inbox?after={after}")
 
+    def execution_evidence(self, world_id: str) -> list[dict[str, Any]]:
+        """시나리오 2 장면 4 — 받은 실행 증빙 전부(예약확정·고객 인수·운송비 정산, 등록 순)."""
+        return self._call("GET", f"/worlds/{world_id}/execution-evidence")
+
+    def execution_evidence_inbox(self, world_id: str, after: int = 0) -> list[dict[str, Any]]:
+        return self._call("GET", f"/worlds/{world_id}/execution-evidence/inbox?after={after}")
+
     def shipping_inquiry(self, world_id: str, work_id: str) -> dict[str, Any]:
         """시나리오 2 장면 3 — 출하팀의 기존 운송 문의(원업무)와 받은 회신. 읽기만 한다."""
         return self._call("GET", f"/worlds/{world_id}/shipping-inquiries/{work_id}")
