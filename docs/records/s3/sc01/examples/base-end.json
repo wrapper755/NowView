@@ -19,7 +19,7 @@
    "bpm": {
     "state": "done",
     "job_id": null,
-    "external_run_id": "test_20261106_022206_177639",
+    "external_run_id": "test_20261106_052015_f767de",
     "visited": [
      "Task_Link",
      "Task_Route",
@@ -610,7 +610,7 @@
      "sheet": "원장",
      "ref": "2026-12-31 감가상각비",
      "expected": "조정 전 당기 기계상액 1행",
-     "actual": "1150백만원",
+     "actual": "1,150백만원",
      "owner_role": "회계담당",
      "reason": null
     }
@@ -738,8 +738,8 @@
      "verdict": "PASS",
      "sheet": "원장",
      "ref": "2026-12-31 외상매출금",
-     "expected": "차이 0원 (원장 6458.799691백만원)",
-     "actual": "명세 6458.799691백만원 · 차이 0원",
+     "expected": "차이 0원 (원장 6,458.799691백만원)",
+     "actual": "명세 6,458.799691백만원 · 차이 0원",
      "owner_role": "채권담당",
      "reason": null
     },
@@ -1058,8 +1058,8 @@
      "verdict": "PASS",
      "sheet": "원장",
      "ref": "2026-12-31 외상매출금",
-     "expected": "차이 0원 (원장 6458.799691백만원)",
-     "actual": "명세 6458.799691백만원 · 차이 0원",
+     "expected": "차이 0원 (원장 6,458.799691백만원)",
+     "actual": "명세 6,458.799691백만원 · 차이 0원",
      "owner_role": "채권담당",
      "reason": null
     },

@@ -75,6 +75,15 @@ def mil(value: int | None) -> str | None:
     return format(d, "f")
 
 
+def mil_text(value: int | None) -> str | None:
+    """원 → 화면 글의 백만원(천 단위 쉼표, 소수는 그대로) — 근거 패널과 같은 표기."""
+    text = mil(value)
+    if text is None:
+        return None
+    whole, _, frac = text.partition(".")
+    return f"{int(whole):,}" + (f".{frac}" if frac else "")
+
+
 def _check(
     check_id: str,
     item: str,
@@ -267,7 +276,7 @@ def depreciation_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[
             amount is not None,
             sheet="원장",
             expected="조정 전 당기 기계상액 1행",
-            actual=None if amount is None else f"{amount}백만원",
+            actual=None if amount is None else f"{mil_text(won(amount))}백만원",
             ref=f"{last} 감가상각비",
             owner="회계담당",
             reason="원장에 당기 감가상각비 기계상액이 없거나 여러 행이다",
@@ -361,8 +370,8 @@ def allowance_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[str
             "채권명세·원장 대사",
             diff == 0,
             sheet="원장",
-            expected=f"차이 0원 (원장 {mil(book) or '없음'}백만원)",
-            actual=f"명세 {mil(total) or '산출 불가'}백만원 · 차이 "
+            expected=f"차이 0원 (원장 {mil_text(book) or '없음'}백만원)",
+            actual=f"명세 {mil_text(total) or '산출 불가'}백만원 · 차이 "
             + ("미산출" if diff is None else f"{diff:,}원"),
             ref=f"{last} 외상매출금",
             owner="채권담당",
@@ -382,8 +391,8 @@ def allowance_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[str
             ok,
             sheet="원장",
             expected="전기말 충당금 − 당기 제각 사용 = 조정 전 잔액",
-            actual=" − ".join(mil(x) or "없음" for x in vals[:2])
-            + f" → 조정 전 {mil(vals[2]) or '없음'}",
+            actual=" − ".join(mil_text(x) or "없음" for x in vals[:2])
+            + f" → 조정 전 {mil_text(vals[2]) or '없음'}",
             ref=f"{prior_end} 대손충당금",
             owner="회계담당",
             reason="원장의 기초·제각·조정 전 충당금이 맞지 않는다",
@@ -442,7 +451,7 @@ def allowance_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[str
             sheet="회수계획",
             expected="기준일 현재 계획 1개 · 서로 다른 회차 합산",
             actual=(
-                f"{plan_id} {len(plan)}회차 합계 {mil(plan_total)}백만원"
+                f"{plan_id} {len(plan)}회차 합계 {mil_text(plan_total)}백만원"
                 if ok
                 else f"{plan_id or '계획 없음'} · "
                 + (f"회차 {', '.join(map(str, dup))} 중복" if dup else "")
@@ -486,7 +495,9 @@ def allowance_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[str
     if f is None:
         actual = "회계 평가 기록 없음" if not acct else f"{len(acct)}건 — 하나여야 한다"
     else:
-        actual = f"{f['confirmation_id']} 근거 {f.get('plan_ref')} · 확인액 {mil(amount)}백만원"
+        actual = (
+            f"{f['confirmation_id']} 근거 {f.get('plan_ref')} · 확인액 {mil_text(amount)}백만원"
+        )
     out.append(
         _check(
             "ALW-08",
@@ -494,7 +505,9 @@ def allowance_checks(v: dict[str, Any], master: dict[str, Any]) -> list[dict[str
             "회계 평가 기록 = 계획 합계",
             a_ok,
             sheet="확인기록",
-            expected=f"근거 {plan_id} · 확인액 = 회차 합계 {mil(plan_total) or '미산출'}백만원",
+            expected=(
+                f"근거 {plan_id} · 확인액 = 회차 합계 {mil_text(plan_total) or '미산출'}백만원"
+            ),
             actual=actual,
             ref=f["confirmation_id"] if f else None,
             owner="회계담당",

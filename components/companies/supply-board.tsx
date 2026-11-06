@@ -174,31 +174,37 @@ export function SupplyBoardView({ board, openCase }: { board: SupplyBoard; openC
             <CardDescription>대표 사건 외 정상 모델도 같은 계산으로 유지한다</CardDescription>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-left text-sm">
-              <thead className="text-xs text-muted-foreground">
-                <tr>
-                  <th className="py-1 font-medium">약정</th>
-                  <th className="py-1 font-medium">모델 · 수량</th>
-                  <th className="py-1 font-medium">고객 약정</th>
-                  <th className="py-1 font-medium">기존 착수 차질</th>
-                </tr>
-              </thead>
-              <tbody className="tabular-nums">
-                {board.open_commitments.map((c) => (
-                  <tr key={c.commitment_id} className="border-t">
-                    <td className="py-1">
-                      {c.commitment_id}
-                      {c.demo_role === "representative" && <span className="ml-1 text-xs text-destructive">사건</span>}
-                    </td>
-                    <td className="py-1">
-                      {c.model} · {c.qty}
-                    </td>
-                    <td className="py-1">{formatClock(c.promised_at)}</td>
-                    <td className="py-1">{c.start_delay_min === null ? "미확인" : `${c.start_delay_min}분`}</td>
+            {board.open_commitments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                조회 기준 시각에 아직 도래하지 않은 납기약정이 없다 — 지난 약정은 마감 실적·사건 기록에 있다
+              </p>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr>
+                    <th className="py-1 font-medium">약정</th>
+                    <th className="py-1 font-medium">모델 · 수량</th>
+                    <th className="py-1 font-medium">고객 약정</th>
+                    <th className="py-1 font-medium">기존 착수 차질</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="tabular-nums">
+                  {board.open_commitments.map((c) => (
+                    <tr key={c.commitment_id} className="border-t">
+                      <td className="py-1">
+                        {c.commitment_id}
+                        {c.demo_role === "representative" && <span className="ml-1 text-xs text-destructive">사건</span>}
+                      </td>
+                      <td className="py-1">
+                        {c.model} · {c.qty}
+                      </td>
+                      <td className="py-1">{formatClock(c.promised_at)}</td>
+                      <td className="py-1">{c.start_delay_min === null ? "미확인" : `${c.start_delay_min}분`}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
       </div>

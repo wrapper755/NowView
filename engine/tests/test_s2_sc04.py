@@ -811,3 +811,11 @@ def test_dashboard_shows_scene_4_metrics_for_a_scenario_2_world(
     assert values["조건부 비용 회피 가능액"] == "1200000"
     assert values["10월 OTD"] == "99%"
     assert values["적용 상태"] == "신규 사건 적용"
+    # 납기 상황판(업무 21)의 처리 상태는 가장 뒤의 장면을 따른다 — 장면 1 기록만 보면
+    # 「생산계획 변경 전」이었다
+    control = {x["scene"]: x for x in body["works"]}[21]["board"]["control"]
+    assert (control["case_state"], control["label"]) == (
+        "FOLLOW_UP",
+        "실행 결과 확인 / 관리기준 개선 적용",
+    )
+    assert all("caseControl" not in x for x in body["works"])

@@ -206,7 +206,7 @@ def build_router(
             "worlds": worlds,
             "world": chosen,
             "problem": problem,
-            "works": works,
+            "works": board.with_case_control(works),
         }
 
     @router.get("/admin/status", dependencies=[Depends(admin)])

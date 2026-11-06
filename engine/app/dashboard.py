@@ -272,6 +272,71 @@ def _records(scene: int, proc: Any, doc: dict) -> list[Record]:
     return {2: r2, 3: r3, 4: r4, 5: r5, 6: r6, 7: r7}[scene].records_of(doc)
 
 
+#: 시나리오 2 납기 상황판의 「통제 · 사건 처리 상태」 — 상황판은 장면 1 기록이 짓지만 사건은
+#: 장면 2~4로 이어진다. 뒤 장면의 장면 기록 상태 → (사건 상태, 칸 글). 표에 없는 상태는 그
+#: 장면의 기본(`None`)이다.
+CASE_CONTROL: dict[int, dict[str | None, tuple[str, str]]] = {
+    22: {
+        "HANDED_OFF": ("CONTROL", "정형통제 완료 / 생산계획 반영 · 잔여 위험 운송 확인"),
+        "ASSESSED": ("CONTROL", "정형통제 / 생산계획 반영 · 주문별 재평가"),
+        "CONTROL": ("CONTROL", "정형통제 / 생산계획 변경 반영 중"),
+        "AWAITING_CONFIRM": ("AWAITING_CONFIRM", "확인 대기 / 생산계획 변경안 확인 전"),
+        "REWORK": ("AWAITING_CONFIRM", "확인 대기 / 생산계획 변경안 보완 요청"),
+        "PLAN_BLOCKED": ("CONTROL", "정형통제 / 수행계획 검사 차단"),
+        "RUN_FAILED": ("CONTROL", "정형통제 / BPM 실행 실패"),
+        None: ("CONTROL", "정형통제 / 수행계획 구성 중"),
+    },
+    23: {
+        "HANDED_OFF": ("FOLLOW_UP", "후속 조치 / 대응 결정 · 실행과제 인수"),
+        "DECIDED": ("REVIEW", "경영검토 / 대응 결정 · 과제 인수 전"),
+        "WITHIN_AUTHORITY": ("REVIEW", "운송 대안 / 전결 범위 처리"),
+        "ESCALATED": ("REVIEW", "경영검토 / 임원 결정 대기"),
+        "PLAN_BLOCKED": ("REVIEW", "운송 대안 확인 / 수행계획 검사 차단"),
+        "RUN_FAILED": ("REVIEW", "운송 대안 확인 / BPM 실행 실패"),
+        None: ("REVIEW", "운송 대안 확인 / 생산계획 반영됨"),
+    },
+    24: {
+        "APPLIED": ("FOLLOW_UP", "실행 결과 확인 / 관리기준 개선 적용"),
+        "NO_IMPROVEMENT": ("FOLLOW_UP", "실행 결과 확인 / 개선 불필요"),
+        "TEST_FAILED": ("FOLLOW_UP", "관리기준 개선 / 시험 미통과 · 보완"),
+        "APPLY_HELD": ("FOLLOW_UP", "관리기준 개선 / 적용 보류"),
+        "RUN_FAILED": ("FOLLOW_UP", "후속 조치 / BPM 실행 실패"),
+        None: ("FOLLOW_UP", "후속 조치 / 실행 결과 확인 중"),
+    },
+}
+
+
+def case_control(scene: int, found: list[Record]) -> dict[str, Any] | None:
+    """뒤 장면(22~24)의 기록이 말하는 사건 처리 상태 — 시작 전이거나 기록이 없으면 None."""
+    table = CASE_CONTROL.get(scene)
+    rows = [r for r in found if r["kind"] == "scene"]
+    if table is None or not rows:
+        return None
+    state = rows[-1].get("state")
+    case_state, label = table.get(state) or table[None]
+    return {"case_state": case_state, "label": label, "scene": scene, "scene_state": state}
+
+
+def with_case_control(works: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """
+    납기 상황판(업무 21)의 처리 상태를 가장 뒤의 시작된 장면으로 맞춘다. 장면 1만 보면 장면 4가 끝난
+    회차에서도 「생산계획 변경 전」이었다. KPI·KRI·사건 목록은 장면 1 기록 그대로다.
+    """
+    latest = None
+    for w in works:
+        found = w.pop("caseControl", None)
+        if found is not None:
+            latest = found
+    board_work = next((w for w in works if w["scene"] == 21 and w.get("board")), None)
+    if latest is not None and board_work is not None:
+        control = board_work["board"].get("control") or {}
+        board_work["board"] = {
+            **board_work["board"],
+            "control": {**control, "case_state": latest["case_state"], "label": latest["label"]},
+        }
+    return works
+
+
 def _approvals(proc: Any) -> set[str]:
     return {n.id for n in proc.process.all_nodes() if n.kind == "userTask"}
 
@@ -299,7 +364,7 @@ def work(scene: int, proc: Any, doc: dict | None) -> dict[str, Any]:
         for w in bpm.get("waiting") or []
         if w.get("node_id") in approvals
     ]
-    return {
+    out = {
         **head,
         "state": bpm.get("state") or "not_started",
         "clock": doc.get("clock"),
@@ -307,6 +372,9 @@ def work(scene: int, proc: Any, doc: dict | None) -> dict[str, Any]:
         "waiting": waiting,
         "metrics": metrics,
     }
+    if scene in CASE_CONTROL:
+        out["caseControl"] = case_control(scene, found)
+    return out
 
 
 def _s2_runs(doc: dict) -> dict[str, Any]:
