@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/approval_decision.schema.json",
+  "title": "s3/sc03 approval_decision",
+  "description": "결정 — 승인/보완 요청·결정자·시각·보고 버전·결과·첨부·대상·사유",
+  "type": "object",
+  "required": [
+    "attachment",
+    "decided_at",
+    "decided_by",
+    "decided_via",
+    "decision",
+    "decision_id",
+    "items",
+    "label",
+    "reason",
+    "report_id",
+    "report_version",
+    "result_version",
+    "revision_id",
+    "summary_ref",
+    "targets"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string"
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "report_version": {
+      "type": "integer"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string"
+    },
+    "decided_by": {
+      "type": "string"
+    },
+    "decided_via": {
+      "type": "null"
+    },
+    "decided_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "attachment": {
+      "type": "object",
+      "required": [
+        "file_id",
+        "file_version",
+        "filename",
+        "result_version",
+        "sha256",
+        "size"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "integer"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "result_version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "name",
+          "request",
+          "request_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "summary_ref": {
+      "type": "string"
+    },
+    "revision_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

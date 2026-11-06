@@ -82,6 +82,8 @@ class CenterConfig:
     s3_sc01_package: str = "company1.s3.sc01"
     #: 시나리오 3 장면 2 패키지(`processes/s3-sc02.bpmn` — 분석 실행·첨부·검토·상신)
     s3_sc02_package: str = "company1.s3.sc02"
+    #: 시나리오 3 장면 3 패키지(`processes/s3-sc03.bpmn` — 팀장 결정·보완 재상신·후속 인계)
+    s3_sc03_package: str = "company1.s3.sc03"
 
     @classmethod
     def from_env(cls) -> CenterConfig:
@@ -102,6 +104,7 @@ class CenterConfig:
             s2_sc04_package=os.getenv("CHAEKSAS_S2_SC04_PACKAGE") or "company1.s2.sc04",
             s3_sc01_package=os.getenv("CHAEKSAS_S3_SC01_PACKAGE") or "company1.s3.sc01",
             s3_sc02_package=os.getenv("CHAEKSAS_S3_SC02_PACKAGE") or "company1.s3.sc02",
+            s3_sc03_package=os.getenv("CHAEKSAS_S3_SC03_PACKAGE") or "company1.s3.sc03",
         )
 
     def missing(self, *, relay: bool = False, integration: bool = False) -> str | None:
@@ -138,6 +141,7 @@ class CenterConfig:
             "s2Sc04Package": self.s2_sc04_package,
             "s3Sc01Package": self.s3_sc01_package,
             "s3Sc02Package": self.s3_sc02_package,
+            "s3Sc03Package": self.s3_sc03_package,
         }
 
 

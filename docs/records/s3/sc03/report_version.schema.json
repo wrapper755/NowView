@@ -1,0 +1,824 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/report_version.schema.json",
+  "title": "s3/sc03 report_version",
+  "description": "제출본(보고 버전) — 두 항목 요청액·변동 사유·주석·근거(A사 개별평가·회수 회차·영업/회계 확인·충당금비교·상각비 귀속)·첨부·검토·변경 내역·이전 보완 사유·상태",
+  "type": "object",
+  "required": [
+    "approval_scope",
+    "attachment",
+    "changes",
+    "close_id",
+    "decision_id",
+    "evidence",
+    "execution",
+    "input_version",
+    "items",
+    "notes",
+    "period",
+    "recipient",
+    "report_id",
+    "result_version",
+    "reviews",
+    "revision_id",
+    "state",
+    "submitted_at",
+    "submitted_by",
+    "submitted_via",
+    "title",
+    "version"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "close_id": {
+      "type": "string"
+    },
+    "period": {
+      "type": "object",
+      "required": [
+        "comparative_end",
+        "period_end",
+        "unit"
+      ],
+      "properties": {
+        "period_end": {
+          "type": "string"
+        },
+        "comparative_end": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "result_version": {
+      "type": "string"
+    },
+    "input_version": {
+      "type": "string"
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "draft_mode",
+        "executed_at",
+        "executed_by",
+        "execution_mode",
+        "input_version",
+        "run_id"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "input_version": {
+          "type": "string"
+        },
+        "executed_by": {
+          "type": "string"
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "execution_mode": {
+          "type": "string"
+        },
+        "draft_mode": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "attachment": {
+      "type": "object",
+      "required": [
+        "file_id",
+        "file_version",
+        "filename",
+        "result_version",
+        "sha256",
+        "size"
+      ],
+      "properties": {
+        "file_id": {
+          "type": "string"
+        },
+        "file_version": {
+          "type": "integer"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        },
+        "result_version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approval",
+          "book",
+          "change",
+          "change_rate",
+          "current",
+          "item_id",
+          "name",
+          "note_sheet",
+          "prior",
+          "reason",
+          "refs",
+          "request",
+          "request_label",
+          "summary_cell",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prior": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "current": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change_rate": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "book": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "field",
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                },
+                "field": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "summary_cell": {
+            "type": "string"
+          },
+          "note_sheet": {
+            "type": "string"
+          },
+          "approval": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "notes": {
+      "type": "object",
+      "required": [
+        "ALW",
+        "DEP"
+      ],
+      "properties": {
+        "DEP": {
+          "type": "object",
+          "required": [
+            "acquired",
+            "closing",
+            "depreciation",
+            "disposed",
+            "impairment",
+            "kind",
+            "opening"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "acquired": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "disposed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "impairment": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "depreciation": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "closing": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ALW": {
+          "type": "object",
+          "required": [
+            "diff_won",
+            "ending",
+            "opening",
+            "provision",
+            "reversal",
+            "written_off"
+          ],
+          "properties": {
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "provision": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "reversal": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "written_off": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "ending": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "diff_won": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "allocation",
+        "allowance_note",
+        "asset_changes",
+        "confirmations",
+        "depreciation_note",
+        "individual",
+        "methods",
+        "paths"
+      ],
+      "properties": {
+        "individual": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "accounting_confirmation",
+              "allowance",
+              "as_of",
+              "balance",
+              "basis",
+              "confirmed_by",
+              "customer",
+              "plan_ref",
+              "plan_rounds",
+              "plan_total",
+              "recovery",
+              "sales_confirmation"
+            ],
+            "properties": {
+              "customer": {
+                "type": "string"
+              },
+              "as_of": {
+                "type": "string"
+              },
+              "balance": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "plan_ref": {
+                "type": "string"
+              },
+              "plan_rounds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "amount",
+                    "due",
+                    "round"
+                  ],
+                  "properties": {
+                    "round": {
+                      "type": "integer"
+                    },
+                    "due": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "plan_total": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "sales_confirmation": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "accounting_confirmation": {
+                "type": "string"
+              },
+              "confirmed_by": {
+                "type": "string"
+              },
+              "recovery": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "allowance": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "basis": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "confirmations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "amount",
+              "confirmation_id",
+              "confirmed_by",
+              "confirmed_on",
+              "customer",
+              "note",
+              "plan_ref"
+            ],
+            "properties": {
+              "confirmation_id": {
+                "type": "string"
+              },
+              "customer": {
+                "type": "string"
+              },
+              "confirmed_on": {
+                "type": "string"
+              },
+              "plan_ref": {
+                "type": "string"
+              },
+              "confirmed_by": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "note": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "methods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "change",
+              "current",
+              "current_balance",
+              "method",
+              "prior"
+            ],
+            "properties": {
+              "method": {
+                "type": "string"
+              },
+              "prior": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "current": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "change": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "current_balance": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "allowance_note": {
+          "type": "object",
+          "required": [
+            "diff_won",
+            "ending",
+            "opening",
+            "provision",
+            "reversal",
+            "written_off"
+          ],
+          "properties": {
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "provision": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "reversal": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "written_off": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "ending": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "diff_won": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        },
+        "allocation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "change",
+              "current",
+              "group",
+              "prior",
+              "rate"
+            ],
+            "properties": {
+              "group": {
+                "type": "string"
+              },
+              "prior": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "current": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "change": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "rate": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "depreciation_note": {
+          "type": "object",
+          "required": [
+            "acquired",
+            "closing",
+            "depreciation",
+            "disposed",
+            "impairment",
+            "kind",
+            "opening"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "opening": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "acquired": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "disposed": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "impairment": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "depreciation": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            },
+            "closing": {
+              "type": "string",
+              "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "asset_changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "allocation",
+              "asset_id",
+              "change",
+              "current",
+              "kind",
+              "months",
+              "prior"
+            ],
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "allocation": {
+                "type": "string"
+              },
+              "months": {
+                "type": "integer"
+              },
+              "prior": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "current": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              },
+              "change": {
+                "type": "string",
+                "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "paths": {
+          "type": "object",
+          "required": [
+            "ALW",
+            "DEP"
+          ],
+          "properties": {
+            "ALW": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "DEP": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "carried_from",
+          "item",
+          "review_id",
+          "reviewed_at",
+          "reviewed_by"
+        ],
+        "properties": {
+          "item": {
+            "type": "string"
+          },
+          "review_id": {
+            "type": "string"
+          },
+          "reviewed_by": {
+            "type": "string"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "carried_from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "submitted_by": {
+      "type": "string"
+    },
+    "submitted_via": {
+      "type": "null"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipient": {
+      "type": "object",
+      "required": [
+        "name",
+        "role",
+        "user_id"
+      ],
+      "properties": {
+        "role": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "approval_scope": {
+      "type": "string"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "after",
+          "amount_same",
+          "before",
+          "field",
+          "item",
+          "kind"
+        ],
+        "properties": {
+          "item": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "after": {
+            "type": "string"
+          },
+          "amount_same": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "revision_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "state": {
+      "type": "string"
+    },
+    "decision_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "previous": {
+      "type": "object",
+      "required": [
+        "decision_id",
+        "reason",
+        "targets",
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "integer"
+        },
+        "decision_id": {
+          "type": "string"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

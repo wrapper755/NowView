@@ -1,0 +1,473 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "s3/sc03/dashboard.schema.json",
+  "title": "s3/sc03 dashboard",
+  "description": "결산 체크리스트(장면 3) — 항목별 승인 단계·보완 사유·후속 업무 상태, 승인·보고·전표·주석 집계",
+  "type": "object",
+  "required": [
+    "approved",
+    "as_of",
+    "close_id",
+    "comparative_end",
+    "handed",
+    "hold",
+    "note",
+    "notes",
+    "period_end",
+    "posting",
+    "report",
+    "reports",
+    "reports_approved",
+    "revisions",
+    "rows",
+    "scope",
+    "title",
+    "waiting_approval"
+  ],
+  "properties": {
+    "close_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "period_end": {
+      "type": "string"
+    },
+    "comparative_end": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "items",
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "items": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "report": {
+      "type": "object",
+      "required": [
+        "file_id",
+        "report_id",
+        "result_version",
+        "state",
+        "state_label",
+        "version",
+        "versions"
+      ],
+      "properties": {
+        "report_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        },
+        "state": {
+          "type": "string"
+        },
+        "state_label": {
+          "type": "string"
+        },
+        "result_version": {
+          "type": "string"
+        },
+        "file_id": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "waiting_approval": {
+      "type": "integer"
+    },
+    "approved": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "reports": {
+      "type": "integer"
+    },
+    "reports_approved": {
+      "type": "integer"
+    },
+    "revisions": {
+      "type": "integer"
+    },
+    "posting": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "handed": {
+      "type": "object",
+      "required": [
+        "done",
+        "of"
+      ],
+      "properties": {
+        "done": {
+          "type": "integer"
+        },
+        "of": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "hold": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "required": [
+        "at",
+        "by",
+        "decision",
+        "reason",
+        "recovery_owner",
+        "report_version",
+        "status"
+      ],
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "by": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "report_version": {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "recovery_owner": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "approved_at",
+          "approved_by",
+          "book",
+          "change",
+          "current",
+          "item_id",
+          "name",
+          "next_action",
+          "notes",
+          "owner_id",
+          "owner_name",
+          "posting",
+          "prior",
+          "report_id",
+          "report_version",
+          "request",
+          "request_label",
+          "revision",
+          "state",
+          "state_label",
+          "work_id"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "work_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "next_action": {
+            "type": "string"
+          },
+          "report_id": {
+            "type": "string"
+          },
+          "report_version": {
+            "type": "integer"
+          },
+          "prior": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "current": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "change": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "book": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request": {
+            "type": "string",
+            "pattern": "^-?\\d+(\\.\\d+)?(E-?\\d+)?$"
+          },
+          "request_label": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "required": [
+              "owner",
+              "reason",
+              "revision_id"
+            ],
+            "properties": {
+              "revision_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "owner": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "approved_by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "approved_at": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "posting": {
+            "type": "object",
+            "required": [
+              "assignee",
+              "done",
+              "label",
+              "note_sheet",
+              "path",
+              "reason",
+              "state",
+              "state_label",
+              "task_id"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "state_label": {
+                "type": "string"
+              },
+              "assignee": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "role",
+                  "user_id"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "user_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "task_id": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "note_sheet": {
+                "type": "null"
+              },
+              "reason": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "done": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          },
+          "notes": {
+            "type": "object",
+            "required": [
+              "assignee",
+              "done",
+              "label",
+              "note_sheet",
+              "path",
+              "reason",
+              "state",
+              "state_label",
+              "task_id"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "state_label": {
+                "type": "string"
+              },
+              "assignee": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "role",
+                  "user_id"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "user_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "task_id": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "note_sheet": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              },
+              "reason": {
+                "type": "null"
+              },
+              "done": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

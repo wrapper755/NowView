@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  시나리오 3 장면 3 — 팀장 보고 및 승인(업무설계표 01~06). 업무 흐름의 유일한 원천이다.
+
+  **장면 2 상신(HAND-S3-02)에서 연다** — 회사 사이트의 「장면 열기」를 NowView 일꾼이 받아 이 프로세스를
+  기동한다(입력 `데모실행ID`·`결산건ID`). 그림이 쥐는 것은 순서와 분기뿐이다 — 결정 가능 조건(지정 결재자·
+  현재 상신 버전·결과 버전 일치·첨부 접근)과 보완 재계산은 일꾼의 규칙(NowView `engine/app/s3/sc03/process.py`,
+  계산은 장면 2와 같은 계산 기능)이다.
+
+  단계 대응: 보고 열기 01 → 회계팀장의 결정(02·03 근거 조회는 결재 기록을 만들지 않는 열람이다) → 04A 승인이면
+  06 후속 업무 인계(전표 반영·주석 취합 두 경로 — 한 경로만 실패하면 인계 대기, 그 경로만 재시도), 04B 보완
+  요청이면 05 회계담당자의 보완 처리(참조 보강 재상신 · 입력 반영 재계산 → 영향 항목 재검토 → 재상신) 뒤 같은
+  보고 ID의 새 버전으로 다시 결정. 결정이 보류되면(미지정 결재자·구버전·첨부 접근 실패) 같은 결재로 돌아간다.
+
+  결재는 회계팀장의 결정 하나(와 인계 재시도)이고, 회계담당자의 보완 처리·재검토는 원업무의 할 일이다.
+  이 파일은 손으로 고쳐도 된다.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:chk="urn:chaeksas:bpmn:1" id="Defs_s3_sc03">
+  <bpmn:error id="Err_record" name="기록 거절" errorCode="TASK_FAILED"/>
+  <bpmn:process id="company1.s3.sc03" name="S3 SC03 팀장 보고 및 승인" isExecutable="true">
+    <bpmn:extensionElements>
+      <chk:process>{"run_location": "server", "extensions": [{"id": "external", "version": "&gt;=0.15.0,&lt;1"}], "inputs": [{"name": "데모실행ID", "type": "string", "required": true}, {"name": "결산건ID", "type": "string", "required": true}], "outputs": []}</chk:process>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start" name="장면 2 인계 HAND-S3-02 — 승인 대기 2항목 · 상신 1건"/>
+    <bpmn:serviceTask id="Task_Open" name="보고 열기 (01)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "open_close_approval", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"보고ID": "report_id", "보고버전": "report_version", "결과버전": "result_version", "첨부ID": "file_id", "파일명": "filename"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Approve_Report" name="보고 결정 (02~04 · 회계팀장)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "결산조정항목 및 관련 주석(안) 보고·승인 — 회계팀장", "answered_by_as": "결정자", "answered_via_as": "결정경로", "assignees": ["회계팀장"], "description": "장면 2에서 상신한 요약 한 장과 계산근거 Excel 한 파일이다(S3-CLOSE-01 · 2026년 연말결산 · 비교기간 2025년 · 백만원). 감가상각비 전기 1,120 → 당기 1,200(+80), 기계상 1,150 대비 50 추가 계상. 대손충당금 기말 100 → 110(+10), 조정 전 장부 80 대비 30 추가 설정 — A사 개별평가(채권 100 · 회수예상액 75 → 60 · PLAN-A-26 3회 × 20 · 영업 CONF-26-S · 회계 CONF-26-F)와 충당금주석(기초 100 − 제각 20 + 설정 30 = 기말 110)을 첨부에서 볼 수 있다. 승인 범위는 두 결산조정항목과 유형자산·충당금 주석(안)이다. [승인]은 보고 전체에 한 번이다. [보완 요청]은 대상 항목과 사유가 필수다 — 회계담당자에게 돌아가고 후속 인계는 승인 때까지 보류된다. 본 보고 버전이 현재 상신 버전이 아니거나 첨부를 열 수 없으면 결정하지 않는다.", "show": ["데모실행ID", "결산건ID", "보고ID", "보고버전", "결과버전", "첨부ID", "파일명", "error_message"], "fields": [{"key": "결정보고버전", "label": "본 보고 버전", "type": "text", "required": true}, {"key": "결정", "label": "결정", "type": "choice", "required": true, "choices": ["승인", "보완 요청"]}, {"key": "보완대상", "label": "보완 대상(보완 요청일 때)", "type": "choice", "required": false, "choices": ["대손충당금", "감가상각비", "두 항목"]}, {"key": "보완사유", "label": "보완 사유(보완 요청일 때)", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Decision" name="결정 기록 (04A·04B)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "decide_close_report", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "report_version": "결정보고버전", "decision": "결정", "targets": "보완대상", "reason": "보완사유", "answered_by": "결정자", "answered_via": "결정경로"}, "output": {"결정ID": "decision_id", "결정결과": "decision", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="Task_Handoff" name="후속 업무 인계 (06 · 전표 반영 · 주석 취합)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "hand_off_close_approval", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID"}, "output": {"인계상태": "state", "인계ID": "handoff_id", "인계대기": "reason"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Retry_Handoff" name="인계 재시도 (인계 대기 · 회계팀장)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "후속 업무 인계 재시도 — 인계 대기 경로만", "answered_by_as": "재시도자", "answered_via_as": "재시도경로", "assignees": ["회계팀장"], "description": "승인 결정은 그대로다. 등록하지 못한 경로(전표 반영 또는 주석 취합)만 다시 인계한다 — 이미 등록한 경로는 다시 보내지 않고, 등록 응답이 유실됐으면 기간계의 기존 업무를 먼저 찾는다(중복 배정 없음). 등록 응답과 수신 담당·승인본 연결을 대조한 뒤 반영·취합 대기로 바뀐다.", "show": ["데모실행ID", "결산건ID", "보고ID", "보고버전", "인계대기"], "fields": [{"key": "인계재시도", "label": "재시도", "type": "choice", "required": true, "choices": ["인계 재시도"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:userTask id="Revise_Report" name="보완 처리 (05 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "보완 요청 처리 — 회계담당자", "answered_by_as": "보완자", "answered_via_as": "보완경로", "assignees": ["회계담당"], "description": "회계팀장이 보완을 요청했다. 수치와 원천이 같고 문안·근거 참조만 보강하면 [참조 보강 재상신] — 변경 내역을 적고 같은 보고 ID의 새 버전으로 올린다. 회수예상액 등 입력이 바뀌었으면(영업 변경 회신·회계 재평가 → 장면 1 재점검이 끝난 뒤) [재계산] — 영향 항목을 다시 계산하고 요약·주석·첨부를 새 버전으로 만든 뒤 영향 항목을 재검토하고 [재상신]한다. 재계산·재검토 전에는 상신을 보류한다.", "show": ["데모실행ID", "결산건ID", "보고ID", "보고버전", "결과버전", "첨부ID", "보완대상", "보완사유", "처리안내", "error_message"], "fields": [{"key": "보완보고버전", "label": "본 보고 버전", "type": "text", "required": true}, {"key": "보완처리", "label": "처리", "type": "choice", "required": true, "choices": ["참조 보강 재상신", "재계산", "재상신"]}, {"key": "변경내역", "label": "변경 내역(참조 보강일 때 필수)", "type": "text", "required": false}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revision" name="보완 처리 기록 (05)">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "revise_close_report", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "report_version": "보완보고버전", "action": "보완처리", "change_note": "변경내역", "answered_by": "보완자", "answered_via": "보완경로"}, "output": {"다음": "next", "보고버전": "report_version", "결과버전": "result_version", "첨부ID": "file_id", "검토대상": "item", "처리안내": "guide", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="Review_Revision" name="영향 항목 재검토 (05 · 회계담당자)">
+      <bpmn:extensionElements>
+        <chk:approval>{"title": "보완 재계산 뒤 영향 항목 재검토 — 회계담당자", "answered_by_as": "재검토자", "answered_via_as": "재검토경로", "assignees": ["회계담당"], "description": "다시 계산한 결과와 새 첨부 Excel에서 영향 항목(예: A사 개별평가 행의 회수예상액·개별 충당금, 충당금주석)을 확인한다. 입력·금액이 같은 항목의 검토는 승계됐다. 본 결과 버전이 최신이 아니면 기록하지 않는다.", "show": ["데모실행ID", "결산건ID", "결과버전", "첨부ID", "검토대상", "error_message"], "fields": [{"key": "재검토결과버전", "label": "본 결과 버전", "type": "text", "required": true}, {"key": "재검토", "label": "검토", "type": "choice", "required": true, "choices": ["검토 완료"]}]}</chk:approval>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:serviceTask id="Record_Revision_Review" name="재검토 기록">
+      <bpmn:extensionElements>
+        <chk:serviceCall>{"app_id": "external", "operation": "review_close_revision", "input": {"demo_run_id": "데모실행ID", "close_id": "결산건ID", "item": "검토대상", "result_version": "재검토결과버전", "decision": "재검토", "answered_by": "재검토자", "answered_via": "재검토경로"}, "output": {"다음": "next", "검토대상": "item", "재검토ID": "review_id", "error_message": "error_message"}}</chk:serviceCall>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Gw_Decision" name="결정" default="Flow_approved"/>
+    <bpmn:exclusiveGateway id="Gw_Handoff" name="두 경로 등록" default="Flow_handed_all"/>
+    <bpmn:exclusiveGateway id="Gw_Revision" name="보완 처리 결과" default="Flow_resubmitted"/>
+    <bpmn:exclusiveGateway id="Gw_Review" name="재검토가 남았나" default="Flow_review_done"/>
+    <bpmn:endEvent id="End" name="승인 2/2 · 승인 보고 1건 · 전표 반영 0/2 · 주석 취합 0/2 — 후속 담당 인계"/>
+    <bpmn:boundaryEvent id="Bnd_Record_Decision" name="결정 보류" attachedToRef="Record_Decision">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revision" name="기록 거절" attachedToRef="Record_Revision">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Bnd_Record_Revision_Review" name="기록 거절" attachedToRef="Record_Revision_Review">
+      <bpmn:errorEventDefinition errorRef="Err_record"/>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_start" sourceRef="Start" targetRef="Task_Open"/>
+    <bpmn:sequenceFlow id="Flow_opened" sourceRef="Task_Open" targetRef="Approve_Report"/>
+    <bpmn:sequenceFlow id="Flow_Approve_Report_answered" sourceRef="Approve_Report" targetRef="Record_Decision"/>
+    <bpmn:sequenceFlow id="Flow_decided" sourceRef="Record_Decision" targetRef="Gw_Decision"/>
+    <bpmn:sequenceFlow id="Flow_Record_Decision_rejected" sourceRef="Bnd_Record_Decision" targetRef="Approve_Report"/>
+    <bpmn:sequenceFlow id="Flow_approved" name="승인" sourceRef="Gw_Decision" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_returned" name="보완 요청" sourceRef="Gw_Decision" targetRef="Revise_Report">
+      <bpmn:conditionExpression>결정결과 == 'RETURNED'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_handed" sourceRef="Task_Handoff" targetRef="Gw_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_handed_all" name="두 경로 등록" sourceRef="Gw_Handoff" targetRef="End"/>
+    <bpmn:sequenceFlow id="Flow_partial" name="인계 대기" sourceRef="Gw_Handoff" targetRef="Retry_Handoff">
+      <bpmn:conditionExpression>인계상태 == 'PARTIAL'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_retried" sourceRef="Retry_Handoff" targetRef="Task_Handoff"/>
+    <bpmn:sequenceFlow id="Flow_Revise_Report_answered" sourceRef="Revise_Report" targetRef="Record_Revision"/>
+    <bpmn:sequenceFlow id="Flow_revised" sourceRef="Record_Revision" targetRef="Gw_Revision"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revision_rejected" sourceRef="Bnd_Record_Revision" targetRef="Revise_Report"/>
+    <bpmn:sequenceFlow id="Flow_resubmitted" name="재상신 — 새 버전" sourceRef="Gw_Revision" targetRef="Approve_Report"/>
+    <bpmn:sequenceFlow id="Flow_revise_again" name="재상신 차례" sourceRef="Gw_Revision" targetRef="Revise_Report">
+      <bpmn:conditionExpression>다음 == 'REVISE'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_review" name="영향 항목 재검토" sourceRef="Gw_Revision" targetRef="Review_Revision">
+      <bpmn:conditionExpression>다음 == 'REVIEW'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Review_Revision_answered" sourceRef="Review_Revision" targetRef="Record_Revision_Review"/>
+    <bpmn:sequenceFlow id="Flow_rereviewed" sourceRef="Record_Revision_Review" targetRef="Gw_Review"/>
+    <bpmn:sequenceFlow id="Flow_Record_Revision_Review_rejected" sourceRef="Bnd_Record_Revision_Review" targetRef="Review_Revision"/>
+    <bpmn:sequenceFlow id="Flow_review_more" name="다음 영향 항목" sourceRef="Gw_Review" targetRef="Review_Revision">
+      <bpmn:conditionExpression>다음 == 'REVIEW'</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_review_done" name="재검토 끝 — 재상신" sourceRef="Gw_Review" targetRef="Revise_Report"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_company1.s3.sc03">
+    <bpmndi:BPMNPlane id="BPMNPlane_company1.s3.sc03" bpmnElement="company1.s3.sc03">
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start">
+        <dc:Bounds x="60" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Open_di" bpmnElement="Task_Open">
+        <dc:Bounds x="140" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Approve_Report_di" bpmnElement="Approve_Report">
+        <dc:Bounds x="290" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Decision_di" bpmnElement="Record_Decision">
+        <dc:Bounds x="440" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Decision_di" bpmnElement="Gw_Decision" isMarkerVisible="true">
+        <dc:Bounds x="590" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_Handoff_di" bpmnElement="Task_Handoff">
+        <dc:Bounds x="690" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Handoff_di" bpmnElement="Gw_Handoff" isMarkerVisible="true">
+        <dc:Bounds x="840" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_di" bpmnElement="End">
+        <dc:Bounds x="952" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Retry_Handoff_di" bpmnElement="Retry_Handoff">
+        <dc:Bounds x="690" y="340" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Revise_Report_di" bpmnElement="Revise_Report">
+        <dc:Bounds x="440" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Revision_di" bpmnElement="Record_Revision">
+        <dc:Bounds x="590" y="460" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Revision_di" bpmnElement="Gw_Revision" isMarkerVisible="true">
+        <dc:Bounds x="740" y="475" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Review_Revision_di" bpmnElement="Review_Revision">
+        <dc:Bounds x="840" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Record_Revision_Review_di" bpmnElement="Record_Revision_Review">
+        <dc:Bounds x="590" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gw_Review_di" bpmnElement="Gw_Review" isMarkerVisible="true">
+        <dc:Bounds x="490" y="635" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Decision_di" bpmnElement="Bnd_Record_Decision">
+        <dc:Bounds x="472" y="262" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Revision_di" bpmnElement="Bnd_Record_Revision">
+        <dc:Bounds x="622" y="522" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Bnd_Record_Revision_Review_di" bpmnElement="Bnd_Record_Revision_Review">
+        <dc:Bounds x="622" y="682" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_start_di" bpmnElement="Flow_start">
+        <di:waypoint x="96" y="240" />
+        <di:waypoint x="140" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_opened_di" bpmnElement="Flow_opened">
+        <di:waypoint x="240" y="240" />
+        <di:waypoint x="290" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approve_Report_answered_di" bpmnElement="Flow_Approve_Report_answered">
+        <di:waypoint x="390" y="240" />
+        <di:waypoint x="440" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_decided_di" bpmnElement="Flow_decided">
+        <di:waypoint x="540" y="240" />
+        <di:waypoint x="590" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Decision_rejected_di" bpmnElement="Flow_Record_Decision_rejected">
+        <di:waypoint x="490" y="298" />
+        <di:waypoint x="490" y="320" />
+        <di:waypoint x="350" y="320" />
+        <di:waypoint x="350" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_approved_di" bpmnElement="Flow_approved">
+        <di:waypoint x="640" y="240" />
+        <di:waypoint x="690" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_returned_di" bpmnElement="Flow_returned">
+        <di:waypoint x="615" y="265" />
+        <di:waypoint x="615" y="380" />
+        <di:waypoint x="490" y="380" />
+        <di:waypoint x="490" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_handed_di" bpmnElement="Flow_handed">
+        <di:waypoint x="790" y="240" />
+        <di:waypoint x="840" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_handed_all_di" bpmnElement="Flow_handed_all">
+        <di:waypoint x="890" y="240" />
+        <di:waypoint x="952" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_partial_di" bpmnElement="Flow_partial">
+        <di:waypoint x="865" y="265" />
+        <di:waypoint x="865" y="380" />
+        <di:waypoint x="790" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_retried_di" bpmnElement="Flow_retried">
+        <di:waypoint x="740" y="340" />
+        <di:waypoint x="740" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Revise_Report_answered_di" bpmnElement="Flow_Revise_Report_answered">
+        <di:waypoint x="540" y="500" />
+        <di:waypoint x="590" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_revised_di" bpmnElement="Flow_revised">
+        <di:waypoint x="690" y="500" />
+        <di:waypoint x="740" y="500" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Revision_rejected_di" bpmnElement="Flow_Record_Revision_rejected">
+        <di:waypoint x="640" y="558" />
+        <di:waypoint x="640" y="580" />
+        <di:waypoint x="510" y="580" />
+        <di:waypoint x="510" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_resubmitted_di" bpmnElement="Flow_resubmitted">
+        <di:waypoint x="765" y="475" />
+        <di:waypoint x="765" y="430" />
+        <di:waypoint x="320" y="430" />
+        <di:waypoint x="320" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_revise_again_di" bpmnElement="Flow_revise_again">
+        <di:waypoint x="765" y="525" />
+        <di:waypoint x="765" y="600" />
+        <di:waypoint x="470" y="600" />
+        <di:waypoint x="470" y="540" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_review_di" bpmnElement="Flow_review">
+        <di:waypoint x="790" y="500" />
+        <di:waypoint x="890" y="500" />
+        <di:waypoint x="890" y="620" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Review_Revision_answered_di" bpmnElement="Flow_Review_Revision_answered">
+        <di:waypoint x="840" y="660" />
+        <di:waypoint x="690" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_rereviewed_di" bpmnElement="Flow_rereviewed">
+        <di:waypoint x="590" y="660" />
+        <di:waypoint x="540" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Record_Revision_Review_rejected_di" bpmnElement="Flow_Record_Revision_Review_rejected">
+        <di:waypoint x="640" y="718" />
+        <di:waypoint x="640" y="740" />
+        <di:waypoint x="870" y="740" />
+        <di:waypoint x="870" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_review_more_di" bpmnElement="Flow_review_more">
+        <di:waypoint x="515" y="685" />
+        <di:waypoint x="515" y="760" />
+        <di:waypoint x="910" y="760" />
+        <di:waypoint x="910" y="700" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_review_done_di" bpmnElement="Flow_review_done">
+        <di:waypoint x="490" y="660" />
+        <di:waypoint x="420" y="660" />
+        <di:waypoint x="420" y="500" />
+        <di:waypoint x="440" y="500" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

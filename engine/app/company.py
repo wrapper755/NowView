@@ -448,6 +448,17 @@ class CompanyClient:
             "POST", f"/worlds/{world_id}/sim/close-faults", {"kind": kind, "count": count}
         )
 
+    def put_close_followup(self, world_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """
+        시나리오 3 장면 3 — 승인본 한 경로(전표 반영·주석 취합)의 후속 업무를 등록한다. 같은 `key`의
+        재요청은 이미 등록한 업무를 돌려준다.
+        """
+        return self._call("POST", f"/worlds/{world_id}/close-followups", body)
+
+    def close_followups(self, world_id: str) -> list[dict[str, Any]]:
+        """등록된 후속 업무(경로별) — 등록 응답이 유실됐을 때 먼저 조회한다."""
+        return self._call("GET", f"/worlds/{world_id}/close-followups")
+
     # ───────────── 구매 (장면 2) ─────────────
 
     def purchase_master(self) -> dict[str, Any]:
