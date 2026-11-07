@@ -137,6 +137,7 @@ def _normalized(records: list[dict], world: str) -> list[dict]:
     # 실제 시각(Agent 초안의 요청·완료)은 예시마다 달라진다
     real = r'"(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+\+00:00)"'
     text = re.sub(real, '"2026-11-03T00:00:00+00:00"', text)
+    text = re.sub(r'"AGX-[0-9a-f]{12}"', '"AGX-example"', text)  # Agent 실행 id
     text = re.sub(r"apr_run_[0-9a-z_]+?_(?=[A-Z])", "apr_run_example_", text)
     return json.loads(text)
 

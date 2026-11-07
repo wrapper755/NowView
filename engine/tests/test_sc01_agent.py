@@ -61,10 +61,32 @@ def test_calculation_requests_a_draft_and_it_passes_validation() -> None:
     assert out["status"] == "SUCCEEDED" and out["provenance"] == "mock"
     assert out["run_id"] == "RUN-F02-001" and out["attempts"] == 1
     draft = out["draft"]
-    assert "8,800대분" in draft["summary"] and "1,400만원" in draft["summary"]
+    # 금액은 백만원(사이트 표기) — 「1,400만원」이 아니다
+    assert "8,800대분" in draft["summary"] and "14백만원" in draft["summary"]
+    assert "만원" not in draft["summary"].replace("백만원", "")
     assert "RUN-F02-001:A-b:2027-07:KRI02" in draft["evidence_refs"]
     assert {t["type"] for t in draft["suggested_tasks"]} == {"PROD", "MAT", "FIN"}
     assert out["prompt_version"] == agent.PROMPT_VERSION and out["input_hash"]
+    # 누가·어느 판·어느 실행인지 — 산출물 번호(AGT-001)와 다른 실행 id, mock은 모델을 부르지 않았다
+    assert (out["agent_id"], out["agent_version"]) == (agent.AGENT_ID, agent.AGENT_VERSION)
+    assert out["execution_id"].startswith("AGX-") and out["model_called"] is False
+
+
+def test_regeneration_is_a_new_execution_and_llm_records_a_real_call() -> None:
+    """재생성은 새 실행 id다. llm 러너는 실패해도 실제 호출로 남는다(부른 것은 사실이다)."""
+    proc = make()
+    doc = play(proc, until=2)
+    proc.regenerate(doc["demo_run_id"], "RUN-F02-001", actor="u-sales-lead")
+    outs = proc.get(doc["demo_run_id"])["agent_outputs"]
+    assert len({o["execution_id"] for o in outs.values()}) == 2
+    assert agent.runner_for("llm").calls_model is True
+    assert agent.runner_for("mock").calls_model is agent.runner_for("fail").calls_model is False
+
+
+def test_amounts_are_written_in_millions() -> None:
+    assert agent._won("14000000") == "14백만원"
+    assert agent._won("9364320") == "9.36432백만원"
+    assert agent._won("20000") == "20,000원"
 
 
 def test_the_review_does_not_wait_for_the_agent() -> None:

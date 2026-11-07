@@ -572,7 +572,15 @@ class Sc01Process:
         except (DomainError, KeyError):
             return
         payload, runner = record["input"], self.agent_factory(record["mode"])
-        result: dict[str, Any] = {"prompt_version": agent.PROMPT_VERSION, "errors": []}
+        result: dict[str, Any] = {
+            "agent_id": agent.AGENT_ID,
+            "agent_version": agent.AGENT_VERSION,
+            "execution_id": agent.new_execution_id(),
+            # 실제 모델 호출 여부 — 러너가 말한다(mock·fail은 부르지 않는다). 실패해도 남긴다.
+            "model_called": bool(getattr(runner, "calls_model", False)),
+            "prompt_version": agent.PROMPT_VERSION,
+            "errors": [],
+        }
         for attempt in (1, 2):
             result["attempts"] = attempt
             try:

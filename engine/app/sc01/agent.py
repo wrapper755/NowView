@@ -11,6 +11,11 @@ SC01 Agent 검토 지원 — 구현명세 11장(AG-01~03).
   질문에 14.2와 14.5가 나왔다(CLAUDE.md 4.15).
 * **실패해도 업무는 계속된다**(EX08). 규칙 계산과 사람의 검토는 Agent 없이 끝난다.
 * 러너는 셋이다: `mock`(결정론 — 기본 시연·테스트), `llm`(ollama), `fail`(EX08 재현).
+* **기록에 누가·어느 판·어느 실행인지를 싣는다**(2026-11-07, Company1 시나리오 1 검토 v0.1 §5) —
+  `agent_id`·`agent_version`·`execution_id`·`model_called`. 산출물 번호(AGT-001)는 실행 id가 아니고,
+  `mode`·`provenance`만으로는 모델을 실제로 불렀는지 사이트가 단정할 수 없었다(「기록 없음」).
+* **금액은 백만원(또는 원)으로 쓴다** — 회사 사이트가 백만원·원만 쓴다.
+  「1,400만원」 → 「14백만원」.
 """
 
 from __future__ import annotations
@@ -20,13 +25,25 @@ import json
 import os
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Protocol
 
 import httpx
 
-PROMPT_VERSION = "sc01-review-v2"
+PROMPT_VERSION = "sc01-review-v3"  # v3 — 금액을 백만원으로(2026-11-07)
+
+#: 이 Agent가 누구이고 몇 판인지. 판은 러너·계약(입력·검증)이 바뀔 때 올린다 —
+#: 지시문 판은 PROMPT_VERSION이다.
+AGENT_ID = "sc01-review-draft"
+AGENT_VERSION = "1"
+
+
+def new_execution_id() -> str:
+    """초안 요청 하나의 실행 id — 자동 재시도 두 번을 한 실행으로 본다(산출물 번호와 다르다)."""
+    return f"AGX-{uuid.uuid4().hex[:12]}"
+
 
 #: 계약 — 필수 출력(AG-01 표).
 REQUIRED = ("summary", "findings", "evidence_refs", "questions", "suggested_tasks", "limitations")
@@ -120,7 +137,7 @@ def input_hash(payload: dict[str, Any]) -> str:
 
 #: 숫자를 뽑기 전에 지우는 식별자(RUN-F02-001, ISSUE-B07, SRC02, KRI01, R01-v1, A-b …).
 _ID = re.compile(r"\b[A-Za-z]+(?:-[A-Za-z0-9]+)*\d[\w-]*|\b[A-Z]-[a-e]\b")
-_NUM = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(%|만\s*원|만|억\s*원|억|원|대분)?")
+_NUM = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(%|백만\s*원|백만|만\s*원|만|억\s*원|억|원|대분)?")
 
 
 def allowed_numbers(payload: dict[str, Any]) -> tuple[set[Decimal], set[Decimal]]:
@@ -151,7 +168,7 @@ def allowed_numbers(payload: dict[str, Any]) -> tuple[set[Decimal], set[Decimal]
             pct.add(v * 100)  # 비율 임계값 3%·5%·10%
             plain.add(v)
         else:
-            plain.add(v)  # 금액 임계값 500만·1,000만원
+            plain.add(v)  # 금액 임계값 5백만·10백만원
     return plain, pct
 
 
@@ -161,7 +178,9 @@ def _numbers(text: str) -> list[tuple[Decimal, str]]:
     for raw, unit in _NUM.findall(cleaned):
         v = Decimal(raw.replace(",", ""))
         unit = (unit or "").replace(" ", "")
-        if unit.startswith("만"):
+        if unit.startswith("백만"):
+            v *= 1_000_000
+        elif unit.startswith("만"):
             v *= 10_000
         elif unit.startswith("억"):
             v *= 100_000_000
@@ -230,12 +249,19 @@ class Draft:
 
 
 class Runner(Protocol):
+    #: 실제 모델을 부르는가 — 기록의 `model_called`. mock·fail은 부르지 않는다.
+    calls_model: bool
+
     def run(self, payload: dict[str, Any]) -> Draft: ...
 
 
 def _won(value: str) -> str:
+    """금액 글 — 백만원 이상은 백만원(소수는 있는 만큼), 아래는 원. 사이트 표기와 같다."""
     v = Decimal(value)
-    return f"{int(v / 10_000):,}만원" if abs(v) >= 10_000 else f"{int(v):,}원"
+    if abs(v) < 1_000_000:
+        return f"{int(v):,}원"
+    m = (v / 1_000_000).normalize()
+    return f"{int(m):,}백만원" if m == m.to_integral_value() else f"{m:,f}백만원"
 
 
 RISK_KO = {"CRITICAL": "중요", "ATTENTION": "관심", "NORMAL": "기준 이내", None: "판정 보류"}
@@ -247,6 +273,8 @@ class MockRunner:
 
     **이것도 Agent 계약을 그대로 통과해야 한다** — 검증을 건너뛰는 지름길이 없다.
     """
+
+    calls_model = False
 
     def run(self, payload: dict[str, Any]) -> Draft:
         started = time.monotonic()
@@ -315,6 +343,8 @@ class MockRunner:
 class FailingRunner:
     """EX08 — Agent 응답 실패. 규칙 계산과 수동 검토는 그대로 가능해야 한다."""
 
+    calls_model = False
+
     def run(self, payload: dict[str, Any]) -> Draft:
         raise AgentFailure("Agent 응답 실패(EX08 시연) — 담당자가 직접 검토한다")
 
@@ -335,6 +365,8 @@ class OllamaRunner:
     스키마를 무시하고 마크다운 산문을 돌려준 적이 있다(CLAUDE.md 4.15).
     """
 
+    calls_model = True
+
     def __init__(self, base_url: str, model: str, *, timeout_s: float = 120.0) -> None:
         self.base_url, self.model, self.timeout_s = base_url.rstrip("/"), model, timeout_s
 
@@ -346,7 +378,7 @@ class OllamaRunner:
             "개선 효과를 사실처럼 쓰지 않는다 — 모르면 questions에 묻는다. evidence_refs는 "
             "evidence_catalog에 있는 ID만 쓴다. 위험 수준을 바꾸지 않는다.\n"
             "표기: 지표는 코드가 아니라 metric_names의 이름으로 쓰고, 비율은 백분율(예: 7.37%), "
-            "금액은 만원 단위(예: 1,400만원), 물량은 대분으로 쓴다. "
+            "금액은 백만원 단위(예: 14백만원, 백만원 미만은 원), 물량은 대분으로 쓴다. "
             "CRITICAL은 중요, ATTENTION은 관심이다.\n"
             "출력은 JSON 객체 하나만: "
             + json.dumps(_SCHEMA_HINT, ensure_ascii=False)

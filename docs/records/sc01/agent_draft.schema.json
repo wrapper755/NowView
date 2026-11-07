@@ -27,6 +27,34 @@
     "mode": {
       "type": "string"
     },
+    "agent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Agent 이름 — 이 칸 전에 만든 기록에는 없다"
+    },
+    "agent_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Agent 판(러너·계약). 지시문 판은 prompt_version"
+    },
+    "execution_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "실행 id(AGX-…) — 산출물 번호 output_id와 다르다. 자동 재시도 두 번은 한 실행"
+    },
+    "model_called": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "실제 모델을 불렀는가 — mock·fail은 false(준비된 결과 재현)"
+    },
     "draft": {
       "anyOf": [
         {

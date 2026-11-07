@@ -1040,6 +1040,12 @@ def request_agent(
         "run_id": run_id,
         "status": "RUNNING",
         "mode": mode,
+        # 누가·어느 판·어느 실행인지(사이트 「Agent 실행」) — 실행이 끝나면 채운다. 이 칸 전에 만든
+        # 기록에는 없다(사이트는 「기록 없음」).
+        "agent_id": None,
+        "agent_version": None,
+        "execution_id": None,
+        "model_called": None,
         "prompt_version": None,
         "input_hash": payload_hash,
         "input": payload,
